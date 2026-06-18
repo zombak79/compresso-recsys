@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "compresso-recsys"
+version = "0.1.0"
+description = "Recommender-system experiments and checkpoint pipelines for Compresso"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "compresso-pytorch @ git+https://github.com/zombak79/compresso.git",
+    "torch>=2.1",
+    "numpy>=1.26",
+    "pandas>=2.0",
+    "scipy>=1.11",
+    "pyarrow>=14.0",
+]
+
+[project.optional-dependencies]
+datasets = [
+    "datasets>=2.19",
+]
+sbert = [
+    "sentence-transformers>=3.0",
+]
+test = [
+    "pytest>=8.0",
+]
+
+[project.scripts]
+compresso-recsys-build-checkpoint = "compresso_recsys.scripts.build_checkpoint:main"
+compresso-recsys-train-elsa = "compresso_recsys.scripts.train_elsa_from_checkpoint:main"
+compresso-recsys-train-compressed-elsa = "compresso_recsys.scripts.train_compressed_elsa_from_checkpoint:main"
+compresso-recsys-train-sae = "compresso_recsys.scripts.train_sae_from_checkpoint:main"
+compresso-recsys-train-sbert = "compresso_recsys.scripts.train_sbert_from_checkpoint:main"
+compresso-recsys-eval-checkpoint = "compresso_recsys.scripts.eval_checkpoint:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short"
