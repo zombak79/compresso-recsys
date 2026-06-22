@@ -206,3 +206,103 @@ from compresso_recsys.datasets import Goodbooks, MovieLens1M, MovieLens20M
 from compresso_recsys.models import TorchELSA, CompressedELSA
 from compresso_recsys.checkpoint import update_checkpoint, load_recsys_split
 ```
+
+## All params for checkpoint builder
+
+`--min_source_items 1` and `--min_target_items 1` mean:
+
+```text
+Keep an evaluation user only if they have at least 1 source item and at least 1 target item.
+```
+
+For cold-item splits:
+
+```text
+source items = warm/train items used as the user profile
+target items = cold held-out items we want to recommend
+```
+
+So if a user has only cold targets but no warm source items, we cannot build a profile, and the user is dropped.
+
+Here is the full current `compresso-recsys-build-checkpoint` parameter table.
+
+| Parameter | Default | Description |
+|---|---:|---|
+| `--dataset` | required | Dataset to build. Choices: `goodbooks`, `ml1m`, `ml20m`, `amazon2023`. |
+| `--data_dir` | `data` | Directory where raw/downloaded dataset files are stored. |
+| `--checkpoint_path` | dataset-specific | Output ZIP checkpoint path. If omitted, uses the dataset default. |
+| `--seed` | dataset-specific | Random seed for user/item splitting and reproducibility. |
+| `--val_users` | dataset-specific | Number of validation users for `user_split`. |
+| `--test_users` | dataset-specific | Number of test users for `user_split`. |
+| `--min_user_support` | dataset-specific | Minimum number of interactions per user during iterative pruning. |
+| `--item_min_support` | dataset-specific | Minimum number of interactions per item during iterative pruning. |
+| `--min_value_to_keep` | dataset-specific | Drop interactions below this value. Usually `4.0`, meaning keep positive ratings only. |
+| `--set_all_values_to` | dataset-specific | If set, binarize all remaining interaction values to this value. Usually `1.0`. |
+| `--eval_fold` | `0` | Evaluation fold protocol for `user_split`. `0` means stacked 5-fold paper-style behavior; `1` means single fold. |
+| `--split_mode` | `user_split` | Split protocol. Choices: `user_split`, `item_split`, `leave_last_out`, `temporal`. |
+| `--val_items` | `None` | Exact number of cold validation items for `item_split`. Overrides `--item_val_frac`. |
+| `--test_items` | `None` | Exact number of cold test items for `item_split`. Overrides `--item_test_frac`. |
+| `--item_val_frac` | `0.05` | Fraction of items held out as cold validation items for `item_split`. |
+| `--item_test_frac` | `0.10` | Fraction of items held out as cold test items for `item_split`. |
+| `--temporal_test_frac` | `0.10` | For local temporal split, latest global fraction of interactions used as target side. For Amazon `temporal`, McAuley predefined timestamp split is used instead. |
+| `--min_source_items` | `1` | Minimum number of source/profile items an eval user must have. For cold-item eval, these are train/warm items. |
+| `--min_target_items` | `1` | Minimum number of target/held-out items an eval user must have. For cold-item eval, these are cold items. |
+| `--amazon_category` | `Toys_and_Games` | Amazon Reviews 2023 category. Supports official names and aliases like `toys`, `electronics`, `clothing`. |
+| `--metadata_text_fields` | `title,features,description,categories` | Metadata columns joined into canonical `entity_text`. Mostly important for Amazon/SBERT. |
+| `--min_entity_text_words` | `30` | Drop items whose constructed `entity_text` is shorter than this many words. Mostly useful for Amazon. |
+| `--annotation_source` | `genres` | Optional tag source for clustering. Choices: `genres`, `ml20m_tags`, `goodbooks_tags`, `none`. |
+| `--annotation_min_count` | `100` | Minimum count threshold for tag annotations when using user-generated tags. |
+
+Dataset-specific defaults:
+
+| Dataset | `checkpoint_path` | `seed` | `val_users` | `test_users` | `min_user_support` | `item_min_support` |
+|---|---|---:|---:|---:|---:|---:|
+| `goodbooks` | `artifacts/goodbooks/recsys_checkpoint.zip` | `0` | `1000` | `2500` | `5` | `1` |
+| `ml1m` | `artifacts/ml1m/recsys_checkpoint.zip` | `42` | `500` | `1000` | `5` | `1` |
+| `ml20m` | `artifacts/ml20m/recsys_checkpoint.zip` | `42` | `2500` | `5000` | `5` | `1` |
+| `amazon2023` | `artifacts/amazon2023/{amazon_category}/recsys_checkpoint.zip` | `42` | `2500` | `5000` | `20` | `20` |
+
+All datasets currently default to:
+
+| Parameter | Default |
+|---|---:|
+| `min_value_to_keep` | `4.0` |
+| `set_all_values_to` | `1.0` |
+
+## Supported Amazon 2023 datasets
+
+| Official Amazon 2023 category | Alias in `compresso-recsys` | Supported? |
+|---|---|---|
+| `All_Beauty` | `beauty` | yes |
+| `Amazon_Fashion` | none | yes, pass official name |
+| `Appliances` | none | yes |
+| `Arts_Crafts_and_Sewing` | none | yes |
+| `Automotive` | none | yes |
+| `Baby_Products` | none | yes |
+| `Beauty_and_Personal_Care` | none | yes |
+| `Books` | none | yes |
+| `CDs_and_Vinyl` | none | yes |
+| `Cell_Phones_and_Accessories` | none | yes |
+| `Clothing_Shoes_and_Jewelry` | `clothing` | yes |
+| `Digital_Music` | none | yes |
+| `Electronics` | `electronics` | yes |
+| `Gift_Cards` | none | yes |
+| `Grocery_and_Gourmet_Food` | none | yes |
+| `Handmade_Products` | none | yes |
+| `Health_and_Household` | none | yes |
+| `Health_and_Personal_Care` | none | yes |
+| `Home_and_Kitchen` | none | yes |
+| `Industrial_and_Scientific` | none | yes |
+| `Kindle_Store` | none | yes |
+| `Magazine_Subscriptions` | none | yes |
+| `Movies_and_TV` | none | yes |
+| `Musical_Instruments` | none | yes |
+| `Office_Products` | none | yes |
+| `Patio_Lawn_and_Garden` | none | yes |
+| `Pet_Supplies` | none | yes |
+| `Software` | none | yes |
+| `Sports_and_Outdoors` | none | yes |
+| `Subscription_Boxes` | none | yes |
+| `Tools_and_Home_Improvement` | none | yes |
+| `Toys_and_Games` | `toys`, `toys_and_games` | yes |
+| `Video_Games` | none | yes |

@@ -8,6 +8,16 @@ import torch
 from scipy.sparse import csr_matrix, vstack
 
 
+def _progress(iterable, *, enabled: bool, desc: str):
+    if not enabled:
+        return iterable
+    try:
+        from tqdm.auto import tqdm
+    except Exception:  # pragma: no cover - optional display helper
+        return iterable
+    return tqdm(iterable, desc=desc)
+
+
 def _filter_users_by_support(df: pd.DataFrame, min_user_support: int) -> pd.DataFrame:
     if min_user_support <= 1:
         return df
@@ -339,6 +349,8 @@ def _compute_topk_predictions(
     k: int,
     *,
     batch_size: int = 512,
+    show_progress: bool = False,
+    desc: str = "evaluate top-k",
 ) -> List[np.ndarray]:
     """Batched vectorized top-k retrieval.
 
@@ -350,7 +362,8 @@ def _compute_topk_predictions(
     k_eff = min(k, n_items)
     preds: List[np.ndarray] = []
 
-    for start in range(0, len(source_indices), batch_size):
+    starts = range(0, len(source_indices), batch_size)
+    for start in _progress(starts, enabled=show_progress, desc=desc):
         batch = source_indices[start : start + batch_size]
         b = len(batch)
 
@@ -447,6 +460,7 @@ def evaluate_item_embeddings(
     score_batch_size: int = 512,
     debug: bool = False,
     debug_users: int = 5,
+    show_progress: bool = False,
 ) -> dict[str, float]:
     """Evaluate item embeddings with torch top-k retrieval.
 
@@ -483,6 +497,8 @@ def evaluate_item_embeddings(
         source_indices,
         k=k,
         batch_size=score_batch_size,
+        show_progress=show_progress,
+        desc=f"evaluate@{k}",
     )
 
     out = {
@@ -504,13 +520,21 @@ def evaluate_item_embeddings_with_holdout(
     score_batch_size: int = 512,
     debug: bool = False,
     debug_users: int = 5,
+    show_progress: bool = False,
 ) -> dict[str, float]:
     if len(source_indices) != len(target_indices):
         raise ValueError("source_indices and target_indices must have same length")
     e = torch.from_numpy(item_embeddings.astype(np.float32))
     e = torch.nn.functional.normalize(e, dim=-1)
     target_sets = [set(x.tolist()) for x in target_indices]
-    pred_ranked = _compute_topk_predictions(e, source_indices, k=k, batch_size=score_batch_size)
+    pred_ranked = _compute_topk_predictions(
+        e,
+        source_indices,
+        k=k,
+        batch_size=score_batch_size,
+        show_progress=show_progress,
+        desc=f"evaluate@{k}",
+    )
     out = {
         f"recall@{k}": _calibrated_recall(target_sets, pred_ranked, k),
         f"ndcg@{k}": _ndcg(target_sets, pred_ranked, k),
