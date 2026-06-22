@@ -9,7 +9,7 @@ import pandas as pd
 from scipy.sparse import csr_matrix
 
 from compresso_recsys.checkpoint import save_recsys_split, update_checkpoint
-from compresso_recsys.datasets import Goodbooks, MovieLens1M, MovieLens20M
+from compresso_recsys.datasets import AmazonReviews2023, Goodbooks, MovieLens1M, MovieLens20M
 from compresso_recsys.retrieval import build_eval_holdout
 
 
@@ -30,6 +30,17 @@ DATASETS = {
     "goodbooks": DatasetSpec(Goodbooks, "artifacts/goodbooks/recsys_checkpoint.zip", seed=0, val_users=1000, test_users=2500),
     "ml1m": DatasetSpec(MovieLens1M, "artifacts/ml1m/recsys_checkpoint.zip", seed=42, val_users=500, test_users=1000),
     "ml20m": DatasetSpec(MovieLens20M, "artifacts/ml20m/recsys_checkpoint.zip", seed=42, val_users=2500, test_users=5000),
+    "amazon2023": DatasetSpec(
+        AmazonReviews2023,
+        "artifacts/amazon2023/{amazon_category}/recsys_checkpoint.zip",
+        seed=42,
+        val_users=2500,
+        test_users=5000,
+        min_user_support=20,
+        item_min_support=20,
+        min_value_to_keep=4.0,
+        set_all_values_to=1.0,
+    ),
 }
 
 
@@ -47,6 +58,24 @@ def parse_args():
     p.add_argument("--set_all_values_to", type=float, default=None)
     p.add_argument("--eval_fold", type=int, default=0, choices=[0, 1])
     p.add_argument(
+        "--amazon_category",
+        type=str,
+        default="Toys_and_Games",
+        help="Amazon Reviews 2023 category, e.g. Toys_and_Games, Electronics, Clothing_Shoes_and_Jewelry.",
+    )
+    p.add_argument(
+        "--metadata_text_fields",
+        type=str,
+        default="title,features,description,categories",
+        help="Comma-separated metadata fields joined into entity_text for text-aware datasets.",
+    )
+    p.add_argument(
+        "--min_entity_text_words",
+        type=int,
+        default=30,
+        help="Drop items whose constructed entity_text has fewer words. Mostly useful for Amazon 2023.",
+    )
+    p.add_argument(
         "--annotation_source",
         type=str,
         default="genres",
@@ -58,7 +87,9 @@ def parse_args():
 
 def _resolve_args(args):
     spec = DATASETS[args.dataset]
-    args.checkpoint_path = args.checkpoint_path or spec.checkpoint_path
+    args.checkpoint_path = args.checkpoint_path or spec.checkpoint_path.format(
+        amazon_category=args.amazon_category,
+    )
     args.seed = spec.seed if args.seed is None else args.seed
     args.val_users = spec.val_users if args.val_users is None else args.val_users
     args.test_users = spec.test_users if args.test_users is None else args.test_users
@@ -67,6 +98,20 @@ def _resolve_args(args):
     args.min_value_to_keep = spec.min_value_to_keep if args.min_value_to_keep is None else args.min_value_to_keep
     args.set_all_values_to = spec.set_all_values_to if args.set_all_values_to is None else args.set_all_values_to
     return args, spec
+
+
+def _make_dataset(args, spec: DatasetSpec):
+    if spec.cls is AmazonReviews2023:
+        fields = [field.strip() for field in args.metadata_text_fields.split(",") if field.strip()]
+        if not fields:
+            raise ValueError("--metadata_text_fields must contain at least one field")
+        return AmazonReviews2023(
+            data_dir=args.data_dir,
+            category=args.amazon_category,
+            metadata_text_fields=fields,
+            min_entity_text_words=args.min_entity_text_words,
+        )
+    return spec.cls(data_dir=args.data_dir)
 
 
 def _build_genre_tag_matrix(ds, item_ids: np.ndarray):
@@ -225,7 +270,7 @@ def main():
     random.seed(args.seed)
     np.random.seed(args.seed)
 
-    ds = spec.cls(data_dir=args.data_dir)
+    ds = _make_dataset(args, spec)
     raw_df = ds.get_interactions()
     proc_df = ds.preprocess_interactions_for_recsys(
         raw_df,
@@ -283,6 +328,13 @@ def main():
                 "eval_fold": args.eval_fold,
                 "annotation_source": args.annotation_source,
                 "annotation_min_count": args.annotation_min_count,
+                "amazon_category": args.amazon_category if args.dataset == "amazon2023" else None,
+                "metadata_text_fields": (
+                    [field.strip() for field in args.metadata_text_fields.split(",") if field.strip()]
+                    if args.dataset == "amazon2023"
+                    else None
+                ),
+                "min_entity_text_words": args.min_entity_text_words if args.dataset == "amazon2023" else None,
                 "annotations": {
                     "entity_tags": annotation_name,
                     "n_tags": int(len(tag_names)) if tag_names is not None else 0,

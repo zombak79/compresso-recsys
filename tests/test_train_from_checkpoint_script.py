@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import subprocess
 import sys
+import os
 from pathlib import Path
 
 import numpy as np
@@ -71,6 +72,9 @@ def test_recsys_train_from_checkpoint_script_smoke(tmp_path: Path):
             metadata={"dataset": "synthetic"},
         )
     repo_root = Path(__file__).resolve().parents[1]
+    env = os.environ.copy()
+    src_path = str(repo_root / "src")
+    env["PYTHONPATH"] = src_path if not env.get("PYTHONPATH") else f"{src_path}{os.pathsep}{env['PYTHONPATH']}"
     elsa_cmd = [
         sys.executable,
         "-m",
@@ -90,7 +94,7 @@ def test_recsys_train_from_checkpoint_script_smoke(tmp_path: Path):
         "--eval_batch_size",
         "4",
     ]
-    elsa_proc = subprocess.run(elsa_cmd, cwd=repo_root, capture_output=True, text=True)
+    elsa_proc = subprocess.run(elsa_cmd, cwd=repo_root, env=env, capture_output=True, text=True)
     assert elsa_proc.returncode == 0, elsa_proc.stderr
     assert "ELSA checkpoint metrics:" in elsa_proc.stdout
 
@@ -115,7 +119,7 @@ def test_recsys_train_from_checkpoint_script_smoke(tmp_path: Path):
         "--eval_batch_size",
         "4",
     ]
-    proc = subprocess.run(cmd, cwd=repo_root, capture_output=True, text=True)
+    proc = subprocess.run(cmd, cwd=repo_root, env=env, capture_output=True, text=True)
 
     assert proc.returncode == 0, proc.stderr
     assert "Original embedding metrics:" in proc.stdout
@@ -148,7 +152,7 @@ def test_recsys_train_from_checkpoint_script_smoke(tmp_path: Path):
         "--eval_batch_size",
         "4",
     ]
-    eval_proc = subprocess.run(eval_cmd, cwd=repo_root, capture_output=True, text=True)
+    eval_proc = subprocess.run(eval_cmd, cwd=repo_root, env=env, capture_output=True, text=True)
     assert eval_proc.returncode == 0, eval_proc.stderr
     assert "ELSA metrics:" in eval_proc.stdout
     assert "SAE sparse code metrics:" in eval_proc.stdout
