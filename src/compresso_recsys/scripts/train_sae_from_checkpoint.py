@@ -112,6 +112,10 @@ def main():
         if not embeddings_path.exists():
             raise FileNotFoundError(f"Embeddings not found in checkpoint: {base_dir}/item_embeddings.npy")
         item_embs = np.load(embeddings_path).astype(np.float32)
+        train_item_indices = np.asarray(split.get("train_item_indices", np.arange(len(item_embs))), dtype=np.int64)
+        if train_item_indices.size == 0:
+            raise ValueError("Checkpoint has no train_item_indices for SAE fitting")
+        train_embs = item_embs[train_item_indices]
         val_source_indices = split["val_source_indices"]
         val_target_indices = split["val_target_indices"]
         test_source_indices = split["test_source_indices"]
@@ -167,7 +171,7 @@ def main():
             }
 
         sae = fit_sae_on_embeddings(
-            item_embs,
+            train_embs,
             hidden_dim=args.sae_hidden_dim,
             k=args.sae_k,
             sparsify_score_mode=args.sae_score_mode,
@@ -226,6 +230,8 @@ def main():
                 "score_mode": args.sae_score_mode,
                 "ste_alpha": args.sae_ste_alpha,
                 "post_norm_l1": bool(args.sae_post_norm_l1),
+                "train_item_count": int(len(train_item_indices)),
+                "total_item_count": int(len(item_embs)),
             },
             model_path,
         )
@@ -247,6 +253,8 @@ def main():
                     "ndcg@100": percent_drop(base_metrics["ndcg@100"], sae_metrics["ndcg@100"]),
                 },
                 "dead_neurons": {"count": dead, "total": args.sae_hidden_dim, "fraction": dead_frac},
+                "train_item_count": int(len(train_item_indices)),
+                "total_item_count": int(len(item_embs)),
             },
         )
         update_stage_manifest(
@@ -260,6 +268,8 @@ def main():
                 "score_mode": args.sae_score_mode,
                 "ste_alpha": args.sae_ste_alpha,
                 "post_norm_l1": bool(args.sae_post_norm_l1),
+                "train_item_count": int(len(train_item_indices)),
+                "total_item_count": int(len(item_embs)),
                 "metrics": sae_metrics,
                 "dead_neurons": {"count": dead, "total": args.sae_hidden_dim, "fraction": dead_frac},
             },

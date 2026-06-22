@@ -111,6 +111,9 @@ def save_recsys_split(
     val_target_indices: list[np.ndarray],
     test_source_indices: list[np.ndarray],
     test_target_indices: list[np.ndarray],
+    train_item_indices: np.ndarray | None = None,
+    val_item_indices: np.ndarray | None = None,
+    test_item_indices: np.ndarray | None = None,
     entity_tag_matrix: csr_matrix | None = None,
     tag_names: np.ndarray | list[str] | None = None,
     entity_metadata: pd.DataFrame | None = None,
@@ -130,6 +133,12 @@ def save_recsys_split(
         test_source_indices=_as_obj_array(test_source_indices),
         test_target_indices=_as_obj_array(test_target_indices),
     )
+    if train_item_indices is not None:
+        np.save(data_dir / "train_item_indices.npy", np.asarray(train_item_indices, dtype=np.int64))
+    if val_item_indices is not None:
+        np.save(data_dir / "val_item_indices.npy", np.asarray(val_item_indices, dtype=np.int64))
+    if test_item_indices is not None:
+        np.save(data_dir / "test_item_indices.npy", np.asarray(test_item_indices, dtype=np.int64))
     if entity_tag_matrix is not None:
         if entity_tag_matrix.shape[0] != len(item_ids):
             raise ValueError("entity_tag_matrix rows must match item_ids length")
@@ -156,13 +165,32 @@ def load_recsys_split(root: str | Path) -> dict[str, Any]:
     tags_path = root / SPLIT_DIR / "entity_tags.npz"
     tag_names_path = root / SPLIT_DIR / "tag_names.npy"
     metadata_path = root / SPLIT_DIR / "entity_metadata.csv"
+    train_item_indices_path = root / SPLIT_DIR / "train_item_indices.npy"
+    val_item_indices_path = root / SPLIT_DIR / "val_item_indices.npy"
+    test_item_indices_path = root / SPLIT_DIR / "test_item_indices.npy"
+    item_ids = split["item_ids"]
     return {
-        "item_ids": split["item_ids"],
+        "item_ids": item_ids,
         "x_train": load_npz(root / SPLIT_DIR / "train_matrix.npz").tocsr(),
         "val_source_indices": _read_obj_array(split["val_source_indices"]),
         "val_target_indices": _read_obj_array(split["val_target_indices"]),
         "test_source_indices": _read_obj_array(split["test_source_indices"]),
         "test_target_indices": _read_obj_array(split["test_target_indices"]),
+        "train_item_indices": (
+            np.load(train_item_indices_path, allow_pickle=False)
+            if train_item_indices_path.exists()
+            else np.arange(len(item_ids), dtype=np.int64)
+        ),
+        "val_item_indices": (
+            np.load(val_item_indices_path, allow_pickle=False)
+            if val_item_indices_path.exists()
+            else np.array([], dtype=np.int64)
+        ),
+        "test_item_indices": (
+            np.load(test_item_indices_path, allow_pickle=False)
+            if test_item_indices_path.exists()
+            else np.array([], dtype=np.int64)
+        ),
         "entity_tag_matrix": load_npz(tags_path).tocsr() if tags_path.exists() else None,
         "tag_names": np.load(tag_names_path, allow_pickle=False) if tag_names_path.exists() else None,
         "entity_metadata": pd.read_csv(metadata_path, dtype={"item_id": str}) if metadata_path.exists() else None,

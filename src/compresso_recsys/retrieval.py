@@ -207,6 +207,132 @@ def build_eval_holdout(
     }
 
 
+def build_item_cold_holdout(
+    *,
+    item_ids: pd.Index | np.ndarray,
+    interactions: pd.DataFrame,
+    source_item_ids: set[str] | list[str] | np.ndarray,
+    target_item_ids: set[str] | list[str] | np.ndarray,
+    min_source_items: int = 1,
+    min_target_items: int = 1,
+) -> dict[str, object]:
+    """Build source=train-item and target=cold-item holdout for overlapping users."""
+    if isinstance(item_ids, pd.Index):
+        item_ids_arr = np.array(item_ids.astype(str))
+    else:
+        item_ids_arr = np.asarray(item_ids).astype(str)
+    item_to_idx = {item_id: idx for idx, item_id in enumerate(item_ids_arr)}
+    source_items = set(np.asarray(list(source_item_ids)).astype(str))
+    target_items = set(np.asarray(list(target_item_ids)).astype(str))
+
+    df = interactions.copy()
+    df["user_id"] = df["user_id"].astype(str)
+    df["item_id"] = df["item_id"].astype(str)
+    df = df[df["item_id"].isin(item_to_idx)]
+
+    source_indices: list[np.ndarray] = []
+    target_indices: list[np.ndarray] = []
+    for _, g in df.groupby("user_id"):
+        src = sorted({item_to_idx[item] for item in g["item_id"] if item in source_items})
+        tgt = sorted({item_to_idx[item] for item in g["item_id"] if item in target_items})
+        if len(src) >= min_source_items and len(tgt) >= min_target_items:
+            source_indices.append(np.asarray(src, dtype=np.int64))
+            target_indices.append(np.asarray(tgt, dtype=np.int64))
+
+    return {
+        "item_ids": item_ids_arr,
+        "source_indices": source_indices,
+        "target_indices": target_indices,
+    }
+
+
+def build_leave_last_out_holdout(
+    *,
+    item_ids: pd.Index | np.ndarray,
+    interactions: pd.DataFrame,
+    min_source_items: int = 1,
+    min_target_items: int = 1,
+) -> dict[str, object]:
+    """Build per-user source/target by holding out each user's latest interaction."""
+    if isinstance(item_ids, pd.Index):
+        item_ids_arr = np.array(item_ids.astype(str))
+    else:
+        item_ids_arr = np.asarray(item_ids).astype(str)
+    item_to_idx = {item_id: idx for idx, item_id in enumerate(item_ids_arr)}
+
+    df = interactions.copy()
+    df["user_id"] = df["user_id"].astype(str)
+    df["item_id"] = df["item_id"].astype(str)
+    df = df[df["item_id"].isin(item_to_idx)]
+    if "timestamp" not in df.columns or df["timestamp"].isna().all():
+        raise ValueError("leave_last_out split requires non-empty timestamp values")
+    df["timestamp"] = pd.to_numeric(df["timestamp"], errors="coerce")
+    df = df.dropna(subset=["timestamp"])
+
+    source_indices: list[np.ndarray] = []
+    target_indices: list[np.ndarray] = []
+    for _, g in df.sort_values("timestamp").groupby("user_id", sort=False):
+        items = g["item_id"].tolist()
+        if len(items) < min_source_items + min_target_items:
+            continue
+        target_item = items[-1]
+        source = sorted({item_to_idx[item] for item in items[:-1]})
+        target = [item_to_idx[target_item]]
+        if len(source) >= min_source_items:
+            source_indices.append(np.asarray(source, dtype=np.int64))
+            target_indices.append(np.asarray(target, dtype=np.int64))
+
+    return {
+        "item_ids": item_ids_arr,
+        "source_indices": source_indices,
+        "target_indices": target_indices,
+    }
+
+
+def build_temporal_holdout(
+    *,
+    item_ids: pd.Index | np.ndarray,
+    interactions: pd.DataFrame,
+    test_frac: float = 0.1,
+    min_source_items: int = 1,
+    min_target_items: int = 1,
+) -> dict[str, object]:
+    """Build source/target using a global timestamp cutoff."""
+    if not 0.0 < test_frac < 1.0:
+        raise ValueError("test_frac must be in (0, 1)")
+    if isinstance(item_ids, pd.Index):
+        item_ids_arr = np.array(item_ids.astype(str))
+    else:
+        item_ids_arr = np.asarray(item_ids).astype(str)
+    item_to_idx = {item_id: idx for idx, item_id in enumerate(item_ids_arr)}
+
+    df = interactions.copy()
+    df["user_id"] = df["user_id"].astype(str)
+    df["item_id"] = df["item_id"].astype(str)
+    df = df[df["item_id"].isin(item_to_idx)]
+    if "timestamp" not in df.columns or df["timestamp"].isna().all():
+        raise ValueError("temporal split requires non-empty timestamp values")
+    df["timestamp"] = pd.to_numeric(df["timestamp"], errors="coerce")
+    df = df.dropna(subset=["timestamp"])
+    cutoff = df["timestamp"].quantile(1.0 - test_frac)
+
+    source_indices: list[np.ndarray] = []
+    target_indices: list[np.ndarray] = []
+    for _, g in df.groupby("user_id"):
+        src = sorted({item_to_idx[item] for item in g.loc[g["timestamp"] <= cutoff, "item_id"]})
+        tgt = sorted({item_to_idx[item] for item in g.loc[g["timestamp"] > cutoff, "item_id"]})
+        if len(src) >= min_source_items and len(tgt) >= min_target_items:
+            source_indices.append(np.asarray(src, dtype=np.int64))
+            target_indices.append(np.asarray(tgt, dtype=np.int64))
+
+    return {
+        "item_ids": item_ids_arr,
+        "source_indices": source_indices,
+        "target_indices": target_indices,
+        "timestamp_cutoff": float(cutoff),
+    }
+
+
 def _compute_topk_predictions(
     e: torch.Tensor,
     source_indices: List[np.ndarray],

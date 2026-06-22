@@ -127,6 +127,15 @@ class AmazonReviews2023(RecSysDataset):
         dataset = load_dataset(self.hf_name, config, split=split, trust_remote_code=True)
         return dataset.to_pandas()
 
+    def load_timestamp_splits_with_history(self) -> dict[str, pd.DataFrame]:
+        """Load McAuley's timestamp split with per-row history fields."""
+        config = f"0core_timestamp_w_his_{self.category}"
+        return {
+            "train": self._load_hf_dataframe(config, split="train"),
+            "valid": self._load_hf_dataframe(config, split="valid"),
+            "test": self._load_hf_dataframe(config, split="test"),
+        }
+
     def prepare(self) -> None:
         self.download()
 
