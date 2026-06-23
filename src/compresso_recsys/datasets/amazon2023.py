@@ -105,7 +105,7 @@ class AmazonReviews2023(RecSysDataset):
             if field not in row:
                 continue
             value = cls._parse_details(row[field]) if field == "details" else row[field]
-            text = cls._stringify(value, separator="\n" if field in {"features", "description"} else " > ")
+            text = cls._metadata_value_to_text(value, separator="\n" if field in {"features", "description"} else " > ")
             if text:
                 label = field.replace("_", " ").title()
                 parts.append(f"{label}: {text}")
@@ -145,9 +145,11 @@ class AmazonReviews2023(RecSysDataset):
         meta = meta.rename(columns={"parent_asin": "item_id"}).copy()
         meta["item_id"] = meta["item_id"].astype(str)
         meta = meta.drop_duplicates(subset=["item_id"], keep="first")
-        meta["entity_text"] = meta.apply(lambda row: self.build_entity_text(row, self.metadata_text_fields), axis=1)
-        if self.min_entity_text_words > 0:
-            meta = meta[meta["entity_text"].map(self._word_count) >= self.min_entity_text_words].copy()
+        meta = self.add_entity_text(
+            meta,
+            fields=self.metadata_text_fields,
+            min_words=self.min_entity_text_words,
+        )
 
         interactions = self._load_hf_dataframe(self.interactions_config, split="full")
         expected = {"user_id", "parent_asin", "rating", "timestamp"}
@@ -162,8 +164,7 @@ class AmazonReviews2023(RecSysDataset):
         interactions["timestamp"] = pd.to_numeric(interactions["timestamp"], errors="coerce")
         interactions = interactions.dropna(subset=["user_id", "item_id", "value"])
 
-        valid_items = set(meta["item_id"].astype(str))
-        interactions = interactions[interactions["item_id"].isin(valid_items)].reset_index(drop=True)
+        interactions = self.restrict_interactions_to_metadata_items(interactions, meta)
 
         preferred = [
             "item_id",

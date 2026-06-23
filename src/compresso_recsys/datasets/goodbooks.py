@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import zipfile
-from pathlib import Path
 from urllib.request import urlretrieve
+from typing import Iterable
 
 import pandas as pd
 
@@ -11,11 +11,23 @@ from .base import RecSysDataset
 
 class Goodbooks(RecSysDataset):
     name = "goodbooks"
+    default_text_fields = ("title", "authors", "description")
     url = "https://github.com/zygmuntz/goodbooks-10k/releases/download/v1.0/goodbooks-10k.zip"
     text_descriptions_url = (
         "https://github.com/recombee/beeformer/raw/refs/heads/main/"
         "_datasets/goodbooks/item_text_descriptions.feather"
     )
+
+    def __init__(
+        self,
+        data_dir: str = "data",
+        *,
+        metadata_text_fields: Iterable[str] | None = None,
+        min_entity_text_words: int = 0,
+    ) -> None:
+        self.metadata_text_fields = tuple(metadata_text_fields or self.default_text_fields)
+        self.min_entity_text_words = int(min_entity_text_words)
+        super().__init__(data_dir=data_dir)
 
     def download(self) -> None:
         zip_path = self.root / "goodbooks-10k.zip"
@@ -60,6 +72,15 @@ class Goodbooks(RecSysDataset):
                 descriptions["item_id"] = descriptions["item_id"].astype(str)
                 books = books.merge(descriptions[["item_id", "description"]], on="item_id", how="left")
             keep = [c for c in ["item_id", "title", "authors", "average_rating", "description"] if c in books.columns]
-            self._item_metadata = books[keep].copy()
+            self._item_metadata = self.add_entity_text(
+                books[keep],
+                fields=self.metadata_text_fields,
+                min_words=self.min_entity_text_words,
+            )
         else:
-            self._item_metadata = pd.DataFrame(columns=["item_id", "title", "authors", "description"])
+            self._item_metadata = self.add_entity_text(
+                pd.DataFrame(columns=["item_id", "title", "authors", "description"]),
+                fields=self.metadata_text_fields,
+                min_words=self.min_entity_text_words,
+            )
+        self._interactions = self.restrict_interactions_to_metadata_items(self._interactions, self._item_metadata)

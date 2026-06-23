@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import Any, Iterable, Optional
 
 import numpy as np
 import pandas as pd
@@ -53,6 +53,69 @@ class RecSysDataset:
             self.prepare()
         assert self._item_metadata is not None
         return self._item_metadata.copy()
+
+    @staticmethod
+    def _metadata_value_to_text(value: Any, *, separator: str = " ") -> str:
+        if value is None:
+            return ""
+        try:
+            if pd.isna(value):
+                return ""
+        except (TypeError, ValueError):
+            pass
+        if isinstance(value, str):
+            return value.strip()
+        if isinstance(value, dict):
+            parts: list[str] = []
+            for key, val in value.items():
+                text = RecSysDataset._metadata_value_to_text(val, separator=separator)
+                if text:
+                    parts.append(f"{key}: {text}")
+            return separator.join(parts).strip()
+        if isinstance(value, (list, tuple, set)):
+            parts = [RecSysDataset._metadata_value_to_text(v, separator=separator) for v in value]
+            return separator.join(p for p in parts if p).strip()
+        return str(value).strip()
+
+    @classmethod
+    def build_entity_text(cls, row: pd.Series, fields: Iterable[str]) -> str:
+        parts: list[str] = []
+        for field in fields:
+            if field not in row:
+                continue
+            text = cls._metadata_value_to_text(row[field], separator="\n")
+            if text:
+                parts.append(text)
+        return "\n".join(parts).strip()
+
+    @staticmethod
+    def entity_text_word_count(text: str) -> int:
+        return len(str(text).split())
+
+    def add_entity_text(
+        self,
+        metadata: pd.DataFrame,
+        *,
+        fields: Iterable[str],
+        min_words: int = 0,
+    ) -> pd.DataFrame:
+        out = metadata.copy()
+        out["entity_text"] = out.apply(lambda row: self.build_entity_text(row, fields), axis=1)
+        if min_words > 0:
+            out = out[out["entity_text"].map(self.entity_text_word_count) >= int(min_words)].copy()
+        return out.reset_index(drop=True)
+
+    def restrict_interactions_to_metadata_items(
+        self,
+        interactions: pd.DataFrame,
+        metadata: pd.DataFrame,
+    ) -> pd.DataFrame:
+        if "item_id" not in metadata.columns:
+            raise ValueError("metadata must contain item_id")
+        valid_items = set(metadata["item_id"].astype(str))
+        out = interactions.copy()
+        out["item_id"] = out["item_id"].astype(str)
+        return out[out["item_id"].isin(valid_items)].reset_index(drop=True)
 
     def split_users_strong_generalization(
         self,

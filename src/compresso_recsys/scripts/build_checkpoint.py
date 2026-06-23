@@ -84,7 +84,7 @@ def parse_args():
     p.add_argument(
         "--metadata_text_fields",
         type=str,
-        default="title,features,description,categories",
+        default=None,
         help="Comma-separated metadata fields joined into entity_text for text-aware datasets.",
     )
     p.add_argument(
@@ -119,17 +119,26 @@ def _resolve_args(args):
 
 
 def _make_dataset(args, spec: DatasetSpec):
+    default_fields = getattr(spec.cls, "default_text_fields", ())
+    fields = (
+        [field.strip() for field in args.metadata_text_fields.split(",") if field.strip()]
+        if args.metadata_text_fields
+        else list(default_fields)
+    )
+    if not fields:
+        raise ValueError("--metadata_text_fields must contain at least one field")
     if spec.cls is AmazonReviews2023:
-        fields = [field.strip() for field in args.metadata_text_fields.split(",") if field.strip()]
-        if not fields:
-            raise ValueError("--metadata_text_fields must contain at least one field")
         return AmazonReviews2023(
             data_dir=args.data_dir,
             category=args.amazon_category,
             metadata_text_fields=fields,
             min_entity_text_words=args.min_entity_text_words,
         )
-    return spec.cls(data_dir=args.data_dir)
+    return spec.cls(
+        data_dir=args.data_dir,
+        metadata_text_fields=fields,
+        min_entity_text_words=args.min_entity_text_words,
+    )
 
 
 def _build_genre_tag_matrix(ds, item_ids: np.ndarray):
@@ -611,10 +620,10 @@ def main():
                 "amazon_category": args.amazon_category if args.dataset == "amazon2023" else None,
                 "metadata_text_fields": (
                     [field.strip() for field in args.metadata_text_fields.split(",") if field.strip()]
-                    if args.dataset == "amazon2023"
-                    else None
+                    if args.metadata_text_fields
+                    else list(getattr(spec.cls, "default_text_fields", ()))
                 ),
-                "min_entity_text_words": args.min_entity_text_words if args.dataset == "amazon2023" else None,
+                "min_entity_text_words": args.min_entity_text_words,
                 "annotations": {
                     "entity_tags": annotation_name,
                     "n_tags": int(len(tag_names)) if tag_names is not None else 0,

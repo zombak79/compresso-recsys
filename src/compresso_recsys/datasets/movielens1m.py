@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import zipfile
 from urllib.request import urlretrieve
+from typing import Iterable
 
 import pandas as pd
 
@@ -10,11 +11,23 @@ from .base import RecSysDataset
 
 class MovieLens1M(RecSysDataset):
     name = "movielens1m"
+    default_text_fields = ("title", "genres", "description")
     url = "https://files.grouplens.org/datasets/movielens/ml-1m.zip"
     text_descriptions_url = (
         "https://raw.githubusercontent.com/recombee/beeformer/main/"
         "_datasets/ml20m/item_text_descriptions.feather"
     )
+
+    def __init__(
+        self,
+        data_dir: str = "data",
+        *,
+        metadata_text_fields: Iterable[str] | None = None,
+        min_entity_text_words: int = 0,
+    ) -> None:
+        self.metadata_text_fields = tuple(metadata_text_fields or self.default_text_fields)
+        self.min_entity_text_words = int(min_entity_text_words)
+        super().__init__(data_dir=data_dir)
 
     def download(self) -> None:
         zip_path = self.root / "ml-1m.zip"
@@ -67,6 +80,15 @@ class MovieLens1M(RecSysDataset):
                 descriptions["item_id"] = descriptions["item_id"].astype(str)
                 movies = movies.merge(descriptions[["item_id", "description"]], on="item_id", how="left")
             keep = [c for c in ["item_id", "title", "genres", "description"] if c in movies.columns]
-            self._item_metadata = movies[keep].copy()
+            self._item_metadata = self.add_entity_text(
+                movies[keep],
+                fields=self.metadata_text_fields,
+                min_words=self.min_entity_text_words,
+            )
         else:
-            self._item_metadata = pd.DataFrame(columns=["item_id", "title", "genres", "description"])
+            self._item_metadata = self.add_entity_text(
+                pd.DataFrame(columns=["item_id", "title", "genres", "description"]),
+                fields=self.metadata_text_fields,
+                min_words=self.min_entity_text_words,
+            )
+        self._interactions = self.restrict_interactions_to_metadata_items(self._interactions, self._item_metadata)
