@@ -47,10 +47,12 @@ https://zombak79.github.io/compresso-recsys/
 
 - Dataset utilities for GoodBooks, MovieLens 1M, MovieLens 20M, and Amazon
   Reviews 2023.
-- ZIP checkpoint format for splits, embeddings, sparse embeddings, and metrics.
+- ZIP checkpoint format for source/target splits, embeddings, sparse
+  embeddings, and metrics.
 - ELSA and CompressedELSA training helpers.
 - SAE and SBERT checkpoint stages.
-- Retrieval metrics for Recall@20, Recall@50, and nDCG@100.
+- Retrieval metrics for Recall and nDCG at common cutoffs including 20, 50,
+  and 100.
 - Console commands for the full experiment pipeline.
 
 ## Commands
@@ -74,7 +76,8 @@ raw_meta_<category>
 ```
 
 For temporal checkpoints, Amazon uses McAuley's predefined timestamp split with
-history:
+history. This is the preferred split when avoiding future-to-past leakage
+matters:
 
 ```text
 0core_timestamp_w_his_<category>
@@ -87,7 +90,8 @@ metadata fields. Downstream SBERT stages can then simply encode `entity_text`.
 
 `leave_last_out` is computed locally from timestamps. For every eligible user,
 the latest interaction becomes the target and earlier interactions become the
-source profile.
+source profile. This respects time within each user, but it is not globally
+future-blind because other users may contribute later interactions to training.
 
 ```bash
 compresso-recsys-build-checkpoint \
@@ -152,8 +156,9 @@ compresso-recsys-train-sbert \
   --device cuda
 ```
 
-Train SAE on SBERT embeddings. For checkpoints with cold item indices, SAE fits
-only on `train_item_indices` and then transforms all items for evaluation:
+Train SAE on SBERT embeddings. For checkpoints with item partitions, SAE fits
+only on `train_item_indices` and then transforms all items for evaluation. For
+warm `user_split` checkpoints, `train_item_indices` defaults to all items:
 
 ```bash
 compresso-recsys-train-sae \
@@ -207,6 +212,12 @@ compresso-recsys-eval-checkpoint \
   --device mps
 ```
 
+Checkpoint evaluation stores the common six-metric table:
+
+```text
+recall@20, ndcg@20, recall@50, ndcg@50, recall@100, ndcg@100
+```
+
 ## Python API
 
 ```python
@@ -228,6 +239,38 @@ Subpackages are also available:
 from compresso_recsys.datasets import Goodbooks, MovieLens1M, MovieLens20M
 from compresso_recsys.checkpoint import update_checkpoint, load_recsys_split
 ```
+
+## Checkpoint split schema
+
+Every checkpoint stores source/target matrices for train, validation, and test:
+
+```text
+data/train_source_matrix.npz
+data/train_target_matrix.npz
+data/val_source_matrix.npz
+data/val_target_matrix.npz
+data/test_source_matrix.npz
+data/test_target_matrix.npz
+```
+
+`source` is the profile/input side and `target` is what retrieval metrics try
+to recover. The older `data/train_matrix.npz` file is still written as an alias
+for `train_source_matrix.npz`.
+
+Depending on the split mode, the checkpoint also stores partition ids:
+
+- `user_split`: stores `train_user_ids.npy`, `val_user_ids.npy`, and
+  `test_user_ids.npy`. It does not store explicit item partitions; loaders
+  treat all items as train items.
+- `item_split`: stores `train_item_indices.npy`, `val_item_indices.npy`, and
+  `test_item_indices.npy`.
+- `leave_last_out`: stores source/target matrices built from per-user latest
+  interactions. It is chronological per user, but not globally future-blind.
+- `temporal`: stores source/target matrices from a global timestamp split. For
+  Amazon Reviews 2023, this uses McAuley's predefined temporal split.
+
+Validation/test source-target rows also have aligned `val_eval_user_ids.npy`
+and `test_eval_user_ids.npy` when user identifiers are available.
 
 ## All params for checkpoint builder
 

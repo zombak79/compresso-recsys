@@ -37,6 +37,80 @@ def test_amazon2023_uses_category_specific_configs(tmp_path):
     assert ds.metadata_config == "raw_meta_Toys_and_Games"
 
 
+def test_amazon2023_resolves_official_source_files(tmp_path):
+    ds = AmazonReviews2023(data_dir=tmp_path, category="Office_Products")
+    ds._hf_files_for_path = lambda path: [
+        {
+            "type": "file",
+            "path": "raw_meta_Office_Products/full-00000-of-00002.parquet",
+            "size": 123,
+        },
+        {
+            "type": "file",
+            "path": "raw_meta_Office_Products/full-00001-of-00002.parquet",
+            "size": 456,
+        },
+    ]
+
+    meta_sources = ds._hf_source_for_config(ds.metadata_config)
+    ratings_source = ds._hf_source_for_config(ds.interactions_config)[0]
+    temporal_source = ds._hf_source_for_config(
+        "0core_timestamp_w_his_Office_Products",
+        split="valid",
+    )[0]
+
+    assert [source["kind"] for source in meta_sources] == ["parquet", "parquet"]
+    assert str(meta_sources[0]["local_path"]) == "huggingface/raw_meta_Office_Products/full-00000-of-00002.parquet"
+    assert meta_sources[0]["url"].endswith("/raw_meta_Office_Products/full-00000-of-00002.parquet")
+    assert ratings_source["url"].endswith("/benchmark/0core/rating_only/Office_Products.csv")
+    assert ratings_source["kind"] == "csv"
+    assert temporal_source["url"].endswith("/benchmark/0core/timestamp_w_his/Office_Products.valid.csv")
+    assert temporal_source["kind"] == "csv"
+
+
+def test_amazon2023_loads_cached_huggingface_source_files(tmp_path):
+    ds = AmazonReviews2023(data_dir=tmp_path, category="Toys_and_Games")
+    meta_path = ds.root / "huggingface" / "raw_meta_Toys_and_Games" / "full-00000-of-00001.parquet"
+    ratings_path = ds.root / "huggingface" / "benchmark" / "0core" / "rating_only" / "Toys_and_Games.csv"
+    meta_path.parent.mkdir(parents=True)
+    ratings_path.parent.mkdir(parents=True)
+
+    pd.DataFrame({"parent_asin": ["A"], "title": ["Robot Toy"]}).to_parquet(meta_path, index=False)
+    pd.DataFrame(
+        {
+            "user_id": ["u1"],
+            "parent_asin": ["A"],
+            "rating": [5.0],
+            "timestamp": [123],
+        }
+    ).to_csv(ratings_path, index=False)
+    ds._source_groups_for_config = lambda config, split="full": [
+        [
+            {
+                "url": "https://example.invalid/source",
+                "local_path": meta_path.relative_to(ds.root) if config == ds.metadata_config else ratings_path.relative_to(ds.root),
+                "kind": "parquet" if config == ds.metadata_config else "csv",
+                "size": None,
+            }
+        ]
+    ]
+
+    meta = ds._load_hf_dataframe(ds.metadata_config)
+    ratings = ds._load_hf_dataframe(ds.interactions_config)
+
+    assert meta.to_dict(orient="records") == [{"parent_asin": "A", "title": "Robot Toy"}]
+    assert ratings["user_id"].tolist() == ["u1"]
+    assert ratings["parent_asin"].tolist() == ["A"]
+
+
+def test_amazon2023_only_sends_hf_token_to_huggingface(tmp_path, monkeypatch):
+    ds = AmazonReviews2023(data_dir=tmp_path, category="Toys_and_Games")
+    monkeypatch.setenv("HF_TOKEN", "secret")
+
+    assert ds._headers_for_url("https://huggingface.co/datasets/example") == {"Authorization": "Bearer secret"}
+    assert ds._headers_for_url("https://mcauleylab.ucsd.edu/public_datasets/data/file.csv") == {}
+
+
 def test_amazon2023_builds_entity_text_from_configured_fields():
     row = pd.Series(
         {

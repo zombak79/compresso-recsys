@@ -19,3 +19,11 @@ def test_build_checkpoint_args_accept_python_metadata_field_list():
     args = _build_args(dataset="ml1m", metadata_text_fields=["title", "genres"])
 
     assert args.metadata_text_fields == "title,genres"
+
+
+def test_build_checkpoint_show_progress_defaults_true_and_can_be_disabled():
+    default_args = _build_args(dataset="ml1m")
+    quiet_args = _build_args(dataset="ml1m", show_progress=False)
+
+    assert default_args.show_progress is True
+    assert quiet_args.show_progress is False

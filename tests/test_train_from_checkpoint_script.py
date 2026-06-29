@@ -11,7 +11,60 @@ import numpy as np
 import pandas as pd
 from scipy.sparse import csr_matrix
 
-from compresso_recsys.checkpoint import save_recsys_split, update_checkpoint
+from compresso_recsys.checkpoint import load_recsys_split, read_checkpoint, save_recsys_split, update_checkpoint
+
+
+def test_recsys_split_roundtrip_preserves_supervised_matrices_and_user_ids(tmp_path: Path):
+    item_ids = np.array(["i0", "i1", "i2", "i3"])
+    x_train = csr_matrix(
+        np.array(
+            [
+                [1, 1, 0, 0],
+                [0, 1, 1, 0],
+            ],
+            dtype=np.float32,
+        )
+    )
+    val_source_indices = [np.array([0, 1]), np.array([1, 2])]
+    val_target_indices = [np.array([2]), np.array([3])]
+    test_source_indices = [np.array([0]), np.array([2])]
+    test_target_indices = [np.array([1, 3]), np.array([0, 3])]
+
+    ckpt_path = tmp_path / "split_roundtrip.zip"
+    with update_checkpoint(ckpt_path) as root:
+        save_recsys_split(
+            root,
+            item_ids=item_ids,
+            x_train=x_train,
+            val_source_indices=val_source_indices,
+            val_target_indices=val_target_indices,
+            test_source_indices=test_source_indices,
+            test_target_indices=test_target_indices,
+            train_user_ids=np.array(["u_train_0", "u_train_1"]),
+            val_user_ids=np.array(["u_val"]),
+            test_user_ids=np.array(["u_test"]),
+            val_eval_user_ids=np.array(["u_val", "u_val"]),
+            test_eval_user_ids=np.array(["u_test_0", "u_test_1"]),
+            metadata={"dataset": "synthetic"},
+        )
+
+    with read_checkpoint(ckpt_path) as root:
+        split = load_recsys_split(root)
+
+    assert split["train_source_matrix"].shape == (2, 4)
+    assert split["train_target_matrix"].shape == (2, 4)
+    assert split["val_source_matrix"].shape == (2, 4)
+    assert split["val_target_matrix"].shape == (2, 4)
+    assert split["test_source_matrix"].shape == (2, 4)
+    assert split["test_target_matrix"].shape == (2, 4)
+    assert split["x_train"].shape == split["train_source_matrix"].shape
+    assert split["val_source_matrix"][0].indices.tolist() == [0, 1]
+    assert split["test_target_matrix"][0].indices.tolist() == [1, 3]
+    assert split["train_user_ids"].tolist() == ["u_train_0", "u_train_1"]
+    assert split["val_user_ids"].tolist() == ["u_val"]
+    assert split["test_user_ids"].tolist() == ["u_test"]
+    assert split["val_eval_user_ids"].tolist() == ["u_val", "u_val"]
+    assert split["test_eval_user_ids"].tolist() == ["u_test_0", "u_test_1"]
 
 
 def test_recsys_train_from_checkpoint_script_smoke(tmp_path: Path):

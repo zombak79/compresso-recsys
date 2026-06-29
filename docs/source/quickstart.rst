@@ -43,3 +43,59 @@ Create an Amazon Reviews 2023 item-split checkpoint:
        min_target_items=1,
        annotation_source="none",
    )
+
+Choose a Split Mode
+-------------------
+
+Use ``user_split`` for classic warm-item recommender experiments:
+
+.. code-block:: bash
+
+   compresso-recsys-build-checkpoint \
+     --dataset ml1m \
+     --checkpoint_path artifacts/ml1m/user_split_exp001.zip \
+     --split_mode user_split \
+     --annotation_source genres
+
+Use ``item_split`` when you want cold-item evaluation. Models should train on
+``train_item_indices`` only, then transform all items before evaluation:
+
+.. code-block:: bash
+
+   compresso-recsys-build-checkpoint \
+     --dataset amazon2023 \
+     --amazon_category Video_Games \
+     --checkpoint_path artifacts/amazon_video_games/item_split_exp001.zip \
+     --split_mode item_split \
+     --metadata_text_fields title,features,description,categories \
+     --min_entity_text_words 20 \
+     --annotation_source none
+
+Use ``leave_last_out`` or ``temporal`` when timestamps should define the
+evaluation target. Prefer ``temporal`` when you need a future-blind split:
+
+.. code-block:: bash
+
+   compresso-recsys-build-checkpoint \
+     --dataset amazon2023 \
+     --amazon_category Toys_and_Games \
+     --checkpoint_path artifacts/amazon_toys/temporal_exp001.zip \
+     --split_mode temporal \
+     --metadata_text_fields title,features,description,categories \
+     --min_entity_text_words 30 \
+     --annotation_source none
+
+Evaluate a Checkpoint
+---------------------
+
+After adding one or more embedding stages, evaluate everything stored in the
+checkpoint:
+
+.. code-block:: bash
+
+   compresso-recsys-eval-checkpoint \
+     --checkpoint_path artifacts/amazon_toys/temporal_exp001.zip \
+     --device cuda
+
+The full checkpoint-level metric set is ``recall@20``, ``ndcg@20``,
+``recall@50``, ``ndcg@50``, ``recall@100``, and ``ndcg@100``.

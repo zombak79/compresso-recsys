@@ -179,8 +179,10 @@ def _prepare_eval_from_fold_protocol(
 
     source_indices = [x_src[i].indices.astype(np.int64, copy=False) for i in range(x_src.shape[0])]
     target_sets = [set(x_tgt[i].indices.tolist()) for i in range(x_tgt.shape[0])]
+    repeats = int(x_src.shape[0] // max(1, len(users)))
+    eval_user_ids = np.tile(users.astype(str), repeats) if len(users) else np.array([], dtype=str)
 
-    return source_indices, target_sets
+    return source_indices, target_sets, eval_user_ids
 
 
 def build_eval_holdout(
@@ -203,7 +205,7 @@ def build_eval_holdout(
         item_ids = np.asarray(train_item_ids).astype(str)
 
     np.random.seed(random_state)
-    source_indices, target_sets = _prepare_eval_from_fold_protocol(
+    source_indices, target_sets, eval_user_ids = _prepare_eval_from_fold_protocol(
         train_item_ids=pd.Index(item_ids),
         eval_interactions=eval_interactions,
         min_user_support=min_user_support,
@@ -214,6 +216,7 @@ def build_eval_holdout(
         "item_ids": item_ids,
         "source_indices": source_indices,
         "target_indices": target_indices,
+        "user_ids": eval_user_ids,
     }
 
 
@@ -242,17 +245,20 @@ def build_item_cold_holdout(
 
     source_indices: list[np.ndarray] = []
     target_indices: list[np.ndarray] = []
+    user_ids: list[str] = []
     for _, g in df.groupby("user_id"):
         src = sorted({item_to_idx[item] for item in g["item_id"] if item in source_items})
         tgt = sorted({item_to_idx[item] for item in g["item_id"] if item in target_items})
         if len(src) >= min_source_items and len(tgt) >= min_target_items:
             source_indices.append(np.asarray(src, dtype=np.int64))
             target_indices.append(np.asarray(tgt, dtype=np.int64))
+            user_ids.append(str(g["user_id"].iloc[0]))
 
     return {
         "item_ids": item_ids_arr,
         "source_indices": source_indices,
         "target_indices": target_indices,
+        "user_ids": np.asarray(user_ids, dtype=str),
     }
 
 
@@ -281,6 +287,7 @@ def build_leave_last_out_holdout(
 
     source_indices: list[np.ndarray] = []
     target_indices: list[np.ndarray] = []
+    user_ids: list[str] = []
     for _, g in df.sort_values("timestamp").groupby("user_id", sort=False):
         items = g["item_id"].tolist()
         if len(items) < min_source_items + min_target_items:
@@ -291,11 +298,13 @@ def build_leave_last_out_holdout(
         if len(source) >= min_source_items:
             source_indices.append(np.asarray(source, dtype=np.int64))
             target_indices.append(np.asarray(target, dtype=np.int64))
+            user_ids.append(str(g["user_id"].iloc[0]))
 
     return {
         "item_ids": item_ids_arr,
         "source_indices": source_indices,
         "target_indices": target_indices,
+        "user_ids": np.asarray(user_ids, dtype=str),
     }
 
 
@@ -328,17 +337,20 @@ def build_temporal_holdout(
 
     source_indices: list[np.ndarray] = []
     target_indices: list[np.ndarray] = []
+    user_ids: list[str] = []
     for _, g in df.groupby("user_id"):
         src = sorted({item_to_idx[item] for item in g.loc[g["timestamp"] <= cutoff, "item_id"]})
         tgt = sorted({item_to_idx[item] for item in g.loc[g["timestamp"] > cutoff, "item_id"]})
         if len(src) >= min_source_items and len(tgt) >= min_target_items:
             source_indices.append(np.asarray(src, dtype=np.int64))
             target_indices.append(np.asarray(tgt, dtype=np.int64))
+            user_ids.append(str(g["user_id"].iloc[0]))
 
     return {
         "item_ids": item_ids_arr,
         "source_indices": source_indices,
         "target_indices": target_indices,
+        "user_ids": np.asarray(user_ids, dtype=str),
         "timestamp_cutoff": float(cutoff),
     }
 

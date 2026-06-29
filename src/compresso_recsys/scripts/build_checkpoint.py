@@ -4,6 +4,7 @@ import argparse
 import random
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -54,6 +55,40 @@ def _metadata_text_fields_arg(value: str | list[str] | tuple[str, ...] | None) -
     if value is None or isinstance(value, str):
         return value
     return ",".join(str(field) for field in value)
+
+
+class _CheckpointProgress:
+    def __init__(self, *, enabled: bool, total: int) -> None:
+        self.enabled = enabled
+        self.current = False
+        self.bar: Any = None
+        if not enabled:
+            return
+        try:
+            from tqdm.auto import tqdm
+        except Exception:  # pragma: no cover - optional dependency
+            return
+        self.bar = tqdm(total=total, unit="step", desc="Building checkpoint")
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, tb) -> None:
+        if self.bar is not None:
+            if self.current and exc_type is None:
+                self.bar.update(1)
+            self.bar.close()
+
+    def step(self, message: str) -> None:
+        if not self.enabled:
+            return
+        if self.bar is None:
+            print(f"[compresso-recsys] {message}", flush=True)
+            return
+        if self.current:
+            self.bar.update(1)
+        self.current = True
+        self.bar.set_description_str(message)
 
 
 def parse_args():
@@ -107,6 +142,12 @@ def parse_args():
         choices=["genres", "ml20m_tags", "goodbooks_tags", "none"],
     )
     p.add_argument("--annotation_min_count", type=int, default=100)
+    p.add_argument(
+        "--show_progress",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Show download and checkpoint-building progress. Use --no-show_progress to disable.",
+    )
     return p.parse_args()
 
 
@@ -136,6 +177,7 @@ def _build_args(
     min_entity_text_words: int = 30,
     annotation_source: str = "genres",
     annotation_min_count: int = 100,
+    show_progress: bool = True,
 ) -> argparse.Namespace:
     if dataset not in DATASETS:
         choices = ", ".join(sorted(DATASETS))
@@ -171,6 +213,7 @@ def _build_args(
         min_entity_text_words=min_entity_text_words,
         annotation_source=annotation_source,
         annotation_min_count=annotation_min_count,
+        show_progress=show_progress,
     )
 
 
@@ -204,6 +247,7 @@ def _make_dataset(args, spec: DatasetSpec):
             category=args.amazon_category,
             metadata_text_fields=fields,
             min_entity_text_words=args.min_entity_text_words,
+            show_progress=getattr(args, "show_progress", True),
         )
     return spec.cls(
         data_dir=args.data_dir,
@@ -364,20 +408,25 @@ def _build_entity_tag_matrix(args, ds, item_ids: np.ndarray):
 
 
 def _to_sparse_matrix_for_items(df: pd.DataFrame, item_ids: np.ndarray):
+    return _to_sparse_matrix_for_items_with_users(df, item_ids)[0]
+
+
+def _to_sparse_matrix_for_items_with_users(df: pd.DataFrame, item_ids: np.ndarray):
     users = pd.Index(sorted(df["user_id"].astype(str).unique()))
     items = pd.Index(np.asarray(item_ids).astype(str))
     if len(users) == 0:
-        return csr_matrix((0, len(items)), dtype=np.float32)
+        return csr_matrix((0, len(items)), dtype=np.float32), np.asarray([], dtype=str)
 
     u_codes = pd.Categorical(df["user_id"].astype(str), categories=users).codes
     i_codes = pd.Categorical(df["item_id"].astype(str), categories=items).codes
     valid = (u_codes >= 0) & (i_codes >= 0)
     vals = df["value"].astype(float).to_numpy()[valid]
-    return csr_matrix(
+    matrix = csr_matrix(
         (vals, (u_codes[valid], i_codes[valid])),
         shape=(len(users), len(items)),
         dtype=np.float32,
     )
+    return matrix, users.to_numpy(dtype=str)
 
 
 def _split_item_ids_random(item_ids: np.ndarray, *, args) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -407,7 +456,7 @@ def _build_user_split(args, ds, proc_df):
         random_state=args.seed,
         interactions=proc_df,
     )
-    x_train, _, item_ids = ds.to_sparse_matrix(split.train)
+    x_train, train_user_index, item_ids = ds.to_sparse_matrix(split.train)
     val_holdout = build_eval_holdout(
         train_item_ids=item_ids,
         eval_interactions=split.val,
@@ -422,16 +471,26 @@ def _build_user_split(args, ds, proc_df):
         random_state=args.seed,
         eval_fold=args.eval_fold,
     )
-    train_item_indices = np.arange(len(test_holdout["item_ids"]), dtype=np.int64)
     return {
         "item_ids": test_holdout["item_ids"],
         "x_train": x_train,
+        "train_source_matrix": x_train,
+        "train_target_matrix": x_train,
         "val_holdout": val_holdout,
         "test_holdout": test_holdout,
-        "train_item_indices": train_item_indices,
+        "train_item_indices": None,
         "val_item_indices": np.array([], dtype=np.int64),
         "test_item_indices": np.array([], dtype=np.int64),
-        "extra_metadata": {},
+        "train_user_ids": np.asarray(train_user_index).astype(str),
+        "val_user_ids": np.asarray(sorted(split.val["user_id"].astype(str).unique())),
+        "test_user_ids": np.asarray(sorted(split.test["user_id"].astype(str).unique())),
+        "extra_metadata": {
+            "has_user_partitions": True,
+            "has_item_partitions": False,
+            "is_temporal": False,
+            "is_future_blind": False,
+            "leakage_note": "Random user split; timestamps are not used to prevent future-to-past leakage.",
+        },
     }
 
 
@@ -442,7 +501,7 @@ def _build_item_split(args, proc_df):
     val_items = set(item_ids[val_idx].tolist())
     test_items = set(item_ids[test_idx].tolist())
     train_df = proc_df[proc_df["item_id"].astype(str).isin(train_items)].copy()
-    x_train = _to_sparse_matrix_for_items(train_df, item_ids)
+    x_train, train_user_ids = _to_sparse_matrix_for_items_with_users(train_df, item_ids)
     val_holdout = build_item_cold_holdout(
         item_ids=item_ids,
         interactions=proc_df,
@@ -462,12 +521,22 @@ def _build_item_split(args, proc_df):
     return {
         "item_ids": item_ids,
         "x_train": x_train,
+        "train_source_matrix": x_train,
+        "train_target_matrix": x_train,
         "val_holdout": val_holdout,
         "test_holdout": test_holdout,
         "train_item_indices": train_idx,
         "val_item_indices": val_idx,
         "test_item_indices": test_idx,
+        "train_user_ids": train_user_ids,
+        "val_user_ids": None,
+        "test_user_ids": None,
         "extra_metadata": {
+            "has_user_partitions": False,
+            "has_item_partitions": True,
+            "is_temporal": False,
+            "is_future_blind": False,
+            "leakage_note": "Random item split; timestamps are not used to prevent future-to-past leakage.",
             "item_val_frac": args.item_val_frac,
             "item_test_frac": args.item_test_frac,
             "val_items": int(len(val_idx)),
@@ -489,16 +558,28 @@ def _build_leave_last_out_split(args, proc_df):
     train_idx = np.setdiff1d(np.arange(len(item_ids), dtype=np.int64), target_idx, assume_unique=False)
     train_items = set(item_ids[train_idx].tolist())
     train_df = proc_df[proc_df["item_id"].astype(str).isin(train_items)].copy()
-    x_train = _to_sparse_matrix_for_items(train_df, item_ids)
+    x_train, train_user_ids = _to_sparse_matrix_for_items_with_users(train_df, item_ids)
     return {
         "item_ids": item_ids,
         "x_train": x_train,
+        "train_source_matrix": x_train,
+        "train_target_matrix": x_train,
         "val_holdout": holdout,
         "test_holdout": holdout,
         "train_item_indices": train_idx,
         "val_item_indices": target_idx,
         "test_item_indices": target_idx,
-        "extra_metadata": {"cold_target_items": int(len(target_idx))},
+        "train_user_ids": train_user_ids,
+        "val_user_ids": None,
+        "test_user_ids": None,
+        "extra_metadata": {
+            "has_user_partitions": False,
+            "has_item_partitions": False,
+            "is_temporal": False,
+            "is_future_blind": False,
+            "leakage_note": "Leave-last-out is chronological within each user but can leak global future information across users.",
+            "cold_target_items": int(len(target_idx)),
+        },
     }
 
 
@@ -516,16 +597,26 @@ def _build_temporal_split(args, proc_df):
     train_idx = np.setdiff1d(np.arange(len(item_ids), dtype=np.int64), target_idx, assume_unique=False)
     train_items = set(item_ids[train_idx].tolist())
     train_df = proc_df[proc_df["item_id"].astype(str).isin(train_items)].copy()
-    x_train = _to_sparse_matrix_for_items(train_df, item_ids)
+    x_train, train_user_ids = _to_sparse_matrix_for_items_with_users(train_df, item_ids)
     return {
         "item_ids": item_ids,
         "x_train": x_train,
+        "train_source_matrix": x_train,
+        "train_target_matrix": x_train,
         "val_holdout": holdout,
         "test_holdout": holdout,
         "train_item_indices": train_idx,
         "val_item_indices": target_idx,
         "test_item_indices": target_idx,
+        "train_user_ids": train_user_ids,
+        "val_user_ids": None,
+        "test_user_ids": None,
         "extra_metadata": {
+            "has_user_partitions": False,
+            "has_item_partitions": False,
+            "is_temporal": True,
+            "is_future_blind": True,
+            "leakage_note": "Temporal split uses global timestamp cutoffs so training interactions precede evaluation targets.",
             "temporal_test_frac": args.temporal_test_frac,
             "timestamp_cutoff": holdout.get("timestamp_cutoff"),
             "cold_target_items": int(len(target_idx)),
@@ -573,11 +664,12 @@ def _build_amazon_predefined_temporal_split(args, ds: AmazonReviews2023, proc_df
     train_items = set(train_df["item_id"].astype(str).unique())
     train_idx = np.asarray([item_to_idx[item] for item in sorted(train_items) if item in item_to_idx], dtype=np.int64)
 
-    x_train = _to_sparse_matrix_for_items(train_df, item_ids)
+    x_train, train_user_ids = _to_sparse_matrix_for_items_with_users(train_df, item_ids)
 
     def _holdout(df: pd.DataFrame) -> dict[str, object]:
         source_indices: list[np.ndarray] = []
         target_indices: list[np.ndarray] = []
+        user_ids: list[str] = []
         target_item_idx: set[int] = set()
         for _, row in df.iterrows():
             target_item = str(row["item_id"])
@@ -589,11 +681,13 @@ def _build_amazon_predefined_temporal_split(args, ds: AmazonReviews2023, proc_df
             if len(src) >= args.min_source_items:
                 source_indices.append(src)
                 target_indices.append(np.asarray([target_idx], dtype=np.int64))
+                user_ids.append(str(row["user_id"]))
                 target_item_idx.add(target_idx)
         return {
             "item_ids": item_ids,
             "source_indices": source_indices,
             "target_indices": target_indices,
+            "user_ids": np.asarray(user_ids, dtype=str),
             "target_item_indices": np.asarray(sorted(target_item_idx), dtype=np.int64),
         }
 
@@ -604,12 +698,22 @@ def _build_amazon_predefined_temporal_split(args, ds: AmazonReviews2023, proc_df
     return {
         "item_ids": item_ids,
         "x_train": x_train,
+        "train_source_matrix": x_train,
+        "train_target_matrix": x_train,
         "val_holdout": val_holdout,
         "test_holdout": test_holdout,
         "train_item_indices": np.sort(train_idx),
         "val_item_indices": val_idx,
         "test_item_indices": test_idx,
+        "train_user_ids": train_user_ids,
+        "val_user_ids": None,
+        "test_user_ids": None,
         "extra_metadata": {
+            "has_user_partitions": False,
+            "has_item_partitions": False,
+            "is_temporal": True,
+            "is_future_blind": True,
+            "leakage_note": "Amazon predefined temporal split uses McAuley's timestamp split with histories.",
             "amazon_predefined_split": "0core_timestamp_w_his",
             "val_items": int(len(val_idx)),
             "test_items": int(len(test_idx)),
@@ -636,72 +740,112 @@ def _build_recsys_checkpoint_from_args(args) -> Path:
     random.seed(args.seed)
     np.random.seed(args.seed)
 
-    ds = _make_dataset(args, spec)
-    raw_df = ds.get_interactions()
-    proc_df = ds.preprocess_interactions_for_recsys(
-        raw_df,
-        min_value_to_keep=args.min_value_to_keep,
-        user_min_support=args.min_user_support,
-        item_min_support=args.item_min_support,
-        set_all_values_to=args.set_all_values_to,
-    )
-    split_payload = _build_split_payload(args, ds, proc_df)
-    item_ids = split_payload["item_ids"]
-    val_holdout = split_payload["val_holdout"]
-    test_holdout = split_payload["test_holdout"]
-    entity_tag_matrix, tag_names, annotation_name = _build_entity_tag_matrix(args, ds, item_ids)
-    entity_metadata = ds.get_item_metadata()
+    with _CheckpointProgress(enabled=getattr(args, "show_progress", True), total=6) as progress:
+        progress.step("Loading interactions")
+        ds = _make_dataset(args, spec)
+        raw_df = ds.get_interactions()
 
-    with update_checkpoint(args.checkpoint_path) as root:
-        save_recsys_split(
-            root,
-            item_ids=item_ids,
-            x_train=split_payload["x_train"],
-            val_source_indices=val_holdout["source_indices"],
-            val_target_indices=val_holdout["target_indices"],
-            test_source_indices=test_holdout["source_indices"],
-            test_target_indices=test_holdout["target_indices"],
-            train_item_indices=split_payload["train_item_indices"],
-            val_item_indices=split_payload["val_item_indices"],
-            test_item_indices=split_payload["test_item_indices"],
-            entity_tag_matrix=entity_tag_matrix,
-            tag_names=tag_names,
-            entity_metadata=entity_metadata,
-            metadata={
-                "dataset": args.dataset,
-                "seed": args.seed,
-                "val_users": args.val_users,
-                "test_users": args.test_users,
-                "min_user_support": args.min_user_support,
-                "item_min_support": args.item_min_support,
-                "min_value_to_keep": args.min_value_to_keep,
-                "set_all_values_to": args.set_all_values_to,
-                "eval_fold": args.eval_fold,
-                "split_mode": args.split_mode,
-                "min_source_items": args.min_source_items,
-                "min_target_items": args.min_target_items,
-                "train_items": int(len(split_payload["train_item_indices"])),
-                "val_cold_items": int(len(split_payload["val_item_indices"])),
-                "test_cold_items": int(len(split_payload["test_item_indices"])),
-                "n_val_eval_users": int(len(val_holdout["source_indices"])),
-                "n_test_eval_users": int(len(test_holdout["source_indices"])),
-                **split_payload["extra_metadata"],
-                "annotation_source": args.annotation_source,
-                "annotation_min_count": args.annotation_min_count,
-                "amazon_category": args.amazon_category if args.dataset == "amazon2023" else None,
-                "metadata_text_fields": (
-                    [field.strip() for field in args.metadata_text_fields.split(",") if field.strip()]
-                    if args.metadata_text_fields
-                    else list(getattr(spec.cls, "default_text_fields", ()))
-                ),
-                "min_entity_text_words": args.min_entity_text_words,
-                "annotations": {
-                    "entity_tags": annotation_name,
-                    "n_tags": int(len(tag_names)) if tag_names is not None else 0,
-                    "entity_metadata": True,
-                },
-            },
+        progress.step("Preprocessing interactions")
+        proc_df = ds.preprocess_interactions_for_recsys(
+            raw_df,
+            min_value_to_keep=args.min_value_to_keep,
+            user_min_support=args.min_user_support,
+            item_min_support=args.item_min_support,
+            set_all_values_to=args.set_all_values_to,
         )
+
+        progress.step(f"Building {args.split_mode} split")
+        split_payload = _build_split_payload(args, ds, proc_df)
+        item_ids = split_payload["item_ids"]
+        val_holdout = split_payload["val_holdout"]
+        test_holdout = split_payload["test_holdout"]
+        train_item_indices = split_payload.get("train_item_indices")
+        val_item_indices = split_payload.get("val_item_indices")
+        test_item_indices = split_payload.get("test_item_indices")
+        train_item_count = int(len(train_item_indices)) if train_item_indices is not None else int(len(item_ids))
+        val_item_count = int(len(val_item_indices)) if val_item_indices is not None else 0
+        test_item_count = int(len(test_item_indices)) if test_item_indices is not None else 0
+
+        progress.step("Building annotations")
+        entity_tag_matrix, tag_names, annotation_name = _build_entity_tag_matrix(args, ds, item_ids)
+
+        progress.step("Loading item metadata")
+        entity_metadata = ds.get_item_metadata()
+
+        progress.step("Writing checkpoint")
+        with update_checkpoint(args.checkpoint_path) as root:
+            save_recsys_split(
+                root,
+                item_ids=item_ids,
+                x_train=split_payload["x_train"],
+                val_source_indices=val_holdout["source_indices"],
+                val_target_indices=val_holdout["target_indices"],
+                test_source_indices=test_holdout["source_indices"],
+                test_target_indices=test_holdout["target_indices"],
+                train_source_matrix=split_payload.get("train_source_matrix"),
+                train_target_matrix=split_payload.get("train_target_matrix"),
+                train_user_ids=split_payload.get("train_user_ids"),
+                val_user_ids=split_payload.get("val_user_ids"),
+                test_user_ids=split_payload.get("test_user_ids"),
+                val_eval_user_ids=val_holdout.get("user_ids"),
+                test_eval_user_ids=test_holdout.get("user_ids"),
+                train_item_indices=train_item_indices,
+                val_item_indices=val_item_indices,
+                test_item_indices=test_item_indices,
+                entity_tag_matrix=entity_tag_matrix,
+                tag_names=tag_names,
+                entity_metadata=entity_metadata,
+                metadata={
+                    "dataset": args.dataset,
+                    "seed": args.seed,
+                    "val_users": args.val_users,
+                    "test_users": args.test_users,
+                    "min_user_support": args.min_user_support,
+                    "item_min_support": args.item_min_support,
+                    "min_value_to_keep": args.min_value_to_keep,
+                    "set_all_values_to": args.set_all_values_to,
+                    "eval_fold": args.eval_fold,
+                    "split_mode": args.split_mode,
+                    "min_source_items": args.min_source_items,
+                    "min_target_items": args.min_target_items,
+                    "train_items": train_item_count,
+                    "val_cold_items": val_item_count,
+                    "test_cold_items": test_item_count,
+                    "n_train_users": int(len(split_payload["train_user_ids"])) if split_payload.get("train_user_ids") is not None else None,
+                    "n_val_users": int(len(split_payload["val_user_ids"])) if split_payload.get("val_user_ids") is not None else None,
+                    "n_test_users": int(len(split_payload["test_user_ids"])) if split_payload.get("test_user_ids") is not None else None,
+                    "n_val_eval_users": int(len(val_holdout["source_indices"])),
+                    "n_test_eval_users": int(len(test_holdout["source_indices"])),
+                    "split_files": {
+                        "train_source_matrix": "data/train_source_matrix.npz",
+                        "train_target_matrix": "data/train_target_matrix.npz",
+                        "val_source_matrix": "data/val_source_matrix.npz",
+                        "val_target_matrix": "data/val_target_matrix.npz",
+                        "test_source_matrix": "data/test_source_matrix.npz",
+                        "test_target_matrix": "data/test_target_matrix.npz",
+                        "train_user_ids": "data/train_user_ids.npy",
+                        "val_user_ids": "data/val_user_ids.npy",
+                        "test_user_ids": "data/test_user_ids.npy",
+                        "val_eval_user_ids": "data/val_eval_user_ids.npy",
+                        "test_eval_user_ids": "data/test_eval_user_ids.npy",
+                    },
+                    **split_payload["extra_metadata"],
+                    "annotation_source": args.annotation_source,
+                    "annotation_min_count": args.annotation_min_count,
+                    "amazon_category": args.amazon_category if args.dataset == "amazon2023" else None,
+                    "metadata_text_fields": (
+                        [field.strip() for field in args.metadata_text_fields.split(",") if field.strip()]
+                        if args.metadata_text_fields
+                        else list(getattr(spec.cls, "default_text_fields", ()))
+                    ),
+                    "min_entity_text_words": args.min_entity_text_words,
+                    "annotations": {
+                        "entity_tags": annotation_name,
+                        "n_tags": int(len(tag_names)) if tag_names is not None else 0,
+                        "entity_metadata": True,
+                    },
+                },
+            )
     return Path(args.checkpoint_path)
 
 
@@ -731,6 +875,7 @@ def build_recsys_checkpoint(
     min_entity_text_words: int = 30,
     annotation_source: str = "genres",
     annotation_min_count: int = 100,
+    show_progress: bool = True,
 ) -> Path:
     """Build a recommender-system split checkpoint and return its path."""
     args = _build_args(
@@ -758,6 +903,7 @@ def build_recsys_checkpoint(
         min_entity_text_words=min_entity_text_words,
         annotation_source=annotation_source,
         annotation_min_count=annotation_min_count,
+        show_progress=show_progress,
     )
     return _build_recsys_checkpoint_from_args(args)
 
