@@ -26,4 +26,3 @@ def hf_to_torch_dataloader(
         shuffle=shuffle,
         collate_fn=collate_fn or _default_collate,
     )
-

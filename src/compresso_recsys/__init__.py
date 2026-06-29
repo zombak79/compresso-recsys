@@ -1,37 +1,38 @@
 """Recommender-system companion package for Compresso."""
 
 from .checkpoint import (
-    COMPRESSED_ELSA_DIR,
-    ELSA_DIR,
-    SAE_DIR,
-    SBERT_DIR,
-    SBERT_SAE_DIR,
+    load_cluster_graph_stage,
+    load_json,
+    load_manifest,
     load_recsys_split,
     read_checkpoint,
+    save_cluster_graph_stage,
+    save_json,
+    save_manifest,
     save_recsys_split,
     update_checkpoint,
+    update_stage_manifest,
 )
-from .datasets import AmazonReviews2023, Goodbooks, MovieLens1M, MovieLens20M, RecSysDataset
-from .models import CompressedELSA, TorchELSA, fit_compressed_elsa, fit_elsa, fit_sae_on_embeddings
+from .datasets import AmazonReviews2023, Goodbooks, MovieLens1M, MovieLens20M, RecSysDataset, SplitBundle
+from .scripts.build_checkpoint import build_recsys_checkpoint
 
 __all__ = [
-    "COMPRESSED_ELSA_DIR",
-    "ELSA_DIR",
-    "SAE_DIR",
-    "SBERT_DIR",
-    "SBERT_SAE_DIR",
     "AmazonReviews2023",
-    "CompressedELSA",
+    "build_recsys_checkpoint",
     "Goodbooks",
     "MovieLens1M",
     "MovieLens20M",
     "RecSysDataset",
-    "TorchELSA",
-    "fit_compressed_elsa",
-    "fit_elsa",
-    "fit_sae_on_embeddings",
+    "SplitBundle",
+    "load_cluster_graph_stage",
+    "load_json",
+    "load_manifest",
     "load_recsys_split",
     "read_checkpoint",
+    "save_cluster_graph_stage",
+    "save_json",
+    "save_manifest",
     "save_recsys_split",
     "update_checkpoint",
+    "update_stage_manifest",
 ]

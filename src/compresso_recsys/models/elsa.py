@@ -13,9 +13,8 @@ from compresso.utils.controllers import SparsityController
 class TorchELSA(nn.Module):
     """Thin ELSA-style linear autoencoder for item embedding learning.
 
-    Uses normalized item embedding matrix A and predicts:
-        y = relu((x @ A) @ A.T - x)
-    where x is a user interaction vector.
+    Uses normalized item embedding matrix ``A`` and predicts
+    ``y = relu((x @ A) @ A.T - x)``, where ``x`` is a user interaction vector.
     """
 
     def __init__(self, n_items: int, n_factors: int) -> None:

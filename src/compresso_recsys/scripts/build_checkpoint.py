@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import random
 from dataclasses import dataclass
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -47,6 +48,12 @@ DATASETS = {
         set_all_values_to=1.0,
     ),
 }
+
+
+def _metadata_text_fields_arg(value: str | list[str] | tuple[str, ...] | None) -> str | None:
+    if value is None or isinstance(value, str):
+        return value
+    return ",".join(str(field) for field in value)
 
 
 def parse_args():
@@ -101,6 +108,70 @@ def parse_args():
     )
     p.add_argument("--annotation_min_count", type=int, default=100)
     return p.parse_args()
+
+
+def _build_args(
+    *,
+    dataset: str,
+    data_dir: str = "data",
+    checkpoint_path: str | None = None,
+    seed: int | None = None,
+    val_users: int | None = None,
+    test_users: int | None = None,
+    min_user_support: int | None = None,
+    item_min_support: int | None = None,
+    min_value_to_keep: float | None = None,
+    set_all_values_to: float | None = None,
+    eval_fold: int = 0,
+    split_mode: str = "user_split",
+    val_items: int | None = None,
+    test_items: int | None = None,
+    item_val_frac: float = 0.05,
+    item_test_frac: float = 0.10,
+    temporal_test_frac: float = 0.10,
+    min_source_items: int = 1,
+    min_target_items: int = 1,
+    amazon_category: str = "Toys_and_Games",
+    metadata_text_fields: str | list[str] | tuple[str, ...] | None = None,
+    min_entity_text_words: int = 30,
+    annotation_source: str = "genres",
+    annotation_min_count: int = 100,
+) -> argparse.Namespace:
+    if dataset not in DATASETS:
+        choices = ", ".join(sorted(DATASETS))
+        raise ValueError(f"dataset must be one of {{{choices}}}, got {dataset!r}")
+    if eval_fold not in (0, 1):
+        raise ValueError(f"eval_fold must be 0 or 1, got {eval_fold!r}")
+    if split_mode not in {"user_split", "item_split", "leave_last_out", "temporal"}:
+        raise ValueError(f"Unsupported split_mode: {split_mode!r}")
+    if annotation_source not in {"genres", "ml20m_tags", "goodbooks_tags", "none"}:
+        raise ValueError(f"Unsupported annotation_source: {annotation_source!r}")
+    return argparse.Namespace(
+        dataset=dataset,
+        data_dir=data_dir,
+        checkpoint_path=checkpoint_path,
+        seed=seed,
+        val_users=val_users,
+        test_users=test_users,
+        min_user_support=min_user_support,
+        item_min_support=item_min_support,
+        min_value_to_keep=min_value_to_keep,
+        set_all_values_to=set_all_values_to,
+        eval_fold=eval_fold,
+        split_mode=split_mode,
+        val_items=val_items,
+        test_items=test_items,
+        item_val_frac=item_val_frac,
+        item_test_frac=item_test_frac,
+        temporal_test_frac=temporal_test_frac,
+        min_source_items=min_source_items,
+        min_target_items=min_target_items,
+        amazon_category=amazon_category,
+        metadata_text_fields=_metadata_text_fields_arg(metadata_text_fields),
+        min_entity_text_words=min_entity_text_words,
+        annotation_source=annotation_source,
+        annotation_min_count=annotation_min_count,
+    )
 
 
 def _resolve_args(args):
@@ -560,8 +631,8 @@ def _build_split_payload(args, ds, proc_df):
     raise ValueError(f"Unsupported split_mode: {args.split_mode}")
 
 
-def main():
-    args, spec = _resolve_args(parse_args())
+def _build_recsys_checkpoint_from_args(args) -> Path:
+    args, spec = _resolve_args(args)
     random.seed(args.seed)
     np.random.seed(args.seed)
 
@@ -631,7 +702,70 @@ def main():
                 },
             },
         )
-    print(f"Saved {args.dataset} data split checkpoint to: {args.checkpoint_path}")
+    return Path(args.checkpoint_path)
+
+
+def build_recsys_checkpoint(
+    *,
+    dataset: str,
+    data_dir: str = "data",
+    checkpoint_path: str | None = None,
+    seed: int | None = None,
+    val_users: int | None = None,
+    test_users: int | None = None,
+    min_user_support: int | None = None,
+    item_min_support: int | None = None,
+    min_value_to_keep: float | None = None,
+    set_all_values_to: float | None = None,
+    eval_fold: int = 0,
+    split_mode: str = "user_split",
+    val_items: int | None = None,
+    test_items: int | None = None,
+    item_val_frac: float = 0.05,
+    item_test_frac: float = 0.10,
+    temporal_test_frac: float = 0.10,
+    min_source_items: int = 1,
+    min_target_items: int = 1,
+    amazon_category: str = "Toys_and_Games",
+    metadata_text_fields: str | list[str] | tuple[str, ...] | None = None,
+    min_entity_text_words: int = 30,
+    annotation_source: str = "genres",
+    annotation_min_count: int = 100,
+) -> Path:
+    """Build a recommender-system split checkpoint and return its path."""
+    args = _build_args(
+        dataset=dataset,
+        data_dir=data_dir,
+        checkpoint_path=checkpoint_path,
+        seed=seed,
+        val_users=val_users,
+        test_users=test_users,
+        min_user_support=min_user_support,
+        item_min_support=item_min_support,
+        min_value_to_keep=min_value_to_keep,
+        set_all_values_to=set_all_values_to,
+        eval_fold=eval_fold,
+        split_mode=split_mode,
+        val_items=val_items,
+        test_items=test_items,
+        item_val_frac=item_val_frac,
+        item_test_frac=item_test_frac,
+        temporal_test_frac=temporal_test_frac,
+        min_source_items=min_source_items,
+        min_target_items=min_target_items,
+        amazon_category=amazon_category,
+        metadata_text_fields=metadata_text_fields,
+        min_entity_text_words=min_entity_text_words,
+        annotation_source=annotation_source,
+        annotation_min_count=annotation_min_count,
+    )
+    return _build_recsys_checkpoint_from_args(args)
+
+
+def main():
+    args = parse_args()
+    path = _build_recsys_checkpoint_from_args(args)
+    print(f"Saved {args.dataset} data split checkpoint to: {path}")
 
 
 if __name__ == "__main__":

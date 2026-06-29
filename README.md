@@ -26,6 +26,23 @@ From GitHub, once both repositories are public:
 pip install "compresso-recsys @ git+https://github.com/zombak79/compresso-recsys.git"
 ```
 
+## Documentation
+
+The documentation can be built locally with Sphinx:
+
+```bash
+pip install -r docs/requirements.txt
+pip install -e .
+sphinx-build -b html docs/source docs/build/html
+```
+
+After GitHub Pages is enabled for the `gh-pages` branch, release documentation
+will be available at:
+
+```text
+https://zombak79.github.io/compresso-recsys/
+```
+
 ## What Is Included
 
 - Dataset utilities for GoodBooks, MovieLens 1M, MovieLens 20M, and Amazon
@@ -197,13 +214,18 @@ import compresso_recsys as cr
 
 dataset = cr.MovieLens1M(data_dir="data")
 interactions = dataset.get_interactions()
+
+checkpoint_path = cr.build_recsys_checkpoint(
+    dataset="ml1m",
+    checkpoint_path="artifacts/ml1m/exp001.zip",
+    annotation_source="genres",
+)
 ```
 
 Subpackages are also available:
 
 ```python
 from compresso_recsys.datasets import Goodbooks, MovieLens1M, MovieLens20M
-from compresso_recsys.models import TorchELSA, CompressedELSA
 from compresso_recsys.checkpoint import update_checkpoint, load_recsys_split
 ```
 
