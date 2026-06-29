@@ -1,0 +1,937 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>compresso_recsys.scripts.build_checkpoint &mdash; Compresso Recsys 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Compresso Recsys
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../installation.html#local-development">Local Development</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../installation.html#install-from-github">Install from GitHub</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../installation.html#optional-extras">Optional Extras</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../installation.html#build-the-documentation-locally">Build the Documentation Locally</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../getting-started.html">Getting Started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../getting-started.html#basic-python-usage">Basic Python Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../getting-started.html#checkpoint-workflow">Checkpoint Workflow</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quickstart</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples.html">Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples.html#dataset-loader">Dataset Loader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples.html#building-checkpoints">Building Checkpoints</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples.html#checkpoint-read-write">Checkpoint Read/Write</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/index.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/compresso_recsys.html">Core API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/compresso_recsys.html#datasets">Datasets</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/compresso_recsys.html#compresso_recsys.SplitBundle"><code class="docutils literal notranslate"><span class="pre">SplitBundle</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/compresso_recsys.html#compresso_recsys.RecSysDataset"><code class="docutils literal notranslate"><span class="pre">RecSysDataset</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/compresso_recsys.html#compresso_recsys.Goodbooks"><code class="docutils literal notranslate"><span class="pre">Goodbooks</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/compresso_recsys.html#compresso_recsys.MovieLens1M"><code class="docutils literal notranslate"><span class="pre">MovieLens1M</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/compresso_recsys.html#compresso_recsys.MovieLens20M"><code class="docutils literal notranslate"><span class="pre">MovieLens20M</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/compresso_recsys.html#compresso_recsys.AmazonReviews2023"><code class="docutils literal notranslate"><span class="pre">AmazonReviews2023</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/compresso_recsys.html#checkpoint-helpers">Checkpoint Helpers</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/compresso_recsys.html#compresso_recsys.build_recsys_checkpoint"><code class="docutils literal notranslate"><span class="pre">build_recsys_checkpoint()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/compresso_recsys.html#compresso_recsys.update_checkpoint"><code class="docutils literal notranslate"><span class="pre">update_checkpoint()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/compresso_recsys.html#compresso_recsys.read_checkpoint"><code class="docutils literal notranslate"><span class="pre">read_checkpoint()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/compresso_recsys.html#compresso_recsys.load_manifest"><code class="docutils literal notranslate"><span class="pre">load_manifest()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/compresso_recsys.html#compresso_recsys.save_manifest"><code class="docutils literal notranslate"><span class="pre">save_manifest()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/compresso_recsys.html#compresso_recsys.update_stage_manifest"><code class="docutils literal notranslate"><span class="pre">update_stage_manifest()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/compresso_recsys.html#compresso_recsys.save_json"><code class="docutils literal notranslate"><span class="pre">save_json()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/compresso_recsys.html#compresso_recsys.load_json"><code class="docutils literal notranslate"><span class="pre">load_json()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/compresso_recsys.html#compresso_recsys.save_recsys_split"><code class="docutils literal notranslate"><span class="pre">save_recsys_split()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/compresso_recsys.html#compresso_recsys.load_recsys_split"><code class="docutils literal notranslate"><span class="pre">load_recsys_split()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/compresso_recsys.html#compresso_recsys.save_cluster_graph_stage"><code class="docutils literal notranslate"><span class="pre">save_cluster_graph_stage()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/compresso_recsys.html#compresso_recsys.load_cluster_graph_stage"><code class="docutils literal notranslate"><span class="pre">load_cluster_graph_stage()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/datasets.html">Datasets API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/checkpoint.html">Checkpoint API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/checkpoint.html#checkpoint-contexts">Checkpoint Contexts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/checkpoint.html#manifest-and-json-helpers">Manifest and JSON Helpers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/checkpoint.html#split-and-cluster-stages">Split and Cluster Stages</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Compresso Recsys</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">compresso_recsys.scripts.build_checkpoint</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for compresso_recsys.scripts.build_checkpoint</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">argparse</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">random</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy.sparse</span><span class="w"> </span><span class="kn">import</span> <span class="n">csr_matrix</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.checkpoint</span><span class="w"> </span><span class="kn">import</span> <span class="n">save_recsys_split</span><span class="p">,</span> <span class="n">update_checkpoint</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.datasets</span><span class="w"> </span><span class="kn">import</span> <span class="n">AmazonReviews2023</span><span class="p">,</span> <span class="n">Goodbooks</span><span class="p">,</span> <span class="n">MovieLens1M</span><span class="p">,</span> <span class="n">MovieLens20M</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.retrieval</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">build_eval_holdout</span><span class="p">,</span>
+    <span class="n">build_item_cold_holdout</span><span class="p">,</span>
+    <span class="n">build_leave_last_out_holdout</span><span class="p">,</span>
+    <span class="n">build_temporal_holdout</span><span class="p">,</span>
+<span class="p">)</span>
+
+
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">DatasetSpec</span><span class="p">:</span>
+    <span class="bp">cls</span><span class="p">:</span> <span class="nb">type</span>
+    <span class="n">checkpoint_path</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">val_users</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">test_users</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">min_user_support</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span>
+    <span class="n">item_min_support</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">min_value_to_keep</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">4.0</span>
+    <span class="n">set_all_values_to</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span>
+
+
+<span class="n">DATASETS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;goodbooks&quot;</span><span class="p">:</span> <span class="n">DatasetSpec</span><span class="p">(</span><span class="n">Goodbooks</span><span class="p">,</span> <span class="s2">&quot;artifacts/goodbooks/recsys_checkpoint.zip&quot;</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">val_users</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">test_users</span><span class="o">=</span><span class="mi">2500</span><span class="p">),</span>
+    <span class="s2">&quot;ml1m&quot;</span><span class="p">:</span> <span class="n">DatasetSpec</span><span class="p">(</span><span class="n">MovieLens1M</span><span class="p">,</span> <span class="s2">&quot;artifacts/ml1m/recsys_checkpoint.zip&quot;</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span> <span class="n">val_users</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span> <span class="n">test_users</span><span class="o">=</span><span class="mi">1000</span><span class="p">),</span>
+    <span class="s2">&quot;ml20m&quot;</span><span class="p">:</span> <span class="n">DatasetSpec</span><span class="p">(</span><span class="n">MovieLens20M</span><span class="p">,</span> <span class="s2">&quot;artifacts/ml20m/recsys_checkpoint.zip&quot;</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span> <span class="n">val_users</span><span class="o">=</span><span class="mi">2500</span><span class="p">,</span> <span class="n">test_users</span><span class="o">=</span><span class="mi">5000</span><span class="p">),</span>
+    <span class="s2">&quot;amazon2023&quot;</span><span class="p">:</span> <span class="n">DatasetSpec</span><span class="p">(</span>
+        <span class="n">AmazonReviews2023</span><span class="p">,</span>
+        <span class="s2">&quot;artifacts/amazon2023/</span><span class="si">{amazon_category}</span><span class="s2">/recsys_checkpoint.zip&quot;</span><span class="p">,</span>
+        <span class="n">seed</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span>
+        <span class="n">val_users</span><span class="o">=</span><span class="mi">2500</span><span class="p">,</span>
+        <span class="n">test_users</span><span class="o">=</span><span class="mi">5000</span><span class="p">,</span>
+        <span class="n">min_user_support</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+        <span class="n">item_min_support</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+        <span class="n">min_value_to_keep</span><span class="o">=</span><span class="mf">4.0</span><span class="p">,</span>
+        <span class="n">set_all_values_to</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+    <span class="p">),</span>
+<span class="p">}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_metadata_text_fields_arg</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">value</span>
+    <span class="k">return</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">field</span><span class="p">)</span> <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">value</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">parse_args</span><span class="p">():</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--dataset&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">choices</span><span class="o">=</span><span class="nb">sorted</span><span class="p">(</span><span class="n">DATASETS</span><span class="p">))</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--data_dir&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">&quot;data&quot;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--checkpoint_path&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--seed&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--val_users&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--test_users&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--min_user_support&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--item_min_support&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--min_value_to_keep&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--set_all_values_to&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--eval_fold&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--split_mode&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;user_split&quot;</span><span class="p">,</span>
+        <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;user_split&quot;</span><span class="p">,</span> <span class="s2">&quot;item_split&quot;</span><span class="p">,</span> <span class="s2">&quot;leave_last_out&quot;</span><span class="p">,</span> <span class="s2">&quot;temporal&quot;</span><span class="p">],</span>
+    <span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--val_items&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Number of cold validation items for item_split.&quot;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--test_items&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Number of cold test items for item_split.&quot;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--item_val_frac&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Cold validation item fraction for item_split.&quot;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--item_test_frac&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mf">0.10</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Cold test item fraction for item_split.&quot;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--temporal_test_frac&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mf">0.10</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Global latest-interaction fraction for temporal split.&quot;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--min_source_items&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--min_target_items&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--amazon_category&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;Toys_and_Games&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Amazon Reviews 2023 category, e.g. Toys_and_Games, Electronics, Clothing_Shoes_and_Jewelry.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--metadata_text_fields&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Comma-separated metadata fields joined into entity_text for text-aware datasets.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--min_entity_text_words&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Drop items whose constructed entity_text has fewer words. Mostly useful for Amazon 2023.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--annotation_source&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;genres&quot;</span><span class="p">,</span>
+        <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;genres&quot;</span><span class="p">,</span> <span class="s2">&quot;ml20m_tags&quot;</span><span class="p">,</span> <span class="s2">&quot;goodbooks_tags&quot;</span><span class="p">,</span> <span class="s2">&quot;none&quot;</span><span class="p">],</span>
+    <span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--annotation_min_count&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_build_args</span><span class="p">(</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">dataset</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">data_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">,</span>
+    <span class="n">checkpoint_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">val_users</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">test_users</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">min_user_support</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">item_min_support</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">min_value_to_keep</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">set_all_values_to</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">eval_fold</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="n">split_mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;user_split&quot;</span><span class="p">,</span>
+    <span class="n">val_items</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">test_items</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">item_val_frac</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.05</span><span class="p">,</span>
+    <span class="n">item_test_frac</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.10</span><span class="p">,</span>
+    <span class="n">temporal_test_frac</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.10</span><span class="p">,</span>
+    <span class="n">min_source_items</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="n">min_target_items</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="n">amazon_category</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;Toys_and_Games&quot;</span><span class="p">,</span>
+    <span class="n">metadata_text_fields</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">min_entity_text_words</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">30</span><span class="p">,</span>
+    <span class="n">annotation_source</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;genres&quot;</span><span class="p">,</span>
+    <span class="n">annotation_min_count</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">dataset</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">DATASETS</span><span class="p">:</span>
+        <span class="n">choices</span> <span class="o">=</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">DATASETS</span><span class="p">))</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;dataset must be one of </span><span class="se">{{</span><span class="si">{</span><span class="n">choices</span><span class="si">}</span><span class="se">}}</span><span class="s2">, got </span><span class="si">{</span><span class="n">dataset</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">eval_fold</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;eval_fold must be 0 or 1, got </span><span class="si">{</span><span class="n">eval_fold</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">split_mode</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;user_split&quot;</span><span class="p">,</span> <span class="s2">&quot;item_split&quot;</span><span class="p">,</span> <span class="s2">&quot;leave_last_out&quot;</span><span class="p">,</span> <span class="s2">&quot;temporal&quot;</span><span class="p">}:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unsupported split_mode: </span><span class="si">{</span><span class="n">split_mode</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">annotation_source</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;genres&quot;</span><span class="p">,</span> <span class="s2">&quot;ml20m_tags&quot;</span><span class="p">,</span> <span class="s2">&quot;goodbooks_tags&quot;</span><span class="p">,</span> <span class="s2">&quot;none&quot;</span><span class="p">}:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unsupported annotation_source: </span><span class="si">{</span><span class="n">annotation_source</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">(</span>
+        <span class="n">dataset</span><span class="o">=</span><span class="n">dataset</span><span class="p">,</span>
+        <span class="n">data_dir</span><span class="o">=</span><span class="n">data_dir</span><span class="p">,</span>
+        <span class="n">checkpoint_path</span><span class="o">=</span><span class="n">checkpoint_path</span><span class="p">,</span>
+        <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span>
+        <span class="n">val_users</span><span class="o">=</span><span class="n">val_users</span><span class="p">,</span>
+        <span class="n">test_users</span><span class="o">=</span><span class="n">test_users</span><span class="p">,</span>
+        <span class="n">min_user_support</span><span class="o">=</span><span class="n">min_user_support</span><span class="p">,</span>
+        <span class="n">item_min_support</span><span class="o">=</span><span class="n">item_min_support</span><span class="p">,</span>
+        <span class="n">min_value_to_keep</span><span class="o">=</span><span class="n">min_value_to_keep</span><span class="p">,</span>
+        <span class="n">set_all_values_to</span><span class="o">=</span><span class="n">set_all_values_to</span><span class="p">,</span>
+        <span class="n">eval_fold</span><span class="o">=</span><span class="n">eval_fold</span><span class="p">,</span>
+        <span class="n">split_mode</span><span class="o">=</span><span class="n">split_mode</span><span class="p">,</span>
+        <span class="n">val_items</span><span class="o">=</span><span class="n">val_items</span><span class="p">,</span>
+        <span class="n">test_items</span><span class="o">=</span><span class="n">test_items</span><span class="p">,</span>
+        <span class="n">item_val_frac</span><span class="o">=</span><span class="n">item_val_frac</span><span class="p">,</span>
+        <span class="n">item_test_frac</span><span class="o">=</span><span class="n">item_test_frac</span><span class="p">,</span>
+        <span class="n">temporal_test_frac</span><span class="o">=</span><span class="n">temporal_test_frac</span><span class="p">,</span>
+        <span class="n">min_source_items</span><span class="o">=</span><span class="n">min_source_items</span><span class="p">,</span>
+        <span class="n">min_target_items</span><span class="o">=</span><span class="n">min_target_items</span><span class="p">,</span>
+        <span class="n">amazon_category</span><span class="o">=</span><span class="n">amazon_category</span><span class="p">,</span>
+        <span class="n">metadata_text_fields</span><span class="o">=</span><span class="n">_metadata_text_fields_arg</span><span class="p">(</span><span class="n">metadata_text_fields</span><span class="p">),</span>
+        <span class="n">min_entity_text_words</span><span class="o">=</span><span class="n">min_entity_text_words</span><span class="p">,</span>
+        <span class="n">annotation_source</span><span class="o">=</span><span class="n">annotation_source</span><span class="p">,</span>
+        <span class="n">annotation_min_count</span><span class="o">=</span><span class="n">annotation_min_count</span><span class="p">,</span>
+    <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_resolve_args</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+    <span class="n">spec</span> <span class="o">=</span> <span class="n">DATASETS</span><span class="p">[</span><span class="n">args</span><span class="o">.</span><span class="n">dataset</span><span class="p">]</span>
+    <span class="n">args</span><span class="o">.</span><span class="n">checkpoint_path</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">checkpoint_path</span> <span class="ow">or</span> <span class="n">spec</span><span class="o">.</span><span class="n">checkpoint_path</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">amazon_category</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">amazon_category</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">args</span><span class="o">.</span><span class="n">seed</span> <span class="o">=</span> <span class="n">spec</span><span class="o">.</span><span class="n">seed</span> <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">seed</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">args</span><span class="o">.</span><span class="n">seed</span>
+    <span class="n">args</span><span class="o">.</span><span class="n">val_users</span> <span class="o">=</span> <span class="n">spec</span><span class="o">.</span><span class="n">val_users</span> <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">val_users</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">args</span><span class="o">.</span><span class="n">val_users</span>
+    <span class="n">args</span><span class="o">.</span><span class="n">test_users</span> <span class="o">=</span> <span class="n">spec</span><span class="o">.</span><span class="n">test_users</span> <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">test_users</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">args</span><span class="o">.</span><span class="n">test_users</span>
+    <span class="n">args</span><span class="o">.</span><span class="n">min_user_support</span> <span class="o">=</span> <span class="n">spec</span><span class="o">.</span><span class="n">min_user_support</span> <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">min_user_support</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">args</span><span class="o">.</span><span class="n">min_user_support</span>
+    <span class="n">args</span><span class="o">.</span><span class="n">item_min_support</span> <span class="o">=</span> <span class="n">spec</span><span class="o">.</span><span class="n">item_min_support</span> <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">item_min_support</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">args</span><span class="o">.</span><span class="n">item_min_support</span>
+    <span class="n">args</span><span class="o">.</span><span class="n">min_value_to_keep</span> <span class="o">=</span> <span class="n">spec</span><span class="o">.</span><span class="n">min_value_to_keep</span> <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">min_value_to_keep</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">args</span><span class="o">.</span><span class="n">min_value_to_keep</span>
+    <span class="n">args</span><span class="o">.</span><span class="n">set_all_values_to</span> <span class="o">=</span> <span class="n">spec</span><span class="o">.</span><span class="n">set_all_values_to</span> <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">set_all_values_to</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">args</span><span class="o">.</span><span class="n">set_all_values_to</span>
+    <span class="k">return</span> <span class="n">args</span><span class="p">,</span> <span class="n">spec</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_make_dataset</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">spec</span><span class="p">:</span> <span class="n">DatasetSpec</span><span class="p">):</span>
+    <span class="n">default_fields</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="s2">&quot;default_text_fields&quot;</span><span class="p">,</span> <span class="p">())</span>
+    <span class="n">fields</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="p">[</span><span class="n">field</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">args</span><span class="o">.</span><span class="n">metadata_text_fields</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)</span> <span class="k">if</span> <span class="n">field</span><span class="o">.</span><span class="n">strip</span><span class="p">()]</span>
+        <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">metadata_text_fields</span>
+        <span class="k">else</span> <span class="nb">list</span><span class="p">(</span><span class="n">default_fields</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">fields</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;--metadata_text_fields must contain at least one field&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">spec</span><span class="o">.</span><span class="n">cls</span> <span class="ow">is</span> <span class="n">AmazonReviews2023</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">AmazonReviews2023</span><span class="p">(</span>
+            <span class="n">data_dir</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">data_dir</span><span class="p">,</span>
+            <span class="n">category</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">amazon_category</span><span class="p">,</span>
+            <span class="n">metadata_text_fields</span><span class="o">=</span><span class="n">fields</span><span class="p">,</span>
+            <span class="n">min_entity_text_words</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">min_entity_text_words</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">spec</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span>
+        <span class="n">data_dir</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">data_dir</span><span class="p">,</span>
+        <span class="n">metadata_text_fields</span><span class="o">=</span><span class="n">fields</span><span class="p">,</span>
+        <span class="n">min_entity_text_words</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">min_entity_text_words</span><span class="p">,</span>
+    <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_build_genre_tag_matrix</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">item_ids</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+    <span class="n">metadata</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">get_item_metadata</span><span class="p">()</span>
+    <span class="k">if</span> <span class="s2">&quot;genres&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">metadata</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+
+    <span class="n">item_ids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">item_ids</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span>
+    <span class="n">item_to_genres</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;item_id&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">),</span> <span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;genres&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)))</span>
+    <span class="n">rows</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">tag_values</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">tag_to_col</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">cols</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">row</span><span class="p">,</span> <span class="n">item_id</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">item_ids</span><span class="o">.</span><span class="n">tolist</span><span class="p">()):</span>
+        <span class="n">raw</span> <span class="o">=</span> <span class="n">item_to_genres</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">item_id</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">raw</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">raw</span> <span class="o">==</span> <span class="s2">&quot;nan&quot;</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="k">for</span> <span class="n">tag</span> <span class="ow">in</span> <span class="n">raw</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;|&quot;</span><span class="p">):</span>
+            <span class="n">tag</span> <span class="o">=</span> <span class="n">tag</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">tag</span> <span class="ow">or</span> <span class="n">tag</span> <span class="o">==</span> <span class="s2">&quot;(no genres listed)&quot;</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">col</span> <span class="o">=</span> <span class="n">tag_to_col</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">tag</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">col</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">col</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">tag_values</span><span class="p">)</span>
+                <span class="n">tag_to_col</span><span class="p">[</span><span class="n">tag</span><span class="p">]</span> <span class="o">=</span> <span class="n">col</span>
+                <span class="n">tag_values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tag</span><span class="p">)</span>
+            <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+            <span class="n">cols</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">col</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">tag_values</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">rows</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">matrix</span> <span class="o">=</span> <span class="n">csr_matrix</span><span class="p">((</span><span class="n">data</span><span class="p">,</span> <span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">cols</span><span class="p">)),</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">item_ids</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">tag_values</span><span class="p">)),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">matrix</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">tag_values</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">str</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_build_ml20m_user_tag_matrix</span><span class="p">(</span><span class="n">data_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">item_ids</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">min_count</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">min_count</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;annotation_min_count must be &gt;= 1&quot;</span><span class="p">)</span>
+    <span class="n">ml20m</span> <span class="o">=</span> <span class="n">MovieLens20M</span><span class="p">(</span><span class="n">data_dir</span><span class="o">=</span><span class="n">data_dir</span><span class="p">)</span>
+    <span class="n">ml20m</span><span class="o">.</span><span class="n">download</span><span class="p">()</span>
+    <span class="n">tags_path</span> <span class="o">=</span> <span class="n">ml20m</span><span class="o">.</span><span class="n">root</span> <span class="o">/</span> <span class="s2">&quot;ml-20m&quot;</span> <span class="o">/</span> <span class="s2">&quot;tags.csv&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">tags_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+        <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Missing ML20M tags file: </span><span class="si">{</span><span class="n">tags_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="n">tags</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">tags_path</span><span class="p">,</span> <span class="n">usecols</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;movieId&quot;</span><span class="p">,</span> <span class="s2">&quot;tag&quot;</span><span class="p">])</span>
+    <span class="n">tags</span> <span class="o">=</span> <span class="n">tags</span><span class="o">.</span><span class="n">dropna</span><span class="p">(</span><span class="n">subset</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;movieId&quot;</span><span class="p">,</span> <span class="s2">&quot;tag&quot;</span><span class="p">])</span>
+    <span class="n">tags</span><span class="p">[</span><span class="s2">&quot;item_id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tags</span><span class="p">[</span><span class="s2">&quot;movieId&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span>
+    <span class="n">tags</span><span class="p">[</span><span class="s2">&quot;tag&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tags</span><span class="p">[</span><span class="s2">&quot;tag&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="n">tags</span> <span class="o">=</span> <span class="n">tags</span><span class="p">[</span><span class="n">tags</span><span class="p">[</span><span class="s2">&quot;tag&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+    <span class="n">tag_counts</span> <span class="o">=</span> <span class="n">tags</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">&quot;tag&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>
+    <span class="n">keep_tags</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">tag_counts</span><span class="p">[</span><span class="n">tag_counts</span> <span class="o">&gt;=</span> <span class="n">min_count</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+    <span class="n">tags</span> <span class="o">=</span> <span class="n">tags</span><span class="p">[</span><span class="n">tags</span><span class="p">[</span><span class="s2">&quot;tag&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">keep_tags</span><span class="p">)]</span>
+    <span class="k">if</span> <span class="n">tags</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+
+    <span class="n">item_ids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">item_ids</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span>
+    <span class="n">row_by_item</span> <span class="o">=</span> <span class="p">{</span><span class="n">item_id</span><span class="p">:</span> <span class="n">row</span> <span class="k">for</span> <span class="n">row</span><span class="p">,</span> <span class="n">item_id</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">item_ids</span><span class="o">.</span><span class="n">tolist</span><span class="p">())}</span>
+    <span class="n">tag_names</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">tags</span><span class="p">[</span><span class="s2">&quot;tag&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+    <span class="n">col_by_tag</span> <span class="o">=</span> <span class="p">{</span><span class="n">tag</span><span class="p">:</span> <span class="n">col</span> <span class="k">for</span> <span class="n">col</span><span class="p">,</span> <span class="n">tag</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">tag_names</span><span class="p">)}</span>
+
+    <span class="n">tags</span> <span class="o">=</span> <span class="n">tags</span><span class="p">[</span><span class="n">tags</span><span class="p">[</span><span class="s2">&quot;item_id&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">row_by_item</span><span class="p">)]</span>
+    <span class="k">if</span> <span class="n">tags</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+
+    <span class="n">grouped</span> <span class="o">=</span> <span class="n">tags</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s2">&quot;item_id&quot;</span><span class="p">,</span> <span class="s2">&quot;tag&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">size</span><span class="p">()</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;count&quot;</span><span class="p">)</span>
+    <span class="n">rows</span> <span class="o">=</span> <span class="n">grouped</span><span class="p">[</span><span class="s2">&quot;item_id&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">row_by_item</span><span class="p">)</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+    <span class="n">cols</span> <span class="o">=</span> <span class="n">grouped</span><span class="p">[</span><span class="s2">&quot;tag&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">col_by_tag</span><span class="p">)</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">grouped</span><span class="p">[</span><span class="s2">&quot;count&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">matrix</span> <span class="o">=</span> <span class="n">csr_matrix</span><span class="p">((</span><span class="n">data</span><span class="p">,</span> <span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">cols</span><span class="p">)),</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">item_ids</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">tag_names</span><span class="p">)),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">matrix</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">tag_names</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">str</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_build_goodbooks_user_tag_matrix</span><span class="p">(</span><span class="n">ds</span><span class="p">:</span> <span class="n">Goodbooks</span><span class="p">,</span> <span class="n">item_ids</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">min_count</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">min_count</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;annotation_min_count must be &gt;= 1&quot;</span><span class="p">)</span>
+    <span class="n">ds</span><span class="o">.</span><span class="n">download</span><span class="p">()</span>
+    <span class="n">books_path</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">root</span> <span class="o">/</span> <span class="s2">&quot;books.csv&quot;</span>
+    <span class="n">book_tags_path</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">root</span> <span class="o">/</span> <span class="s2">&quot;book_tags.csv&quot;</span>
+    <span class="n">tags_path</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">root</span> <span class="o">/</span> <span class="s2">&quot;tags.csv&quot;</span>
+    <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="p">(</span><span class="n">books_path</span><span class="p">,</span> <span class="n">book_tags_path</span><span class="p">,</span> <span class="n">tags_path</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Missing Goodbooks tag source file: </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="n">books</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">books_path</span><span class="p">,</span> <span class="n">usecols</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;book_id&quot;</span><span class="p">,</span> <span class="s2">&quot;goodreads_book_id&quot;</span><span class="p">])</span>
+    <span class="n">book_tags</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">book_tags_path</span><span class="p">,</span> <span class="n">usecols</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;goodreads_book_id&quot;</span><span class="p">,</span> <span class="s2">&quot;tag_id&quot;</span><span class="p">,</span> <span class="s2">&quot;count&quot;</span><span class="p">])</span>
+    <span class="n">tags</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">tags_path</span><span class="p">,</span> <span class="n">usecols</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;tag_id&quot;</span><span class="p">,</span> <span class="s2">&quot;tag_name&quot;</span><span class="p">])</span>
+
+    <span class="n">book_tags</span> <span class="o">=</span> <span class="n">book_tags</span><span class="o">.</span><span class="n">dropna</span><span class="p">(</span><span class="n">subset</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;goodreads_book_id&quot;</span><span class="p">,</span> <span class="s2">&quot;tag_id&quot;</span><span class="p">,</span> <span class="s2">&quot;count&quot;</span><span class="p">])</span>
+    <span class="n">book_tags</span><span class="p">[</span><span class="s2">&quot;count&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">book_tags</span><span class="p">[</span><span class="s2">&quot;count&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">book_tags</span> <span class="o">=</span> <span class="n">book_tags</span><span class="p">[</span><span class="n">book_tags</span><span class="p">[</span><span class="s2">&quot;count&quot;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">book_tags</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+
+    <span class="n">tag_counts</span> <span class="o">=</span> <span class="n">book_tags</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">&quot;tag_id&quot;</span><span class="p">)[</span><span class="s2">&quot;count&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+    <span class="n">keep_tag_ids</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">tag_counts</span><span class="p">[</span><span class="n">tag_counts</span> <span class="o">&gt;=</span> <span class="n">min_count</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+    <span class="n">book_tags</span> <span class="o">=</span> <span class="n">book_tags</span><span class="p">[</span><span class="n">book_tags</span><span class="p">[</span><span class="s2">&quot;tag_id&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">keep_tag_ids</span><span class="p">)]</span>
+    <span class="k">if</span> <span class="n">book_tags</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+
+    <span class="n">item_ids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">item_ids</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span>
+    <span class="n">row_by_item</span> <span class="o">=</span> <span class="p">{</span><span class="n">item_id</span><span class="p">:</span> <span class="n">row</span> <span class="k">for</span> <span class="n">row</span><span class="p">,</span> <span class="n">item_id</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">item_ids</span><span class="o">.</span><span class="n">tolist</span><span class="p">())}</span>
+
+    <span class="n">books</span><span class="p">[</span><span class="s2">&quot;item_id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">books</span><span class="p">[</span><span class="s2">&quot;book_id&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span>
+    <span class="n">id_map</span> <span class="o">=</span> <span class="n">books</span><span class="p">[[</span><span class="s2">&quot;goodreads_book_id&quot;</span><span class="p">,</span> <span class="s2">&quot;item_id&quot;</span><span class="p">]]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">book_tags</span> <span class="o">=</span> <span class="n">book_tags</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">id_map</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s2">&quot;goodreads_book_id&quot;</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">&quot;inner&quot;</span><span class="p">)</span>
+    <span class="n">book_tags</span> <span class="o">=</span> <span class="n">book_tags</span><span class="p">[</span><span class="n">book_tags</span><span class="p">[</span><span class="s2">&quot;item_id&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">row_by_item</span><span class="p">)]</span>
+    <span class="k">if</span> <span class="n">book_tags</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+
+    <span class="n">tags</span><span class="p">[</span><span class="s2">&quot;tag_name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tags</span><span class="p">[</span><span class="s2">&quot;tag_name&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="n">tags</span> <span class="o">=</span> <span class="n">tags</span><span class="p">[</span><span class="n">tags</span><span class="p">[</span><span class="s2">&quot;tag_name&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">book_tags</span> <span class="o">=</span> <span class="n">book_tags</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">tags</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s2">&quot;tag_id&quot;</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s2">&quot;inner&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">book_tags</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+
+    <span class="n">tag_names</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">book_tags</span><span class="p">[</span><span class="s2">&quot;tag_name&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+    <span class="n">col_by_tag</span> <span class="o">=</span> <span class="p">{</span><span class="n">tag</span><span class="p">:</span> <span class="n">col</span> <span class="k">for</span> <span class="n">col</span><span class="p">,</span> <span class="n">tag</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">tag_names</span><span class="p">)}</span>
+    <span class="n">grouped</span> <span class="o">=</span> <span class="n">book_tags</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s2">&quot;item_id&quot;</span><span class="p">,</span> <span class="s2">&quot;tag_name&quot;</span><span class="p">],</span> <span class="n">as_index</span><span class="o">=</span><span class="kc">False</span><span class="p">)[</span><span class="s2">&quot;count&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+    <span class="n">rows</span> <span class="o">=</span> <span class="n">grouped</span><span class="p">[</span><span class="s2">&quot;item_id&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">row_by_item</span><span class="p">)</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+    <span class="n">cols</span> <span class="o">=</span> <span class="n">grouped</span><span class="p">[</span><span class="s2">&quot;tag_name&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">col_by_tag</span><span class="p">)</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">grouped</span><span class="p">[</span><span class="s2">&quot;count&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">matrix</span> <span class="o">=</span> <span class="n">csr_matrix</span><span class="p">((</span><span class="n">data</span><span class="p">,</span> <span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">cols</span><span class="p">)),</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">item_ids</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">tag_names</span><span class="p">)),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">matrix</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">tag_names</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">str</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_build_entity_tag_matrix</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">ds</span><span class="p">,</span> <span class="n">item_ids</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">annotation_source</span> <span class="o">==</span> <span class="s2">&quot;none&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">annotation_source</span> <span class="o">==</span> <span class="s2">&quot;genres&quot;</span><span class="p">:</span>
+        <span class="n">matrix</span><span class="p">,</span> <span class="n">names</span> <span class="o">=</span> <span class="n">_build_genre_tag_matrix</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">item_ids</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">matrix</span><span class="p">,</span> <span class="n">names</span><span class="p">,</span> <span class="s2">&quot;genres&quot;</span> <span class="k">if</span> <span class="n">matrix</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">annotation_source</span> <span class="o">==</span> <span class="s2">&quot;ml20m_tags&quot;</span><span class="p">:</span>
+        <span class="n">matrix</span><span class="p">,</span> <span class="n">names</span> <span class="o">=</span> <span class="n">_build_ml20m_user_tag_matrix</span><span class="p">(</span>
+            <span class="n">args</span><span class="o">.</span><span class="n">data_dir</span><span class="p">,</span>
+            <span class="n">item_ids</span><span class="p">,</span>
+            <span class="n">min_count</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">annotation_min_count</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">matrix</span><span class="p">,</span> <span class="n">names</span><span class="p">,</span> <span class="s2">&quot;ml20m_tags&quot;</span> <span class="k">if</span> <span class="n">matrix</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">annotation_source</span> <span class="o">==</span> <span class="s2">&quot;goodbooks_tags&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">Goodbooks</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;--annotation_source goodbooks_tags can only be used with --dataset goodbooks&quot;</span><span class="p">)</span>
+        <span class="n">matrix</span><span class="p">,</span> <span class="n">names</span> <span class="o">=</span> <span class="n">_build_goodbooks_user_tag_matrix</span><span class="p">(</span>
+            <span class="n">ds</span><span class="p">,</span>
+            <span class="n">item_ids</span><span class="p">,</span>
+            <span class="n">min_count</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">annotation_min_count</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">matrix</span><span class="p">,</span> <span class="n">names</span><span class="p">,</span> <span class="s2">&quot;goodbooks_tags&quot;</span> <span class="k">if</span> <span class="n">matrix</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unsupported annotation_source: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">annotation_source</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_to_sparse_matrix_for_items</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">item_ids</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+    <span class="n">users</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Index</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;user_id&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">unique</span><span class="p">()))</span>
+    <span class="n">items</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Index</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">item_ids</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">))</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">users</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">csr_matrix</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">items</span><span class="p">)),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+    <span class="n">u_codes</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Categorical</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;user_id&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">),</span> <span class="n">categories</span><span class="o">=</span><span class="n">users</span><span class="p">)</span><span class="o">.</span><span class="n">codes</span>
+    <span class="n">i_codes</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Categorical</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;item_id&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">),</span> <span class="n">categories</span><span class="o">=</span><span class="n">items</span><span class="p">)</span><span class="o">.</span><span class="n">codes</span>
+    <span class="n">valid</span> <span class="o">=</span> <span class="p">(</span><span class="n">u_codes</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">i_codes</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">vals</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;value&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()[</span><span class="n">valid</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">csr_matrix</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">vals</span><span class="p">,</span> <span class="p">(</span><span class="n">u_codes</span><span class="p">[</span><span class="n">valid</span><span class="p">],</span> <span class="n">i_codes</span><span class="p">[</span><span class="n">valid</span><span class="p">])),</span>
+        <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">users</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">items</span><span class="p">)),</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+    <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_split_item_ids_random</span><span class="p">(</span><span class="n">item_ids</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+    <span class="n">item_ids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">item_ids</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span>
+    <span class="n">n_items</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">item_ids</span><span class="p">)</span>
+    <span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">seed</span><span class="p">)</span>
+    <span class="n">perm</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">permutation</span><span class="p">(</span><span class="n">n_items</span><span class="p">)</span>
+
+    <span class="n">n_val</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">val_items</span> <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">val_items</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">n_items</span> <span class="o">*</span> <span class="n">args</span><span class="o">.</span><span class="n">item_val_frac</span><span class="p">))</span>
+    <span class="n">n_test</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">test_items</span> <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">test_items</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">n_items</span> <span class="o">*</span> <span class="n">args</span><span class="o">.</span><span class="n">item_test_frac</span><span class="p">))</span>
+    <span class="n">n_val</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">n_val</span><span class="p">))</span>
+    <span class="n">n_test</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">n_test</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">n_val</span> <span class="o">+</span> <span class="n">n_test</span> <span class="o">&gt;=</span> <span class="n">n_items</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Cold val/test items must leave at least one train item&quot;</span><span class="p">)</span>
+
+    <span class="n">val_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">perm</span><span class="p">[:</span><span class="n">n_val</span><span class="p">])</span>
+    <span class="n">test_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">perm</span><span class="p">[</span><span class="n">n_val</span> <span class="p">:</span> <span class="n">n_val</span> <span class="o">+</span> <span class="n">n_test</span><span class="p">])</span>
+    <span class="n">train_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">perm</span><span class="p">[</span><span class="n">n_val</span> <span class="o">+</span> <span class="n">n_test</span> <span class="p">:])</span>
+    <span class="k">return</span> <span class="n">train_idx</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">),</span> <span class="n">val_idx</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">),</span> <span class="n">test_idx</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_build_user_split</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">ds</span><span class="p">,</span> <span class="n">proc_df</span><span class="p">):</span>
+    <span class="n">split</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">split_users_strong_generalization</span><span class="p">(</span>
+        <span class="n">val_users</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">val_users</span><span class="p">,</span>
+        <span class="n">test_users</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">test_users</span><span class="p">,</span>
+        <span class="n">min_user_support</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">random_state</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">seed</span><span class="p">,</span>
+        <span class="n">interactions</span><span class="o">=</span><span class="n">proc_df</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">x_train</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">item_ids</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">to_sparse_matrix</span><span class="p">(</span><span class="n">split</span><span class="o">.</span><span class="n">train</span><span class="p">)</span>
+    <span class="n">val_holdout</span> <span class="o">=</span> <span class="n">build_eval_holdout</span><span class="p">(</span>
+        <span class="n">train_item_ids</span><span class="o">=</span><span class="n">item_ids</span><span class="p">,</span>
+        <span class="n">eval_interactions</span><span class="o">=</span><span class="n">split</span><span class="o">.</span><span class="n">val</span><span class="p">,</span>
+        <span class="n">min_user_support</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">min_user_support</span><span class="p">,</span>
+        <span class="n">random_state</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">seed</span><span class="p">,</span>
+        <span class="n">eval_fold</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">eval_fold</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">test_holdout</span> <span class="o">=</span> <span class="n">build_eval_holdout</span><span class="p">(</span>
+        <span class="n">train_item_ids</span><span class="o">=</span><span class="n">item_ids</span><span class="p">,</span>
+        <span class="n">eval_interactions</span><span class="o">=</span><span class="n">split</span><span class="o">.</span><span class="n">test</span><span class="p">,</span>
+        <span class="n">min_user_support</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">min_user_support</span><span class="p">,</span>
+        <span class="n">random_state</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">seed</span><span class="p">,</span>
+        <span class="n">eval_fold</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">eval_fold</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">train_item_indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">test_holdout</span><span class="p">[</span><span class="s2">&quot;item_ids&quot;</span><span class="p">]),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s2">&quot;item_ids&quot;</span><span class="p">:</span> <span class="n">test_holdout</span><span class="p">[</span><span class="s2">&quot;item_ids&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;x_train&quot;</span><span class="p">:</span> <span class="n">x_train</span><span class="p">,</span>
+        <span class="s2">&quot;val_holdout&quot;</span><span class="p">:</span> <span class="n">val_holdout</span><span class="p">,</span>
+        <span class="s2">&quot;test_holdout&quot;</span><span class="p">:</span> <span class="n">test_holdout</span><span class="p">,</span>
+        <span class="s2">&quot;train_item_indices&quot;</span><span class="p">:</span> <span class="n">train_item_indices</span><span class="p">,</span>
+        <span class="s2">&quot;val_item_indices&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">),</span>
+        <span class="s2">&quot;test_item_indices&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">),</span>
+        <span class="s2">&quot;extra_metadata&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="p">}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_build_item_split</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">proc_df</span><span class="p">):</span>
+    <span class="n">item_ids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">proc_df</span><span class="p">[</span><span class="s2">&quot;item_id&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">unique</span><span class="p">()))</span>
+    <span class="n">train_idx</span><span class="p">,</span> <span class="n">val_idx</span><span class="p">,</span> <span class="n">test_idx</span> <span class="o">=</span> <span class="n">_split_item_ids_random</span><span class="p">(</span><span class="n">item_ids</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="n">args</span><span class="p">)</span>
+    <span class="n">train_items</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">item_ids</span><span class="p">[</span><span class="n">train_idx</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+    <span class="n">val_items</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">item_ids</span><span class="p">[</span><span class="n">val_idx</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+    <span class="n">test_items</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">item_ids</span><span class="p">[</span><span class="n">test_idx</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+    <span class="n">train_df</span> <span class="o">=</span> <span class="n">proc_df</span><span class="p">[</span><span class="n">proc_df</span><span class="p">[</span><span class="s2">&quot;item_id&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">train_items</span><span class="p">)]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">x_train</span> <span class="o">=</span> <span class="n">_to_sparse_matrix_for_items</span><span class="p">(</span><span class="n">train_df</span><span class="p">,</span> <span class="n">item_ids</span><span class="p">)</span>
+    <span class="n">val_holdout</span> <span class="o">=</span> <span class="n">build_item_cold_holdout</span><span class="p">(</span>
+        <span class="n">item_ids</span><span class="o">=</span><span class="n">item_ids</span><span class="p">,</span>
+        <span class="n">interactions</span><span class="o">=</span><span class="n">proc_df</span><span class="p">,</span>
+        <span class="n">source_item_ids</span><span class="o">=</span><span class="n">train_items</span><span class="p">,</span>
+        <span class="n">target_item_ids</span><span class="o">=</span><span class="n">val_items</span><span class="p">,</span>
+        <span class="n">min_source_items</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">min_source_items</span><span class="p">,</span>
+        <span class="n">min_target_items</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">min_target_items</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">test_holdout</span> <span class="o">=</span> <span class="n">build_item_cold_holdout</span><span class="p">(</span>
+        <span class="n">item_ids</span><span class="o">=</span><span class="n">item_ids</span><span class="p">,</span>
+        <span class="n">interactions</span><span class="o">=</span><span class="n">proc_df</span><span class="p">,</span>
+        <span class="n">source_item_ids</span><span class="o">=</span><span class="n">train_items</span><span class="p">,</span>
+        <span class="n">target_item_ids</span><span class="o">=</span><span class="n">test_items</span><span class="p">,</span>
+        <span class="n">min_source_items</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">min_source_items</span><span class="p">,</span>
+        <span class="n">min_target_items</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">min_target_items</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s2">&quot;item_ids&quot;</span><span class="p">:</span> <span class="n">item_ids</span><span class="p">,</span>
+        <span class="s2">&quot;x_train&quot;</span><span class="p">:</span> <span class="n">x_train</span><span class="p">,</span>
+        <span class="s2">&quot;val_holdout&quot;</span><span class="p">:</span> <span class="n">val_holdout</span><span class="p">,</span>
+        <span class="s2">&quot;test_holdout&quot;</span><span class="p">:</span> <span class="n">test_holdout</span><span class="p">,</span>
+        <span class="s2">&quot;train_item_indices&quot;</span><span class="p">:</span> <span class="n">train_idx</span><span class="p">,</span>
+        <span class="s2">&quot;val_item_indices&quot;</span><span class="p">:</span> <span class="n">val_idx</span><span class="p">,</span>
+        <span class="s2">&quot;test_item_indices&quot;</span><span class="p">:</span> <span class="n">test_idx</span><span class="p">,</span>
+        <span class="s2">&quot;extra_metadata&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;item_val_frac&quot;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">item_val_frac</span><span class="p">,</span>
+            <span class="s2">&quot;item_test_frac&quot;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">item_test_frac</span><span class="p">,</span>
+            <span class="s2">&quot;val_items&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">val_idx</span><span class="p">)),</span>
+            <span class="s2">&quot;test_items&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">test_idx</span><span class="p">)),</span>
+        <span class="p">},</span>
+    <span class="p">}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_build_leave_last_out_split</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">proc_df</span><span class="p">):</span>
+    <span class="n">item_ids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">proc_df</span><span class="p">[</span><span class="s2">&quot;item_id&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">unique</span><span class="p">()))</span>
+    <span class="n">holdout</span> <span class="o">=</span> <span class="n">build_leave_last_out_holdout</span><span class="p">(</span>
+        <span class="n">item_ids</span><span class="o">=</span><span class="n">item_ids</span><span class="p">,</span>
+        <span class="n">interactions</span><span class="o">=</span><span class="n">proc_df</span><span class="p">,</span>
+        <span class="n">min_source_items</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">min_source_items</span><span class="p">,</span>
+        <span class="n">min_target_items</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">min_target_items</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">target_items</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">({</span><span class="nb">int</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">holdout</span><span class="p">[</span><span class="s2">&quot;target_indices&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">row</span><span class="o">.</span><span class="n">tolist</span><span class="p">()})</span>
+    <span class="n">target_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">target_items</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+    <span class="n">train_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">setdiff1d</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">item_ids</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">),</span> <span class="n">target_idx</span><span class="p">,</span> <span class="n">assume_unique</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">train_items</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">item_ids</span><span class="p">[</span><span class="n">train_idx</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+    <span class="n">train_df</span> <span class="o">=</span> <span class="n">proc_df</span><span class="p">[</span><span class="n">proc_df</span><span class="p">[</span><span class="s2">&quot;item_id&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">train_items</span><span class="p">)]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">x_train</span> <span class="o">=</span> <span class="n">_to_sparse_matrix_for_items</span><span class="p">(</span><span class="n">train_df</span><span class="p">,</span> <span class="n">item_ids</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s2">&quot;item_ids&quot;</span><span class="p">:</span> <span class="n">item_ids</span><span class="p">,</span>
+        <span class="s2">&quot;x_train&quot;</span><span class="p">:</span> <span class="n">x_train</span><span class="p">,</span>
+        <span class="s2">&quot;val_holdout&quot;</span><span class="p">:</span> <span class="n">holdout</span><span class="p">,</span>
+        <span class="s2">&quot;test_holdout&quot;</span><span class="p">:</span> <span class="n">holdout</span><span class="p">,</span>
+        <span class="s2">&quot;train_item_indices&quot;</span><span class="p">:</span> <span class="n">train_idx</span><span class="p">,</span>
+        <span class="s2">&quot;val_item_indices&quot;</span><span class="p">:</span> <span class="n">target_idx</span><span class="p">,</span>
+        <span class="s2">&quot;test_item_indices&quot;</span><span class="p">:</span> <span class="n">target_idx</span><span class="p">,</span>
+        <span class="s2">&quot;extra_metadata&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;cold_target_items&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">target_idx</span><span class="p">))},</span>
+    <span class="p">}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_build_temporal_split</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">proc_df</span><span class="p">):</span>
+    <span class="n">item_ids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">proc_df</span><span class="p">[</span><span class="s2">&quot;item_id&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">unique</span><span class="p">()))</span>
+    <span class="n">holdout</span> <span class="o">=</span> <span class="n">build_temporal_holdout</span><span class="p">(</span>
+        <span class="n">item_ids</span><span class="o">=</span><span class="n">item_ids</span><span class="p">,</span>
+        <span class="n">interactions</span><span class="o">=</span><span class="n">proc_df</span><span class="p">,</span>
+        <span class="n">test_frac</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">temporal_test_frac</span><span class="p">,</span>
+        <span class="n">min_source_items</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">min_source_items</span><span class="p">,</span>
+        <span class="n">min_target_items</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">min_target_items</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">target_items</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">({</span><span class="nb">int</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">holdout</span><span class="p">[</span><span class="s2">&quot;target_indices&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">row</span><span class="o">.</span><span class="n">tolist</span><span class="p">()})</span>
+    <span class="n">target_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">target_items</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+    <span class="n">train_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">setdiff1d</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">item_ids</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">),</span> <span class="n">target_idx</span><span class="p">,</span> <span class="n">assume_unique</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">train_items</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">item_ids</span><span class="p">[</span><span class="n">train_idx</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+    <span class="n">train_df</span> <span class="o">=</span> <span class="n">proc_df</span><span class="p">[</span><span class="n">proc_df</span><span class="p">[</span><span class="s2">&quot;item_id&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">train_items</span><span class="p">)]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">x_train</span> <span class="o">=</span> <span class="n">_to_sparse_matrix_for_items</span><span class="p">(</span><span class="n">train_df</span><span class="p">,</span> <span class="n">item_ids</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s2">&quot;item_ids&quot;</span><span class="p">:</span> <span class="n">item_ids</span><span class="p">,</span>
+        <span class="s2">&quot;x_train&quot;</span><span class="p">:</span> <span class="n">x_train</span><span class="p">,</span>
+        <span class="s2">&quot;val_holdout&quot;</span><span class="p">:</span> <span class="n">holdout</span><span class="p">,</span>
+        <span class="s2">&quot;test_holdout&quot;</span><span class="p">:</span> <span class="n">holdout</span><span class="p">,</span>
+        <span class="s2">&quot;train_item_indices&quot;</span><span class="p">:</span> <span class="n">train_idx</span><span class="p">,</span>
+        <span class="s2">&quot;val_item_indices&quot;</span><span class="p">:</span> <span class="n">target_idx</span><span class="p">,</span>
+        <span class="s2">&quot;test_item_indices&quot;</span><span class="p">:</span> <span class="n">target_idx</span><span class="p">,</span>
+        <span class="s2">&quot;extra_metadata&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;temporal_test_frac&quot;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">temporal_test_frac</span><span class="p">,</span>
+            <span class="s2">&quot;timestamp_cutoff&quot;</span><span class="p">:</span> <span class="n">holdout</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;timestamp_cutoff&quot;</span><span class="p">),</span>
+            <span class="s2">&quot;cold_target_items&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">target_idx</span><span class="p">)),</span>
+        <span class="p">},</span>
+    <span class="p">}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_normalize_amazon_split_df</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">valid_items</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;parent_asin&quot;</span><span class="p">:</span> <span class="s2">&quot;item_id&quot;</span><span class="p">,</span> <span class="s2">&quot;rating&quot;</span><span class="p">:</span> <span class="s2">&quot;value&quot;</span><span class="p">})</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">out</span><span class="p">[</span><span class="s2">&quot;user_id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">out</span><span class="p">[</span><span class="s2">&quot;user_id&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span>
+    <span class="n">out</span><span class="p">[</span><span class="s2">&quot;item_id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">out</span><span class="p">[</span><span class="s2">&quot;item_id&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span>
+    <span class="n">out</span><span class="p">[</span><span class="s2">&quot;value&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">(</span><span class="n">out</span><span class="p">[</span><span class="s2">&quot;value&quot;</span><span class="p">],</span> <span class="n">errors</span><span class="o">=</span><span class="s2">&quot;coerce&quot;</span><span class="p">)</span>
+    <span class="n">out</span><span class="p">[</span><span class="s2">&quot;timestamp&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">(</span><span class="n">out</span><span class="p">[</span><span class="s2">&quot;timestamp&quot;</span><span class="p">],</span> <span class="n">errors</span><span class="o">=</span><span class="s2">&quot;coerce&quot;</span><span class="p">)</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">dropna</span><span class="p">(</span><span class="n">subset</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;user_id&quot;</span><span class="p">,</span> <span class="s2">&quot;item_id&quot;</span><span class="p">,</span> <span class="s2">&quot;value&quot;</span><span class="p">])</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">out</span><span class="p">[</span><span class="n">out</span><span class="p">[</span><span class="s2">&quot;item_id&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">valid_items</span><span class="p">)]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">min_value_to_keep</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">out</span><span class="p">[</span><span class="n">out</span><span class="p">[</span><span class="s2">&quot;value&quot;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="nb">float</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">min_value_to_keep</span><span class="p">)]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">set_all_values_to</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">out</span><span class="p">[</span><span class="s2">&quot;value&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">set_all_values_to</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">out</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_history_to_indices</span><span class="p">(</span><span class="n">raw_history</span><span class="p">,</span> <span class="n">item_to_idx</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">raw_history</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">raw_history</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span> <span class="ow">and</span> <span class="n">pd</span><span class="o">.</span><span class="n">isna</span><span class="p">(</span><span class="n">raw_history</span><span class="p">)):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">raw_history</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">items</span> <span class="o">=</span> <span class="n">raw_history</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">raw_history</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+        <span class="n">items</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">raw_history</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">items</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">raw_history</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+    <span class="n">indices</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">({</span><span class="n">item_to_idx</span><span class="p">[</span><span class="n">item</span><span class="p">]</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">items</span> <span class="k">if</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">item_to_idx</span><span class="p">})</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">indices</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_build_amazon_predefined_temporal_split</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">ds</span><span class="p">:</span> <span class="n">AmazonReviews2023</span><span class="p">,</span> <span class="n">proc_df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">):</span>
+    <span class="n">raw_splits</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">load_timestamp_splits_with_history</span><span class="p">()</span>
+    <span class="n">valid_items</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">proc_df</span><span class="p">[</span><span class="s2">&quot;item_id&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">))</span>
+    <span class="n">train_df</span> <span class="o">=</span> <span class="n">_normalize_amazon_split_df</span><span class="p">(</span><span class="n">raw_splits</span><span class="p">[</span><span class="s2">&quot;train&quot;</span><span class="p">],</span> <span class="n">args</span><span class="p">,</span> <span class="n">valid_items</span><span class="o">=</span><span class="n">valid_items</span><span class="p">)</span>
+    <span class="n">valid_df</span> <span class="o">=</span> <span class="n">_normalize_amazon_split_df</span><span class="p">(</span><span class="n">raw_splits</span><span class="p">[</span><span class="s2">&quot;valid&quot;</span><span class="p">],</span> <span class="n">args</span><span class="p">,</span> <span class="n">valid_items</span><span class="o">=</span><span class="n">valid_items</span><span class="p">)</span>
+    <span class="n">test_df</span> <span class="o">=</span> <span class="n">_normalize_amazon_split_df</span><span class="p">(</span><span class="n">raw_splits</span><span class="p">[</span><span class="s2">&quot;test&quot;</span><span class="p">],</span> <span class="n">args</span><span class="p">,</span> <span class="n">valid_items</span><span class="o">=</span><span class="n">valid_items</span><span class="p">)</span>
+
+    <span class="n">item_ids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">valid_items</span><span class="p">))</span>
+    <span class="n">item_to_idx</span> <span class="o">=</span> <span class="p">{</span><span class="n">item_id</span><span class="p">:</span> <span class="n">idx</span> <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">item_id</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">item_ids</span><span class="p">)}</span>
+    <span class="n">train_items</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">train_df</span><span class="p">[</span><span class="s2">&quot;item_id&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">unique</span><span class="p">())</span>
+    <span class="n">train_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">([</span><span class="n">item_to_idx</span><span class="p">[</span><span class="n">item</span><span class="p">]</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">train_items</span><span class="p">)</span> <span class="k">if</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">item_to_idx</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+
+    <span class="n">x_train</span> <span class="o">=</span> <span class="n">_to_sparse_matrix_for_items</span><span class="p">(</span><span class="n">train_df</span><span class="p">,</span> <span class="n">item_ids</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_holdout</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">]:</span>
+        <span class="n">source_indices</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">target_indices</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">target_item_idx</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+            <span class="n">target_item</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;item_id&quot;</span><span class="p">])</span>
+            <span class="n">target_idx</span> <span class="o">=</span> <span class="n">item_to_idx</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">target_item</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">target_idx</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">target_item</span> <span class="ow">in</span> <span class="n">train_items</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">src</span> <span class="o">=</span> <span class="n">_history_to_indices</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;history&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">),</span> <span class="n">item_to_idx</span><span class="p">)</span>
+            <span class="n">src</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">([</span><span class="n">idx</span> <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">src</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span> <span class="k">if</span> <span class="n">item_ids</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="ow">in</span> <span class="n">train_items</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">src</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">args</span><span class="o">.</span><span class="n">min_source_items</span><span class="p">:</span>
+                <span class="n">source_indices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">src</span><span class="p">)</span>
+                <span class="n">target_indices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">([</span><span class="n">target_idx</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">))</span>
+                <span class="n">target_item_idx</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">target_idx</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;item_ids&quot;</span><span class="p">:</span> <span class="n">item_ids</span><span class="p">,</span>
+            <span class="s2">&quot;source_indices&quot;</span><span class="p">:</span> <span class="n">source_indices</span><span class="p">,</span>
+            <span class="s2">&quot;target_indices&quot;</span><span class="p">:</span> <span class="n">target_indices</span><span class="p">,</span>
+            <span class="s2">&quot;target_item_indices&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">target_item_idx</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">),</span>
+        <span class="p">}</span>
+
+    <span class="n">val_holdout</span> <span class="o">=</span> <span class="n">_holdout</span><span class="p">(</span><span class="n">valid_df</span><span class="p">)</span>
+    <span class="n">test_holdout</span> <span class="o">=</span> <span class="n">_holdout</span><span class="p">(</span><span class="n">test_df</span><span class="p">)</span>
+    <span class="n">val_idx</span> <span class="o">=</span> <span class="n">val_holdout</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;target_item_indices&quot;</span><span class="p">)</span>
+    <span class="n">test_idx</span> <span class="o">=</span> <span class="n">test_holdout</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;target_item_indices&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s2">&quot;item_ids&quot;</span><span class="p">:</span> <span class="n">item_ids</span><span class="p">,</span>
+        <span class="s2">&quot;x_train&quot;</span><span class="p">:</span> <span class="n">x_train</span><span class="p">,</span>
+        <span class="s2">&quot;val_holdout&quot;</span><span class="p">:</span> <span class="n">val_holdout</span><span class="p">,</span>
+        <span class="s2">&quot;test_holdout&quot;</span><span class="p">:</span> <span class="n">test_holdout</span><span class="p">,</span>
+        <span class="s2">&quot;train_item_indices&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">train_idx</span><span class="p">),</span>
+        <span class="s2">&quot;val_item_indices&quot;</span><span class="p">:</span> <span class="n">val_idx</span><span class="p">,</span>
+        <span class="s2">&quot;test_item_indices&quot;</span><span class="p">:</span> <span class="n">test_idx</span><span class="p">,</span>
+        <span class="s2">&quot;extra_metadata&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;amazon_predefined_split&quot;</span><span class="p">:</span> <span class="s2">&quot;0core_timestamp_w_his&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;val_items&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">val_idx</span><span class="p">)),</span>
+            <span class="s2">&quot;test_items&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">test_idx</span><span class="p">)),</span>
+        <span class="p">},</span>
+    <span class="p">}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_build_split_payload</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">ds</span><span class="p">,</span> <span class="n">proc_df</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">split_mode</span> <span class="o">==</span> <span class="s2">&quot;user_split&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">_build_user_split</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">ds</span><span class="p">,</span> <span class="n">proc_df</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">split_mode</span> <span class="o">==</span> <span class="s2">&quot;item_split&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">_build_item_split</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">proc_df</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">split_mode</span> <span class="o">==</span> <span class="s2">&quot;leave_last_out&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">_build_leave_last_out_split</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">proc_df</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">split_mode</span> <span class="o">==</span> <span class="s2">&quot;temporal&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">AmazonReviews2023</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">_build_amazon_predefined_temporal_split</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">ds</span><span class="p">,</span> <span class="n">proc_df</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">_build_temporal_split</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">proc_df</span><span class="p">)</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unsupported split_mode: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">split_mode</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_build_recsys_checkpoint_from_args</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+    <span class="n">args</span><span class="p">,</span> <span class="n">spec</span> <span class="o">=</span> <span class="n">_resolve_args</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+    <span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">seed</span><span class="p">)</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">seed</span><span class="p">)</span>
+
+    <span class="n">ds</span> <span class="o">=</span> <span class="n">_make_dataset</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">spec</span><span class="p">)</span>
+    <span class="n">raw_df</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">get_interactions</span><span class="p">()</span>
+    <span class="n">proc_df</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">preprocess_interactions_for_recsys</span><span class="p">(</span>
+        <span class="n">raw_df</span><span class="p">,</span>
+        <span class="n">min_value_to_keep</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">min_value_to_keep</span><span class="p">,</span>
+        <span class="n">user_min_support</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">min_user_support</span><span class="p">,</span>
+        <span class="n">item_min_support</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">item_min_support</span><span class="p">,</span>
+        <span class="n">set_all_values_to</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">set_all_values_to</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">split_payload</span> <span class="o">=</span> <span class="n">_build_split_payload</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">ds</span><span class="p">,</span> <span class="n">proc_df</span><span class="p">)</span>
+    <span class="n">item_ids</span> <span class="o">=</span> <span class="n">split_payload</span><span class="p">[</span><span class="s2">&quot;item_ids&quot;</span><span class="p">]</span>
+    <span class="n">val_holdout</span> <span class="o">=</span> <span class="n">split_payload</span><span class="p">[</span><span class="s2">&quot;val_holdout&quot;</span><span class="p">]</span>
+    <span class="n">test_holdout</span> <span class="o">=</span> <span class="n">split_payload</span><span class="p">[</span><span class="s2">&quot;test_holdout&quot;</span><span class="p">]</span>
+    <span class="n">entity_tag_matrix</span><span class="p">,</span> <span class="n">tag_names</span><span class="p">,</span> <span class="n">annotation_name</span> <span class="o">=</span> <span class="n">_build_entity_tag_matrix</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">ds</span><span class="p">,</span> <span class="n">item_ids</span><span class="p">)</span>
+    <span class="n">entity_metadata</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">get_item_metadata</span><span class="p">()</span>
+
+    <span class="k">with</span> <span class="n">update_checkpoint</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">checkpoint_path</span><span class="p">)</span> <span class="k">as</span> <span class="n">root</span><span class="p">:</span>
+        <span class="n">save_recsys_split</span><span class="p">(</span>
+            <span class="n">root</span><span class="p">,</span>
+            <span class="n">item_ids</span><span class="o">=</span><span class="n">item_ids</span><span class="p">,</span>
+            <span class="n">x_train</span><span class="o">=</span><span class="n">split_payload</span><span class="p">[</span><span class="s2">&quot;x_train&quot;</span><span class="p">],</span>
+            <span class="n">val_source_indices</span><span class="o">=</span><span class="n">val_holdout</span><span class="p">[</span><span class="s2">&quot;source_indices&quot;</span><span class="p">],</span>
+            <span class="n">val_target_indices</span><span class="o">=</span><span class="n">val_holdout</span><span class="p">[</span><span class="s2">&quot;target_indices&quot;</span><span class="p">],</span>
+            <span class="n">test_source_indices</span><span class="o">=</span><span class="n">test_holdout</span><span class="p">[</span><span class="s2">&quot;source_indices&quot;</span><span class="p">],</span>
+            <span class="n">test_target_indices</span><span class="o">=</span><span class="n">test_holdout</span><span class="p">[</span><span class="s2">&quot;target_indices&quot;</span><span class="p">],</span>
+            <span class="n">train_item_indices</span><span class="o">=</span><span class="n">split_payload</span><span class="p">[</span><span class="s2">&quot;train_item_indices&quot;</span><span class="p">],</span>
+            <span class="n">val_item_indices</span><span class="o">=</span><span class="n">split_payload</span><span class="p">[</span><span class="s2">&quot;val_item_indices&quot;</span><span class="p">],</span>
+            <span class="n">test_item_indices</span><span class="o">=</span><span class="n">split_payload</span><span class="p">[</span><span class="s2">&quot;test_item_indices&quot;</span><span class="p">],</span>
+            <span class="n">entity_tag_matrix</span><span class="o">=</span><span class="n">entity_tag_matrix</span><span class="p">,</span>
+            <span class="n">tag_names</span><span class="o">=</span><span class="n">tag_names</span><span class="p">,</span>
+            <span class="n">entity_metadata</span><span class="o">=</span><span class="n">entity_metadata</span><span class="p">,</span>
+            <span class="n">metadata</span><span class="o">=</span><span class="p">{</span>
+                <span class="s2">&quot;dataset&quot;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">dataset</span><span class="p">,</span>
+                <span class="s2">&quot;seed&quot;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">seed</span><span class="p">,</span>
+                <span class="s2">&quot;val_users&quot;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">val_users</span><span class="p">,</span>
+                <span class="s2">&quot;test_users&quot;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">test_users</span><span class="p">,</span>
+                <span class="s2">&quot;min_user_support&quot;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">min_user_support</span><span class="p">,</span>
+                <span class="s2">&quot;item_min_support&quot;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">item_min_support</span><span class="p">,</span>
+                <span class="s2">&quot;min_value_to_keep&quot;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">min_value_to_keep</span><span class="p">,</span>
+                <span class="s2">&quot;set_all_values_to&quot;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">set_all_values_to</span><span class="p">,</span>
+                <span class="s2">&quot;eval_fold&quot;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">eval_fold</span><span class="p">,</span>
+                <span class="s2">&quot;split_mode&quot;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">split_mode</span><span class="p">,</span>
+                <span class="s2">&quot;min_source_items&quot;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">min_source_items</span><span class="p">,</span>
+                <span class="s2">&quot;min_target_items&quot;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">min_target_items</span><span class="p">,</span>
+                <span class="s2">&quot;train_items&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">split_payload</span><span class="p">[</span><span class="s2">&quot;train_item_indices&quot;</span><span class="p">])),</span>
+                <span class="s2">&quot;val_cold_items&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">split_payload</span><span class="p">[</span><span class="s2">&quot;val_item_indices&quot;</span><span class="p">])),</span>
+                <span class="s2">&quot;test_cold_items&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">split_payload</span><span class="p">[</span><span class="s2">&quot;test_item_indices&quot;</span><span class="p">])),</span>
+                <span class="s2">&quot;n_val_eval_users&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">val_holdout</span><span class="p">[</span><span class="s2">&quot;source_indices&quot;</span><span class="p">])),</span>
+                <span class="s2">&quot;n_test_eval_users&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">test_holdout</span><span class="p">[</span><span class="s2">&quot;source_indices&quot;</span><span class="p">])),</span>
+                <span class="o">**</span><span class="n">split_payload</span><span class="p">[</span><span class="s2">&quot;extra_metadata&quot;</span><span class="p">],</span>
+                <span class="s2">&quot;annotation_source&quot;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">annotation_source</span><span class="p">,</span>
+                <span class="s2">&quot;annotation_min_count&quot;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">annotation_min_count</span><span class="p">,</span>
+                <span class="s2">&quot;amazon_category&quot;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">amazon_category</span> <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">dataset</span> <span class="o">==</span> <span class="s2">&quot;amazon2023&quot;</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="s2">&quot;metadata_text_fields&quot;</span><span class="p">:</span> <span class="p">(</span>
+                    <span class="p">[</span><span class="n">field</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">args</span><span class="o">.</span><span class="n">metadata_text_fields</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)</span> <span class="k">if</span> <span class="n">field</span><span class="o">.</span><span class="n">strip</span><span class="p">()]</span>
+                    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">metadata_text_fields</span>
+                    <span class="k">else</span> <span class="nb">list</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="s2">&quot;default_text_fields&quot;</span><span class="p">,</span> <span class="p">()))</span>
+                <span class="p">),</span>
+                <span class="s2">&quot;min_entity_text_words&quot;</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">min_entity_text_words</span><span class="p">,</span>
+                <span class="s2">&quot;annotations&quot;</span><span class="p">:</span> <span class="p">{</span>
+                    <span class="s2">&quot;entity_tags&quot;</span><span class="p">:</span> <span class="n">annotation_name</span><span class="p">,</span>
+                    <span class="s2">&quot;n_tags&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">tag_names</span><span class="p">))</span> <span class="k">if</span> <span class="n">tag_names</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="mi">0</span><span class="p">,</span>
+                    <span class="s2">&quot;entity_metadata&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+                <span class="p">},</span>
+            <span class="p">},</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">Path</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">checkpoint_path</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="build_recsys_checkpoint">
+<a class="viewcode-back" href="../../../api/compresso_recsys.html#compresso_recsys.build_recsys_checkpoint">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">build_recsys_checkpoint</span><span class="p">(</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">dataset</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">data_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;data&quot;</span><span class="p">,</span>
+    <span class="n">checkpoint_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">val_users</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">test_users</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">min_user_support</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">item_min_support</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">min_value_to_keep</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">set_all_values_to</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">eval_fold</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="n">split_mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;user_split&quot;</span><span class="p">,</span>
+    <span class="n">val_items</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">test_items</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">item_val_frac</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.05</span><span class="p">,</span>
+    <span class="n">item_test_frac</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.10</span><span class="p">,</span>
+    <span class="n">temporal_test_frac</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.10</span><span class="p">,</span>
+    <span class="n">min_source_items</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="n">min_target_items</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="n">amazon_category</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;Toys_and_Games&quot;</span><span class="p">,</span>
+    <span class="n">metadata_text_fields</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">min_entity_text_words</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">30</span><span class="p">,</span>
+    <span class="n">annotation_source</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;genres&quot;</span><span class="p">,</span>
+    <span class="n">annotation_min_count</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Build a recommender-system split checkpoint and return its path.&quot;&quot;&quot;</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">_build_args</span><span class="p">(</span>
+        <span class="n">dataset</span><span class="o">=</span><span class="n">dataset</span><span class="p">,</span>
+        <span class="n">data_dir</span><span class="o">=</span><span class="n">data_dir</span><span class="p">,</span>
+        <span class="n">checkpoint_path</span><span class="o">=</span><span class="n">checkpoint_path</span><span class="p">,</span>
+        <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span>
+        <span class="n">val_users</span><span class="o">=</span><span class="n">val_users</span><span class="p">,</span>
+        <span class="n">test_users</span><span class="o">=</span><span class="n">test_users</span><span class="p">,</span>
+        <span class="n">min_user_support</span><span class="o">=</span><span class="n">min_user_support</span><span class="p">,</span>
+        <span class="n">item_min_support</span><span class="o">=</span><span class="n">item_min_support</span><span class="p">,</span>
+        <span class="n">min_value_to_keep</span><span class="o">=</span><span class="n">min_value_to_keep</span><span class="p">,</span>
+        <span class="n">set_all_values_to</span><span class="o">=</span><span class="n">set_all_values_to</span><span class="p">,</span>
+        <span class="n">eval_fold</span><span class="o">=</span><span class="n">eval_fold</span><span class="p">,</span>
+        <span class="n">split_mode</span><span class="o">=</span><span class="n">split_mode</span><span class="p">,</span>
+        <span class="n">val_items</span><span class="o">=</span><span class="n">val_items</span><span class="p">,</span>
+        <span class="n">test_items</span><span class="o">=</span><span class="n">test_items</span><span class="p">,</span>
+        <span class="n">item_val_frac</span><span class="o">=</span><span class="n">item_val_frac</span><span class="p">,</span>
+        <span class="n">item_test_frac</span><span class="o">=</span><span class="n">item_test_frac</span><span class="p">,</span>
+        <span class="n">temporal_test_frac</span><span class="o">=</span><span class="n">temporal_test_frac</span><span class="p">,</span>
+        <span class="n">min_source_items</span><span class="o">=</span><span class="n">min_source_items</span><span class="p">,</span>
+        <span class="n">min_target_items</span><span class="o">=</span><span class="n">min_target_items</span><span class="p">,</span>
+        <span class="n">amazon_category</span><span class="o">=</span><span class="n">amazon_category</span><span class="p">,</span>
+        <span class="n">metadata_text_fields</span><span class="o">=</span><span class="n">metadata_text_fields</span><span class="p">,</span>
+        <span class="n">min_entity_text_words</span><span class="o">=</span><span class="n">min_entity_text_words</span><span class="p">,</span>
+        <span class="n">annotation_source</span><span class="o">=</span><span class="n">annotation_source</span><span class="p">,</span>
+        <span class="n">annotation_min_count</span><span class="o">=</span><span class="n">annotation_min_count</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">_build_recsys_checkpoint_from_args</span><span class="p">(</span><span class="n">args</span><span class="p">)</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">parse_args</span><span class="p">()</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">_build_recsys_checkpoint_from_args</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Saved </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">dataset</span><span class="si">}</span><span class="s2"> data split checkpoint to: </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
