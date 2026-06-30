@@ -315,6 +315,7 @@ Here is the full current `compresso-recsys-build-checkpoint` parameter table.
 | `--amazon_category` | `Toys_and_Games` | Amazon Reviews 2023 category. Supports official names and aliases like `toys`, `electronics`, `clothing`. |
 | `--metadata_text_fields` | `title,features,description,categories` | Metadata columns joined into canonical `entity_text`. Mostly important for Amazon/SBERT. |
 | `--min_entity_text_words` | `30` | Drop items whose constructed `entity_text` is shorter than this many words. Mostly useful for Amazon. |
+| `--include_image_urls` | `False` | For Amazon, include `image_url` and `image_urls` columns in `entity_metadata` without adding them to `entity_text`. |
 | `--annotation_source` | `genres` | Optional tag source for clustering. Choices: `genres`, `ml20m_tags`, `goodbooks_tags`, `none`. |
 | `--annotation_min_count` | `100` | Minimum count threshold for tag annotations when using user-generated tags. |
 

@@ -55,6 +55,7 @@ Amazon Reviews 2023 with metadata text:
        split_mode="item_split",
        metadata_text_fields=["title", "features", "description", "categories"],
        min_entity_text_words=20,
+       include_image_urls=True,
        min_user_support=10,
        item_min_support=10,
        min_value_to_keep=1.0,
@@ -159,4 +160,3 @@ manually computed embedding matrix without using a training script:
    )
 
    print(metrics_100)
-

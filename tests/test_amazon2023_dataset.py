@@ -16,6 +16,17 @@ class FakeAmazon2023(AmazonReviews2023):
                     "description": [["A detailed robotics kit for children."], [], ["Hands-on electronics project."]],
                     "categories": [["Toys", "STEM"], ["Toys"], ["Electronics"]],
                     "store": ["ToyCo", "SmallCo", "CircuitCo"],
+                    "images": [
+                        [
+                            {
+                                "thumb": "https://example.com/a-thumb.jpg",
+                                "large": "https://example.com/a-large.jpg",
+                                "hi_res": "https://example.com/a-hires.jpg",
+                            }
+                        ],
+                        [],
+                        [{"large": "https://example.com/c-large.jpg"}],
+                    ],
                 }
             )
         if config.startswith("0core_rating_only_"):
@@ -129,6 +140,26 @@ def test_amazon2023_builds_entity_text_from_configured_fields():
     assert "Toys" in text
 
 
+def test_amazon2023_extracts_image_urls_in_preferred_order():
+    urls = AmazonReviews2023.extract_image_urls(
+        [
+            {
+                "thumb": "https://example.com/thumb.jpg",
+                "large": "https://example.com/large.jpg",
+                "hi_res": "https://example.com/hires.jpg",
+            },
+            {"large": "https://example.com/second.jpg"},
+        ]
+    )
+
+    assert urls == [
+        "https://example.com/hires.jpg",
+        "https://example.com/large.jpg",
+        "https://example.com/thumb.jpg",
+        "https://example.com/second.jpg",
+    ]
+
+
 def test_amazon2023_prepare_filters_items_by_entity_text(tmp_path):
     ds = FakeAmazon2023(
         data_dir=tmp_path,
@@ -143,3 +174,22 @@ def test_amazon2023_prepare_filters_items_by_entity_text(tmp_path):
     assert interactions["item_id"].tolist() == ["A", "C"]
     assert set(metadata["item_id"]) == {"A", "C"}
     assert "entity_text" in metadata.columns
+    assert "image_url" not in metadata.columns
+    assert "image_urls" not in metadata.columns
+
+
+def test_amazon2023_can_include_image_url_metadata(tmp_path):
+    ds = FakeAmazon2023(
+        data_dir=tmp_path,
+        category="Toys_and_Games",
+        metadata_text_fields=["title", "features", "description", "categories"],
+        min_entity_text_words=5,
+        include_image_urls=True,
+    )
+
+    metadata = ds.get_item_metadata()
+    by_item = metadata.set_index("item_id")
+
+    assert by_item.loc["A", "image_url"] == "https://example.com/a-hires.jpg"
+    assert by_item.loc["C", "image_url"] == "https://example.com/c-large.jpg"
+    assert "https://example.com/a-large.jpg" in by_item.loc["A", "image_urls"]

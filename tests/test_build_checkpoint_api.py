@@ -27,3 +27,11 @@ def test_build_checkpoint_show_progress_defaults_true_and_can_be_disabled():
 
     assert default_args.show_progress is True
     assert quiet_args.show_progress is False
+
+
+def test_build_checkpoint_include_image_urls_defaults_false_and_can_be_enabled():
+    default_args = _build_args(dataset="amazon2023")
+    image_args = _build_args(dataset="amazon2023", include_image_urls=True)
+
+    assert default_args.include_image_urls is False
+    assert image_args.include_image_urls is True

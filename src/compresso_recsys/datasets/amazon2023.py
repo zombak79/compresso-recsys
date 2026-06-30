@@ -43,11 +43,13 @@ class AmazonReviews2023(RecSysDataset):
         category: str = "Toys_and_Games",
         metadata_text_fields: Iterable[str] = DEFAULT_TEXT_FIELDS,
         min_entity_text_words: int = 0,
+        include_image_urls: bool = False,
         show_progress: bool = True,
     ) -> None:
         self.category = self.normalize_category(category)
         self.metadata_text_fields = tuple(metadata_text_fields)
         self.min_entity_text_words = int(min_entity_text_words)
+        self.include_image_urls = bool(include_image_urls)
         self.show_progress = bool(show_progress)
         super().__init__(data_dir=data_dir)
         self.root = self.data_dir / self.name / self.category
@@ -107,6 +109,49 @@ class AmazonReviews2023(RecSysDataset):
             return json.loads(text)
         except json.JSONDecodeError:
             return text
+
+    @staticmethod
+    def _parse_images(value: Any) -> list[dict[str, Any]]:
+        if value is None:
+            return []
+        try:
+            if pd.isna(value):
+                return []
+        except (TypeError, ValueError):
+            pass
+        if isinstance(value, str):
+            text = value.strip()
+            if not text or text in {"[]", "nan"}:
+                return []
+            try:
+                value = json.loads(text)
+            except json.JSONDecodeError:
+                return [{"large": text}]
+        if isinstance(value, dict):
+            return [value]
+        if isinstance(value, (list, tuple)):
+            return [entry for entry in value if isinstance(entry, dict)]
+        return []
+
+    @classmethod
+    def extract_image_urls(cls, value: Any) -> list[str]:
+        urls: list[str] = []
+        seen: set[str] = set()
+        for image in cls._parse_images(value):
+            for key in ("hi_res", "large", "thumb"):
+                url = image.get(key)
+                if not isinstance(url, str):
+                    continue
+                url = url.strip()
+                if url and url not in seen:
+                    seen.add(url)
+                    urls.append(url)
+        return urls
+
+    @classmethod
+    def best_image_url(cls, value: Any) -> str:
+        urls = cls.extract_image_urls(value)
+        return urls[0] if urls else ""
 
     @classmethod
     def build_entity_text(cls, row: pd.Series, fields: Iterable[str]) -> str:
@@ -326,6 +371,10 @@ class AmazonReviews2023(RecSysDataset):
             fields=self.metadata_text_fields,
             min_words=self.min_entity_text_words,
         )
+        if self.include_image_urls and "images" in meta.columns:
+            image_urls = meta["images"].map(self.extract_image_urls)
+            meta["image_url"] = image_urls.map(lambda urls: urls[0] if urls else "")
+            meta["image_urls"] = image_urls.map(lambda urls: " ".join(urls))
 
         interactions = self._load_hf_dataframe(self.interactions_config, split="full")
         expected = {"user_id", "parent_asin", "rating", "timestamp"}
@@ -356,6 +405,8 @@ class AmazonReviews2023(RecSysDataset):
             "rating_number",
             "entity_text",
         ]
+        if self.include_image_urls:
+            preferred.extend(["image_url", "image_urls"])
         keep = [col for col in preferred if col in meta.columns]
         self._item_metadata = meta[keep].reset_index(drop=True)
         self._interactions = interactions

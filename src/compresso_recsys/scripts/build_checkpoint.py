@@ -136,6 +136,12 @@ def parse_args():
         help="Drop items whose constructed entity_text has fewer words. Mostly useful for Amazon 2023.",
     )
     p.add_argument(
+        "--include_image_urls",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Include Amazon product image_url/image_urls columns in checkpoint metadata.",
+    )
+    p.add_argument(
         "--annotation_source",
         type=str,
         default="genres",
@@ -175,6 +181,7 @@ def _build_args(
     amazon_category: str = "Toys_and_Games",
     metadata_text_fields: str | list[str] | tuple[str, ...] | None = None,
     min_entity_text_words: int = 30,
+    include_image_urls: bool = False,
     annotation_source: str = "genres",
     annotation_min_count: int = 100,
     show_progress: bool = True,
@@ -211,6 +218,7 @@ def _build_args(
         amazon_category=amazon_category,
         metadata_text_fields=_metadata_text_fields_arg(metadata_text_fields),
         min_entity_text_words=min_entity_text_words,
+        include_image_urls=include_image_urls,
         annotation_source=annotation_source,
         annotation_min_count=annotation_min_count,
         show_progress=show_progress,
@@ -247,6 +255,7 @@ def _make_dataset(args, spec: DatasetSpec):
             category=args.amazon_category,
             metadata_text_fields=fields,
             min_entity_text_words=args.min_entity_text_words,
+            include_image_urls=getattr(args, "include_image_urls", False),
             show_progress=getattr(args, "show_progress", True),
         )
     return spec.cls(
@@ -839,6 +848,7 @@ def _build_recsys_checkpoint_from_args(args) -> Path:
                         else list(getattr(spec.cls, "default_text_fields", ()))
                     ),
                     "min_entity_text_words": args.min_entity_text_words,
+                    "include_image_urls": bool(getattr(args, "include_image_urls", False)),
                     "annotations": {
                         "entity_tags": annotation_name,
                         "n_tags": int(len(tag_names)) if tag_names is not None else 0,
@@ -873,6 +883,7 @@ def build_recsys_checkpoint(
     amazon_category: str = "Toys_and_Games",
     metadata_text_fields: str | list[str] | tuple[str, ...] | None = None,
     min_entity_text_words: int = 30,
+    include_image_urls: bool = False,
     annotation_source: str = "genres",
     annotation_min_count: int = 100,
     show_progress: bool = True,
@@ -901,6 +912,7 @@ def build_recsys_checkpoint(
         amazon_category=amazon_category,
         metadata_text_fields=metadata_text_fields,
         min_entity_text_words=min_entity_text_words,
+        include_image_urls=include_image_urls,
         annotation_source=annotation_source,
         annotation_min_count=annotation_min_count,
         show_progress=show_progress,
