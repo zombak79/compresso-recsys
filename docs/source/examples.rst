@@ -97,48 +97,11 @@ Checkpoint Read/Write
        split = cr.load_recsys_split(root)
        print(split["x_train"].shape)
 
-Train and Evaluate Stages
--------------------------
-
-Train SBERT embeddings for the checkpoint's ``entity_text`` column:
-
-.. code-block:: bash
-
-   compresso-recsys-train-sbert \
-     --checkpoint_path artifacts/amazon_toys/item_split_exp001.zip \
-     --model_name sentence-transformers/all-MiniLM-L6-v2 \
-     --text_columns entity_text \
-     --sbert_batch_size 64 \
-     --device cuda
-
-Train an SAE on those embeddings:
-
-.. code-block:: bash
-
-   compresso-recsys-train-sae \
-     --checkpoint_path artifacts/amazon_toys/item_split_exp001.zip \
-     --embedding_stage sbert \
-     --sae_k 128 \
-     --sae_ste_alpha 0.01 \
-     --sae_post_norm_l1 \
-     --device cuda
-
-Evaluate all stages already stored in the checkpoint:
-
-.. code-block:: bash
-
-   compresso-recsys-eval-checkpoint \
-     --checkpoint_path artifacts/amazon_toys/item_split_exp001.zip \
-     --device cuda
-
-The evaluation scripts report and store ``recall@20``, ``ndcg@20``,
-``recall@50``, ``ndcg@50``, ``recall@100``, and ``ndcg@100``.
-
-Using Embeddings From Python
-----------------------------
+Evaluate Embeddings From Python
+-------------------------------
 
 The fixed holdouts are plain arrays of item indices, so you can evaluate a
-manually computed embedding matrix without using a training script:
+manually computed embedding matrix directly:
 
 .. code-block:: python
 
@@ -148,7 +111,9 @@ manually computed embedding matrix without using a training script:
 
    with cr.read_checkpoint("artifacts/amazon_toys/item_split_exp001.zip") as root:
        split = cr.load_recsys_split(root)
-       item_embeddings = np.load(root / "sbert" / "item_embeddings.npy")
+
+   rng = np.random.default_rng(0)
+   item_embeddings = rng.normal(size=(len(split["item_ids"]), 64)).astype("float32")
 
    metrics_100 = evaluate_item_embeddings_with_holdout(
        item_embeddings=item_embeddings,

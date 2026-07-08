@@ -11,7 +11,6 @@ The public API is centered on:
   metrics
 * retrieval holdout builders for user split, item cold-start split,
   leave-last-out, and temporal evaluation
-* lightweight model helpers for ELSA, CompressedELSA, SBERT, and SAE stages
 
 Basic Python Usage
 ------------------
@@ -57,7 +56,7 @@ Checkpoint helpers can then read or update that checkpoint:
    with cr.update_checkpoint(checkpoint_path) as root:
        split = cr.load_recsys_split(root)
 
-Pipeline scripts and adapters can add embeddings, sparse representations,
+Downstream scripts and adapters can add embeddings, sparse representations,
 metrics, or cluster graphs to the same checkpoint.
 
 What Goes Into a Checkpoint
@@ -84,23 +83,23 @@ For compatibility with older scripts, ``x_train`` loaded by
 :func:`compresso_recsys.load_recsys_split` is an alias for
 ``train_source_matrix``.
 
-Training stages append their own directories to the same checkpoint, for
-example ``elsa/``, ``sbert/``, ``sae/``, or ``compressed_elsa/``. Each stage
-can save embeddings, sparse representations, model files, and metrics.
+Additional experiment stages can append their own directories to the same
+checkpoint. Each stage can save embeddings, sparse representations, model
+files, and metrics.
 
 Split Modes
 -----------
 
 ``user_split``
    Holds out validation/test users and builds source/target folds from those
-   users. This mirrors the original ELSA-style protocol. The checkpoint stores
-   ``train_user_ids``, ``val_user_ids``, and ``test_user_ids``. It is not a
-   future-blind temporal protocol.
+   users. The checkpoint stores ``train_user_ids``, ``val_user_ids``, and
+   ``test_user_ids``. It is not a future-blind temporal protocol.
 
 ``item_split``
-   Holds out cold validation/test items. Training stages should fit only on
-   ``train_item_indices`` and then transform all items before evaluation. The
-   checkpoint stores item partitions rather than user partitions.
+   Holds out cold validation/test items. Downstream embedding stages should fit
+   only on ``train_item_indices`` and then transform all items before
+   evaluation. The checkpoint stores item partitions rather than user
+   partitions.
 
 ``leave_last_out``
    Uses each user's latest timestamped interaction as the target and earlier
@@ -116,9 +115,9 @@ Split Modes
 Retrieval Metrics
 -----------------
 
-Low-level evaluation functions return ``recall@K`` and ``ndcg@K`` for the
-single ``K`` requested. The command-line evaluation pipeline calls them for
-``K = 20, 50, 100`` and stores the six common metrics:
+Evaluation functions return ``recall@K`` and ``ndcg@K`` for the single ``K``
+requested. Examples commonly call them for ``K = 20, 50, 100`` and store the
+six common metrics:
 
 * ``recall@20``
 * ``ndcg@20``

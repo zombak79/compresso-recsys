@@ -17,11 +17,6 @@ from scipy.sparse import csr_matrix, load_npz, save_npz
 
 MANIFEST_NAME = "manifest.json"
 SPLIT_DIR = "data"
-ELSA_DIR = "elsa"
-SAE_DIR = "sae"
-SBERT_DIR = "sbert"
-SBERT_SAE_DIR = "sbert_sae"
-COMPRESSED_ELSA_DIR = "compressed_elsa"
 CLUSTERING_DIR = "clustering"
 CLUSTER_GRAPH_NAME = "graph.json"
 

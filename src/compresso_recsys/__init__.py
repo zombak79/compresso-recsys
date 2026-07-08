@@ -13,8 +13,8 @@ from .checkpoint import (
     update_checkpoint,
     update_stage_manifest,
 )
+from .builder import build_recsys_checkpoint
 from .datasets import AmazonReviews2023, Goodbooks, MovieLens1M, MovieLens20M, RecSysDataset, SplitBundle
-from .scripts.build_checkpoint import build_recsys_checkpoint
 
 __all__ = [
     "AmazonReviews2023",

@@ -2,7 +2,7 @@
 
 `compresso-recsys` is the recommender-system companion package for
 [Compresso](https://github.com/zombak79/compresso). It contains dataset
-loaders, ELSA/CompressedELSA models, checkpointed experiment pipelines, and
+loaders, checkpoint-building utilities, checkpoint read/write helpers, and
 retrieval metrics used to demonstrate sparse representation learning.
 
 The package distribution name is `compresso-recsys`; the Python import is:
@@ -13,11 +13,11 @@ import compresso_recsys as cr
 
 ## Install
 
-For local development next to a checkout of `compresso`:
+For local development:
 
 ```bash
-pip install -e ../compresso
-pip install -e ".[test,sbert]"
+pip install compresso
+pip install -e ".[test]"
 ```
 
 From GitHub, once both repositories are public:
@@ -36,8 +36,7 @@ pip install -e .
 sphinx-build -b html docs/source docs/build/html
 ```
 
-After GitHub Pages is enabled for the `gh-pages` branch, release documentation
-will be available at:
+Release documentation is available at:
 
 ```text
 https://zombak79.github.io/compresso-recsys/
@@ -49,11 +48,9 @@ https://zombak79.github.io/compresso-recsys/
   Reviews 2023.
 - ZIP checkpoint format for source/target splits, embeddings, sparse
   embeddings, and metrics.
-- ELSA and CompressedELSA training helpers.
-- SAE and SBERT checkpoint stages.
 - Retrieval metrics for Recall and nDCG at common cutoffs including 20, 50,
   and 100.
-- Console commands for the full experiment pipeline.
+- A checkpoint-building console command.
 
 ## Commands
 
@@ -84,7 +81,7 @@ matters:
 ```
 
 The builder also constructs a canonical `entity_text` column from configurable
-metadata fields. Downstream SBERT stages can then simply encode `entity_text`.
+metadata fields, so downstream code can encode item descriptions consistently.
 
 #### Leave-Last-Out Checkpoint
 
@@ -145,74 +142,7 @@ You can use official category names or short aliases:
 --amazon_category clothing
 ```
 
-Train SBERT embeddings on the resulting Amazon checkpoint:
-
-```bash
-compresso-recsys-train-sbert \
-  --checkpoint_path artifacts/amazon_toys/temporal_exp001.zip \
-  --model_name sentence-transformers/all-MiniLM-L6-v2 \
-  --text_columns entity_text \
-  --sbert_batch_size 64 \
-  --device cuda
-```
-
-Train SAE on SBERT embeddings. For checkpoints with item partitions, SAE fits
-only on `train_item_indices` and then transforms all items for evaluation. For
-warm `user_split` checkpoints, `train_item_indices` defaults to all items:
-
-```bash
-compresso-recsys-train-sae \
-  --checkpoint_path artifacts/amazon_toys/temporal_exp001.zip \
-  --embedding_stage sbert \
-  --sae_k 128 \
-  --sae_ste_alpha 0.01 \
-  --sae_post_norm_l1 \
-  --device cuda
-```
-
-Train ELSA:
-
-```bash
-compresso-recsys-train-elsa \
-  --checkpoint_path artifacts/ml1m/exp001.zip \
-  --elsa_dim 1024 \
-  --elsa_epochs 10 \
-  --device mps
-```
-
-Train CompressedELSA:
-
-```bash
-compresso-recsys-train-compressed-elsa \
-  --checkpoint_path artifacts/ml1m/exp001.zip \
-  --elsa_dim 1024 \
-  --sparse_k_target 128 \
-  --sparse_num_stages 5 \
-  --sparse_ste_alpha 0.01 \
-  --device mps
-```
-
-Train an SAE on an existing embedding stage:
-
-```bash
-compresso-recsys-train-sae \
-  --checkpoint_path artifacts/ml1m/exp001.zip \
-  --embedding_stage elsa \
-  --sae_k 128 \
-  --sae_ste_alpha 0.01 \
-  --sae_post_norm_l1 \
-  --device mps
-```
-
-Evaluate all available checkpoint stages:
-
-```bash
-compresso-recsys-eval-checkpoint \
-  --checkpoint_path artifacts/ml1m/exp001.zip \
-  --device mps
-```
-
-Checkpoint evaluation stores the common six-metric table:
+Checkpoint evaluation commonly reports this six-metric table:
 
 ```text
 recall@20, ndcg@20, recall@50, ndcg@50, recall@100, ndcg@100

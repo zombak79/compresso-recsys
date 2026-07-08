@@ -86,17 +86,7 @@ evaluation target. Prefer ``temporal`` when you need a future-blind split:
      --min_entity_text_words 30 \
      --annotation_source none
 
-Evaluate a Checkpoint
----------------------
-
-After adding one or more embedding stages, evaluate everything stored in the
-checkpoint:
-
-.. code-block:: bash
-
-   compresso-recsys-eval-checkpoint \
-     --checkpoint_path artifacts/amazon_toys/temporal_exp001.zip \
-     --device cuda
-
-The full checkpoint-level metric set is ``recall@20``, ``ndcg@20``,
-``recall@50``, ``ndcg@50``, ``recall@100``, and ``ndcg@100``.
+The full checkpoint-level metric set used in examples is ``recall@20``,
+``ndcg@20``, ``recall@50``, ``ndcg@50``, ``recall@100``, and ``ndcg@100``.
+Use :mod:`compresso_recsys.retrieval` to evaluate item embeddings against the
+stored holdouts.

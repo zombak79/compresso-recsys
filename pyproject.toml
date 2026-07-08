@@ -9,7 +9,7 @@ description = "Recommender-system experiments and checkpoint pipelines for Compr
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "compresso-pytorch @ git+https://github.com/zombak79/compresso.git",
+    "compresso-pytorch>=0.1.0",
     "torch>=2.1",
     "numpy>=1.26",
     "pandas>=2.0",
@@ -21,20 +21,12 @@ dependencies = [
 datasets = [
     "datasets>=2.19",
 ]
-sbert = [
-    "sentence-transformers>=3.0",
-]
 test = [
     "pytest>=8.0",
 ]
 
 [project.scripts]
 compresso-recsys-build-checkpoint = "compresso_recsys.scripts.build_checkpoint:main"
-compresso-recsys-train-elsa = "compresso_recsys.scripts.train_elsa_from_checkpoint:main"
-compresso-recsys-train-compressed-elsa = "compresso_recsys.scripts.train_compressed_elsa_from_checkpoint:main"
-compresso-recsys-train-sae = "compresso_recsys.scripts.train_sae_from_checkpoint:main"
-compresso-recsys-train-sbert = "compresso_recsys.scripts.train_sbert_from_checkpoint:main"
-compresso-recsys-eval-checkpoint = "compresso_recsys.scripts.eval_checkpoint:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

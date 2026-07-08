@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 
 import compresso_recsys as cr
-from compresso_recsys.scripts.build_checkpoint import _build_args
+from compresso_recsys.builder import _build_args
 
 
 def test_build_recsys_checkpoint_is_public_function():
