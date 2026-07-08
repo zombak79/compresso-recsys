@@ -13,7 +13,7 @@ editable mode:
 .. code-block:: bash
 
    pip install -e ../compresso
-   pip install -e ".[test,sbert]"
+   pip install -e ".[test]"
 
 Install from GitHub
 -------------------
@@ -27,12 +27,11 @@ Once both repositories are public, install directly from GitHub:
 Optional Extras
 ---------------
 
-Dataset and SBERT integrations are optional:
+Hugging Face dataset export is optional:
 
 .. code-block:: bash
 
    pip install -e ".[datasets]"
-   pip install -e ".[sbert]"
 
 Build the Documentation Locally
 -------------------------------

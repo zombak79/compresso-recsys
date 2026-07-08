@@ -2,9 +2,9 @@ Welcome to Compresso Recsys's documentation!
 ============================================
 
 Compresso Recsys is the recommender-system companion package for Compresso. It
-contains dataset loaders, checkpointed experiment pipelines, ELSA and
-CompressedELSA models, SAE and SBERT stages, and retrieval metrics used to
-demonstrate sparse representation learning.
+contains dataset loaders, checkpoint-building utilities, checkpoint read/write
+helpers, and retrieval metrics used to demonstrate sparse representation
+learning.
 
 The project distribution is named ``compresso-recsys`` and the Python package
 is imported as ``compresso_recsys``.

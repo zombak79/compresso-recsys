@@ -54,9 +54,15 @@
 <li class="toctree-l1"><a class="reference internal" href="getting-started.html">Getting Started</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="getting-started.html#basic-python-usage">Basic Python Usage</a></li>
 <li class="toctree-l2"><a class="reference internal" href="getting-started.html#checkpoint-workflow">Checkpoint Workflow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started.html#what-goes-into-a-checkpoint">What Goes Into a Checkpoint</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started.html#split-modes">Split Modes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started.html#retrieval-metrics">Retrieval Metrics</a></li>
 </ul>
 </li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Quickstart</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Quickstart</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#choose-a-split-mode">Choose a Split Mode</a></li>
+</ul>
+</li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
 <ul>
@@ -64,6 +70,7 @@
 <li class="toctree-l2"><a class="reference internal" href="examples.html#dataset-loader">Dataset Loader</a></li>
 <li class="toctree-l2"><a class="reference internal" href="examples.html#building-checkpoints">Building Checkpoints</a></li>
 <li class="toctree-l2"><a class="reference internal" href="examples.html#checkpoint-read-write">Checkpoint Read/Write</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#evaluate-embeddings-from-python">Evaluate Embeddings From Python</a></li>
 </ul>
 </li>
 </ul>
@@ -102,6 +109,21 @@
 <li class="toctree-l3"><a class="reference internal" href="api/checkpoint.html#checkpoint-contexts">Checkpoint Contexts</a></li>
 <li class="toctree-l3"><a class="reference internal" href="api/checkpoint.html#manifest-and-json-helpers">Manifest and JSON Helpers</a></li>
 <li class="toctree-l3"><a class="reference internal" href="api/checkpoint.html#split-and-cluster-stages">Split and Cluster Stages</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api/retrieval.html">Retrieval API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/retrieval.html#holdout-builders">Holdout Builders</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/retrieval.html#compresso_recsys.retrieval.build_eval_holdout"><code class="docutils literal notranslate"><span class="pre">build_eval_holdout()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/retrieval.html#compresso_recsys.retrieval.build_item_cold_holdout"><code class="docutils literal notranslate"><span class="pre">build_item_cold_holdout()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/retrieval.html#compresso_recsys.retrieval.build_leave_last_out_holdout"><code class="docutils literal notranslate"><span class="pre">build_leave_last_out_holdout()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/retrieval.html#compresso_recsys.retrieval.build_temporal_holdout"><code class="docutils literal notranslate"><span class="pre">build_temporal_holdout()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/retrieval.html#embedding-evaluation">Embedding Evaluation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/retrieval.html#compresso_recsys.retrieval.evaluate_item_embeddings"><code class="docutils literal notranslate"><span class="pre">evaluate_item_embeddings()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/retrieval.html#compresso_recsys.retrieval.evaluate_item_embeddings_with_holdout"><code class="docutils literal notranslate"><span class="pre">evaluate_item_embeddings_with_holdout()</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -161,6 +183,7 @@
     <span class="n">split_mode</span><span class="o">=</span><span class="s2">&quot;item_split&quot;</span><span class="p">,</span>
     <span class="n">metadata_text_fields</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;title&quot;</span><span class="p">,</span> <span class="s2">&quot;features&quot;</span><span class="p">,</span> <span class="s2">&quot;description&quot;</span><span class="p">,</span> <span class="s2">&quot;categories&quot;</span><span class="p">],</span>
     <span class="n">min_entity_text_words</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+    <span class="n">include_image_urls</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">min_user_support</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
     <span class="n">item_min_support</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
     <span class="n">min_value_to_keep</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
@@ -171,6 +194,45 @@
 <span class="p">)</span>
 </pre></div>
 </div>
+<section id="choose-a-split-mode">
+<h2>Choose a Split Mode<a class="headerlink" href="#choose-a-split-mode" title="Link to this heading"></a></h2>
+<p>Use <code class="docutils literal notranslate"><span class="pre">user_split</span></code> for classic warm-item recommender experiments:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>compresso-recsys-build-checkpoint<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--dataset<span class="w"> </span>ml1m<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--checkpoint_path<span class="w"> </span>artifacts/ml1m/user_split_exp001.zip<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--split_mode<span class="w"> </span>user_split<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--annotation_source<span class="w"> </span>genres
+</pre></div>
+</div>
+<p>Use <code class="docutils literal notranslate"><span class="pre">item_split</span></code> when you want cold-item evaluation. Models should train on
+<code class="docutils literal notranslate"><span class="pre">train_item_indices</span></code> only, then transform all items before evaluation:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>compresso-recsys-build-checkpoint<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--dataset<span class="w"> </span>amazon2023<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--amazon_category<span class="w"> </span>Video_Games<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--checkpoint_path<span class="w"> </span>artifacts/amazon_video_games/item_split_exp001.zip<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--split_mode<span class="w"> </span>item_split<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--metadata_text_fields<span class="w"> </span>title,features,description,categories<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--min_entity_text_words<span class="w"> </span><span class="m">20</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--annotation_source<span class="w"> </span>none
+</pre></div>
+</div>
+<p>Use <code class="docutils literal notranslate"><span class="pre">leave_last_out</span></code> or <code class="docutils literal notranslate"><span class="pre">temporal</span></code> when timestamps should define the
+evaluation target. Prefer <code class="docutils literal notranslate"><span class="pre">temporal</span></code> when you need a future-blind split:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>compresso-recsys-build-checkpoint<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--dataset<span class="w"> </span>amazon2023<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--amazon_category<span class="w"> </span>Toys_and_Games<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--checkpoint_path<span class="w"> </span>artifacts/amazon_toys/temporal_exp001.zip<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--split_mode<span class="w"> </span>temporal<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--metadata_text_fields<span class="w"> </span>title,features,description,categories<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--min_entity_text_words<span class="w"> </span><span class="m">30</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--annotation_source<span class="w"> </span>none
+</pre></div>
+</div>
+<p>The full checkpoint-level metric set used in examples is <code class="docutils literal notranslate"><span class="pre">recall&#64;20</span></code>,
+<code class="docutils literal notranslate"><span class="pre">ndcg&#64;20</span></code>, <code class="docutils literal notranslate"><span class="pre">recall&#64;50</span></code>, <code class="docutils literal notranslate"><span class="pre">ndcg&#64;50</span></code>, <code class="docutils literal notranslate"><span class="pre">recall&#64;100</span></code>, and <code class="docutils literal notranslate"><span class="pre">ndcg&#64;100</span></code>.
+Use <code class="xref py py-mod docutils literal notranslate"><span class="pre">compresso_recsys.retrieval</span></code> to evaluate item embeddings against the
+stored holdouts.</p>
+</section>
 </section>
 
 

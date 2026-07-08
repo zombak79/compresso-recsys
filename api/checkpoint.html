@@ -19,6 +19,7 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Retrieval API" href="retrieval.html" />
     <link rel="prev" title="Datasets API" href="datasets.html" /> 
 </head>
 
@@ -53,9 +54,15 @@
 <li class="toctree-l1"><a class="reference internal" href="../getting-started.html">Getting Started</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../getting-started.html#basic-python-usage">Basic Python Usage</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../getting-started.html#checkpoint-workflow">Checkpoint Workflow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started.html#what-goes-into-a-checkpoint">What Goes Into a Checkpoint</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started.html#split-modes">Split Modes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started.html#retrieval-metrics">Retrieval Metrics</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../quickstart.html#choose-a-split-mode">Choose a Split Mode</a></li>
+</ul>
+</li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
 <ul>
@@ -63,6 +70,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../examples.html#dataset-loader">Dataset Loader</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../examples.html#building-checkpoints">Building Checkpoints</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../examples.html#checkpoint-read-write">Checkpoint Read/Write</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples.html#evaluate-embeddings-from-python">Evaluate Embeddings From Python</a></li>
 </ul>
 </li>
 </ul>
@@ -101,6 +109,21 @@
 <li class="toctree-l3"><a class="reference internal" href="#checkpoint-contexts">Checkpoint Contexts</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#manifest-and-json-helpers">Manifest and JSON Helpers</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#split-and-cluster-stages">Split and Cluster Stages</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="retrieval.html">Retrieval API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="retrieval.html#holdout-builders">Holdout Builders</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="retrieval.html#compresso_recsys.retrieval.build_eval_holdout"><code class="docutils literal notranslate"><span class="pre">build_eval_holdout()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="retrieval.html#compresso_recsys.retrieval.build_item_cold_holdout"><code class="docutils literal notranslate"><span class="pre">build_item_cold_holdout()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="retrieval.html#compresso_recsys.retrieval.build_leave_last_out_holdout"><code class="docutils literal notranslate"><span class="pre">build_leave_last_out_holdout()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="retrieval.html#compresso_recsys.retrieval.build_temporal_holdout"><code class="docutils literal notranslate"><span class="pre">build_temporal_holdout()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="retrieval.html#embedding-evaluation">Embedding Evaluation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="retrieval.html#compresso_recsys.retrieval.evaluate_item_embeddings"><code class="docutils literal notranslate"><span class="pre">evaluate_item_embeddings()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="retrieval.html#compresso_recsys.retrieval.evaluate_item_embeddings_with_holdout"><code class="docutils literal notranslate"><span class="pre">evaluate_item_embeddings_with_holdout()</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -251,7 +274,7 @@
 <h2>Split and Cluster Stages<a class="headerlink" href="#split-and-cluster-stages" title="Link to this heading"></a></h2>
 <dl class="py function">
 <dt class="sig sig-object py">
-<span class="sig-prename descclassname"><span class="pre">compresso_recsys.checkpoint.</span></span><span class="sig-name descname"><span class="pre">save_recsys_split</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">root</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">item_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_train</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_source_indices</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_target_indices</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_source_indices</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_target_indices</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_item_indices</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_item_indices</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_item_indices</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">entity_tag_matrix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tag_names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">entity_metadata</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/checkpoint.html#save_recsys_split"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<span class="sig-prename descclassname"><span class="pre">compresso_recsys.checkpoint.</span></span><span class="sig-name descname"><span class="pre">save_recsys_split</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">root</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">item_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_train</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_source_indices</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_target_indices</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_source_indices</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_target_indices</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_source_matrix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_target_matrix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_source_matrix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_target_matrix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_source_matrix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_target_matrix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_user_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_user_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_user_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_eval_user_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_eval_user_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_item_indices</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_item_indices</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_item_indices</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">entity_tag_matrix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tag_names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">entity_metadata</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/checkpoint.html#save_recsys_split"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
@@ -265,6 +288,17 @@
 <li><p><strong>val_target_indices</strong> (<em>list</em><em>[</em><em>ndarray</em><em>]</em>)</p></li>
 <li><p><strong>test_source_indices</strong> (<em>list</em><em>[</em><em>ndarray</em><em>]</em>)</p></li>
 <li><p><strong>test_target_indices</strong> (<em>list</em><em>[</em><em>ndarray</em><em>]</em>)</p></li>
+<li><p><strong>train_source_matrix</strong> (<em>csr_matrix</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>train_target_matrix</strong> (<em>csr_matrix</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>val_source_matrix</strong> (<em>csr_matrix</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>val_target_matrix</strong> (<em>csr_matrix</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>test_source_matrix</strong> (<em>csr_matrix</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>test_target_matrix</strong> (<em>csr_matrix</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>train_user_ids</strong> (<em>ndarray</em><em> | </em><em>list</em><em>[</em><em>str</em><em>] </em><em>| </em><em>None</em>)</p></li>
+<li><p><strong>val_user_ids</strong> (<em>ndarray</em><em> | </em><em>list</em><em>[</em><em>str</em><em>] </em><em>| </em><em>None</em>)</p></li>
+<li><p><strong>test_user_ids</strong> (<em>ndarray</em><em> | </em><em>list</em><em>[</em><em>str</em><em>] </em><em>| </em><em>None</em>)</p></li>
+<li><p><strong>val_eval_user_ids</strong> (<em>ndarray</em><em> | </em><em>list</em><em>[</em><em>str</em><em>] </em><em>| </em><em>None</em>)</p></li>
+<li><p><strong>test_eval_user_ids</strong> (<em>ndarray</em><em> | </em><em>list</em><em>[</em><em>str</em><em>] </em><em>| </em><em>None</em>)</p></li>
 <li><p><strong>train_item_indices</strong> (<em>ndarray</em><em> | </em><em>None</em>)</p></li>
 <li><p><strong>val_item_indices</strong> (<em>ndarray</em><em> | </em><em>None</em>)</p></li>
 <li><p><strong>test_item_indices</strong> (<em>ndarray</em><em> | </em><em>None</em>)</p></li>
@@ -332,6 +366,7 @@
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="datasets.html" class="btn btn-neutral float-left" title="Datasets API" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="retrieval.html" class="btn btn-neutral float-right" title="Retrieval API" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

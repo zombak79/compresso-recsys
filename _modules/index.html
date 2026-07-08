@@ -51,9 +51,15 @@
 <li class="toctree-l1"><a class="reference internal" href="../getting-started.html">Getting Started</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../getting-started.html#basic-python-usage">Basic Python Usage</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../getting-started.html#checkpoint-workflow">Checkpoint Workflow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started.html#what-goes-into-a-checkpoint">What Goes Into a Checkpoint</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started.html#split-modes">Split Modes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started.html#retrieval-metrics">Retrieval Metrics</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../quickstart.html#choose-a-split-mode">Choose a Split Mode</a></li>
+</ul>
+</li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
 <ul>
@@ -61,6 +67,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../examples.html#dataset-loader">Dataset Loader</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../examples.html#building-checkpoints">Building Checkpoints</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../examples.html#checkpoint-read-write">Checkpoint Read/Write</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples.html#evaluate-embeddings-from-python">Evaluate Embeddings From Python</a></li>
 </ul>
 </li>
 </ul>
@@ -101,6 +108,21 @@
 <li class="toctree-l3"><a class="reference internal" href="../api/checkpoint.html#split-and-cluster-stages">Split and Cluster Stages</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../api/retrieval.html">Retrieval API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../api/retrieval.html#holdout-builders">Holdout Builders</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api/retrieval.html#compresso_recsys.retrieval.build_eval_holdout"><code class="docutils literal notranslate"><span class="pre">build_eval_holdout()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/retrieval.html#compresso_recsys.retrieval.build_item_cold_holdout"><code class="docutils literal notranslate"><span class="pre">build_item_cold_holdout()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/retrieval.html#compresso_recsys.retrieval.build_leave_last_out_holdout"><code class="docutils literal notranslate"><span class="pre">build_leave_last_out_holdout()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/retrieval.html#compresso_recsys.retrieval.build_temporal_holdout"><code class="docutils literal notranslate"><span class="pre">build_temporal_holdout()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../api/retrieval.html#embedding-evaluation">Embedding Evaluation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../api/retrieval.html#compresso_recsys.retrieval.evaluate_item_embeddings"><code class="docutils literal notranslate"><span class="pre">evaluate_item_embeddings()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/retrieval.html#compresso_recsys.retrieval.evaluate_item_embeddings_with_holdout"><code class="docutils literal notranslate"><span class="pre">evaluate_item_embeddings_with_holdout()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -129,13 +151,14 @@
            <div itemprop="articleBody">
              
   <h1>All modules for which code is available</h1>
-<ul><li><a href="compresso_recsys/checkpoint.html">compresso_recsys.checkpoint</a></li>
+<ul><li><a href="compresso_recsys/builder.html">compresso_recsys.builder</a></li>
+<li><a href="compresso_recsys/checkpoint.html">compresso_recsys.checkpoint</a></li>
 <li><a href="compresso_recsys/datasets/amazon2023.html">compresso_recsys.datasets.amazon2023</a></li>
 <li><a href="compresso_recsys/datasets/base.html">compresso_recsys.datasets.base</a></li>
 <li><a href="compresso_recsys/datasets/goodbooks.html">compresso_recsys.datasets.goodbooks</a></li>
 <li><a href="compresso_recsys/datasets/movielens1m.html">compresso_recsys.datasets.movielens1m</a></li>
 <li><a href="compresso_recsys/datasets/movielens20m.html">compresso_recsys.datasets.movielens20m</a></li>
-<li><a href="compresso_recsys/scripts/build_checkpoint.html">compresso_recsys.scripts.build_checkpoint</a></li>
+<li><a href="compresso_recsys/retrieval.html">compresso_recsys.retrieval</a></li>
 </ul>
 
            </div>

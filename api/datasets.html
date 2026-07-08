@@ -54,9 +54,15 @@
 <li class="toctree-l1"><a class="reference internal" href="../getting-started.html">Getting Started</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../getting-started.html#basic-python-usage">Basic Python Usage</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../getting-started.html#checkpoint-workflow">Checkpoint Workflow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started.html#what-goes-into-a-checkpoint">What Goes Into a Checkpoint</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started.html#split-modes">Split Modes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started.html#retrieval-metrics">Retrieval Metrics</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../quickstart.html#choose-a-split-mode">Choose a Split Mode</a></li>
+</ul>
+</li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
 <ul>
@@ -64,6 +70,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../examples.html#dataset-loader">Dataset Loader</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../examples.html#building-checkpoints">Building Checkpoints</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../examples.html#checkpoint-read-write">Checkpoint Read/Write</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples.html#evaluate-embeddings-from-python">Evaluate Embeddings From Python</a></li>
 </ul>
 </li>
 </ul>
@@ -102,6 +109,21 @@
 <li class="toctree-l3"><a class="reference internal" href="checkpoint.html#checkpoint-contexts">Checkpoint Contexts</a></li>
 <li class="toctree-l3"><a class="reference internal" href="checkpoint.html#manifest-and-json-helpers">Manifest and JSON Helpers</a></li>
 <li class="toctree-l3"><a class="reference internal" href="checkpoint.html#split-and-cluster-stages">Split and Cluster Stages</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="retrieval.html">Retrieval API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="retrieval.html#holdout-builders">Holdout Builders</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="retrieval.html#compresso_recsys.retrieval.build_eval_holdout"><code class="docutils literal notranslate"><span class="pre">build_eval_holdout()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="retrieval.html#compresso_recsys.retrieval.build_item_cold_holdout"><code class="docutils literal notranslate"><span class="pre">build_item_cold_holdout()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="retrieval.html#compresso_recsys.retrieval.build_leave_last_out_holdout"><code class="docutils literal notranslate"><span class="pre">build_leave_last_out_holdout()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="retrieval.html#compresso_recsys.retrieval.build_temporal_holdout"><code class="docutils literal notranslate"><span class="pre">build_temporal_holdout()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="retrieval.html#embedding-evaluation">Embedding Evaluation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="retrieval.html#compresso_recsys.retrieval.evaluate_item_embeddings"><code class="docutils literal notranslate"><span class="pre">evaluate_item_embeddings()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="retrieval.html#compresso_recsys.retrieval.evaluate_item_embeddings_with_holdout"><code class="docutils literal notranslate"><span class="pre">evaluate_item_embeddings_with_holdout()</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -253,8 +275,8 @@
 
 <dl class="py class">
 <dt class="sig sig-object py">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">compresso_recsys.datasets.</span></span><span class="sig-name descname"><span class="pre">AmazonReviews2023</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'data'</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">category</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Toys_and_Games'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata_text_fields</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('title',</span> <span class="pre">'features',</span> <span class="pre">'description',</span> <span class="pre">'categories')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_entity_text_words</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/datasets/amazon2023.html#AmazonReviews2023"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
-<dd><p>Amazon Reviews 2023 category dataset loaded from Hugging Face.</p>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">compresso_recsys.datasets.</span></span><span class="sig-name descname"><span class="pre">AmazonReviews2023</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'data'</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">category</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Toys_and_Games'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata_text_fields</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('title',</span> <span class="pre">'features',</span> <span class="pre">'description',</span> <span class="pre">'categories')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_entity_text_words</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_image_urls</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_progress</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/datasets/amazon2023.html#AmazonReviews2023"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Amazon Reviews 2023 category dataset loaded from McAuley’s files.</p>
 <p>The recommender pipeline only needs compact rating-only interactions plus
 item metadata. Reviews are intentionally not downloaded.</p>
 <dl class="field-list simple">
@@ -264,9 +286,32 @@ item metadata. Reviews are intentionally not downloaded.</p>
 <li><p><strong>category</strong> (<em>str</em>)</p></li>
 <li><p><strong>metadata_text_fields</strong> (<em>Iterable</em><em>[</em><em>str</em><em>]</em>)</p></li>
 <li><p><strong>min_entity_text_words</strong> (<em>int</em>)</p></li>
+<li><p><strong>include_image_urls</strong> (<em>bool</em>)</p></li>
+<li><p><strong>show_progress</strong> (<em>bool</em>)</p></li>
 </ul>
 </dd>
 </dl>
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">load_source_dataframe</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">split</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'full'</span></span></em><span class="sig-paren">)</span></dt>
+<dd><p>Load a McAuley Amazon 2023 config into a DataFrame.</p>
+<p>Kept under its historical name for compatibility with tests and
+subclasses, but this no longer uses Hugging Face <code class="docutils literal notranslate"><span class="pre">datasets</span></code>. Recent
+<code class="docutils literal notranslate"><span class="pre">datasets</span></code> releases reject repositories that still expose loading
+scripts, so we read direct Hugging Face/McAuley data files instead.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>config</strong> (<em>str</em>)</p></li>
+<li><p><strong>split</strong> (<em>str</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py">
 <span class="sig-name descname"><span class="pre">load_timestamp_splits_with_history</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/datasets/amazon2023.html#AmazonReviews2023.load_timestamp_splits_with_history"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
