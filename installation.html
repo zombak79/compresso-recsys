@@ -45,9 +45,10 @@
               <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#install-from-pypi">Install from PyPI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#optional-extras">Optional Extras</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#local-development">Local Development</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#install-from-github">Install from GitHub</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#optional-extras">Optional Extras</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#build-the-documentation-locally">Build the Documentation Locally</a></li>
 </ul>
 </li>
@@ -71,6 +72,17 @@
 <li class="toctree-l2"><a class="reference internal" href="examples.html#building-checkpoints">Building Checkpoints</a></li>
 <li class="toctree-l2"><a class="reference internal" href="examples.html#checkpoint-read-write">Checkpoint Read/Write</a></li>
 <li class="toctree-l2"><a class="reference internal" href="examples.html#evaluate-embeddings-from-python">Evaluate Embeddings From Python</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="cli-reference.html">Checkpoint CLI Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="cli-reference.html#amazon-reviews-2023">Amazon Reviews 2023</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cli-reference.html#leave-last-out-checkpoint">Leave-Last-Out Checkpoint</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cli-reference.html#temporal-checkpoint">Temporal Checkpoint</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cli-reference.html#checkpoint-split-schema">Checkpoint Split Schema</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cli-reference.html#builder-parameters">Builder Parameters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cli-reference.html#supported-amazon-reviews-2023-datasets">Supported Amazon Reviews 2023 Datasets</a></li>
 </ul>
 </li>
 </ul>
@@ -100,6 +112,15 @@
 <li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.load_recsys_split"><code class="docutils literal notranslate"><span class="pre">load_recsys_split()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.save_cluster_graph_stage"><code class="docutils literal notranslate"><span class="pre">save_cluster_graph_stage()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.load_cluster_graph_stage"><code class="docutils literal notranslate"><span class="pre">load_cluster_graph_stage()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/compresso_recsys.html#retrieval-api">Retrieval API</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.retrieval.build_eval_holdout"><code class="docutils literal notranslate"><span class="pre">build_eval_holdout()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.retrieval.build_item_cold_holdout"><code class="docutils literal notranslate"><span class="pre">build_item_cold_holdout()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.retrieval.build_leave_last_out_holdout"><code class="docutils literal notranslate"><span class="pre">build_leave_last_out_holdout()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.retrieval.build_temporal_holdout"><code class="docutils literal notranslate"><span class="pre">build_temporal_holdout()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.retrieval.evaluate_item_embeddings"><code class="docutils literal notranslate"><span class="pre">evaluate_item_embeddings()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.retrieval.evaluate_item_embeddings_with_holdout"><code class="docutils literal notranslate"><span class="pre">evaluate_item_embeddings_with_holdout()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -158,34 +179,39 @@
 <h1>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h1>
 <p>Compresso Recsys is published as the <code class="docutils literal notranslate"><span class="pre">compresso-recsys</span></code> distribution and
 imported as <code class="docutils literal notranslate"><span class="pre">compresso_recsys</span></code> in Python code.</p>
-<section id="local-development">
-<h2>Local Development<a class="headerlink" href="#local-development" title="Link to this heading"></a></h2>
-<p>When developing next to a checkout of Compresso, install both packages in
-editable mode:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>../compresso
-pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">&quot;.[test]&quot;</span>
-</pre></div>
-</div>
-</section>
-<section id="install-from-github">
-<h2>Install from GitHub<a class="headerlink" href="#install-from-github" title="Link to this heading"></a></h2>
-<p>Once both repositories are public, install directly from GitHub:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">&quot;compresso-recsys@git+https://github.com/zombak79/compresso-recsys.git&quot;</span>
+<section id="install-from-pypi">
+<h2>Install from PyPI<a class="headerlink" href="#install-from-pypi" title="Link to this heading"></a></h2>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>compresso-recsys
 </pre></div>
 </div>
 </section>
 <section id="optional-extras">
 <h2>Optional Extras<a class="headerlink" href="#optional-extras" title="Link to this heading"></a></h2>
 <p>Hugging Face dataset export is optional:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">&quot;.[datasets]&quot;</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">&quot;compresso-recsys[datasets]&quot;</span>
+</pre></div>
+</div>
+</section>
+<section id="local-development">
+<h2>Local Development<a class="headerlink" href="#local-development" title="Link to this heading"></a></h2>
+<p>When developing next to a checkout of Compresso, install both packages in
+editable mode:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>../compresso
+pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">&quot;.[dev,datasets]&quot;</span>
+</pre></div>
+</div>
+</section>
+<section id="install-from-github">
+<h2>Install from GitHub<a class="headerlink" href="#install-from-github" title="Link to this heading"></a></h2>
+<p>Install directly from GitHub when testing unreleased changes:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">&quot;compresso-recsys@git+https://github.com/zombak79/compresso-recsys.git&quot;</span>
 </pre></div>
 </div>
 </section>
 <section id="build-the-documentation-locally">
 <h2>Build the Documentation Locally<a class="headerlink" href="#build-the-documentation-locally" title="Link to this heading"></a></h2>
 <p>From the <code class="docutils literal notranslate"><span class="pre">compresso-recsys</span></code> project directory:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>-r<span class="w"> </span>docs/requirements.txt
-pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">&quot;.[docs]&quot;</span>
 sphinx-build<span class="w"> </span>-b<span class="w"> </span>html<span class="w"> </span>docs/source<span class="w"> </span>docs/build/html
 </pre></div>
 </div>

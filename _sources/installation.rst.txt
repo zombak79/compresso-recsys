@@ -4,6 +4,22 @@ Installation
 Compresso Recsys is published as the ``compresso-recsys`` distribution and
 imported as ``compresso_recsys`` in Python code.
 
+Install from PyPI
+-----------------
+
+.. code-block:: bash
+
+   pip install compresso-recsys
+
+Optional Extras
+---------------
+
+Hugging Face dataset export is optional:
+
+.. code-block:: bash
+
+   pip install "compresso-recsys[datasets]"
+
 Local Development
 -----------------
 
@@ -13,25 +29,16 @@ editable mode:
 .. code-block:: bash
 
    pip install -e ../compresso
-   pip install -e ".[test]"
+   pip install -e ".[dev,datasets]"
 
 Install from GitHub
 -------------------
 
-Once both repositories are public, install directly from GitHub:
+Install directly from GitHub when testing unreleased changes:
 
 .. code-block:: bash
 
    pip install "compresso-recsys@git+https://github.com/zombak79/compresso-recsys.git"
-
-Optional Extras
----------------
-
-Hugging Face dataset export is optional:
-
-.. code-block:: bash
-
-   pip install -e ".[datasets]"
 
 Build the Documentation Locally
 -------------------------------
@@ -40,8 +47,7 @@ From the ``compresso-recsys`` project directory:
 
 .. code-block:: bash
 
-   pip install -r docs/requirements.txt
-   pip install -e .
+   pip install -e ".[docs]"
    sphinx-build -b html docs/source docs/build/html
 
 The generated HTML will be available in ``docs/build/html``.

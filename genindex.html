@@ -42,9 +42,10 @@
               <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#install-from-pypi">Install from PyPI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#optional-extras">Optional Extras</a></li>
 <li class="toctree-l2"><a class="reference internal" href="installation.html#local-development">Local Development</a></li>
 <li class="toctree-l2"><a class="reference internal" href="installation.html#install-from-github">Install from GitHub</a></li>
-<li class="toctree-l2"><a class="reference internal" href="installation.html#optional-extras">Optional Extras</a></li>
 <li class="toctree-l2"><a class="reference internal" href="installation.html#build-the-documentation-locally">Build the Documentation Locally</a></li>
 </ul>
 </li>
@@ -68,6 +69,17 @@
 <li class="toctree-l2"><a class="reference internal" href="examples.html#building-checkpoints">Building Checkpoints</a></li>
 <li class="toctree-l2"><a class="reference internal" href="examples.html#checkpoint-read-write">Checkpoint Read/Write</a></li>
 <li class="toctree-l2"><a class="reference internal" href="examples.html#evaluate-embeddings-from-python">Evaluate Embeddings From Python</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="cli-reference.html">Checkpoint CLI Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="cli-reference.html#amazon-reviews-2023">Amazon Reviews 2023</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cli-reference.html#leave-last-out-checkpoint">Leave-Last-Out Checkpoint</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cli-reference.html#temporal-checkpoint">Temporal Checkpoint</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cli-reference.html#checkpoint-split-schema">Checkpoint Split Schema</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cli-reference.html#builder-parameters">Builder Parameters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cli-reference.html#supported-amazon-reviews-2023-datasets">Supported Amazon Reviews 2023 Datasets</a></li>
 </ul>
 </li>
 </ul>
@@ -97,6 +109,15 @@
 <li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.load_recsys_split"><code class="docutils literal notranslate"><span class="pre">load_recsys_split()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.save_cluster_graph_stage"><code class="docutils literal notranslate"><span class="pre">save_cluster_graph_stage()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.load_cluster_graph_stage"><code class="docutils literal notranslate"><span class="pre">load_cluster_graph_stage()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/compresso_recsys.html#retrieval-api">Retrieval API</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.retrieval.build_eval_holdout"><code class="docutils literal notranslate"><span class="pre">build_eval_holdout()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.retrieval.build_item_cold_holdout"><code class="docutils literal notranslate"><span class="pre">build_item_cold_holdout()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.retrieval.build_leave_last_out_holdout"><code class="docutils literal notranslate"><span class="pre">build_leave_last_out_holdout()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.retrieval.build_temporal_holdout"><code class="docutils literal notranslate"><span class="pre">build_temporal_holdout()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.retrieval.evaluate_item_embeddings"><code class="docutils literal notranslate"><span class="pre">evaluate_item_embeddings()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.retrieval.evaluate_item_embeddings_with_holdout"><code class="docutils literal notranslate"><span class="pre">evaluate_item_embeddings_with_holdout()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -178,17 +199,17 @@
 <h2 id="B">B</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/retrieval.html#compresso_recsys.retrieval.build_eval_holdout">build_eval_holdout() (in module compresso_recsys.retrieval)</a>
+      <li><a href="api/compresso_recsys.html#compresso_recsys.retrieval.build_eval_holdout">build_eval_holdout() (in module compresso_recsys.retrieval)</a>, <a href="api/retrieval.html#compresso_recsys.retrieval.build_eval_holdout">[1]</a>
 </li>
-      <li><a href="api/retrieval.html#compresso_recsys.retrieval.build_item_cold_holdout">build_item_cold_holdout() (in module compresso_recsys.retrieval)</a>
+      <li><a href="api/compresso_recsys.html#compresso_recsys.retrieval.build_item_cold_holdout">build_item_cold_holdout() (in module compresso_recsys.retrieval)</a>, <a href="api/retrieval.html#compresso_recsys.retrieval.build_item_cold_holdout">[1]</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/retrieval.html#compresso_recsys.retrieval.build_leave_last_out_holdout">build_leave_last_out_holdout() (in module compresso_recsys.retrieval)</a>
+      <li><a href="api/compresso_recsys.html#compresso_recsys.retrieval.build_leave_last_out_holdout">build_leave_last_out_holdout() (in module compresso_recsys.retrieval)</a>, <a href="api/retrieval.html#compresso_recsys.retrieval.build_leave_last_out_holdout">[1]</a>
 </li>
       <li><a href="api/compresso_recsys.html#compresso_recsys.build_recsys_checkpoint">build_recsys_checkpoint() (in module compresso_recsys)</a>
 </li>
-      <li><a href="api/retrieval.html#compresso_recsys.retrieval.build_temporal_holdout">build_temporal_holdout() (in module compresso_recsys.retrieval)</a>
+      <li><a href="api/compresso_recsys.html#compresso_recsys.retrieval.build_temporal_holdout">build_temporal_holdout() (in module compresso_recsys.retrieval)</a>, <a href="api/retrieval.html#compresso_recsys.retrieval.build_temporal_holdout">[1]</a>
 </li>
   </ul></td>
 </tr></table>
@@ -196,11 +217,11 @@
 <h2 id="E">E</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/retrieval.html#compresso_recsys.retrieval.evaluate_item_embeddings">evaluate_item_embeddings() (in module compresso_recsys.retrieval)</a>
+      <li><a href="api/compresso_recsys.html#compresso_recsys.retrieval.evaluate_item_embeddings">evaluate_item_embeddings() (in module compresso_recsys.retrieval)</a>, <a href="api/retrieval.html#compresso_recsys.retrieval.evaluate_item_embeddings">[1]</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/retrieval.html#compresso_recsys.retrieval.evaluate_item_embeddings_with_holdout">evaluate_item_embeddings_with_holdout() (in module compresso_recsys.retrieval)</a>
+      <li><a href="api/compresso_recsys.html#compresso_recsys.retrieval.evaluate_item_embeddings_with_holdout">evaluate_item_embeddings_with_holdout() (in module compresso_recsys.retrieval)</a>, <a href="api/retrieval.html#compresso_recsys.retrieval.evaluate_item_embeddings_with_holdout">[1]</a>
 </li>
   </ul></td>
 </tr></table>
