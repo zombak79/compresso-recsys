@@ -1,13 +1,49 @@
 [build-system]
-requires = ["setuptools>=61", "wheel"]
+requires = ["setuptools>=77.0.3", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "compresso-recsys"
 version = "0.1.0"
 description = "Recommender-system experiments and checkpoint pipelines for Compresso"
-readme = "README.md"
+readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.10"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [
+    { name = "Vojtech Vancura" },
+    { name = "Giacomo Medda" },
+    { name = "Martin Spisak" },
+    { name = "Ladislav Peska" },
+]
+maintainers = [
+    { name = "Vojtech Vancura" },
+    { name = "Giacomo Medda" },
+    { name = "Martin Spisak" },
+    { name = "Ladislav Peska" },
+]
+keywords = [
+    "recommender-systems",
+    "recommendation",
+    "retrieval",
+    "collaborative-filtering",
+    "cold-start",
+    "datasets",
+    "sparse-representations",
+    "machine-learning",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
 dependencies = [
     "compresso-pytorch>=0.1.0",
     "torch>=2.1",
@@ -24,12 +60,30 @@ datasets = [
 test = [
     "pytest>=8.0",
 ]
+docs = [
+    "sphinx>=8.0",
+    "sphinx-rtd-theme>=3.0",
+    "sphinx-autodoc-typehints>=2.0",
+    "myst-parser>=4.0",
+]
+dev = [
+    "build>=1.2",
+    "twine>=6.0",
+    "pytest>=8.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/zombak79/compresso-recsys"
+Documentation = "https://zombak79.github.io/compresso-recsys/"
+Repository = "https://github.com/zombak79/compresso-recsys"
+Issues = "https://github.com/zombak79/compresso-recsys/issues"
 
 [project.scripts]
 compresso-recsys-build-checkpoint = "compresso_recsys.scripts.build_checkpoint:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
+include-package-data = false
 
 [tool.setuptools.packages.find]
 where = ["src"]
