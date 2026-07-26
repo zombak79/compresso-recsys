@@ -307,6 +307,15 @@ class _RecordingRecommender:
         )
 
 
+class _InvalidRecommender:
+    def predict_on_batch(self, source: csr_matrix, *, k: int) -> SRPTensor:
+        return SRPTensor(
+            cols=torch.arange(k, dtype=torch.long).expand(source.shape[0], -1).clone(),
+            vals=torch.arange(k, dtype=torch.float32).expand(source.shape[0], -1).clone(),
+            shape=source.shape,
+        )
+
+
 def test_evaluate_recommender_streams_batches_and_derives_required_k():
     model = _RecordingRecommender()
     source = csr_matrix((5, 6), dtype=np.float32)
@@ -344,6 +353,16 @@ def test_evaluate_recommender_streams_batches_and_derives_required_k():
             "n_eval_users": 5.0,
         }
     )
+
+
+def test_evaluate_recommender_validates_predictions_by_default():
+    with pytest.raises(ValueError, match="highest to lowest"):
+        evaluate_recommender(
+            _InvalidRecommender(),
+            source=csr_matrix((1, 4)),
+            targets=csr_matrix(([1.0], ([0], [0])), shape=(1, 4)),
+            metrics=[CalibratedRecall(3)],
+        )
 
 
 def test_evaluate_recommender_handles_empty_input_without_calling_model():

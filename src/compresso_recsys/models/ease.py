@@ -47,12 +47,13 @@ class EASEConfig:
     l2:
         Positive L2 regularization added to the item Gram matrix diagonal.
     dtype:
-        Floating-point precision used to fit and score the model. ``float64``
-        is the numerically safer default; ``float32`` uses less memory.
+        Floating-point precision used to fit and score the model. ``float32``
+        is the memory-efficient default; ``float64`` is available for
+        experiments that need additional numerical precision.
     """
 
     l2: float = 500.0
-    dtype: EASEDataType = "float64"
+    dtype: EASEDataType = "float32"
 
     def __post_init__(self) -> None:
         if not np.isfinite(self.l2) or self.l2 <= 0:

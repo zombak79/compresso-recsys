@@ -15,6 +15,9 @@ shares it across all configured metrics. It does not densify model scores or
 the complete target matrix. Rows without target items are excluded from metric
 means and from ``n_eval_users``.
 
+Prediction validation is enabled by default for both evaluation entry points.
+It checks item bounds, duplicate recommendations, NaN scores, and score order.
+
 .. autofunction:: compresso_recsys.evaluation.evaluate_recommender
 
 .. autofunction:: compresso_recsys.evaluation.evaluate_ranked_predictions

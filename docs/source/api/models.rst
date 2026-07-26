@@ -18,8 +18,9 @@ EASE
 
 EASE is a closed-form collaborative-filtering model. Fitting creates a dense
 item-by-item coefficient matrix, so its memory use grows quadratically with
-the number of items. ``float64`` is the numerically safer default, while
-``float32`` reduces the matrix memory requirement by half.
+the number of items. ``float32`` is the memory-efficient default. Select
+``float64`` explicitly when additional numerical precision is more important
+than fit and prediction speed.
 
 .. autoclass:: compresso_recsys.models.EASEConfig
    :members:

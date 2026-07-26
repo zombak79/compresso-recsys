@@ -63,6 +63,13 @@ def test_ease_matches_closed_form_reference(interactions):
     np.testing.assert_array_equal(np.diag(model.coefficients_), 0)
 
 
+def test_ease_defaults_to_float32():
+    config = EASEConfig()
+
+    assert config.l2 == 500.0
+    assert config.dtype == "float32"
+
+
 @pytest.mark.parametrize("dtype", ["float32", "float64"])
 def test_ease_preserves_configured_dtype(interactions, source, dtype):
     model = EASE(EASEConfig(dtype=dtype)).fit(interactions)
