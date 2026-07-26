@@ -9,12 +9,14 @@ from scipy.sparse import csr_matrix, isspmatrix_csr
 
 from compresso import SRPTensor
 from compresso_recsys.metrics import CalibratedRecall, NDCG, RankingBatch, RankingMetric
+from compresso_recsys.models import Recommender
 
 MatchBackend = Literal["auto", "dense", "searchsorted"]
 
 __all__ = [
     "RankingEvaluator",
     "evaluate_ranked_predictions",
+    "evaluate_recommender",
 ]
 
 
@@ -30,6 +32,16 @@ def _canonical_csr(targets: csr_matrix) -> csr_matrix:
     if out.indices.size and (out.indices.min() < 0 or out.indices.max() >= out.shape[1]):
         raise ValueError("target item indices are out of bounds")
     return out
+
+
+def _progress(iterable, *, enabled: bool, desc: str):
+    if not enabled:
+        return iterable
+    try:
+        from tqdm.auto import tqdm
+    except Exception:  # pragma: no cover - optional display helper
+        return iterable
+    return tqdm(iterable, desc=desc)
 
 
 def _indices_to_csr(rows: Sequence[np.ndarray], *, n_items: int) -> csr_matrix:
@@ -349,4 +361,59 @@ def evaluate_ranked_predictions(
             _slice_srp_rows(predictions, start, end),
             targets[start:end],
         )
+    return evaluator.compute()
+
+
+def evaluate_recommender(
+    model: Recommender,
+    *,
+    source: csr_matrix,
+    targets: csr_matrix,
+    metrics: Sequence[RankingMetric],
+    batch_size: int = 1024,
+    match_backend: MatchBackend = "auto",
+    max_dense_cells: int = 20_000_000,
+    validate_predictions: bool = True,
+    debug: bool = False,
+    debug_users: int = 5,
+    show_progress: bool = False,
+) -> dict[str, Any]:
+    """Evaluate a recommender without retaining predictions between batches.
+
+    The largest metric cutoff determines the ``k`` passed to the model's
+    ``predict_on_batch`` method. Source and target rows are sliced together,
+    and each prediction batch is immediately sent to :class:`RankingEvaluator`.
+    """
+    if not isinstance(model, Recommender):
+        raise TypeError("model must implement predict_on_batch(source, *, k)")
+    if not isspmatrix_csr(source):
+        raise TypeError("source must be a scipy.sparse.csr_matrix")
+    targets = _canonical_csr(targets)
+    if source.shape != targets.shape:
+        raise ValueError(
+            f"source shape {source.shape} must match target shape {targets.shape}"
+        )
+    if batch_size < 1:
+        raise ValueError("batch_size must be >= 1")
+
+    evaluator = RankingEvaluator(
+        metrics,
+        match_backend=match_backend,
+        max_dense_cells=max_dense_cells,
+        validate_predictions=validate_predictions,
+        debug=debug,
+        debug_users=debug_users,
+    )
+    starts = range(0, source.shape[0], batch_size)
+    for start in _progress(
+        starts,
+        enabled=show_progress,
+        desc=f"evaluate recommender@{evaluator.required_k}",
+    ):
+        end = min(start + batch_size, source.shape[0])
+        predictions = model.predict_on_batch(
+            source[start:end],
+            k=evaluator.required_k,
+        )
+        evaluator.update(predictions, targets[start:end])
     return evaluator.compute()

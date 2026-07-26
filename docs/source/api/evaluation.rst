@@ -15,6 +15,8 @@ shares it across all configured metrics. It does not densify model scores or
 the complete target matrix. Rows without target items are excluded from metric
 means and from ``n_eval_users``.
 
+.. autofunction:: compresso_recsys.evaluation.evaluate_recommender
+
 .. autofunction:: compresso_recsys.evaluation.evaluate_ranked_predictions
 
 .. autoclass:: compresso_recsys.evaluation.RankingEvaluator

@@ -9,6 +9,7 @@ from scipy.sparse import csr_matrix
 
 from compresso import SRPTensor
 from compresso_recsys.evaluation import RankingEvaluator, evaluate_ranked_predictions
+from compresso_recsys.evaluation import evaluate_recommender
 from compresso_recsys.metrics import CalibratedRecall, NDCG
 
 
@@ -289,3 +290,105 @@ def test_vectorized_metrics_match_python_reference_on_random_rows():
             match_backend=backend,
         )
         assert result == pytest.approx(expected, rel=1e-6)
+
+
+class _RecordingRecommender:
+    def __init__(self) -> None:
+        self.calls: list[tuple[int, int]] = []
+
+    def predict_on_batch(self, source: csr_matrix, *, k: int) -> SRPTensor:
+        self.calls.append((source.shape[0], k))
+        columns = torch.arange(k, dtype=torch.long).expand(source.shape[0], -1).clone()
+        values = torch.arange(k, 0, -1, dtype=torch.float32).expand(source.shape[0], -1).clone()
+        return SRPTensor(
+            cols=columns,
+            vals=values,
+            shape=source.shape,
+        )
+
+
+def test_evaluate_recommender_streams_batches_and_derives_required_k():
+    model = _RecordingRecommender()
+    source = csr_matrix((5, 6), dtype=np.float32)
+    targets = csr_matrix(
+        (
+            np.ones(5, dtype=np.float32),
+            (
+                np.arange(5),
+                np.array([0, 1, 2, 3, 5]),
+            ),
+        ),
+        shape=source.shape,
+    )
+
+    result = evaluate_recommender(
+        model,
+        source=source,
+        targets=targets,
+        metrics=[CalibratedRecall([1, 4]), NDCG(4)],
+        batch_size=2,
+    )
+
+    assert model.calls == [(2, 4), (2, 4), (1, 4)]
+    assert result == pytest.approx(
+        {
+            "recall@1": 0.2,
+            "recall@4": 0.8,
+            "ndcg@4": (
+                1.0
+                + 1.0 / np.log2(3)
+                + 1.0 / np.log2(4)
+                + 1.0 / np.log2(5)
+            )
+            / 5.0,
+            "n_eval_users": 5.0,
+        }
+    )
+
+
+def test_evaluate_recommender_handles_empty_input_without_calling_model():
+    model = _RecordingRecommender()
+
+    result = evaluate_recommender(
+        model,
+        source=csr_matrix((0, 6)),
+        targets=csr_matrix((0, 6)),
+        metrics=[CalibratedRecall(2)],
+    )
+
+    assert model.calls == []
+    assert result == {"recall@2": 0.0, "n_eval_users": 0.0}
+
+
+def test_evaluate_recommender_validates_model_and_matrices():
+    model = _RecordingRecommender()
+
+    with pytest.raises(TypeError, match="predict_on_batch"):
+        evaluate_recommender(
+            object(),
+            source=csr_matrix((1, 4)),
+            targets=csr_matrix((1, 4)),
+            metrics=[CalibratedRecall(1)],
+        )
+    with pytest.raises(TypeError, match="source"):
+        evaluate_recommender(
+            model,
+            source=np.zeros((1, 4)),  # type: ignore[arg-type]
+            targets=csr_matrix((1, 4)),
+            metrics=[CalibratedRecall(1)],
+        )
+    with pytest.raises(ValueError, match="source shape"):
+        evaluate_recommender(
+            model,
+            source=csr_matrix((1, 4)),
+            targets=csr_matrix((2, 4)),
+            metrics=[CalibratedRecall(1)],
+        )
+    with pytest.raises(ValueError, match="batch_size"):
+        evaluate_recommender(
+            model,
+            source=csr_matrix((1, 4)),
+            targets=csr_matrix((1, 4)),
+            metrics=[CalibratedRecall(1)],
+            batch_size=0,
+        )

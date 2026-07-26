@@ -129,50 +129,36 @@ manually computed embedding matrix directly:
 Evaluate Model Predictions
 --------------------------
 
-A collaborative-filtering model can be evaluated directly after it produces
-ranked scores for the source interactions. Mask source items before selecting
-the top recommendations so already-seen items cannot be counted:
+The generic recommender evaluator requests one prediction batch at a time and
+immediately compares it with the corresponding CSR target rows. This keeps
+memory bounded during evaluation:
 
 .. code-block:: python
 
-   import torch
    import compresso_recsys as cr
-   from compresso import SRPTensor
-   from compresso_recsys.evaluation import evaluate_ranked_predictions
+   from compresso_recsys.evaluation import evaluate_recommender
    from compresso_recsys.metrics import CalibratedRecall, NDCG
+   from compresso_recsys.models import EASE, EASEConfig
 
    with cr.read_checkpoint("artifacts/ml20m-elsa.zip") as root:
        split = cr.load_recsys_split(root)
 
-   source = split["test_source_matrix"]
-   targets = split["test_target_matrix"]
+   model = EASE(EASEConfig(l2=500.0))
+   model.fit(split["x_train"])
 
-   # Replace this with batched scores from your model.
-   scores = model(source)
-   source_rows, source_cols = source.nonzero()
-   source_rows = torch.from_numpy(source_rows).to(scores.device)
-   source_cols = torch.from_numpy(source_cols).to(scores.device)
-   scores[source_rows, source_cols] = -torch.inf
-
-   values, columns = torch.topk(scores, k=100, dim=1, sorted=True)
-   predictions = SRPTensor(
-       cols=columns,
-       vals=values,
-       shape=(scores.shape[0], scores.shape[1]),
-   )
-
-   result = evaluate_ranked_predictions(
-       predictions=predictions,
-       targets=targets,
+   result = evaluate_recommender(
+       model,
+       source=split["test_source_matrix"],
+       targets=split["test_target_matrix"],
        metrics=[
            CalibratedRecall([20, 50, 100]),
            NDCG([20, 50, 100]),
        ],
-       batch_size=4096,
+       batch_size=1024,
+       show_progress=True,
    )
 
    print(result)
 
-For large evaluations, use :class:`compresso_recsys.evaluation.RankingEvaluator`
-directly and call ``update`` for each prediction batch. This avoids retaining
-all user scores or predictions in memory.
+For a model that already produced one complete :class:`compresso.SRPTensor`,
+use :func:`compresso_recsys.evaluation.evaluate_ranked_predictions` instead.
