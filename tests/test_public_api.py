@@ -3,6 +3,8 @@ from __future__ import annotations
 import compresso_recsys as cr
 import compresso_recsys.checkpoint as checkpoint
 import compresso_recsys.datasets as datasets
+import compresso_recsys.evaluation as evaluation
+import compresso_recsys.metrics as metrics
 
 
 def test_top_level_public_api_is_intentional():
@@ -80,6 +82,16 @@ def test_submodule_public_apis_are_intentional():
             "MovieLens20M",
             "Goodbooks",
             "AmazonReviews2023",
+        },
+        evaluation: {
+            "RankingEvaluator",
+            "evaluate_ranked_predictions",
+        },
+        metrics: {
+            "CalibratedRecall",
+            "NDCG",
+            "RankingBatch",
+            "RankingMetric",
         },
     }
 

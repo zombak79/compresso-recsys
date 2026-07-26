@@ -1,11 +1,16 @@
 from __future__ import annotations
 
-from typing import Dict, List, Tuple
+from collections.abc import Iterator, Sequence
+from typing import Any, Dict, List, Tuple
 
 import numpy as np
 import pandas as pd
 import torch
 from scipy.sparse import csr_matrix, vstack
+
+from compresso import SRPTensor
+from compresso_recsys.evaluation import RankingEvaluator, _indices_to_csr
+from compresso_recsys.metrics import CalibratedRecall, NDCG, RankingMetric
 
 
 def _progress(iterable, *, enabled: bool, desc: str):
@@ -355,7 +360,7 @@ def build_temporal_holdout(
     }
 
 
-def _compute_topk_predictions(
+def _iter_topk_predictions(
     e: torch.Tensor,
     source_indices: List[np.ndarray],
     k: int,
@@ -363,16 +368,14 @@ def _compute_topk_predictions(
     batch_size: int = 512,
     show_progress: bool = False,
     desc: str = "evaluate top-k",
-) -> List[np.ndarray]:
-    """Batched vectorized top-k retrieval.
+) -> Iterator[tuple[int, int, SRPTensor]]:
+    """Yield batched vectorized top-k retrieval results.
 
     ELSA-forward scoring:
       scores_u = relu((x_u @ e) @ e.T - x_u), where x_u is sparse source
       interaction vector over item ids.
     """
     n_items = e.shape[0]
-    k_eff = min(k, n_items)
-    preds: List[np.ndarray] = []
 
     starts = range(0, len(source_indices), batch_size)
     for start in _progress(starts, enabled=show_progress, desc=desc):
@@ -399,63 +402,21 @@ def _compute_topk_predictions(
         # Mask seen source items.
         scores[owners, flat_src_t] = -torch.inf
 
-        topk_idx = torch.topk(scores, k_eff, dim=1, largest=True, sorted=True).indices
-        preds.extend([row.detach().cpu().numpy() for row in topk_idx])
-
-    return preds
-
-
-def _calibrated_recall(target_sets: List[set[int]], pred_ranked: List[np.ndarray], k: int) -> float:
-    vals = []
-    for tset, pred in zip(target_sets, pred_ranked):
-        if not tset:
-            continue
-        top = pred[:k]
-        hits = sum(1 for i in top if int(i) in tset)
-        denom = min(k, len(tset))
-        vals.append(hits / denom if denom > 0 else 0.0)
-    return float(np.mean(vals)) if vals else 0.0
-
-
-def _ndcg(target_sets: List[set[int]], pred_ranked: List[np.ndarray], k: int) -> float:
-    vals = []
-    for tset, pred in zip(target_sets, pred_ranked):
-        if not tset:
-            continue
-        dcg = 0.0
-        for rank, item_idx in enumerate(pred[:k], start=1):
-            if int(item_idx) in tset:
-                dcg += 1.0 / np.log2(rank + 1)
-        ideal_len = min(k, len(tset))
-        idcg = sum(1.0 / np.log2(i + 1) for i in range(1, ideal_len + 1))
-        vals.append(dcg / idcg if idcg > 0 else 0.0)
-    return float(np.mean(vals)) if vals else 0.0
-
-
-def _debug_rows(target_sets: List[set[int]], pred_ranked: List[np.ndarray], k: int, limit: int):
-    rows = []
-    for u, (tset, pred) in enumerate(zip(target_sets, pred_ranked)):
-        if u >= limit:
-            break
-        if not tset:
-            continue
-        hit_ranks = [rank for rank, item_idx in enumerate(pred[:k], start=1) if int(item_idx) in tset]
-        dcg = sum(1.0 / np.log2(r + 1) for r in hit_ranks)
-        ideal_len = min(k, len(tset))
-        idcg = sum(1.0 / np.log2(i + 1) for i in range(1, ideal_len + 1))
-        rows.append(
-            {
-                "user_row": u,
-                "n_true": len(tset),
-                "n_hits_topk": len(hit_ranks),
-                "first_hit_rank": hit_ranks[0] if hit_ranks else None,
-                "hit_ranks": hit_ranks,
-                "dcg": float(dcg),
-                "idcg": float(idcg),
-                "ndcg": float(dcg / idcg if idcg > 0 else 0.0),
-            }
+        topk_vals, topk_idx = torch.topk(scores, k, dim=1, largest=True, sorted=True)
+        yield (
+            start,
+            start + b,
+            SRPTensor(
+                cols=topk_idx,
+                vals=topk_vals,
+                shape=(b, n_items),
+                validate=False,
+            ),
         )
-    return rows
+
+
+def _default_metrics(k: int) -> list[RankingMetric]:
+    return [CalibratedRecall(k), NDCG(k)]
 
 
 def evaluate_item_embeddings(
@@ -470,10 +431,11 @@ def evaluate_item_embeddings(
     random_state: int = 42,
     eval_fold: int = 0,
     score_batch_size: int = 512,
+    metrics: Sequence[RankingMetric] | None = None,
     debug: bool = False,
     debug_users: int = 5,
     show_progress: bool = False,
-) -> dict[str, float]:
+) -> dict[str, Any]:
     """Evaluate item embeddings with torch top-k retrieval.
 
     - User profile: sum of source-item embeddings.
@@ -492,35 +454,17 @@ def evaluate_item_embeddings(
         random_state=random_state,
         eval_fold=eval_fold,
     )
-    source_indices = holdout["source_indices"]  # type: ignore[assignment]
-    target_sets = [set(x.tolist()) for x in holdout["target_indices"]]  # type: ignore[index]
-
-    if not source_indices:
-        out = {f"recall@{k}": 0.0, f"ndcg@{k}": 0.0, "n_eval_users": 0.0}
-        if debug:
-            out["debug"] = []
-        return out
-
-    e = torch.from_numpy(item_embeddings.astype(np.float32))
-    e = torch.nn.functional.normalize(e, dim=-1)
-
-    pred_ranked = _compute_topk_predictions(
-        e,
-        source_indices,
+    return evaluate_item_embeddings_with_holdout(
+        item_embeddings=item_embeddings,
+        source_indices=holdout["source_indices"],  # type: ignore[arg-type]
+        target_indices=holdout["target_indices"],  # type: ignore[arg-type]
         k=k,
-        batch_size=score_batch_size,
+        score_batch_size=score_batch_size,
+        metrics=metrics,
+        debug=debug,
+        debug_users=debug_users,
         show_progress=show_progress,
-        desc=f"evaluate@{k}",
     )
-
-    out = {
-        f"recall@{k}": _calibrated_recall(target_sets, pred_ranked, k),
-        f"ndcg@{k}": _ndcg(target_sets, pred_ranked, k),
-        "n_eval_users": float(len(target_sets)),
-    }
-    if debug:
-        out["debug"] = _debug_rows(target_sets, pred_ranked, k=k, limit=debug_users)
-    return out
 
 
 def evaluate_item_embeddings_with_holdout(
@@ -530,28 +474,50 @@ def evaluate_item_embeddings_with_holdout(
     target_indices: list[np.ndarray],
     k: int = 100,
     score_batch_size: int = 512,
+    metrics: Sequence[RankingMetric] | None = None,
     debug: bool = False,
     debug_users: int = 5,
     show_progress: bool = False,
-) -> dict[str, float]:
+) -> dict[str, Any]:
+    """Evaluate item embeddings against a precomputed source/target holdout.
+
+    Predictions are generated and evaluated one batch at a time. Supplying
+    ``metrics`` allows multiple cutoffs to reuse the same ranked predictions
+    and target-hit tensor.
+    """
     if len(source_indices) != len(target_indices):
         raise ValueError("source_indices and target_indices must have same length")
+    if item_embeddings.ndim != 2:
+        raise ValueError("item_embeddings must be a 2D array")
+    if k < 1:
+        raise ValueError("k must be >= 1")
+    if k > item_embeddings.shape[0]:
+        raise ValueError(
+            f"k ({k}) cannot exceed the number of items ({item_embeddings.shape[0]})"
+        )
+    if score_batch_size < 1:
+        raise ValueError("score_batch_size must be >= 1")
+
     e = torch.from_numpy(item_embeddings.astype(np.float32))
     e = torch.nn.functional.normalize(e, dim=-1)
-    target_sets = [set(x.tolist()) for x in target_indices]
-    pred_ranked = _compute_topk_predictions(
+    targets = _indices_to_csr(target_indices, n_items=item_embeddings.shape[0])
+    evaluator = RankingEvaluator(
+        list(metrics) if metrics is not None else _default_metrics(k),
+        validate_predictions=False,
+        debug=debug,
+        debug_users=debug_users,
+    )
+    if evaluator.required_k > k:
+        raise ValueError(
+            f"metrics require top-{evaluator.required_k}, but retrieval was configured for top-{k}"
+        )
+    for start, end, predictions in _iter_topk_predictions(
         e,
         source_indices,
         k=k,
         batch_size=score_batch_size,
         show_progress=show_progress,
         desc=f"evaluate@{k}",
-    )
-    out = {
-        f"recall@{k}": _calibrated_recall(target_sets, pred_ranked, k),
-        f"ndcg@{k}": _ndcg(target_sets, pred_ranked, k),
-        "n_eval_users": float(len(target_sets)),
-    }
-    if debug:
-        out["debug"] = _debug_rows(target_sets, pred_ranked, k=k, limit=debug_users)
-    return out
+    ):
+        evaluator.update(predictions, targets[start:end])
+    return evaluator.compute()
