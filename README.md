@@ -85,8 +85,8 @@ compresso-recsys-build-checkpoint \
   Reviews 2023.
 - ZIP checkpoint format for source/target splits, embeddings, sparse
   embeddings, metrics, and Compresso cluster-graph stages.
-- Retrieval metrics for Recall and nDCG at common cutoffs including 20, 50,
-  and 100.
+- Calibrated Recall and nDCG defaults, with optional standard Recall,
+  Precision, Hit Rate, MRR, and MAP at configurable cutoffs.
 - A batched EASE collaborative-filtering baseline with streaming evaluation.
 - A checkpoint-building console command:
   `compresso-recsys-build-checkpoint`.

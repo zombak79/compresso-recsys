@@ -91,7 +91,12 @@ def test_submodule_public_apis_are_intentional():
         },
         metrics: {
             "CalibratedRecall",
+            "HitRate",
+            "MAP",
+            "MRR",
             "NDCG",
+            "Precision",
+            "Recall",
             "RankingBatch",
             "RankingMetric",
         },

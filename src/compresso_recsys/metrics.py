@@ -10,7 +10,12 @@ from compresso import SRPTensor
 
 __all__ = [
     "CalibratedRecall",
+    "HitRate",
+    "MAP",
+    "MRR",
     "NDCG",
+    "Precision",
+    "Recall",
     "RankingBatch",
     "RankingMetric",
 ]
@@ -139,6 +144,110 @@ class CalibratedRecall(_MeanAtCutoffsMetric):
         cutoffs = torch.tensor(self.cutoffs, dtype=torch.long, device=batch.hits.device)
         denominators = torch.minimum(batch.target_counts[:, None], cutoffs[None, :]).clamp_min(1)
         return hits_at_k / denominators
+
+
+class Recall(_MeanAtCutoffsMetric):
+    """Standard recall normalized by the total number of relevant targets."""
+
+    result_prefix = "standard_recall"
+
+    def _batch_values(self, batch: RankingBatch) -> torch.Tensor:
+        cutoff_indices = torch.tensor(
+            [k - 1 for k in self.cutoffs],
+            dtype=torch.long,
+            device=batch.hits.device,
+        )
+        cumulative_hits = batch.hits[:, : self.required_k].to(torch.float32).cumsum(dim=1)
+        hits_at_k = cumulative_hits.index_select(dim=1, index=cutoff_indices)
+        return hits_at_k / batch.target_counts[:, None].clamp_min(1)
+
+
+class Precision(_MeanAtCutoffsMetric):
+    """Fraction of the top-k predictions that are relevant."""
+
+    result_prefix = "precision"
+
+    def _batch_values(self, batch: RankingBatch) -> torch.Tensor:
+        cutoff_indices = torch.tensor(
+            [k - 1 for k in self.cutoffs],
+            dtype=torch.long,
+            device=batch.hits.device,
+        )
+        cumulative_hits = batch.hits[:, : self.required_k].to(torch.float32).cumsum(dim=1)
+        hits_at_k = cumulative_hits.index_select(dim=1, index=cutoff_indices)
+        cutoffs = torch.tensor(
+            self.cutoffs,
+            dtype=torch.float32,
+            device=batch.hits.device,
+        )
+        return hits_at_k / cutoffs
+
+
+class HitRate(_MeanAtCutoffsMetric):
+    """Whether at least one relevant item occurs in the top-k predictions."""
+
+    result_prefix = "hit_rate"
+
+    def _batch_values(self, batch: RankingBatch) -> torch.Tensor:
+        cutoff_indices = torch.tensor(
+            [k - 1 for k in self.cutoffs],
+            dtype=torch.long,
+            device=batch.hits.device,
+        )
+        cumulative_hits = batch.hits[:, : self.required_k].to(torch.int64).cumsum(dim=1)
+        hits_at_k = cumulative_hits.index_select(dim=1, index=cutoff_indices)
+        return (hits_at_k > 0).to(torch.float32)
+
+
+class MRR(_MeanAtCutoffsMetric):
+    """Mean reciprocal rank of the first relevant prediction up to each cutoff."""
+
+    result_prefix = "mrr"
+
+    def _batch_values(self, batch: RankingBatch) -> torch.Tensor:
+        ranks = torch.arange(
+            1,
+            self.required_k + 1,
+            dtype=torch.float32,
+            device=batch.hits.device,
+        )
+        reciprocal_hits = batch.hits[:, : self.required_k].to(torch.float32) / ranks
+        reciprocal_rank_curve = reciprocal_hits.cummax(dim=1).values
+        cutoff_indices = torch.tensor(
+            [k - 1 for k in self.cutoffs],
+            dtype=torch.long,
+            device=batch.hits.device,
+        )
+        return reciprocal_rank_curve.index_select(dim=1, index=cutoff_indices)
+
+
+class MAP(_MeanAtCutoffsMetric):
+    """Mean average precision with binary relevance at each cutoff."""
+
+    result_prefix = "map"
+
+    def _batch_values(self, batch: RankingBatch) -> torch.Tensor:
+        hits = batch.hits[:, : self.required_k].to(torch.float32)
+        ranks = torch.arange(
+            1,
+            self.required_k + 1,
+            dtype=torch.float32,
+            device=batch.hits.device,
+        )
+        precision_at_rank = hits.cumsum(dim=1) / ranks
+        average_precision_curve = (precision_at_rank * hits).cumsum(dim=1)
+        cutoff_indices = torch.tensor(
+            [k - 1 for k in self.cutoffs],
+            dtype=torch.long,
+            device=batch.hits.device,
+        )
+        precision_sums = average_precision_curve.index_select(
+            dim=1,
+            index=cutoff_indices,
+        )
+        cutoffs = torch.tensor(self.cutoffs, dtype=torch.long, device=batch.hits.device)
+        denominators = torch.minimum(batch.target_counts[:, None], cutoffs[None, :]).clamp_min(1)
+        return precision_sums / denominators
 
 
 class NDCG(_MeanAtCutoffsMetric):

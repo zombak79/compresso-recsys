@@ -10,7 +10,15 @@ from scipy.sparse import csr_matrix
 from compresso import SRPTensor
 from compresso_recsys.evaluation import RankingEvaluator, evaluate_ranked_predictions
 from compresso_recsys.evaluation import evaluate_recommender
-from compresso_recsys.metrics import CalibratedRecall, NDCG
+from compresso_recsys.metrics import (
+    CalibratedRecall,
+    HitRate,
+    MAP,
+    MRR,
+    NDCG,
+    Precision,
+    Recall,
+)
 
 
 def _predictions() -> SRPTensor:
@@ -80,6 +88,31 @@ def test_default_metrics_use_prediction_width():
     )
 
     assert set(result) == {"recall@4", "ndcg@4", "n_eval_users"}
+
+
+def test_optional_metrics_are_used_only_when_requested():
+    result = evaluate_ranked_predictions(
+        predictions=_predictions(),
+        targets=_targets(),
+        metrics=[
+            Recall(4),
+            Precision(4),
+            HitRate(4),
+            MRR(4),
+            MAP(4),
+        ],
+    )
+
+    assert result == pytest.approx(
+        {
+            "standard_recall@4": 1.0,
+            "precision@4": 0.375,
+            "hit_rate@4": 1.0,
+            "mrr@4": 2.0 / 3.0,
+            "map@4": 7.0 / 12.0,
+            "n_eval_users": 2.0,
+        }
+    )
 
 
 def test_debug_rows_preserve_global_row_numbers_across_batches():

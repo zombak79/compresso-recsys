@@ -160,5 +160,25 @@ memory bounded during evaluation:
 
    print(result)
 
+Additional metrics can be opted into without changing the defaults:
+
+.. code-block:: python
+
+   from compresso_recsys.metrics import HitRate, MAP, MRR, Precision, Recall
+
+   result = evaluate_recommender(
+       model,
+       source=split["test_source_matrix"],
+       targets=split["test_target_matrix"],
+       metrics=[
+           Recall([20, 50, 100]),
+           Precision([20, 50, 100]),
+           HitRate([20, 50, 100]),
+           MRR([20, 50, 100]),
+           MAP([20, 50, 100]),
+       ],
+       batch_size=1024,
+   )
+
 For a model that already produced one complete :class:`compresso.SRPTensor`,
 use :func:`compresso_recsys.evaluation.evaluate_ranked_predictions` instead.

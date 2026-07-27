@@ -28,9 +28,49 @@ It checks item bounds, duplicate recommendations, NaN scores, and score order.
 Metrics
 -------
 
-Both built-in metrics accept one cutoff or a sequence of cutoffs. For
-compatibility with the embedding evaluator, ``CalibratedRecall`` is reported
-as ``recall@K`` and divides hits by ``min(K, number_of_targets)``.
+Every built-in metric accepts one cutoff or a sequence of cutoffs. Rows without
+target items are excluded from all metric means.
+
+Default Metrics
+~~~~~~~~~~~~~~~
+
+When metrics are not supplied to prediction or embedding evaluation, the
+defaults remain:
+
+* ``CalibratedRecall``, reported as ``recall@K``. It divides hits by
+  ``min(K, number_of_targets)``.
+* ``NDCG``, reported as ``ndcg@K`` with binary relevance.
+
+Optional Metrics
+~~~~~~~~~~~~~~~~
+
+The following metrics are available only when explicitly included in the
+``metrics`` argument:
+
+* ``Recall``, reported as ``standard_recall@K``. It divides hits by the total
+  number of target items. The distinct key avoids confusing it with the
+  existing calibrated ``recall@K``.
+* ``Precision``, reported as ``precision@K``. It divides hits by ``K``.
+* ``HitRate``, reported as ``hit_rate@K``. It is one when at least one target
+  occurs in the top ``K``, otherwise zero.
+* ``MRR``, reported as ``mrr@K``. It is the reciprocal rank of the first hit,
+  or zero when no hit occurs by ``K``.
+* ``MAP``, reported as ``map@K``. Average precision sums precision at each hit
+  and divides by ``min(K, number_of_targets)``.
+
+For example:
+
+.. code-block:: python
+
+   from compresso_recsys.metrics import HitRate, MAP, MRR, Precision, Recall
+
+   optional_metrics = [
+       Recall([20, 50, 100]),
+       Precision([20, 50, 100]),
+       HitRate([20, 50, 100]),
+       MRR([20, 50, 100]),
+       MAP([20, 50, 100]),
+   ]
 
 .. autoclass:: compresso_recsys.metrics.RankingMetric
    :members:
@@ -42,4 +82,19 @@ as ``recall@K`` and divides hits by ``min(K, number_of_targets)``.
    :members:
 
 .. autoclass:: compresso_recsys.metrics.NDCG
+   :members:
+
+.. autoclass:: compresso_recsys.metrics.Recall
+   :members:
+
+.. autoclass:: compresso_recsys.metrics.Precision
+   :members:
+
+.. autoclass:: compresso_recsys.metrics.HitRate
+   :members:
+
+.. autoclass:: compresso_recsys.metrics.MRR
+   :members:
+
+.. autoclass:: compresso_recsys.metrics.MAP
    :members:

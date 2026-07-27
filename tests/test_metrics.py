@@ -6,7 +6,16 @@ import pytest
 import torch
 
 from compresso import SRPTensor
-from compresso_recsys.metrics import CalibratedRecall, NDCG, RankingBatch
+from compresso_recsys.metrics import (
+    CalibratedRecall,
+    HitRate,
+    MAP,
+    MRR,
+    NDCG,
+    Precision,
+    Recall,
+    RankingBatch,
+)
 
 
 def _ranking_batch() -> RankingBatch:
@@ -72,6 +81,57 @@ def test_ndcg_supports_multiple_cutoffs():
         },
         rel=1e-6,
     )
+
+
+@pytest.mark.parametrize(
+    ("metric", "expected"),
+    [
+        (
+            Recall([1, 2, 4]),
+            {
+                "standard_recall@1": 0.25,
+                "standard_recall@2": 0.25,
+                "standard_recall@4": 1.0,
+            },
+        ),
+        (
+            Precision([1, 2, 4]),
+            {
+                "precision@1": 0.5,
+                "precision@2": 0.25,
+                "precision@4": 0.375,
+            },
+        ),
+        (
+            HitRate([1, 2, 4]),
+            {
+                "hit_rate@1": 0.5,
+                "hit_rate@2": 0.5,
+                "hit_rate@4": 1.0,
+            },
+        ),
+        (
+            MRR([1, 2, 4]),
+            {
+                "mrr@1": 0.5,
+                "mrr@2": 0.5,
+                "mrr@4": 2.0 / 3.0,
+            },
+        ),
+        (
+            MAP([1, 2, 4]),
+            {
+                "map@1": 0.5,
+                "map@2": 0.25,
+                "map@4": 7.0 / 12.0,
+            },
+        ),
+    ],
+)
+def test_optional_metrics_support_multiple_cutoffs(metric, expected):
+    metric.update(_ranking_batch())
+
+    assert metric.compute() == pytest.approx(expected, rel=1e-6)
 
 
 def test_metric_state_streams_and_resets():
