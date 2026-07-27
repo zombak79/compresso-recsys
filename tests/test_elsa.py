@@ -12,7 +12,10 @@ from compresso_recsys.evaluation import (
 )
 from compresso_recsys.metrics import CalibratedRecall, NDCG
 from compresso_recsys.models import ELSA, ELSAConfig, ELSATrainer, Recommender
-from compresso_recsys.models.elsa import _ELSAInteractionDataset
+from compresso_recsys.models.elsa import (
+    _dense_training_target,
+    _ELSAInteractionDataset,
+)
 
 
 @pytest.fixture
@@ -102,10 +105,9 @@ def test_candidate_sampler_preserves_positives_and_samples_unique_negatives(
         seed=3,
     )
 
-    x, y, sources, candidates = dataset[0]
+    x, sources, candidates = dataset[0]
 
     assert x.is_sparse
-    assert y.is_sparse
     assert candidates is not None
     assert sources.tolist() == [0, 1, 2]
     assert candidates.shape == (5,)
@@ -113,9 +115,14 @@ def test_candidate_sampler_preserves_positives_and_samples_unique_negatives(
     assert candidates[: len(sources)].tolist() == sources.tolist()
     assert set(candidates[len(sources) :].tolist()).isdisjoint(sources.tolist())
     assert x.shape == (2, 3)
-    assert y.shape == (2, 5)
     x_dense = x.to_dense()
-    y_dense = y.to_dense()
+    y_dense = _dense_training_target(
+        x_dense,
+        sources=sources,
+        candidates=candidates,
+        input_dim=interactions.shape[1],
+    )
+    assert y_dense.shape == (2, 5)
     torch.testing.assert_close(x_dense, y_dense[:, : len(sources)])
     assert torch.count_nonzero(y_dense[:, len(sources) :]) == 0
 
@@ -130,19 +137,24 @@ def test_candidate_sampler_uses_full_catalog_when_unlimited(interactions):
         seed=3,
     )
 
-    x, y, sources, candidates = dataset[0]
+    x, sources, candidates = dataset[0]
 
     assert x.is_sparse
-    assert y.is_sparse
     assert candidates is None
+    y = _dense_training_target(
+        x.to_dense(),
+        sources=sources,
+        candidates=candidates,
+        input_dim=interactions.shape[1],
+    )
     assert y.shape == (2, interactions.shape[1])
     torch.testing.assert_close(
-        y.to_dense(),
+        y,
         torch.from_numpy(interactions[:2].toarray()),
     )
     torch.testing.assert_close(
         x.to_dense(),
-        y.to_dense()[:, sources],
+        y[:, sources],
     )
 
 
@@ -156,11 +168,17 @@ def test_candidate_sampler_never_drops_positives_to_meet_budget(interactions):
         seed=3,
     )
 
-    _, y, sources, candidates = dataset[0]
+    x, sources, candidates = dataset[0]
 
     assert candidates is not None
     assert sources.tolist() == [0, 1, 2, 3, 4]
     assert candidates.tolist() == sources.tolist()
+    y = _dense_training_target(
+        x.to_dense(),
+        sources=sources,
+        candidates=candidates,
+        input_dim=interactions.shape[1],
+    )
     assert y.shape == (4, 5)
 
 
@@ -175,8 +193,8 @@ def test_candidate_sampling_is_reproducible(interactions):
     first = _ELSAInteractionDataset(interactions, **kwargs)
     second = _ELSAInteractionDataset(interactions, **kwargs)
 
-    first_candidates = first[0][3]
-    second_candidates = second[0][3]
+    first_candidates = first[0][2]
+    second_candidates = second[0][2]
     assert first_candidates is not None
     assert second_candidates is not None
     torch.testing.assert_close(first_candidates, second_candidates)

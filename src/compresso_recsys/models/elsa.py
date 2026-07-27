@@ -37,6 +37,20 @@ def _normalized_mse(predictions: torch.Tensor, targets: torch.Tensor) -> torch.T
     return (predictions - targets).square().sum(dim=-1).mean()
 
 
+def _dense_training_target(
+    x: torch.Tensor,
+    *,
+    sources: torch.Tensor,
+    candidates: torch.Tensor | None,
+    input_dim: int,
+) -> torch.Tensor:
+    if candidates is None:
+        target = x.new_zeros((x.shape[0], input_dim))
+        target[:, sources] = x
+        return target
+    return F.pad(x, (0, candidates.numel() - sources.numel()))
+
+
 class _ELSAInteractionDataset:
     """Batched sparse interactions with optional output candidate sampling."""
 
@@ -68,7 +82,6 @@ class _ELSAInteractionDataset:
         self,
         batch_index: int,
     ) -> tuple[
-        torch.Tensor,
         torch.Tensor,
         torch.Tensor,
         torch.Tensor | None,
@@ -121,22 +134,8 @@ class _ELSAInteractionDataset:
             values,
             shape=(matrix.shape[0], len(source_columns)),
         )
-        if candidate_columns is None:
-            y_columns = matrix.indices.astype(np.int64, copy=False)
-            y_width = matrix.shape[1]
-        else:
-            # Positive source columns are the prefix of sampled candidates.
-            y_columns = source_local_columns
-            y_width = len(candidate_columns)
-        y = self._sparse_tensor(
-            row_indices,
-            y_columns,
-            values,
-            shape=(matrix.shape[0], y_width),
-        )
         return (
             x,
-            y,
             torch.from_numpy(source_columns).long().to(self.device),
             (
                 None
@@ -335,7 +334,6 @@ class ELSATrainer:
     def train_step(
         self,
         x: torch.Tensor,
-        y: torch.Tensor,
         sources: torch.Tensor,
         candidates: torch.Tensor | None,
     ) -> dict[str, torch.Tensor]:
@@ -343,7 +341,13 @@ class ELSATrainer:
         if self.elsa is None or self.optimizer is None:
             raise RuntimeError("trainer must be built before train_step")
         x = x.to_dense()
-        y = y.to_dense()
+        assert self.input_dim is not None
+        y = _dense_training_target(
+            x,
+            sources=sources,
+            candidates=candidates,
+            input_dim=self.input_dim,
+        )
         self.elsa.train()
         self.optimizer.zero_grad(set_to_none=True)
         predictions = self.elsa(
