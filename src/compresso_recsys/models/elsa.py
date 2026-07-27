@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+import warnings
 from dataclasses import dataclass
 from typing import Literal
 
@@ -92,15 +93,15 @@ class _ELSAInteractionDataset:
             raise IndexError(batch_index)
 
         matrix = self.interactions[self.user_indices[start:end]]
-        source_columns = np.unique(matrix.indices).astype(np.int64, copy=False)
+        source_columns = np.flatnonzero(
+            np.asarray(matrix.getnnz(axis=0)).ravel()
+        ).astype(np.int64, copy=False)
         if self.max_output is None:
             candidate_columns = None
         else:
-            negative_pool = np.setdiff1d(
-                self.item_indices,
-                source_columns,
-                assume_unique=True,
-            )
+            negative_mask = np.ones(matrix.shape[1], dtype=bool)
+            negative_mask[source_columns] = False
+            negative_pool = self.item_indices[negative_mask]
             n_negatives = min(
                 len(negative_pool),
                 max(0, int(self.max_output) - len(source_columns)),
@@ -112,6 +113,7 @@ class _ELSAInteractionDataset:
                     negative_pool,
                     size=n_negatives,
                     replace=False,
+                    shuffle=False,
                 )
             else:
                 negative_columns = np.empty(0, dtype=np.int64)
@@ -123,10 +125,12 @@ class _ELSAInteractionDataset:
             np.arange(matrix.shape[0], dtype=np.int64),
             np.diff(matrix.indptr),
         )
-        source_local_columns = np.searchsorted(
-            source_columns,
-            matrix.indices,
-        ).astype(np.int64, copy=False)
+        source_lookup = np.empty(matrix.shape[1], dtype=np.int64)
+        source_lookup[source_columns] = np.arange(
+            len(source_columns),
+            dtype=np.int64,
+        )
+        source_local_columns = source_lookup[matrix.indices]
         values = matrix.data.astype(np.float32, copy=False)
         x = self._sparse_tensor(
             row_indices,
@@ -134,14 +138,16 @@ class _ELSAInteractionDataset:
             values,
             shape=(matrix.shape[0], len(source_columns)),
         )
+        if candidate_columns is None:
+            sources = torch.from_numpy(source_columns).to(self.device)
+            candidates = None
+        else:
+            candidates = torch.from_numpy(candidate_columns).to(self.device)
+            sources = candidates[: len(source_columns)]
         return (
             x,
-            torch.from_numpy(source_columns).long().to(self.device),
-            (
-                None
-                if candidate_columns is None
-                else torch.from_numpy(candidate_columns).long().to(self.device)
-            ),
+            sources,
+            candidates,
         )
 
     def _sparse_tensor(
@@ -153,12 +159,18 @@ class _ELSAInteractionDataset:
         shape: tuple[int, int],
     ) -> torch.Tensor:
         indices = torch.from_numpy(np.vstack((rows, columns)))
-        with torch.sparse.check_sparse_tensor_invariants():
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                message="Sparse invariant checks are implicitly disabled.*",
+                category=UserWarning,
+            )
             tensor = torch.sparse_coo_tensor(
                 indices,
                 torch.from_numpy(values),
                 shape,
                 is_coalesced=True,
+                check_invariants=False,
             )
             return tensor.to(self.device)
 
