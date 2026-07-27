@@ -104,6 +104,9 @@ def test_candidate_sampler_preserves_positives_and_samples_unique_negatives(
 
     x, y, sources, candidates = dataset[0]
 
+    assert x.is_sparse
+    assert y.is_sparse
+    assert candidates is not None
     assert sources.tolist() == [0, 1, 2]
     assert candidates.shape == (5,)
     assert len(set(candidates.tolist())) == 5
@@ -111,8 +114,10 @@ def test_candidate_sampler_preserves_positives_and_samples_unique_negatives(
     assert set(candidates[len(sources) :].tolist()).isdisjoint(sources.tolist())
     assert x.shape == (2, 3)
     assert y.shape == (2, 5)
-    torch.testing.assert_close(x, y[:, : len(sources)])
-    assert torch.count_nonzero(y[:, len(sources) :]) == 0
+    x_dense = x.to_dense()
+    y_dense = y.to_dense()
+    torch.testing.assert_close(x_dense, y_dense[:, : len(sources)])
+    assert torch.count_nonzero(y_dense[:, len(sources) :]) == 0
 
 
 def test_candidate_sampler_uses_full_catalog_when_unlimited(interactions):
@@ -125,10 +130,20 @@ def test_candidate_sampler_uses_full_catalog_when_unlimited(interactions):
         seed=3,
     )
 
-    _, _, _, candidates = dataset[0]
+    x, y, sources, candidates = dataset[0]
 
-    assert candidates.shape == (interactions.shape[1],)
-    assert set(candidates.tolist()) == set(range(interactions.shape[1]))
+    assert x.is_sparse
+    assert y.is_sparse
+    assert candidates is None
+    assert y.shape == (2, interactions.shape[1])
+    torch.testing.assert_close(
+        y.to_dense(),
+        torch.from_numpy(interactions[:2].toarray()),
+    )
+    torch.testing.assert_close(
+        x.to_dense(),
+        y.to_dense()[:, sources],
+    )
 
 
 def test_candidate_sampler_never_drops_positives_to_meet_budget(interactions):
@@ -143,6 +158,7 @@ def test_candidate_sampler_never_drops_positives_to_meet_budget(interactions):
 
     _, y, sources, candidates = dataset[0]
 
+    assert candidates is not None
     assert sources.tolist() == [0, 1, 2, 3, 4]
     assert candidates.tolist() == sources.tolist()
     assert y.shape == (4, 5)
@@ -159,7 +175,11 @@ def test_candidate_sampling_is_reproducible(interactions):
     first = _ELSAInteractionDataset(interactions, **kwargs)
     second = _ELSAInteractionDataset(interactions, **kwargs)
 
-    torch.testing.assert_close(first[0][3], second[0][3])
+    first_candidates = first[0][3]
+    second_candidates = second[0][3]
+    assert first_candidates is not None
+    assert second_candidates is not None
+    torch.testing.assert_close(first_candidates, second_candidates)
 
 
 @pytest.mark.parametrize(

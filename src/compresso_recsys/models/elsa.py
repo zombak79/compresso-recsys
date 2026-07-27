@@ -67,7 +67,12 @@ class _ELSAInteractionDataset:
     def __getitem__(
         self,
         batch_index: int,
-    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    ) -> tuple[
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor | None,
+    ]:
         start = int(batch_index) * self.batch_size
         end = min(start + self.batch_size, self.interactions.shape[0])
         if start < 0 or start >= self.interactions.shape[0]:
@@ -75,38 +80,88 @@ class _ELSAInteractionDataset:
 
         matrix = self.interactions[self.user_indices[start:end]]
         source_columns = np.unique(matrix.indices).astype(np.int64, copy=False)
-        negative_pool = np.setdiff1d(
-            self.item_indices,
-            source_columns,
-            assume_unique=True,
-        )
         if self.max_output is None:
-            n_negatives = len(negative_pool)
+            candidate_columns = None
         else:
+            negative_pool = np.setdiff1d(
+                self.item_indices,
+                source_columns,
+                assume_unique=True,
+            )
             n_negatives = min(
                 len(negative_pool),
                 max(0, int(self.max_output) - len(source_columns)),
             )
-        if n_negatives == len(negative_pool):
-            negative_columns = negative_pool
-        elif n_negatives > 0:
-            negative_columns = self.rng.choice(
-                negative_pool,
-                size=n_negatives,
-                replace=False,
+            if n_negatives == len(negative_pool):
+                negative_columns = negative_pool
+            elif n_negatives > 0:
+                negative_columns = self.rng.choice(
+                    negative_pool,
+                    size=n_negatives,
+                    replace=False,
+                )
+            else:
+                negative_columns = np.empty(0, dtype=np.int64)
+            candidate_columns = np.concatenate(
+                (source_columns, negative_columns)
             )
-        else:
-            negative_columns = np.empty(0, dtype=np.int64)
 
-        candidate_columns = np.concatenate((source_columns, negative_columns))
-        x = matrix[:, source_columns].toarray().astype(np.float32, copy=False)
-        y = matrix[:, candidate_columns].toarray().astype(np.float32, copy=False)
-        return (
-            torch.from_numpy(x).to(self.device),
-            torch.from_numpy(y).to(self.device),
-            torch.from_numpy(source_columns).long().to(self.device),
-            torch.from_numpy(candidate_columns).long().to(self.device),
+        row_indices = np.repeat(
+            np.arange(matrix.shape[0], dtype=np.int64),
+            np.diff(matrix.indptr),
         )
+        source_local_columns = np.searchsorted(
+            source_columns,
+            matrix.indices,
+        ).astype(np.int64, copy=False)
+        values = matrix.data.astype(np.float32, copy=False)
+        x = self._sparse_tensor(
+            row_indices,
+            source_local_columns,
+            values,
+            shape=(matrix.shape[0], len(source_columns)),
+        )
+        if candidate_columns is None:
+            y_columns = matrix.indices.astype(np.int64, copy=False)
+            y_width = matrix.shape[1]
+        else:
+            # Positive source columns are the prefix of sampled candidates.
+            y_columns = source_local_columns
+            y_width = len(candidate_columns)
+        y = self._sparse_tensor(
+            row_indices,
+            y_columns,
+            values,
+            shape=(matrix.shape[0], y_width),
+        )
+        return (
+            x,
+            y,
+            torch.from_numpy(source_columns).long().to(self.device),
+            (
+                None
+                if candidate_columns is None
+                else torch.from_numpy(candidate_columns).long().to(self.device)
+            ),
+        )
+
+    def _sparse_tensor(
+        self,
+        rows: np.ndarray,
+        columns: np.ndarray,
+        values: np.ndarray,
+        *,
+        shape: tuple[int, int],
+    ) -> torch.Tensor:
+        indices = torch.from_numpy(np.vstack((rows, columns)))
+        with torch.sparse.check_sparse_tensor_invariants():
+            tensor = torch.sparse_coo_tensor(
+                indices,
+                torch.from_numpy(values),
+                shape,
+                is_coalesced=True,
+            )
+            return tensor.to(self.device)
 
     def on_epoch_end(self) -> None:
         if self.shuffle:
@@ -282,11 +337,13 @@ class ELSATrainer:
         x: torch.Tensor,
         y: torch.Tensor,
         sources: torch.Tensor,
-        candidates: torch.Tensor,
+        candidates: torch.Tensor | None,
     ) -> dict[str, torch.Tensor]:
         """Run one optimization step."""
         if self.elsa is None or self.optimizer is None:
             raise RuntimeError("trainer must be built before train_step")
+        x = x.to_dense()
+        y = y.to_dense()
         self.elsa.train()
         self.optimizer.zero_grad(set_to_none=True)
         predictions = self.elsa(
