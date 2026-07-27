@@ -101,6 +101,20 @@ def test_predictions_exclude_seen_items(interactions, source):
         assert set(predictions.cols[row].tolist()).isdisjoint(source[row].indices)
 
 
+def test_seen_item_mask_can_be_disabled(interactions, source):
+    model = EASE().fit(interactions)
+
+    predictions = model.predict(
+        source,
+        k=source.shape[1],
+        batch_size=2,
+        exclude_seen=False,
+    )
+
+    for row in range(source.shape[0]):
+        assert set(predictions.cols[row].tolist()) == set(range(source.shape[1]))
+
+
 def test_empty_source_returns_empty_srp(interactions):
     model = EASE(EASEConfig(dtype="float32")).fit(interactions)
     source = csr_matrix((0, interactions.shape[1]), dtype=np.float32)

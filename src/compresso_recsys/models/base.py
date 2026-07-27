@@ -18,6 +18,6 @@ class Recommender(Protocol):
         source: csr_matrix,
         *,
         k: int,
+        exclude_seen: bool = True,
     ) -> SRPTensor:
-        """Return top-``k`` ranked item predictions for ``source``."""
-
+        """Return top-``k`` predictions, optionally excluding source items."""

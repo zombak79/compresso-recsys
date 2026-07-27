@@ -125,20 +125,22 @@ class EASE:
         source: csr_matrix,
         *,
         k: int,
+        exclude_seen: bool = True,
     ) -> SRPTensor:
-        """Predict ranked top-``k`` unseen items for one source batch."""
+        """Predict ranked top-``k`` items for one source batch."""
         source = self._prepare_source(source)
         if not 1 <= int(k) <= source.shape[1]:
             raise ValueError(f"k must be in [1, {source.shape[1]}], got {k}")
 
         seen_counts = np.diff(source.indptr)
-        available_counts = source.shape[1] - seen_counts
-        if available_counts.size and np.any(available_counts < k):
-            row = int(np.flatnonzero(available_counts < k)[0])
-            raise ValueError(
-                f"source row {row} has only {available_counts[row]} unseen items, "
-                f"fewer than k={k}"
-            )
+        if exclude_seen:
+            available_counts = source.shape[1] - seen_counts
+            if available_counts.size and np.any(available_counts < k):
+                row = int(np.flatnonzero(available_counts < k)[0])
+                raise ValueError(
+                    f"source row {row} has only {available_counts[row]} unseen "
+                    f"items, fewer than k={k}"
+                )
 
         if source.shape[0] == 0:
             value_dtype = torch.from_numpy(np.empty(0, dtype=self.dtype)).dtype
@@ -154,7 +156,8 @@ class EASE:
             np.arange(source.shape[0], dtype=np.int64),
             seen_counts,
         )
-        scores[seen_rows, source.indices] = -np.inf
+        if exclude_seen:
+            scores[seen_rows, source.indices] = -np.inf
         return SRPTensor.from_dense(
             torch.from_numpy(scores),
             k=int(k),
@@ -167,9 +170,10 @@ class EASE:
         *,
         k: int = 100,
         batch_size: int = 1024,
+        exclude_seen: bool = True,
         show_progress: bool = False,
     ) -> SRPTensor:
-        """Predict top-``k`` unseen items for all source rows in batches."""
+        """Predict ranked top-``k`` items for all source rows in batches."""
         source = self._prepare_source(source)
         if batch_size < 1:
             raise ValueError("batch_size must be >= 1")
@@ -181,12 +185,20 @@ class EASE:
         starts = range(0, source.shape[0], batch_size)
         for start in _progress(starts, enabled=show_progress, desc=f"EASE predict@{k}"):
             end = min(start + batch_size, source.shape[0])
-            predictions = self.predict_on_batch(source[start:end], k=k)
+            predictions = self.predict_on_batch(
+                source[start:end],
+                k=k,
+                exclude_seen=exclude_seen,
+            )
             columns.append(predictions.cols)
             values.append(predictions.vals)
 
         if not columns:
-            return self.predict_on_batch(source, k=k)
+            return self.predict_on_batch(
+                source,
+                k=k,
+                exclude_seen=exclude_seen,
+            )
         return SRPTensor(
             cols=torch.vstack(columns),
             vals=torch.vstack(values),

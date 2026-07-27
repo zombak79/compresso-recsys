@@ -182,3 +182,59 @@ Additional metrics can be opted into without changing the defaults:
 
 For a model that already produced one complete :class:`compresso.SRPTensor`,
 use :func:`compresso_recsys.evaluation.evaluate_ranked_predictions` instead.
+
+Train and Evaluate ELSA
+-----------------------
+
+ELSA follows the same ``fit`` and evaluation interface as EASE. Set
+``max_output`` to train against sampled negative candidates instead of the
+entire item catalog:
+
+.. code-block:: python
+
+   from compresso_recsys.evaluation import evaluate_recommender
+   from compresso_recsys.metrics import CalibratedRecall, NDCG
+   from compresso_recsys.models import ELSAConfig, ELSATrainer
+
+   model = ELSATrainer(
+       ELSAConfig(
+           latent_dim=1024,
+           batch_size=1024,
+           max_output=10_000,
+           epochs=10,
+           lr=0.1,
+           device="cuda",
+       )
+   )
+   model.fit(split["x_train"])
+
+   result = evaluate_recommender(
+       model,
+       source=split["test_source_matrix"],
+       targets=split["test_target_matrix"],
+       metrics=[
+           CalibratedRecall([20, 50]),
+           NDCG(100),
+       ],
+       batch_size=1024,
+       show_progress=True,
+   )
+
+Both recommenders provide batch and full-matrix prediction methods. Seen items
+are excluded by default:
+
+.. code-block:: python
+
+   batch_predictions = model.predict_on_batch(
+       split["test_source_matrix"][:1024],
+       k=100,
+   )
+
+   all_predictions = model.predict(
+       split["test_source_matrix"],
+       k=100,
+       batch_size=1024,
+   )
+
+To allow previously interacted items in a diagnostic ranking, pass
+``exclude_seen=False`` to either method.
