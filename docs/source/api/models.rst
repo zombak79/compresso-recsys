@@ -44,10 +44,39 @@ from the whole batch. This makes ``max_output`` a soft upper bound when a
 batch contains more distinct positive items than the configured limit. Use
 ``None`` to score the complete catalog during training.
 
+Compressed ELSA uses Compresso's lottery-ticket schedule to retain a fixed
+number of latent values per item. During mask search, each stable stage rewinds
+the item factors to their original initialization under the new mask and
+restarts the optimizer. After the final mask stabilizes, the factors are
+converted to a row-packed sparse parameter and only its values are trained for
+``ELSAConfig.epochs``. Learning-rate decay, when enabled, applies only to this
+final sparse fine-tuning phase.
+
+Mask search has no epoch limit: a stage advances only after its mask change
+stays within ``change_threshold`` for ``stability_window`` updates. Training
+checkpoints during this phase are not currently resumable, and
+``torch.compile`` is not supported. Mask search materializes the complete
+masked factor matrix before row selection; sparse fine-tuning materializes the
+complete SRP factor matrix before row selection. Inference does not densify the
+complete matrix and instead uses normalized SRP factors through a CSR matrix
+multiplication.
+
+The current Compresso conversion can be ambiguous when boundary values are
+tied or zero. Compressed ELSA verifies the exported structure against the final
+mask and raises an error instead of silently changing the ticket. Compresso
+also currently moves its initialization copy with the model, so mask search
+temporarily retains an additional dense factor buffer on the training device.
+
 .. autoclass:: compresso_recsys.models.ELSAConfig
    :members:
 
+.. autoclass:: compresso_recsys.models.ELSACompressionConfig
+   :members:
+
 .. autoclass:: compresso_recsys.models.ELSA
+   :members:
+
+.. autoclass:: compresso_recsys.models.CompressedELSA
    :members:
 
 .. autoclass:: compresso_recsys.models.ELSATrainer

@@ -101,9 +101,11 @@ def test_submodule_public_apis_are_intentional():
             "RankingMetric",
         },
         models: {
+            "CompressedELSA",
             "EASE",
             "EASEConfig",
             "ELSA",
+            "ELSACompressionConfig",
             "ELSAConfig",
             "ELSATrainer",
             "Recommender",

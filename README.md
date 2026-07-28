@@ -87,8 +87,8 @@ compresso-recsys-build-checkpoint \
   embeddings, metrics, and Compresso cluster-graph stages.
 - Calibrated Recall and nDCG defaults, with optional standard Recall,
   Precision, Hit Rate, MRR, and MAP at configurable cutoffs.
-- Batched EASE and ELSA collaborative-filtering models with streaming
-  evaluation.
+- Batched EASE, dense ELSA, and lottery-ticket compressed ELSA models with
+  streaming evaluation.
 - A checkpoint-building console command:
   `compresso-recsys-build-checkpoint`.
 

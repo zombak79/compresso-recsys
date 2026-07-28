@@ -11,7 +11,14 @@ from compresso_recsys.evaluation import (
     evaluate_recommender,
 )
 from compresso_recsys.metrics import CalibratedRecall, NDCG
-from compresso_recsys.models import ELSA, ELSAConfig, ELSATrainer, Recommender
+from compresso_recsys.models import (
+    CompressedELSA,
+    ELSA,
+    ELSACompressionConfig,
+    ELSAConfig,
+    ELSATrainer,
+    Recommender,
+)
 from compresso_recsys.models.elsa import (
     _dense_training_target,
     _ELSAInteractionDataset,
@@ -63,6 +70,36 @@ def _trainer(**overrides) -> ELSATrainer:
     return ELSATrainer(ELSAConfig(**defaults))
 
 
+def _compressed_trainer(
+    *,
+    compression: ELSACompressionConfig | None = None,
+    **overrides,
+) -> ELSATrainer:
+    defaults = {
+        "latent_dim": 4,
+        "batch_size": 2,
+        "max_output": 6,
+        "epochs": 2,
+        "lr": 1e-2,
+        "show_progress": False,
+        "seed": 7,
+    }
+    defaults.update(overrides)
+    return ELSATrainer(
+        ELSAConfig(
+            **defaults,
+            compression=compression
+            or ELSACompressionConfig(
+                k_target=2,
+                k_schedule=(4, 3, 2),
+                stability_window=1,
+                change_threshold=100.0,
+                mask_update_interval=1,
+            ),
+        )
+    )
+
+
 def test_elsa_forward_matches_restricted_reference():
     model = ELSA(input_dim=4, latent_dim=2, use_relu=False)
     with torch.no_grad():
@@ -78,8 +115,10 @@ def test_elsa_forward_matches_restricted_reference():
         )
     x = torch.tensor([[2.0, 1.0], [0.0, 3.0]])
     sources = torch.tensor([0, 2])
-    candidates = torch.tensor([1, 2, 3])
-    x_out = torch.tensor([[0.0, 1.0, 0.0], [0.0, 3.0, 0.0]])
+    candidates = torch.tensor([0, 2, 1, 3])
+    x_out = torch.tensor(
+        [[2.0, 1.0, 0.0, 0.0], [0.0, 3.0, 0.0, 0.0]]
+    )
 
     actual = model(
         x,
@@ -219,6 +258,41 @@ def test_elsa_config_rejects_invalid_values(name, value):
         ELSAConfig(**{name: value})
 
 
+@pytest.mark.parametrize(
+    ("kwargs", "match"),
+    [
+        ({"k_target": 0}, "k_target"),
+        ({"k_target": 2, "k_schedule": ()}, "k_schedule"),
+        ({"k_target": 2, "k_schedule": (4, 3)}, "last k_schedule"),
+        ({"k_target": 2, "k_schedule": (4, 2, 3)}, "non-increasing"),
+        ({"k_target": 2, "stability_window": 0}, "stability_window"),
+        ({"k_target": 2, "change_threshold": -1}, "change_threshold"),
+        ({"k_target": 2, "mask_update_interval": 0}, "mask_update_interval"),
+        ({"k_target": 2, "ste_alpha": 2}, "ste_alpha"),
+        ({"k_target": 2, "factor_norm": "max"}, "factor_norm"),
+    ],
+)
+def test_compression_config_rejects_invalid_values(kwargs, match):
+    with pytest.raises(ValueError, match=match):
+        ELSACompressionConfig(**kwargs)
+
+
+def test_elsa_config_validates_compression_against_model():
+    compression = ELSACompressionConfig(k_target=3)
+    with pytest.raises(ValueError, match="k_target"):
+        ELSAConfig(latent_dim=2, compression=compression)
+    with pytest.raises(ValueError, match="torch.compile"):
+        ELSAConfig(latent_dim=3, compile=True, compression=compression)
+    with pytest.raises(ValueError, match="start with latent_dim"):
+        ELSAConfig(
+            latent_dim=4,
+            compression=ELSACompressionConfig(
+                k_target=2,
+                k_schedule=(3, 2),
+            ),
+        )
+
+
 def test_fit_records_history_and_returns_trainer(interactions):
     trainer = _trainer()
 
@@ -231,6 +305,170 @@ def test_fit_records_history_and_returns_trainer(interactions):
     assert len(trainer.history) == trainer.cfg.epochs
     assert all(np.isfinite(record["loss"]) for record in trainer.history)
     assert all(np.isfinite(record["cosine_loss"]) for record in trainer.history)
+
+
+def test_compressed_fit_searches_converts_and_finetunes(interactions):
+    trainer = _compressed_trainer().fit(interactions)
+
+    assert isinstance(trainer.elsa, CompressedELSA)
+    assert trainer.elsa.phase == "inference"
+    assert trainer.elsa.masked_A is None
+    assert trainer.elsa.sparse_A is not None
+    assert trainer.elsa.sparse_A.k == 2
+    assert trainer.sparsity_controller is None
+    assert [name for name, _ in trainer.elsa.named_parameters()] == [
+        "sparse_A.values"
+    ]
+
+    search = [
+        record
+        for record in trainer.history
+        if record.get("phase") == "mask_search"
+    ]
+    finetune = [
+        record
+        for record in trainer.history
+        if record.get("phase") == "sparse_finetune"
+    ]
+    assert [record["stage"] for record in search] == [0.0, 1.0]
+    assert [record["k"] for record in search] == [4.0, 3.0]
+    assert len(finetune) == trainer.cfg.epochs
+    assert all(np.isfinite(record["loss"]) for record in trainer.history)
+
+
+@pytest.mark.parametrize(("factor_norm", "p"), [("l1", 1), ("l2", 2)])
+def test_compressed_export_uses_configured_normalization(
+    interactions,
+    factor_norm,
+    p,
+):
+    trainer = _compressed_trainer(
+        epochs=1,
+        compression=ELSACompressionConfig(
+            k_target=2,
+            k_schedule=(4, 2),
+            stability_window=1,
+            change_threshold=100.0,
+            mask_update_interval=1,
+            factor_norm=factor_norm,
+        ),
+    ).fit(interactions)
+    assert isinstance(trainer.elsa, CompressedELSA)
+
+    factors = trainer.elsa.export_item_embeddings()
+
+    torch.testing.assert_close(
+        factors.vals.norm(p=p, dim=1),
+        torch.ones(interactions.shape[1]),
+    )
+
+
+@pytest.mark.parametrize("factor_norm", ["l1", "l2", "none"])
+def test_compressed_sparse_inference_matches_dense_scoring(
+    interactions,
+    source,
+    factor_norm,
+):
+    trainer = _compressed_trainer(
+        epochs=1,
+        compression=ELSACompressionConfig(
+            k_target=2,
+            k_schedule=(4, 2),
+            stability_window=1,
+            change_threshold=100.0,
+            mask_update_interval=1,
+            factor_norm=factor_norm,
+        ),
+    ).fit(interactions)
+    assert isinstance(trainer.elsa, CompressedELSA)
+    source_columns = np.unique(source.indices).astype(np.int64, copy=False)
+    x = torch.from_numpy(
+        source[:, source_columns].toarray().astype(np.float32, copy=False)
+    )
+    sources = torch.from_numpy(source_columns)
+
+    sparse_scores = trainer.elsa.score_all_items(x, sources=sources)
+    dense_scores = trainer.elsa(x, sources=sources)
+
+    torch.testing.assert_close(sparse_scores, dense_scores)
+
+
+def test_compressed_decay_starts_only_after_mask_search(interactions):
+    trainer = _compressed_trainer(decay=True).fit(interactions)
+    search_lrs = [
+        record["lr"]
+        for record in trainer.history
+        if record.get("phase") == "mask_search"
+    ]
+    finetune_lrs = [
+        record["lr"]
+        for record in trainer.history
+        if record.get("phase") == "sparse_finetune"
+    ]
+
+    assert search_lrs == [trainer.cfg.lr, trainer.cfg.lr]
+    assert finetune_lrs == [trainer.cfg.lr, trainer.cfg.lr / 2]
+
+
+def test_refit_compressed_model_reuses_ticket(interactions):
+    trainer = _compressed_trainer(epochs=1).fit(interactions)
+    model = trainer.elsa
+    search_records = sum(
+        record.get("phase") == "mask_search"
+        for record in trainer.history
+    )
+
+    trainer.fit(interactions)
+
+    assert trainer.elsa is model
+    assert isinstance(trainer.elsa, CompressedELSA)
+    assert trainer.elsa.phase == "inference"
+    assert (
+        sum(
+            record.get("phase") == "mask_search"
+            for record in trainer.history
+        )
+        == search_records
+    )
+    assert (
+        sum(
+            record.get("phase") == "sparse_finetune"
+            for record in trainer.history
+        )
+        == 2
+    )
+
+
+def test_compressed_conversion_rejects_structure_mismatch(monkeypatch):
+    from compresso.params.masked import MaskedParam
+    from compresso.params.srp import SRPParam
+
+    model = CompressedELSA(
+        input_dim=3,
+        latent_dim=4,
+        compression=ELSACompressionConfig(
+            k_target=2,
+            k_schedule=(4, 2),
+        ),
+    )
+    assert model.masked_A is not None
+    model.masked_A.schedule_done = True
+    model.masked_A.k_current = 2
+    model.masked_A.mask.zero_()
+    model.masked_A.mask[:, :2] = True
+    wrong = SRPParam(
+        cols=torch.tensor([[2, 3], [2, 3], [2, 3]]),
+        values=torch.ones((3, 2)),
+        shape=(3, 4),
+    )
+    monkeypatch.setattr(
+        MaskedParam,
+        "maskedparam_to_srp",
+        lambda self: wrong,
+    )
+
+    with pytest.raises(RuntimeError, match="does not preserve"):
+        model.convert_to_srp()
 
 
 def test_build_is_idempotent_only_for_same_input_dimension():

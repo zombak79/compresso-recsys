@@ -220,6 +220,51 @@ entire item catalog:
        show_progress=True,
    )
 
+To search for a lottery-ticket ELSA with 64 retained values per item, add a
+nested compression configuration:
+
+.. code-block:: python
+
+   from compresso_recsys.models import (
+       ELSACompressionConfig,
+       ELSAConfig,
+       ELSATrainer,
+   )
+
+   model = ELSATrainer(
+       ELSAConfig(
+           latent_dim=1024,
+           batch_size=1024,
+           max_output=10_000,
+           epochs=10,
+           lr=0.1,
+           decay=True,
+           device="cuda",
+           compression=ELSACompressionConfig(
+               k_target=64,
+               num_stages=10,
+               stability_window=5,
+               change_threshold=0.01,
+               mask_update_interval=10,
+               factor_norm="l2",
+           ),
+       )
+   )
+   model.fit(split["x_train"])
+
+``epochs`` controls the final fixed-SRP fine-tuning, not mask search. Every
+mask-search stage runs until stable, rewinds, and restarts its optimizer. The
+sampler continues its random sequence across stages, so rewinds see new sampled
+negatives.
+
+After fitting, the normalized sparse item factors can be exported without
+densifying:
+
+.. code-block:: python
+
+   item_factors = model.elsa.export_item_embeddings()
+   payload = item_factors.to_dict()
+
 Both recommenders provide batch and full-matrix prediction methods. Seen items
 are excluded by default:
 
