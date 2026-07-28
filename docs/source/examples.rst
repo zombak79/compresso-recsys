@@ -246,16 +246,17 @@ nested compression configuration:
                stability_window=5,
                change_threshold=0.01,
                mask_update_interval=10,
-               factor_norm="l2",
+               max_epochs_per_stage=20,
            ),
        )
    )
    model.fit(split["x_train"])
 
-``epochs`` controls the final fixed-SRP fine-tuning, not mask search. Every
-mask-search stage runs until stable, rewinds, and restarts its optimizer. The
-sampler continues its random sequence across stages, so rewinds see new sampled
-negatives.
+``epochs`` controls the final fixed-SRP fine-tuning, not mask search. A
+mask-search stage advances when it stabilizes or reaches
+``max_epochs_per_stage``; either transition rewinds and restarts its optimizer.
+Use ``None`` for an unlimited stability search. The sampler continues its
+random sequence across stages, so rewinds see new sampled negatives.
 
 After fitting, the normalized sparse item factors can be exported without
 densifying:

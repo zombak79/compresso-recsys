@@ -22,7 +22,6 @@ __all__ = [
 ]
 
 OptimizerName = Literal["NAdam", "AdamW"]
-FactorNorm = Literal["l2", "l1", "none"]
 CompressionScoreMode = Literal["abs", "raw", "relu"]
 
 
@@ -62,34 +61,10 @@ def _dense_training_target(
     return F.pad(x, (0, candidates.numel() - x.shape[1]))
 
 
-def _normalize_dense_factors(
-    factors: torch.Tensor,
-    *,
-    mode: FactorNorm,
-) -> torch.Tensor:
-    if mode == "none":
-        return factors
-    p = 1.0 if mode == "l1" else 2.0
-    return F.normalize(factors, p=p, dim=-1)
-
-
-def _normalize_srp(
-    factors: SRPTensor,
-    *,
-    mode: FactorNorm,
-) -> SRPTensor:
-    if mode == "none":
-        values = factors.vals
-    else:
-        p = 1.0 if mode == "l1" else 2.0
-        values = F.normalize(
-            factors.vals,
-            p=p,
-            dim=-1,
-        )
+def _normalize_srp(factors: SRPTensor) -> SRPTensor:
     return SRPTensor(
         cols=factors.cols,
-        vals=values,
+        vals=F.normalize(factors.vals, p=2.0, dim=-1),
         shape=factors.shape,
         validate=False,
     )
@@ -256,7 +231,9 @@ class ELSACompressionConfig:
     Mask-search stages advance only when the proposed mask remains below
     ``change_threshold`` for ``stability_window`` mask updates. Once the final
     ticket is found, it is converted to an :class:`compresso.SRPParam` and its
-    values are trained for ``ELSAConfig.epochs``.
+    values are trained for ``ELSAConfig.epochs``. ``max_epochs_per_stage`` can
+    force an unstable stage to accept its latest proposed mask; ``None`` leaves
+    stability search unlimited.
     """
 
     k_target: int
@@ -265,9 +242,9 @@ class ELSACompressionConfig:
     stability_window: int = 5
     change_threshold: float = 0.01
     mask_update_interval: int = 10
+    max_epochs_per_stage: int | None = None
     score_mode: CompressionScoreMode = "abs"
     ste_alpha: float = 1.0
-    factor_norm: FactorNorm = "l2"
 
     def __post_init__(self) -> None:
         if self.k_target < 1:
@@ -295,12 +272,15 @@ class ELSACompressionConfig:
             raise ValueError("change_threshold must be finite and >= 0")
         if self.mask_update_interval < 1:
             raise ValueError("mask_update_interval must be >= 1")
+        if (
+            self.max_epochs_per_stage is not None
+            and self.max_epochs_per_stage < 1
+        ):
+            raise ValueError("max_epochs_per_stage must be >= 1 or None")
         if self.score_mode not in {"abs", "raw", "relu"}:
             raise ValueError("score_mode must be 'abs', 'raw', or 'relu'")
         if not np.isfinite(self.ste_alpha) or not 0 <= self.ste_alpha <= 1:
             raise ValueError("ste_alpha must be finite and in [0, 1]")
-        if self.factor_norm not in {"l2", "l1", "none"}:
-            raise ValueError("factor_norm must be 'l2', 'l1', or 'none'")
 
 
 @dataclass(frozen=True)
@@ -486,10 +466,7 @@ class CompressedELSA(nn.Module):
             factors = self.sparse_A().to_dense()
         else:  # pragma: no cover - defensive invariant
             raise RuntimeError("compressed ELSA has no item parameter")
-        return _normalize_dense_factors(
-            factors,
-            mode=self.compression.factor_norm,
-        )
+        return F.normalize(factors, p=2.0, dim=-1)
 
     def normalized_item_srp(self) -> SRPTensor:
         """Return normalized sparse factors after mask search completes."""
@@ -497,10 +474,7 @@ class CompressedELSA(nn.Module):
             raise RuntimeError(
                 "SRP factors are unavailable until mask search completes"
             )
-        return _normalize_srp(
-            self.sparse_A(),
-            mode=self.compression.factor_norm,
-        )
+        return _normalize_srp(self.sparse_A())
 
     @torch.no_grad()
     def convert_to_srp(self) -> None:
@@ -823,6 +797,25 @@ class ELSATrainer:
             rewind_triggered = bool(
                 self._last_controller_info.get("rewind_triggered", False)
             )
+            transition = "stable" if rewind_triggered else "none"
+            max_stage_epochs = (
+                self.cfg.compression.max_epochs_per_stage
+                if self.cfg.compression is not None
+                else None
+            )
+            if (
+                not rewind_triggered
+                and max_stage_epochs is not None
+                and stage_epoch >= max_stage_epochs
+            ):
+                # Temporary compatibility path until Compresso exposes a
+                # public forced-stage transition on SparsityController.
+                masked_A.stage_completed = True
+                masked_A.rewind()
+                if self.sparsity_controller is not None:
+                    self.sparsity_controller.num_restarts += 1
+                rewind_triggered = True
+                transition = "forced"
             record.update(
                 {
                     "epoch": float(search_epoch),
@@ -832,6 +825,7 @@ class ELSATrainer:
                     "mask_change": float(masked_A.last_change),
                     "lr": self._current_lr(),
                     "phase": "mask_search",
+                    "transition": transition,
                 }
             )
             self.history.append(record)

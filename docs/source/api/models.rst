@@ -52,14 +52,16 @@ converted to a row-packed sparse parameter and only its values are trained for
 ``ELSAConfig.epochs``. Learning-rate decay, when enabled, applies only to this
 final sparse fine-tuning phase.
 
-Mask search has no epoch limit: a stage advances only after its mask change
-stays within ``change_threshold`` for ``stability_window`` updates. Training
-checkpoints during this phase are not currently resumable, and
-``torch.compile`` is not supported. Mask search materializes the complete
-masked factor matrix before row selection; sparse fine-tuning materializes the
-complete SRP factor matrix before row selection. Inference does not densify the
-complete matrix and instead uses normalized SRP factors through a CSR matrix
-multiplication.
+By default, a mask-search stage advances only after its mask change stays
+within ``change_threshold`` for ``stability_window`` updates. Set
+``max_epochs_per_stage`` to force a stage to accept its latest proposed mask
+after a fixed number of epochs. This bounds training time but may select a less
+stable ticket. Training checkpoints during this phase are not currently
+resumable, and ``torch.compile`` is not supported. Mask search materializes the
+complete masked factor matrix before row selection; sparse fine-tuning
+materializes the complete SRP factor matrix before row selection. Inference
+does not densify the complete matrix and instead uses normalized SRP factors
+through a CSR matrix multiplication.
 
 Compressed ELSA treats the SRP structure exported by Compresso as the final
 ticket. Compresso currently moves its initialization copy with the model, so

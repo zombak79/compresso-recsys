@@ -268,8 +268,8 @@ def test_elsa_config_rejects_invalid_values(name, value):
         ({"k_target": 2, "stability_window": 0}, "stability_window"),
         ({"k_target": 2, "change_threshold": -1}, "change_threshold"),
         ({"k_target": 2, "mask_update_interval": 0}, "mask_update_interval"),
+        ({"k_target": 2, "max_epochs_per_stage": 0}, "max_epochs_per_stage"),
         ({"k_target": 2, "ste_alpha": 2}, "ste_alpha"),
-        ({"k_target": 2, "factor_norm": "max"}, "factor_norm"),
     ],
 )
 def test_compression_config_rejects_invalid_values(kwargs, match):
@@ -332,16 +332,45 @@ def test_compressed_fit_searches_converts_and_finetunes(interactions):
     ]
     assert [record["stage"] for record in search] == [0.0, 1.0]
     assert [record["k"] for record in search] == [4.0, 3.0]
+    assert [record["transition"] for record in search] == [
+        "stable",
+        "stable",
+    ]
     assert len(finetune) == trainer.cfg.epochs
     assert all(np.isfinite(record["loss"]) for record in trainer.history)
 
 
-@pytest.mark.parametrize(("factor_norm", "p"), [("l1", 1), ("l2", 2)])
-def test_compressed_export_uses_configured_normalization(
-    interactions,
-    factor_norm,
-    p,
-):
+def test_compressed_stage_can_be_forced_after_epoch_limit(interactions):
+    trainer = _compressed_trainer(
+        epochs=1,
+        compression=ELSACompressionConfig(
+            k_target=2,
+            k_schedule=(4, 3, 2),
+            stability_window=100,
+            change_threshold=0.0,
+            mask_update_interval=1,
+            max_epochs_per_stage=1,
+        ),
+    ).fit(interactions)
+
+    search = [
+        record
+        for record in trainer.history
+        if record.get("phase") == "mask_search"
+    ]
+
+    assert [record["stage"] for record in search] == [0.0, 1.0]
+    assert [record["transition"] for record in search] == [
+        "forced",
+        "forced",
+    ]
+    assert isinstance(trainer.elsa, CompressedELSA)
+    assert trainer.elsa.phase == "inference"
+    assert trainer.elsa.sparse_A is not None
+    assert trainer.elsa.sparse_A.k == 2
+
+
+def test_compressed_export_is_l2_normalized(interactions):
     trainer = _compressed_trainer(
         epochs=1,
         compression=ELSACompressionConfig(
@@ -350,7 +379,6 @@ def test_compressed_export_uses_configured_normalization(
             stability_window=1,
             change_threshold=100.0,
             mask_update_interval=1,
-            factor_norm=factor_norm,
         ),
     ).fit(interactions)
     assert isinstance(trainer.elsa, CompressedELSA)
@@ -358,16 +386,14 @@ def test_compressed_export_uses_configured_normalization(
     factors = trainer.elsa.export_item_embeddings()
 
     torch.testing.assert_close(
-        factors.vals.norm(p=p, dim=1),
+        factors.vals.norm(p=2, dim=1),
         torch.ones(interactions.shape[1]),
     )
 
 
-@pytest.mark.parametrize("factor_norm", ["l1", "l2", "none"])
 def test_compressed_sparse_inference_matches_dense_scoring(
     interactions,
     source,
-    factor_norm,
 ):
     trainer = _compressed_trainer(
         epochs=1,
@@ -377,7 +403,6 @@ def test_compressed_sparse_inference_matches_dense_scoring(
             stability_window=1,
             change_threshold=100.0,
             mask_update_interval=1,
-            factor_norm=factor_norm,
         ),
     ).fit(interactions)
     assert isinstance(trainer.elsa, CompressedELSA)
