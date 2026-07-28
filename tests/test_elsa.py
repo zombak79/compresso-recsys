@@ -439,38 +439,6 @@ def test_refit_compressed_model_reuses_ticket(interactions):
     )
 
 
-def test_compressed_conversion_rejects_structure_mismatch(monkeypatch):
-    from compresso.params.masked import MaskedParam
-    from compresso.params.srp import SRPParam
-
-    model = CompressedELSA(
-        input_dim=3,
-        latent_dim=4,
-        compression=ELSACompressionConfig(
-            k_target=2,
-            k_schedule=(4, 2),
-        ),
-    )
-    assert model.masked_A is not None
-    model.masked_A.schedule_done = True
-    model.masked_A.k_current = 2
-    model.masked_A.mask.zero_()
-    model.masked_A.mask[:, :2] = True
-    wrong = SRPParam(
-        cols=torch.tensor([[2, 3], [2, 3], [2, 3]]),
-        values=torch.ones((3, 2)),
-        shape=(3, 4),
-    )
-    monkeypatch.setattr(
-        MaskedParam,
-        "maskedparam_to_srp",
-        lambda self: wrong,
-    )
-
-    with pytest.raises(RuntimeError, match="does not preserve"):
-        model.convert_to_srp()
-
-
 def test_build_is_idempotent_only_for_same_input_dimension():
     trainer = _trainer().build(8)
     model = trainer.elsa

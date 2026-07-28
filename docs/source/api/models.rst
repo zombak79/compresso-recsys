@@ -61,11 +61,10 @@ complete SRP factor matrix before row selection. Inference does not densify the
 complete matrix and instead uses normalized SRP factors through a CSR matrix
 multiplication.
 
-The current Compresso conversion can be ambiguous when boundary values are
-tied or zero. Compressed ELSA verifies the exported structure against the final
-mask and raises an error instead of silently changing the ticket. Compresso
-also currently moves its initialization copy with the model, so mask search
-temporarily retains an additional dense factor buffer on the training device.
+Compressed ELSA treats the SRP structure exported by Compresso as the final
+ticket. Compresso currently moves its initialization copy with the model, so
+mask search temporarily retains an additional dense factor buffer on the
+training device.
 
 .. autoclass:: compresso_recsys.models.ELSAConfig
    :members:

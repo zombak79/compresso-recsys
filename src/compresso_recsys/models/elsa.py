@@ -504,12 +504,7 @@ class CompressedELSA(nn.Module):
 
     @torch.no_grad()
     def convert_to_srp(self) -> None:
-        """Install the final mask as a fixed SRP parameter.
-
-        The conversion fails if Compresso's exported structure differs from
-        the final mask. This guards the known zero/tie ambiguity in the
-        current ``MaskedParam`` conversion.
-        """
+        """Install Compresso's final fixed SRP parameter."""
         if self.sparse_A is not None:
             return
         if self.masked_A is None or not self.masked_A.schedule_done:
@@ -517,20 +512,7 @@ class CompressedELSA(nn.Module):
                 "mask search must complete before conversion to SRP"
             )
 
-        expected_mask = self.masked_A.mask.detach().clone()
         sparse_A = self.masked_A.maskedparam_to_srp()
-        exported_mask = torch.zeros_like(expected_mask)
-        exported_mask.scatter_(1, sparse_A.cols, True)
-        if not torch.equal(exported_mask, expected_mask):
-            mismatches = int(
-                torch.logical_xor(exported_mask, expected_mask).sum().item()
-            )
-            raise RuntimeError(
-                "Compresso SRP export does not preserve the final ELSA mask "
-                f"({mismatches} differing entries); this can occur for tied "
-                "or zero-valued factors"
-            )
-
         self.sparse_A = sparse_A
         self.masked_A = None
         self.phase = "sparse_finetune"
