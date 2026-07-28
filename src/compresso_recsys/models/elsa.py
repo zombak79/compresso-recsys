@@ -811,7 +811,12 @@ class ELSATrainer:
                 # Temporary compatibility path until Compresso exposes a
                 # public forced-stage transition on SparsityController.
                 masked_A.stage_completed = True
-                masked_A.rewind()
+                rewind_stats = masked_A.rewind()
+                print(
+                    "[ELSATrainer] Forced rewind "
+                    f"(max_epochs_per_stage={max_stage_epochs}): "
+                    f"{rewind_stats}"
+                )
                 if self.sparsity_controller is not None:
                     self.sparsity_controller.num_restarts += 1
                 rewind_triggered = True

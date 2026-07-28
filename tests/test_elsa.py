@@ -340,7 +340,10 @@ def test_compressed_fit_searches_converts_and_finetunes(interactions):
     assert all(np.isfinite(record["loss"]) for record in trainer.history)
 
 
-def test_compressed_stage_can_be_forced_after_epoch_limit(interactions):
+def test_compressed_stage_can_be_forced_after_epoch_limit(
+    interactions,
+    capsys,
+):
     trainer = _compressed_trainer(
         epochs=1,
         compression=ELSACompressionConfig(
@@ -368,6 +371,10 @@ def test_compressed_stage_can_be_forced_after_epoch_limit(interactions):
     assert trainer.elsa.phase == "inference"
     assert trainer.elsa.sparse_A is not None
     assert trainer.elsa.sparse_A.k == 2
+    output = capsys.readouterr().out
+    assert output.count("[ELSATrainer] Forced rewind") == 2
+    assert "max_epochs_per_stage=1" in output
+    assert "'schedule_done': True" in output
 
 
 def test_compressed_export_is_l2_normalized(interactions):
