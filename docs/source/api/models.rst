@@ -57,16 +57,18 @@ within ``change_threshold`` for ``stability_window`` updates. Set
 ``max_epochs_per_stage`` to force a stage to accept its latest proposed mask
 after a fixed number of epochs. This bounds training time but may select a less
 stable ticket. Training checkpoints during this phase are not currently
-resumable, and ``torch.compile`` is not supported. Mask search materializes the
-complete masked factor matrix before row selection; sparse fine-tuning
-materializes the complete SRP factor matrix before row selection. Inference
-does not densify the complete matrix and instead uses normalized SRP factors
-through a CSR matrix multiplication.
+resumable, and ``torch.compile`` is not supported. When ``max_output`` limits
+the candidate set, mask search projects only those ``MaskedParam`` rows and
+sparse fine-tuning selects only those gradient-connected ``SRPParam`` rows
+before densifying. ``max_output=None`` intentionally scores and materializes
+the complete catalog. Inference selects source rows from normalized SRP factors
+and scores the catalog through a CSR matrix multiplication.
 
-Compressed ELSA treats the SRP structure exported by Compresso as the final
-ticket. Compresso currently moves its initialization copy with the model, so
-mask search temporarily retains an additional dense factor buffer on the
-training device.
+Compressed ELSA uses Compresso's exact ``MaskedParam.to_srp_param()``
+conversion, which preserves the final selected mask even for tied or
+zero-valued entries. Compresso currently moves its initialization copy with the
+model, so mask search temporarily retains an additional dense factor buffer on
+the training device.
 
 .. autoclass:: compresso_recsys.models.ELSAConfig
    :members:

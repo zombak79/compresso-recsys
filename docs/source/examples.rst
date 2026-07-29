@@ -257,6 +257,9 @@ mask-search stage advances when it stabilizes or reaches
 ``max_epochs_per_stage``; either transition rewinds and restarts its optimizer.
 Use ``None`` for an unlimited stability search. The sampler continues its
 random sequence across stages, so rewinds see new sampled negatives.
+Because this example sets ``max_output``, both mask search and sparse
+fine-tuning gather only the batch's candidate rows. Setting ``max_output=None``
+scores the complete item catalog during training.
 
 After fitting, the normalized sparse item factors can be exported without
 densifying:

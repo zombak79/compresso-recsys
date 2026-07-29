@@ -340,6 +340,85 @@ def test_compressed_fit_searches_converts_and_finetunes(interactions):
     assert all(np.isfinite(record["loss"]) for record in trainer.history)
 
 
+def test_compressed_mask_search_scores_only_selected_candidate_rows(
+    monkeypatch,
+):
+    model = CompressedELSA(
+        input_dim=8,
+        latent_dim=4,
+        compression=ELSACompressionConfig(
+            k_target=2,
+            k_schedule=(4, 2),
+        ),
+        use_relu=False,
+    )
+    assert model.masked_A is not None
+    model.masked_A.k_current = 2
+    candidates = torch.tensor([0, 3, 5, 7])
+    sources = candidates[:2]
+    x = torch.tensor([[1.0, 0.5], [0.0, 2.0]])
+    full_factors = model.normalized_item_embeddings()
+    expected = (
+        (x @ full_factors[sources])
+        @ full_factors[candidates].T
+    )
+
+    def fail_full_materialization():
+        raise AssertionError("full MaskedParam materialization was called")
+
+    monkeypatch.setattr(model.masked_A, "forward", fail_full_materialization)
+
+    actual = model(
+        x,
+        sources=sources,
+        candidates=candidates,
+    )
+
+    torch.testing.assert_close(actual, expected)
+
+
+def test_compressed_sparse_finetuning_selects_rows_and_preserves_gradients(
+    interactions,
+    monkeypatch,
+):
+    trainer = _compressed_trainer(
+        epochs=1,
+        use_relu=False,
+    ).fit(interactions)
+    assert isinstance(trainer.elsa, CompressedELSA)
+    model = trainer.elsa
+    assert model.sparse_A is not None
+    model.train()
+    model.zero_grad(set_to_none=True)
+    candidates = torch.tensor([0, 2, 4, 6])
+    sources = candidates[:2]
+    x = torch.tensor([[1.0, 0.5], [0.25, 1.5]])
+    full_factors = model.normalized_item_embeddings()
+    expected = (
+        (x @ full_factors[sources])
+        @ full_factors[candidates].T
+    )
+
+    def fail_full_materialization():
+        raise AssertionError("full SRPParam materialization was called")
+
+    monkeypatch.setattr(model.sparse_A, "forward", fail_full_materialization)
+
+    actual = model(
+        x,
+        sources=sources,
+        candidates=candidates,
+    )
+    torch.testing.assert_close(actual, expected)
+    actual.square().sum().backward()
+
+    assert model.sparse_A.values.grad is not None
+    unselected = torch.ones(model.input_dim, dtype=torch.bool)
+    unselected[candidates] = False
+    assert torch.count_nonzero(model.sparse_A.values.grad[unselected]) == 0
+    assert torch.count_nonzero(model.sparse_A.values.grad[candidates]) > 0
+
+
 def test_compressed_stage_can_be_forced_after_epoch_limit(
     interactions,
     capsys,

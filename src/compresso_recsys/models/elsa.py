@@ -458,23 +458,31 @@ class CompressedELSA(nn.Module):
         """Whether the final fixed SRP structure has been installed."""
         return self.sparse_A is not None
 
-    def normalized_item_embeddings(self) -> torch.Tensor:
-        """Return normalized dense factors for the current training phase."""
+    def normalized_item_embeddings(
+        self,
+        rows: torch.Tensor | None = None,
+    ) -> torch.Tensor:
+        """Return normalized dense factors, optionally for selected rows."""
         if self.masked_A is not None:
-            factors = self.masked_A()
+            factors = self.masked_A() if rows is None else self.masked_A[rows]
         elif self.sparse_A is not None:
-            factors = self.sparse_A().to_dense()
+            factors = self.normalized_item_srp(rows).to_dense()
+            return factors
         else:  # pragma: no cover - defensive invariant
             raise RuntimeError("compressed ELSA has no item parameter")
         return F.normalize(factors, p=2.0, dim=-1)
 
-    def normalized_item_srp(self) -> SRPTensor:
-        """Return normalized sparse factors after mask search completes."""
+    def normalized_item_srp(
+        self,
+        rows: torch.Tensor | None = None,
+    ) -> SRPTensor:
+        """Return normalized sparse factors, optionally for selected rows."""
         if self.sparse_A is None:
             raise RuntimeError(
                 "SRP factors are unavailable until mask search completes"
             )
-        return _normalize_srp(self.sparse_A())
+        factors = self.sparse_A() if rows is None else self.sparse_A[rows]
+        return _normalize_srp(factors)
 
     @torch.no_grad()
     def convert_to_srp(self) -> None:
@@ -486,7 +494,7 @@ class CompressedELSA(nn.Module):
                 "mask search must complete before conversion to SRP"
             )
 
-        sparse_A = self.masked_A.maskedparam_to_srp()
+        sparse_A = self.masked_A.to_srp_param()
         self.sparse_A = sparse_A
         self.masked_A = None
         self.phase = "sparse_finetune"
@@ -520,6 +528,17 @@ class CompressedELSA(nn.Module):
         x_out: torch.Tensor | None = None,
     ) -> torch.Tensor:
         """Score candidates during mask search or sparse-value training."""
+        if candidates is not None:
+            candidate_embeddings = self.normalized_item_embeddings(candidates)
+            if x.shape[1] > candidate_embeddings.shape[0]:
+                raise ValueError(
+                    "the candidate prefix must contain every source item"
+                )
+            source_embeddings = candidate_embeddings[: x.shape[1]]
+            scores = (x @ source_embeddings) @ candidate_embeddings.T
+            if x_out is not None:
+                scores = scores - x_out
+            return F.relu(scores) if self.use_relu else scores
         return _score_candidates(
             x,
             embeddings=self.normalized_item_embeddings(),
@@ -542,12 +561,7 @@ class CompressedELSA(nn.Module):
         assert self._inference_srp is not None
         assert self._inference_csr is not None
 
-        source_factors = SRPTensor(
-            cols=self._inference_srp.cols.index_select(0, sources),
-            vals=self._inference_srp.vals.index_select(0, sources),
-            shape=(sources.numel(), self.latent_dim),
-            validate=False,
-        ).to_dense()
+        source_factors = self._inference_srp[sources].to_dense()
         user_factors = x @ source_factors
         scores = torch.sparse.mm(
             self._inference_csr,
