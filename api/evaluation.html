@@ -1,0 +1,532 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ranking Evaluation API &mdash; Compresso Recsys 0.1.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=a58bc63e"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="prev" title="Retrieval API" href="retrieval.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Compresso Recsys
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../installation.html#install-from-pypi">Install from PyPI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../installation.html#optional-extras">Optional Extras</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../installation.html#local-development">Local Development</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../installation.html#install-from-github">Install from GitHub</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../installation.html#build-the-documentation-locally">Build the Documentation Locally</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-started.html">Getting Started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started.html#basic-python-usage">Basic Python Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started.html#checkpoint-workflow">Checkpoint Workflow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started.html#what-goes-into-a-checkpoint">What Goes Into a Checkpoint</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started.html#split-modes">Split Modes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started.html#retrieval-metrics">Retrieval Metrics</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../quickstart.html#choose-a-split-mode">Choose a Split Mode</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../examples.html">Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../examples.html#dataset-loader">Dataset Loader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples.html#building-checkpoints">Building Checkpoints</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples.html#checkpoint-read-write">Checkpoint Read/Write</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples.html#evaluate-embeddings-from-python">Evaluate Embeddings From Python</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples.html#evaluate-model-predictions">Evaluate Model Predictions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples.html#train-and-evaluate-elsa">Train and Evaluate ELSA</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../citing.html">Citing Compresso Recsys</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../citing.html#compresso">Compresso</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../citing.html#ease">EASE</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../citing.html#elsa">ELSA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../citing.html#elsa-with-sampled-output-candidates">ELSA with sampled output candidates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../citing.html#compressed-elsa">Compressed ELSA</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../cli-reference.html">Checkpoint CLI Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../cli-reference.html#amazon-reviews-2023">Amazon Reviews 2023</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../cli-reference.html#leave-last-out-checkpoint">Leave-Last-Out Checkpoint</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../cli-reference.html#temporal-checkpoint">Temporal Checkpoint</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../cli-reference.html#checkpoint-split-schema">Checkpoint Split Schema</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../cli-reference.html#builder-parameters">Builder Parameters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../cli-reference.html#supported-amazon-reviews-2023-datasets">Supported Amazon Reviews 2023 Datasets</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">API Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="compresso_recsys.html">Core API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="compresso_recsys.html#datasets">Datasets</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="compresso_recsys.html#compresso_recsys.SplitBundle"><code class="docutils literal notranslate"><span class="pre">SplitBundle</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="compresso_recsys.html#compresso_recsys.RecSysDataset"><code class="docutils literal notranslate"><span class="pre">RecSysDataset</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="compresso_recsys.html#compresso_recsys.Goodbooks"><code class="docutils literal notranslate"><span class="pre">Goodbooks</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="compresso_recsys.html#compresso_recsys.MovieLens1M"><code class="docutils literal notranslate"><span class="pre">MovieLens1M</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="compresso_recsys.html#compresso_recsys.MovieLens20M"><code class="docutils literal notranslate"><span class="pre">MovieLens20M</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="compresso_recsys.html#compresso_recsys.AmazonReviews2023"><code class="docutils literal notranslate"><span class="pre">AmazonReviews2023</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="compresso_recsys.html#checkpoint-helpers">Checkpoint Helpers</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="compresso_recsys.html#compresso_recsys.build_recsys_checkpoint"><code class="docutils literal notranslate"><span class="pre">build_recsys_checkpoint()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="compresso_recsys.html#compresso_recsys.update_checkpoint"><code class="docutils literal notranslate"><span class="pre">update_checkpoint()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="compresso_recsys.html#compresso_recsys.read_checkpoint"><code class="docutils literal notranslate"><span class="pre">read_checkpoint()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="compresso_recsys.html#compresso_recsys.load_manifest"><code class="docutils literal notranslate"><span class="pre">load_manifest()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="compresso_recsys.html#compresso_recsys.save_manifest"><code class="docutils literal notranslate"><span class="pre">save_manifest()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="compresso_recsys.html#compresso_recsys.update_stage_manifest"><code class="docutils literal notranslate"><span class="pre">update_stage_manifest()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="compresso_recsys.html#compresso_recsys.save_json"><code class="docutils literal notranslate"><span class="pre">save_json()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="compresso_recsys.html#compresso_recsys.load_json"><code class="docutils literal notranslate"><span class="pre">load_json()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="compresso_recsys.html#compresso_recsys.save_recsys_split"><code class="docutils literal notranslate"><span class="pre">save_recsys_split()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="compresso_recsys.html#compresso_recsys.load_recsys_split"><code class="docutils literal notranslate"><span class="pre">load_recsys_split()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="compresso_recsys.html#compresso_recsys.save_cluster_graph_stage"><code class="docutils literal notranslate"><span class="pre">save_cluster_graph_stage()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="compresso_recsys.html#compresso_recsys.load_cluster_graph_stage"><code class="docutils literal notranslate"><span class="pre">load_cluster_graph_stage()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html">Datasets API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="checkpoint.html">Checkpoint API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="checkpoint.html#checkpoint-contexts">Checkpoint Contexts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="checkpoint.html#manifest-and-json-helpers">Manifest and JSON Helpers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="checkpoint.html#split-and-cluster-stages">Split and Cluster Stages</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="models.html">Models API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="models.html#recommender-contract">Recommender Contract</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.Recommender"><code class="docutils literal notranslate"><span class="pre">Recommender</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="models.html#ease">EASE</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.EASEConfig"><code class="docutils literal notranslate"><span class="pre">EASEConfig</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.EASE"><code class="docutils literal notranslate"><span class="pre">EASE</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="models.html#elsa">ELSA</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="models.html#backend-performance">Backend Performance</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="retrieval.html">Retrieval API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="retrieval.html#holdout-builders">Holdout Builders</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="retrieval.html#compresso_recsys.retrieval.build_eval_holdout"><code class="docutils literal notranslate"><span class="pre">build_eval_holdout()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="retrieval.html#compresso_recsys.retrieval.build_item_cold_holdout"><code class="docutils literal notranslate"><span class="pre">build_item_cold_holdout()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="retrieval.html#compresso_recsys.retrieval.build_leave_last_out_holdout"><code class="docutils literal notranslate"><span class="pre">build_leave_last_out_holdout()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="retrieval.html#compresso_recsys.retrieval.build_temporal_holdout"><code class="docutils literal notranslate"><span class="pre">build_temporal_holdout()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="retrieval.html#embedding-evaluation">Embedding Evaluation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="retrieval.html#compresso_recsys.retrieval.evaluate_item_embeddings"><code class="docutils literal notranslate"><span class="pre">evaluate_item_embeddings()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="retrieval.html#compresso_recsys.retrieval.evaluate_item_embeddings_with_holdout"><code class="docutils literal notranslate"><span class="pre">evaluate_item_embeddings_with_holdout()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Ranking Evaluation API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#predictions-and-targets">Predictions and Targets</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#compresso_recsys.evaluation.evaluate_recommender"><code class="docutils literal notranslate"><span class="pre">evaluate_recommender()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#compresso_recsys.evaluation.evaluate_ranked_predictions"><code class="docutils literal notranslate"><span class="pre">evaluate_ranked_predictions()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#compresso_recsys.evaluation.RankingEvaluator"><code class="docutils literal notranslate"><span class="pre">RankingEvaluator</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#metrics">Metrics</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#default-metrics">Default Metrics</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#optional-metrics">Optional Metrics</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Compresso Recsys</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">API Reference</a></li>
+      <li class="breadcrumb-item active">Ranking Evaluation API</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/api/evaluation.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="ranking-evaluation-api">
+<h1>Ranking Evaluation API<a class="headerlink" href="#ranking-evaluation-api" title="Link to this heading"></a></h1>
+<section id="predictions-and-targets">
+<h2>Predictions and Targets<a class="headerlink" href="#predictions-and-targets" title="Link to this heading"></a></h2>
+<p>Ranked predictions use <code class="xref py py-class docutils literal notranslate"><span class="pre">compresso.SRPTensor</span></code>: each row stores exactly
+the top <code class="docutils literal notranslate"><span class="pre">K</span></code> item indices and their scores in descending score order. Targets
+use a SciPy CSR matrix so each row can contain a different number of relevant
+items. Target values are treated as binary relevance; only nonzero locations
+matter.</p>
+<p>The evaluator creates one boolean hit tensor of shape <code class="docutils literal notranslate"><span class="pre">(batch_size,</span> <span class="pre">K)</span></code> and
+shares it across all configured metrics. It does not densify model scores or
+the complete target matrix. Rows without target items are excluded from metric
+means and from <code class="docutils literal notranslate"><span class="pre">n_eval_users</span></code>.</p>
+<p>Prediction validation is enabled by default for both evaluation entry points.
+It checks item bounds, duplicate recommendations, NaN scores, and score order.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="compresso_recsys.evaluation.evaluate_recommender">
+<span class="sig-prename descclassname"><span class="pre">compresso_recsys.evaluation.</span></span><span class="sig-name descname"><span class="pre">evaluate_recommender</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">targets</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metrics</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1024</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">match_backend</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'auto'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_dense_cells</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20000000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">validate_predictions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">debug</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">debug_users</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_progress</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/evaluation.html#evaluate_recommender"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.evaluation.evaluate_recommender" title="Link to this definition"></a></dt>
+<dd><p>Evaluate a recommender without retaining predictions between batches.</p>
+<p>The largest metric cutoff determines the <code class="docutils literal notranslate"><span class="pre">k</span></code> passed to the model’s
+<code class="docutils literal notranslate"><span class="pre">predict_on_batch</span></code> method. Source and target rows are sliced together,
+and each prediction batch is immediately sent to <a class="reference internal" href="#compresso_recsys.evaluation.RankingEvaluator" title="compresso_recsys.evaluation.RankingEvaluator"><code class="xref py py-class docutils literal notranslate"><span class="pre">RankingEvaluator</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>]</span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>model</strong> (<a class="reference internal" href="models.html#compresso_recsys.models.Recommender" title="compresso_recsys.models.base.Recommender"><em>Recommender</em></a>)</p></li>
+<li><p><strong>source</strong> (<em>csr_matrix</em>)</p></li>
+<li><p><strong>targets</strong> (<em>csr_matrix</em>)</p></li>
+<li><p><strong>metrics</strong> (<em>Sequence</em><em>[</em><a class="reference internal" href="#compresso_recsys.metrics.RankingMetric" title="compresso_recsys.metrics.RankingMetric"><em>RankingMetric</em></a><em>]</em>)</p></li>
+<li><p><strong>batch_size</strong> (<em>int</em>)</p></li>
+<li><p><strong>match_backend</strong> (<em>Literal</em><em>[</em><em>'auto'</em><em>, </em><em>'dense'</em><em>, </em><em>'searchsorted'</em><em>]</em>)</p></li>
+<li><p><strong>max_dense_cells</strong> (<em>int</em>)</p></li>
+<li><p><strong>validate_predictions</strong> (<em>bool</em>)</p></li>
+<li><p><strong>debug</strong> (<em>bool</em>)</p></li>
+<li><p><strong>debug_users</strong> (<em>int</em>)</p></li>
+<li><p><strong>show_progress</strong> (<em>bool</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="compresso_recsys.evaluation.evaluate_ranked_predictions">
+<span class="sig-prename descclassname"><span class="pre">compresso_recsys.evaluation.</span></span><span class="sig-name descname"><span class="pre">evaluate_ranked_predictions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">predictions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">targets</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metrics</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4096</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">match_backend</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'auto'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_dense_cells</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20000000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">validate_predictions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">debug</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">debug_users</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/evaluation.html#evaluate_ranked_predictions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.evaluation.evaluate_ranked_predictions" title="Link to this definition"></a></dt>
+<dd><p>Evaluate ranked top-k SRP predictions against binary CSR targets.</p>
+<p>Prediction columns must be unique within each row and ordered by
+descending prediction score. Target values are interpreted as binary
+relevance. Rows without nonzero targets are excluded from metric means.</p>
+<p>When <code class="docutils literal notranslate"><span class="pre">metrics</span></code> is omitted, calibrated recall and nDCG are calculated at
+the full prediction width. Use <a class="reference internal" href="#compresso_recsys.evaluation.RankingEvaluator" title="compresso_recsys.evaluation.RankingEvaluator"><code class="xref py py-class docutils literal notranslate"><span class="pre">RankingEvaluator</span></code></a> directly when
+predictions are generated one batch at a time.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>]</span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>predictions</strong> (<em>SRPTensor</em>)</p></li>
+<li><p><strong>targets</strong> (<em>csr_matrix</em>)</p></li>
+<li><p><strong>metrics</strong> (<em>Sequence</em><em>[</em><a class="reference internal" href="#compresso_recsys.metrics.RankingMetric" title="compresso_recsys.metrics.RankingMetric"><em>RankingMetric</em></a><em>] </em><em>| </em><em>None</em>)</p></li>
+<li><p><strong>batch_size</strong> (<em>int</em>)</p></li>
+<li><p><strong>match_backend</strong> (<em>Literal</em><em>[</em><em>'auto'</em><em>, </em><em>'dense'</em><em>, </em><em>'searchsorted'</em><em>]</em>)</p></li>
+<li><p><strong>max_dense_cells</strong> (<em>int</em>)</p></li>
+<li><p><strong>validate_predictions</strong> (<em>bool</em>)</p></li>
+<li><p><strong>debug</strong> (<em>bool</em>)</p></li>
+<li><p><strong>debug_users</strong> (<em>int</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="compresso_recsys.evaluation.RankingEvaluator">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">compresso_recsys.evaluation.</span></span><span class="sig-name descname"><span class="pre">RankingEvaluator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">metrics</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">match_backend</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'auto'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_dense_cells</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20000000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">validate_predictions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">debug</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">debug_users</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/evaluation.html#RankingEvaluator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.evaluation.RankingEvaluator" title="Link to this definition"></a></dt>
+<dd><p>Stream ranked SRP predictions against variable-length CSR targets.</p>
+<p>The evaluator matches each prediction batch to its target CSR rows once
+and sends the resulting <a class="reference internal" href="#compresso_recsys.metrics.RankingBatch" title="compresso_recsys.metrics.RankingBatch"><code class="xref py py-class docutils literal notranslate"><span class="pre">RankingBatch</span></code></a> to
+every metric. <code class="docutils literal notranslate"><span class="pre">auto</span></code> matching uses a dense boolean target mask for small
+batches and composite-key <code class="docutils literal notranslate"><span class="pre">torch.searchsorted</span></code> matching for larger item
+spaces.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>metrics</strong> (<em>Sequence</em><em>[</em><a class="reference internal" href="#compresso_recsys.metrics.RankingMetric" title="compresso_recsys.metrics.RankingMetric"><em>RankingMetric</em></a><em>]</em>)</p></li>
+<li><p><strong>match_backend</strong> (<em>MatchBackend</em>)</p></li>
+<li><p><strong>max_dense_cells</strong> (<em>int</em>)</p></li>
+<li><p><strong>validate_predictions</strong> (<em>bool</em>)</p></li>
+<li><p><strong>debug</strong> (<em>bool</em>)</p></li>
+<li><p><strong>debug_users</strong> (<em>int</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="metrics">
+<h2>Metrics<a class="headerlink" href="#metrics" title="Link to this heading"></a></h2>
+<p>Every built-in metric accepts one cutoff or a sequence of cutoffs. Rows without
+target items are excluded from all metric means.</p>
+<section id="default-metrics">
+<h3>Default Metrics<a class="headerlink" href="#default-metrics" title="Link to this heading"></a></h3>
+<p>When metrics are not supplied to prediction or embedding evaluation, the
+defaults remain:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">CalibratedRecall</span></code>, reported as <code class="docutils literal notranslate"><span class="pre">recall&#64;K</span></code>. It divides hits by
+<code class="docutils literal notranslate"><span class="pre">min(K,</span> <span class="pre">number_of_targets)</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">NDCG</span></code>, reported as <code class="docutils literal notranslate"><span class="pre">ndcg&#64;K</span></code> with binary relevance.</p></li>
+</ul>
+</section>
+<section id="optional-metrics">
+<h3>Optional Metrics<a class="headerlink" href="#optional-metrics" title="Link to this heading"></a></h3>
+<p>The following metrics are available only when explicitly included in the
+<code class="docutils literal notranslate"><span class="pre">metrics</span></code> argument:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">Recall</span></code>, reported as <code class="docutils literal notranslate"><span class="pre">standard_recall&#64;K</span></code>. It divides hits by the total
+number of target items. The distinct key avoids confusing it with the
+existing calibrated <code class="docutils literal notranslate"><span class="pre">recall&#64;K</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Precision</span></code>, reported as <code class="docutils literal notranslate"><span class="pre">precision&#64;K</span></code>. It divides hits by <code class="docutils literal notranslate"><span class="pre">K</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">HitRate</span></code>, reported as <code class="docutils literal notranslate"><span class="pre">hit_rate&#64;K</span></code>. It is one when at least one target
+occurs in the top <code class="docutils literal notranslate"><span class="pre">K</span></code>, otherwise zero.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MRR</span></code>, reported as <code class="docutils literal notranslate"><span class="pre">mrr&#64;K</span></code>. It is the reciprocal rank of the first hit,
+or zero when no hit occurs by <code class="docutils literal notranslate"><span class="pre">K</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MAP</span></code>, reported as <code class="docutils literal notranslate"><span class="pre">map&#64;K</span></code>. Average precision sums precision at each hit
+and divides by <code class="docutils literal notranslate"><span class="pre">min(K,</span> <span class="pre">number_of_targets)</span></code>.</p></li>
+</ul>
+<p>For example:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">HitRate</span><span class="p">,</span> <span class="n">MAP</span><span class="p">,</span> <span class="n">MRR</span><span class="p">,</span> <span class="n">Precision</span><span class="p">,</span> <span class="n">Recall</span>
+
+<span class="n">optional_metrics</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">Recall</span><span class="p">([</span><span class="mi">20</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">100</span><span class="p">]),</span>
+    <span class="n">Precision</span><span class="p">([</span><span class="mi">20</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">100</span><span class="p">]),</span>
+    <span class="n">HitRate</span><span class="p">([</span><span class="mi">20</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">100</span><span class="p">]),</span>
+    <span class="n">MRR</span><span class="p">([</span><span class="mi">20</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">100</span><span class="p">]),</span>
+    <span class="n">MAP</span><span class="p">([</span><span class="mi">20</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">100</span><span class="p">]),</span>
+<span class="p">]</span>
+</pre></div>
+</div>
+<dl class="py class">
+<dt class="sig sig-object py" id="compresso_recsys.metrics.RankingMetric">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">compresso_recsys.metrics.</span></span><span class="sig-name descname"><span class="pre">RankingMetric</span></span><a class="reference internal" href="../_modules/compresso_recsys/metrics.html#RankingMetric"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.metrics.RankingMetric" title="Link to this definition"></a></dt>
+<dd><p>Abstract streaming metric over ranked recommendation batches.</p>
+<dl class="py property">
+<dt class="sig sig-object py" id="compresso_recsys.metrics.RankingMetric.required_k">
+<span class="property"><span class="k"><span class="pre">abstract</span></span><span class="w"> </span><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">required_k</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><a class="headerlink" href="#compresso_recsys.metrics.RankingMetric.required_k" title="Link to this definition"></a></dt>
+<dd><p>Largest recommendation rank needed by this metric.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="compresso_recsys.metrics.RankingMetric.result_keys">
+<span class="property"><span class="k"><span class="pre">abstract</span></span><span class="w"> </span><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">result_keys</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#compresso_recsys.metrics.RankingMetric.result_keys" title="Link to this definition"></a></dt>
+<dd><p>Metric keys returned by <a class="reference internal" href="#compresso_recsys.metrics.RankingMetric.compute" title="compresso_recsys.metrics.RankingMetric.compute"><code class="xref py py-meth docutils literal notranslate"><span class="pre">compute()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.metrics.RankingMetric.reset">
+<span class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/metrics.html#RankingMetric.reset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.metrics.RankingMetric.reset" title="Link to this definition"></a></dt>
+<dd><p>Clear accumulated metric state.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.metrics.RankingMetric.update">
+<span class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/metrics.html#RankingMetric.update"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.metrics.RankingMetric.update" title="Link to this definition"></a></dt>
+<dd><p>Accumulate one ranking batch.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>batch</strong> (<a class="reference internal" href="#compresso_recsys.metrics.RankingBatch" title="compresso_recsys.metrics.RankingBatch"><em>RankingBatch</em></a>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.metrics.RankingMetric.compute">
+<span class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">compute</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/metrics.html#RankingMetric.compute"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.metrics.RankingMetric.compute" title="Link to this definition"></a></dt>
+<dd><p>Return aggregated metric values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="compresso_recsys.metrics.RankingBatch">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">compresso_recsys.metrics.</span></span><span class="sig-name descname"><span class="pre">RankingBatch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">predictions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hits</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_counts</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/metrics.html#RankingBatch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.metrics.RankingBatch" title="Link to this definition"></a></dt>
+<dd><p>Shared vectorized inputs for ranking metrics.</p>
+<p><code class="docutils literal notranslate"><span class="pre">hits[row,</span> <span class="pre">rank]</span></code> records whether the item at that prediction rank is
+relevant. <code class="docutils literal notranslate"><span class="pre">target_counts</span></code> contains the number of relevant items per row.
+Metric implementations can therefore stay independent of CSR matching.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>predictions</strong> (<em>SRPTensor</em>)</p></li>
+<li><p><strong>hits</strong> (<em>Tensor</em>)</p></li>
+<li><p><strong>target_counts</strong> (<em>Tensor</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="compresso_recsys.metrics.CalibratedRecall">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">compresso_recsys.metrics.</span></span><span class="sig-name descname"><span class="pre">CalibratedRecall</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cutoffs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/metrics.html#CalibratedRecall"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.metrics.CalibratedRecall" title="Link to this definition"></a></dt>
+<dd><p>Recall normalized by <code class="docutils literal notranslate"><span class="pre">min(k,</span> <span class="pre">number</span> <span class="pre">of</span> <span class="pre">relevant</span> <span class="pre">targets)</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>cutoffs</strong> (<em>int</em><em> | </em><em>Sequence</em><em>[</em><em>int</em><em>]</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="compresso_recsys.metrics.NDCG">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">compresso_recsys.metrics.</span></span><span class="sig-name descname"><span class="pre">NDCG</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cutoffs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/metrics.html#NDCG"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.metrics.NDCG" title="Link to this definition"></a></dt>
+<dd><p>Binary-relevance normalized discounted cumulative gain.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>cutoffs</strong> (<em>int</em><em> | </em><em>Sequence</em><em>[</em><em>int</em><em>]</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="compresso_recsys.metrics.Recall">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">compresso_recsys.metrics.</span></span><span class="sig-name descname"><span class="pre">Recall</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cutoffs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/metrics.html#Recall"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.metrics.Recall" title="Link to this definition"></a></dt>
+<dd><p>Standard recall normalized by the total number of relevant targets.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>cutoffs</strong> (<em>int</em><em> | </em><em>Sequence</em><em>[</em><em>int</em><em>]</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="compresso_recsys.metrics.Precision">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">compresso_recsys.metrics.</span></span><span class="sig-name descname"><span class="pre">Precision</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cutoffs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/metrics.html#Precision"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.metrics.Precision" title="Link to this definition"></a></dt>
+<dd><p>Fraction of the top-k predictions that are relevant.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>cutoffs</strong> (<em>int</em><em> | </em><em>Sequence</em><em>[</em><em>int</em><em>]</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="compresso_recsys.metrics.HitRate">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">compresso_recsys.metrics.</span></span><span class="sig-name descname"><span class="pre">HitRate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cutoffs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/metrics.html#HitRate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.metrics.HitRate" title="Link to this definition"></a></dt>
+<dd><p>Whether at least one relevant item occurs in the top-k predictions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>cutoffs</strong> (<em>int</em><em> | </em><em>Sequence</em><em>[</em><em>int</em><em>]</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="compresso_recsys.metrics.MRR">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">compresso_recsys.metrics.</span></span><span class="sig-name descname"><span class="pre">MRR</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cutoffs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/metrics.html#MRR"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.metrics.MRR" title="Link to this definition"></a></dt>
+<dd><p>Mean reciprocal rank of the first relevant prediction up to each cutoff.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>cutoffs</strong> (<em>int</em><em> | </em><em>Sequence</em><em>[</em><em>int</em><em>]</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="compresso_recsys.metrics.MAP">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">compresso_recsys.metrics.</span></span><span class="sig-name descname"><span class="pre">MAP</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cutoffs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/metrics.html#MAP"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.metrics.MAP" title="Link to this definition"></a></dt>
+<dd><p>Mean average precision with binary relevance at each cutoff.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>cutoffs</strong> (<em>int</em><em> | </em><em>Sequence</em><em>[</em><em>int</em><em>]</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="retrieval.html" class="btn btn-neutral float-left" title="Retrieval API" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

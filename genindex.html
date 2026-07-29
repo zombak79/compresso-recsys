@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Index &mdash; Compresso Recsys 0.1.0 documentation</title>
+  <title>Index &mdash; Compresso Recsys 0.1.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=01f34227"></script>
+      <script src="_static/documentation_options.js?v=a58bc63e"></script>
       <script src="_static/doctools.js?v=fd6eb6e6"></script>
       <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/js/theme.js"></script>
@@ -69,6 +69,16 @@
 <li class="toctree-l2"><a class="reference internal" href="examples.html#building-checkpoints">Building Checkpoints</a></li>
 <li class="toctree-l2"><a class="reference internal" href="examples.html#checkpoint-read-write">Checkpoint Read/Write</a></li>
 <li class="toctree-l2"><a class="reference internal" href="examples.html#evaluate-embeddings-from-python">Evaluate Embeddings From Python</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#evaluate-model-predictions">Evaluate Model Predictions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#train-and-evaluate-elsa">Train and Evaluate ELSA</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="citing.html">Citing Compresso Recsys</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#compresso">Compresso</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#ease">EASE</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#elsa">ELSA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#elsa-with-sampled-output-candidates">ELSA with sampled output candidates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#compressed-elsa">Compressed ELSA</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="cli-reference.html">Checkpoint CLI Reference</a><ul>
@@ -111,15 +121,6 @@
 <li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.load_cluster_graph_stage"><code class="docutils literal notranslate"><span class="pre">load_cluster_graph_stage()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="api/compresso_recsys.html#retrieval-api">Retrieval API</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.retrieval.build_eval_holdout"><code class="docutils literal notranslate"><span class="pre">build_eval_holdout()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.retrieval.build_item_cold_holdout"><code class="docutils literal notranslate"><span class="pre">build_item_cold_holdout()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.retrieval.build_leave_last_out_holdout"><code class="docutils literal notranslate"><span class="pre">build_leave_last_out_holdout()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.retrieval.build_temporal_holdout"><code class="docutils literal notranslate"><span class="pre">build_temporal_holdout()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.retrieval.evaluate_item_embeddings"><code class="docutils literal notranslate"><span class="pre">evaluate_item_embeddings()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.retrieval.evaluate_item_embeddings_with_holdout"><code class="docutils literal notranslate"><span class="pre">evaluate_item_embeddings_with_holdout()</span></code></a></li>
-</ul>
-</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="api/datasets.html">Datasets API</a></li>
@@ -127,6 +128,22 @@
 <li class="toctree-l3"><a class="reference internal" href="api/checkpoint.html#checkpoint-contexts">Checkpoint Contexts</a></li>
 <li class="toctree-l3"><a class="reference internal" href="api/checkpoint.html#manifest-and-json-helpers">Manifest and JSON Helpers</a></li>
 <li class="toctree-l3"><a class="reference internal" href="api/checkpoint.html#split-and-cluster-stages">Split and Cluster Stages</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api/models.html">Models API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#recommender-contract">Recommender Contract</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.Recommender"><code class="docutils literal notranslate"><span class="pre">Recommender</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#ease">EASE</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.EASEConfig"><code class="docutils literal notranslate"><span class="pre">EASEConfig</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.EASE"><code class="docutils literal notranslate"><span class="pre">EASE</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#elsa">ELSA</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#backend-performance">Backend Performance</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="api/retrieval.html">Retrieval API</a><ul>
@@ -140,6 +157,20 @@
 <li class="toctree-l3"><a class="reference internal" href="api/retrieval.html#embedding-evaluation">Embedding Evaluation</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="api/retrieval.html#compresso_recsys.retrieval.evaluate_item_embeddings"><code class="docutils literal notranslate"><span class="pre">evaluate_item_embeddings()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/retrieval.html#compresso_recsys.retrieval.evaluate_item_embeddings_with_holdout"><code class="docutils literal notranslate"><span class="pre">evaluate_item_embeddings_with_holdout()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api/evaluation.html">Ranking Evaluation API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/evaluation.html#predictions-and-targets">Predictions and Targets</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/evaluation.html#compresso_recsys.evaluation.evaluate_recommender"><code class="docutils literal notranslate"><span class="pre">evaluate_recommender()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/evaluation.html#compresso_recsys.evaluation.evaluate_ranked_predictions"><code class="docutils literal notranslate"><span class="pre">evaluate_ranked_predictions()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/evaluation.html#compresso_recsys.evaluation.RankingEvaluator"><code class="docutils literal notranslate"><span class="pre">RankingEvaluator</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/evaluation.html#metrics">Metrics</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/evaluation.html#default-metrics">Default Metrics</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/evaluation.html#optional-metrics">Optional Metrics</a></li>
 </ul>
 </li>
 </ul>
@@ -177,10 +208,16 @@
 <div class="genindex-jumpbox">
  <a href="#A"><strong>A</strong></a>
  | <a href="#B"><strong>B</strong></a>
+ | <a href="#C"><strong>C</strong></a>
+ | <a href="#D"><strong>D</strong></a>
  | <a href="#E"><strong>E</strong></a>
+ | <a href="#F"><strong>F</strong></a>
  | <a href="#G"><strong>G</strong></a>
+ | <a href="#H"><strong>H</strong></a>
+ | <a href="#I"><strong>I</strong></a>
  | <a href="#L"><strong>L</strong></a>
  | <a href="#M"><strong>M</strong></a>
+ | <a href="#N"><strong>N</strong></a>
  | <a href="#P"><strong>P</strong></a>
  | <a href="#R"><strong>R</strong></a>
  | <a href="#S"><strong>S</strong></a>
@@ -199,17 +236,43 @@
 <h2 id="B">B</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/compresso_recsys.html#compresso_recsys.retrieval.build_eval_holdout">build_eval_holdout() (in module compresso_recsys.retrieval)</a>, <a href="api/retrieval.html#compresso_recsys.retrieval.build_eval_holdout">[1]</a>
+      <li><a href="api/models.html#compresso_recsys.models.ELSATrainer.build">build() (compresso_recsys.models.ELSATrainer method)</a>
 </li>
-      <li><a href="api/compresso_recsys.html#compresso_recsys.retrieval.build_item_cold_holdout">build_item_cold_holdout() (in module compresso_recsys.retrieval)</a>, <a href="api/retrieval.html#compresso_recsys.retrieval.build_item_cold_holdout">[1]</a>
+      <li><a href="api/retrieval.html#compresso_recsys.retrieval.build_eval_holdout">build_eval_holdout() (in module compresso_recsys.retrieval)</a>
+</li>
+      <li><a href="api/retrieval.html#compresso_recsys.retrieval.build_item_cold_holdout">build_item_cold_holdout() (in module compresso_recsys.retrieval)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/compresso_recsys.html#compresso_recsys.retrieval.build_leave_last_out_holdout">build_leave_last_out_holdout() (in module compresso_recsys.retrieval)</a>, <a href="api/retrieval.html#compresso_recsys.retrieval.build_leave_last_out_holdout">[1]</a>
+      <li><a href="api/retrieval.html#compresso_recsys.retrieval.build_leave_last_out_holdout">build_leave_last_out_holdout() (in module compresso_recsys.retrieval)</a>
 </li>
       <li><a href="api/compresso_recsys.html#compresso_recsys.build_recsys_checkpoint">build_recsys_checkpoint() (in module compresso_recsys)</a>
 </li>
-      <li><a href="api/compresso_recsys.html#compresso_recsys.retrieval.build_temporal_holdout">build_temporal_holdout() (in module compresso_recsys.retrieval)</a>, <a href="api/retrieval.html#compresso_recsys.retrieval.build_temporal_holdout">[1]</a>
+      <li><a href="api/retrieval.html#compresso_recsys.retrieval.build_temporal_holdout">build_temporal_holdout() (in module compresso_recsys.retrieval)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="C">C</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/evaluation.html#compresso_recsys.metrics.CalibratedRecall">CalibratedRecall (class in compresso_recsys.metrics)</a>
+</li>
+      <li><a href="api/models.html#compresso_recsys.models.CompressedELSA">CompressedELSA (class in compresso_recsys.models)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/evaluation.html#compresso_recsys.metrics.RankingMetric.compute">compute() (compresso_recsys.metrics.RankingMetric method)</a>
+</li>
+      <li><a href="api/models.html#compresso_recsys.models.CompressedELSA.convert_to_srp">convert_to_srp() (compresso_recsys.models.CompressedELSA method)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="D">D</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/models.html#compresso_recsys.models.EASE.dtype">dtype (compresso_recsys.models.EASE property)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -217,12 +280,50 @@
 <h2 id="E">E</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/compresso_recsys.html#compresso_recsys.retrieval.evaluate_item_embeddings">evaluate_item_embeddings() (in module compresso_recsys.retrieval)</a>, <a href="api/retrieval.html#compresso_recsys.retrieval.evaluate_item_embeddings">[1]</a>
+      <li><a href="api/models.html#compresso_recsys.models.EASE">EASE (class in compresso_recsys.models)</a>
+</li>
+      <li><a href="api/models.html#compresso_recsys.models.EASEConfig">EASEConfig (class in compresso_recsys.models)</a>
+</li>
+      <li><a href="api/models.html#compresso_recsys.models.ELSA">ELSA (class in compresso_recsys.models)</a>
+</li>
+      <li><a href="api/models.html#compresso_recsys.models.ELSACompressionConfig">ELSACompressionConfig (class in compresso_recsys.models)</a>
+</li>
+      <li><a href="api/models.html#compresso_recsys.models.ELSAConfig">ELSAConfig (class in compresso_recsys.models)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/compresso_recsys.html#compresso_recsys.retrieval.evaluate_item_embeddings_with_holdout">evaluate_item_embeddings_with_holdout() (in module compresso_recsys.retrieval)</a>, <a href="api/retrieval.html#compresso_recsys.retrieval.evaluate_item_embeddings_with_holdout">[1]</a>
+      <li><a href="api/models.html#compresso_recsys.models.ELSATrainer">ELSATrainer (class in compresso_recsys.models)</a>
 </li>
+      <li><a href="api/retrieval.html#compresso_recsys.retrieval.evaluate_item_embeddings">evaluate_item_embeddings() (in module compresso_recsys.retrieval)</a>
+</li>
+      <li><a href="api/retrieval.html#compresso_recsys.retrieval.evaluate_item_embeddings_with_holdout">evaluate_item_embeddings_with_holdout() (in module compresso_recsys.retrieval)</a>
+</li>
+      <li><a href="api/evaluation.html#compresso_recsys.evaluation.evaluate_ranked_predictions">evaluate_ranked_predictions() (in module compresso_recsys.evaluation)</a>
+</li>
+      <li><a href="api/evaluation.html#compresso_recsys.evaluation.evaluate_recommender">evaluate_recommender() (in module compresso_recsys.evaluation)</a>
+</li>
+      <li><a href="api/models.html#compresso_recsys.models.CompressedELSA.export_item_embeddings">export_item_embeddings() (compresso_recsys.models.CompressedELSA method)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="F">F</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/models.html#compresso_recsys.models.EASE.fit">fit() (compresso_recsys.models.EASE method)</a>
+
+      <ul>
+        <li><a href="api/models.html#compresso_recsys.models.ELSATrainer.fit">(compresso_recsys.models.ELSATrainer method)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/models.html#compresso_recsys.models.CompressedELSA.forward">forward() (compresso_recsys.models.CompressedELSA method)</a>
+
+      <ul>
+        <li><a href="api/models.html#compresso_recsys.models.ELSA.forward">(compresso_recsys.models.ELSA method)</a>
+</li>
+      </ul></li>
   </ul></td>
 </tr></table>
 
@@ -230,6 +331,32 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/compresso_recsys.html#compresso_recsys.Goodbooks">Goodbooks (class in compresso_recsys)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="H">H</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/evaluation.html#compresso_recsys.metrics.HitRate">HitRate (class in compresso_recsys.metrics)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="I">I</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/models.html#compresso_recsys.models.ELSATrainer.is_built">is_built (compresso_recsys.models.ELSATrainer property)</a>
+</li>
+      <li><a href="api/models.html#compresso_recsys.models.EASE.is_fitted">is_fitted (compresso_recsys.models.EASE property)</a>
+
+      <ul>
+        <li><a href="api/models.html#compresso_recsys.models.ELSATrainer.is_fitted">(compresso_recsys.models.ELSATrainer property)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/models.html#compresso_recsys.models.CompressedELSA.is_sparse">is_sparse (compresso_recsys.models.CompressedELSA property)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -257,11 +384,33 @@
 <h2 id="M">M</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/evaluation.html#compresso_recsys.metrics.MAP">MAP (class in compresso_recsys.metrics)</a>
+</li>
       <li><a href="api/compresso_recsys.html#compresso_recsys.MovieLens1M">MovieLens1M (class in compresso_recsys)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/compresso_recsys.html#compresso_recsys.MovieLens20M">MovieLens20M (class in compresso_recsys)</a>
+</li>
+      <li><a href="api/evaluation.html#compresso_recsys.metrics.MRR">MRR (class in compresso_recsys.metrics)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="N">N</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/evaluation.html#compresso_recsys.metrics.NDCG">NDCG (class in compresso_recsys.metrics)</a>
+</li>
+      <li><a href="api/models.html#compresso_recsys.models.CompressedELSA.normalized_item_embeddings">normalized_item_embeddings() (compresso_recsys.models.CompressedELSA method)</a>
+
+      <ul>
+        <li><a href="api/models.html#compresso_recsys.models.ELSA.normalized_item_embeddings">(compresso_recsys.models.ELSA method)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/models.html#compresso_recsys.models.CompressedELSA.normalized_item_srp">normalized_item_srp() (compresso_recsys.models.CompressedELSA method)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -269,6 +418,26 @@
 <h2 id="P">P</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/evaluation.html#compresso_recsys.metrics.Precision">Precision (class in compresso_recsys.metrics)</a>
+</li>
+      <li><a href="api/models.html#compresso_recsys.models.EASE.predict">predict() (compresso_recsys.models.EASE method)</a>
+
+      <ul>
+        <li><a href="api/models.html#compresso_recsys.models.ELSATrainer.predict">(compresso_recsys.models.ELSATrainer method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/models.html#compresso_recsys.models.EASE.predict_on_batch">predict_on_batch() (compresso_recsys.models.EASE method)</a>
+
+      <ul>
+        <li><a href="api/models.html#compresso_recsys.models.ELSATrainer.predict_on_batch">(compresso_recsys.models.ELSATrainer method)</a>
+</li>
+        <li><a href="api/models.html#compresso_recsys.models.Recommender.predict_on_batch">(compresso_recsys.models.Recommender method)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/models.html#compresso_recsys.models.CompressedELSA.prepare_inference">prepare_inference() (compresso_recsys.models.CompressedELSA method)</a>
+</li>
       <li><a href="api/compresso_recsys.html#compresso_recsys.RecSysDataset.preprocess_interactions_for_recsys">preprocess_interactions_for_recsys() (compresso_recsys.RecSysDataset static method)</a>
 </li>
   </ul></td>
@@ -277,11 +446,27 @@
 <h2 id="R">R</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/evaluation.html#compresso_recsys.metrics.RankingBatch">RankingBatch (class in compresso_recsys.metrics)</a>
+</li>
+      <li><a href="api/evaluation.html#compresso_recsys.evaluation.RankingEvaluator">RankingEvaluator (class in compresso_recsys.evaluation)</a>
+</li>
+      <li><a href="api/evaluation.html#compresso_recsys.metrics.RankingMetric">RankingMetric (class in compresso_recsys.metrics)</a>
+</li>
       <li><a href="api/compresso_recsys.html#compresso_recsys.read_checkpoint">read_checkpoint() (in module compresso_recsys)</a>
+</li>
+      <li><a href="api/evaluation.html#compresso_recsys.metrics.Recall">Recall (class in compresso_recsys.metrics)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/models.html#compresso_recsys.models.Recommender">Recommender (class in compresso_recsys.models)</a>
+</li>
       <li><a href="api/compresso_recsys.html#compresso_recsys.RecSysDataset">RecSysDataset (class in compresso_recsys)</a>
+</li>
+      <li><a href="api/evaluation.html#compresso_recsys.metrics.RankingMetric.required_k">required_k (compresso_recsys.metrics.RankingMetric property)</a>
+</li>
+      <li><a href="api/evaluation.html#compresso_recsys.metrics.RankingMetric.reset">reset() (compresso_recsys.metrics.RankingMetric method)</a>
+</li>
+      <li><a href="api/evaluation.html#compresso_recsys.metrics.RankingMetric.result_keys">result_keys (compresso_recsys.metrics.RankingMetric property)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -293,11 +478,13 @@
 </li>
       <li><a href="api/compresso_recsys.html#compresso_recsys.save_json">save_json() (in module compresso_recsys)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/compresso_recsys.html#compresso_recsys.save_manifest">save_manifest() (in module compresso_recsys)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/compresso_recsys.html#compresso_recsys.save_recsys_split">save_recsys_split() (in module compresso_recsys)</a>
+</li>
+      <li><a href="api/models.html#compresso_recsys.models.CompressedELSA.score_all_items">score_all_items() (compresso_recsys.models.CompressedELSA method)</a>
 </li>
       <li><a href="api/compresso_recsys.html#compresso_recsys.SplitBundle">SplitBundle (class in compresso_recsys)</a>
 </li>
@@ -309,9 +496,13 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/compresso_recsys.html#compresso_recsys.RecSysDataset.to_hf_dataset">to_hf_dataset() (compresso_recsys.RecSysDataset method)</a>
 </li>
+      <li><a href="api/compresso_recsys.html#compresso_recsys.RecSysDataset.to_sparse_matrix">to_sparse_matrix() (compresso_recsys.RecSysDataset static method)</a>
+</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/compresso_recsys.html#compresso_recsys.RecSysDataset.to_sparse_matrix">to_sparse_matrix() (compresso_recsys.RecSysDataset static method)</a>
+      <li><a href="api/models.html#compresso_recsys.models.CompressedELSA.train">train() (compresso_recsys.models.CompressedELSA method)</a>
+</li>
+      <li><a href="api/models.html#compresso_recsys.models.ELSATrainer.train_step">train_step() (compresso_recsys.models.ELSATrainer method)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -319,10 +510,12 @@
 <h2 id="U">U</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/compresso_recsys.html#compresso_recsys.update_checkpoint">update_checkpoint() (in module compresso_recsys)</a>
+      <li><a href="api/evaluation.html#compresso_recsys.metrics.RankingMetric.update">update() (compresso_recsys.metrics.RankingMetric method)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/compresso_recsys.html#compresso_recsys.update_checkpoint">update_checkpoint() (in module compresso_recsys)</a>
+</li>
       <li><a href="api/compresso_recsys.html#compresso_recsys.update_stage_manifest">update_stage_manifest() (in module compresso_recsys)</a>
 </li>
   </ul></td>

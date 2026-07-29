@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>compresso_recsys.retrieval &mdash; Compresso Recsys 0.1.0 documentation</title>
+  <title>compresso_recsys.retrieval &mdash; Compresso Recsys 0.1.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
 
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../_static/documentation_options.js?v=a58bc63e"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/js/theme.js"></script>
@@ -69,6 +69,16 @@
 <li class="toctree-l2"><a class="reference internal" href="../../examples.html#building-checkpoints">Building Checkpoints</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples.html#checkpoint-read-write">Checkpoint Read/Write</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples.html#evaluate-embeddings-from-python">Evaluate Embeddings From Python</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples.html#evaluate-model-predictions">Evaluate Model Predictions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples.html#train-and-evaluate-elsa">Train and Evaluate ELSA</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../citing.html">Citing Compresso Recsys</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../citing.html#compresso">Compresso</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../citing.html#ease">EASE</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../citing.html#elsa">ELSA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../citing.html#elsa-with-sampled-output-candidates">ELSA with sampled output candidates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../citing.html#compressed-elsa">Compressed ELSA</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../cli-reference.html">Checkpoint CLI Reference</a><ul>
@@ -111,15 +121,6 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/compresso_recsys.html#compresso_recsys.load_cluster_graph_stage"><code class="docutils literal notranslate"><span class="pre">load_cluster_graph_stage()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/compresso_recsys.html#retrieval-api">Retrieval API</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../api/compresso_recsys.html#compresso_recsys.retrieval.build_eval_holdout"><code class="docutils literal notranslate"><span class="pre">build_eval_holdout()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/compresso_recsys.html#compresso_recsys.retrieval.build_item_cold_holdout"><code class="docutils literal notranslate"><span class="pre">build_item_cold_holdout()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/compresso_recsys.html#compresso_recsys.retrieval.build_leave_last_out_holdout"><code class="docutils literal notranslate"><span class="pre">build_leave_last_out_holdout()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/compresso_recsys.html#compresso_recsys.retrieval.build_temporal_holdout"><code class="docutils literal notranslate"><span class="pre">build_temporal_holdout()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/compresso_recsys.html#compresso_recsys.retrieval.evaluate_item_embeddings"><code class="docutils literal notranslate"><span class="pre">evaluate_item_embeddings()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/compresso_recsys.html#compresso_recsys.retrieval.evaluate_item_embeddings_with_holdout"><code class="docutils literal notranslate"><span class="pre">evaluate_item_embeddings_with_holdout()</span></code></a></li>
-</ul>
-</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/datasets.html">Datasets API</a></li>
@@ -127,6 +128,22 @@
 <li class="toctree-l3"><a class="reference internal" href="../../api/checkpoint.html#checkpoint-contexts">Checkpoint Contexts</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/checkpoint.html#manifest-and-json-helpers">Manifest and JSON Helpers</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/checkpoint.html#split-and-cluster-stages">Split and Cluster Stages</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/models.html">Models API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models.html#recommender-contract">Recommender Contract</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.Recommender"><code class="docutils literal notranslate"><span class="pre">Recommender</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models.html#ease">EASE</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.EASEConfig"><code class="docutils literal notranslate"><span class="pre">EASEConfig</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.EASE"><code class="docutils literal notranslate"><span class="pre">EASE</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models.html#elsa">ELSA</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#backend-performance">Backend Performance</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/retrieval.html">Retrieval API</a><ul>
@@ -140,6 +157,20 @@
 <li class="toctree-l3"><a class="reference internal" href="../../api/retrieval.html#embedding-evaluation">Embedding Evaluation</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../api/retrieval.html#compresso_recsys.retrieval.evaluate_item_embeddings"><code class="docutils literal notranslate"><span class="pre">evaluate_item_embeddings()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/retrieval.html#compresso_recsys.retrieval.evaluate_item_embeddings_with_holdout"><code class="docutils literal notranslate"><span class="pre">evaluate_item_embeddings_with_holdout()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/evaluation.html">Ranking Evaluation API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/evaluation.html#predictions-and-targets">Predictions and Targets</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/evaluation.html#compresso_recsys.evaluation.evaluate_recommender"><code class="docutils literal notranslate"><span class="pre">evaluate_recommender()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/evaluation.html#compresso_recsys.evaluation.evaluate_ranked_predictions"><code class="docutils literal notranslate"><span class="pre">evaluate_ranked_predictions()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/evaluation.html#compresso_recsys.evaluation.RankingEvaluator"><code class="docutils literal notranslate"><span class="pre">RankingEvaluator</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/evaluation.html#metrics">Metrics</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/evaluation.html#default-metrics">Default Metrics</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/evaluation.html#optional-metrics">Optional Metrics</a></li>
 </ul>
 </li>
 </ul>
@@ -175,12 +206,17 @@
   <h1>Source code for compresso_recsys.retrieval</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">Sequence</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">scipy.sparse</span><span class="w"> </span><span class="kn">import</span> <span class="n">csr_matrix</span><span class="p">,</span> <span class="n">vstack</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">compresso</span><span class="w"> </span><span class="kn">import</span> <span class="n">SRPTensor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.evaluation</span><span class="w"> </span><span class="kn">import</span> <span class="n">RankingEvaluator</span><span class="p">,</span> <span class="n">_indices_to_csr</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">CalibratedRecall</span><span class="p">,</span> <span class="n">NDCG</span><span class="p">,</span> <span class="n">RankingMetric</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_progress</span><span class="p">(</span><span class="n">iterable</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">enabled</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">desc</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
@@ -542,7 +578,7 @@
 
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_compute_topk_predictions</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_iter_topk_predictions</span><span class="p">(</span>
     <span class="n">e</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="n">source_indices</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span>
     <span class="n">k</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -550,16 +586,22 @@
     <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">512</span><span class="p">,</span>
     <span class="n">show_progress</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">desc</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;evaluate top-k&quot;</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Batched vectorized top-k retrieval.</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="n">SRPTensor</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Yield batched vectorized top-k retrieval results.</span>
 
 <span class="sd">    ELSA-forward scoring:</span>
 <span class="sd">      scores_u = relu((x_u @ e) @ e.T - x_u), where x_u is sparse source</span>
 <span class="sd">      interaction vector over item ids.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">n_items</span> <span class="o">=</span> <span class="n">e</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-    <span class="n">k_eff</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">n_items</span><span class="p">)</span>
-    <span class="n">preds</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">if</span> <span class="n">k</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;k must be &gt;= 1&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">k</span> <span class="o">&gt;</span> <span class="n">n_items</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;k (</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">) cannot exceed the number of items (</span><span class="si">{</span><span class="n">n_items</span><span class="si">}</span><span class="s2">)&quot;</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="n">batch_size</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;batch_size must be &gt;= 1&quot;</span><span class="p">)</span>
 
     <span class="n">starts</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">source_indices</span><span class="p">),</span> <span class="n">batch_size</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">start</span> <span class="ow">in</span> <span class="n">_progress</span><span class="p">(</span><span class="n">starts</span><span class="p">,</span> <span class="n">enabled</span><span class="o">=</span><span class="n">show_progress</span><span class="p">,</span> <span class="n">desc</span><span class="o">=</span><span class="n">desc</span><span class="p">):</span>
@@ -586,63 +628,21 @@
         <span class="c1"># Mask seen source items.</span>
         <span class="n">scores</span><span class="p">[</span><span class="n">owners</span><span class="p">,</span> <span class="n">flat_src_t</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">torch</span><span class="o">.</span><span class="n">inf</span>
 
-        <span class="n">topk_idx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">topk</span><span class="p">(</span><span class="n">scores</span><span class="p">,</span> <span class="n">k_eff</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">largest</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="nb">sorted</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">indices</span>
-        <span class="n">preds</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">row</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">topk_idx</span><span class="p">])</span>
-
-    <span class="k">return</span> <span class="n">preds</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">_calibrated_recall</span><span class="p">(</span><span class="n">target_sets</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">set</span><span class="p">[</span><span class="nb">int</span><span class="p">]],</span> <span class="n">pred_ranked</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-    <span class="n">vals</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">tset</span><span class="p">,</span> <span class="n">pred</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">target_sets</span><span class="p">,</span> <span class="n">pred_ranked</span><span class="p">):</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">tset</span><span class="p">:</span>
-            <span class="k">continue</span>
-        <span class="n">top</span> <span class="o">=</span> <span class="n">pred</span><span class="p">[:</span><span class="n">k</span><span class="p">]</span>
-        <span class="n">hits</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="mi">1</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">top</span> <span class="k">if</span> <span class="nb">int</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="ow">in</span> <span class="n">tset</span><span class="p">)</span>
-        <span class="n">denom</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">tset</span><span class="p">))</span>
-        <span class="n">vals</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">hits</span> <span class="o">/</span> <span class="n">denom</span> <span class="k">if</span> <span class="n">denom</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mf">0.0</span><span class="p">)</span>
-    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">vals</span><span class="p">))</span> <span class="k">if</span> <span class="n">vals</span> <span class="k">else</span> <span class="mf">0.0</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">_ndcg</span><span class="p">(</span><span class="n">target_sets</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">set</span><span class="p">[</span><span class="nb">int</span><span class="p">]],</span> <span class="n">pred_ranked</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-    <span class="n">vals</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">tset</span><span class="p">,</span> <span class="n">pred</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">target_sets</span><span class="p">,</span> <span class="n">pred_ranked</span><span class="p">):</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">tset</span><span class="p">:</span>
-            <span class="k">continue</span>
-        <span class="n">dcg</span> <span class="o">=</span> <span class="mf">0.0</span>
-        <span class="k">for</span> <span class="n">rank</span><span class="p">,</span> <span class="n">item_idx</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pred</span><span class="p">[:</span><span class="n">k</span><span class="p">],</span> <span class="n">start</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
-            <span class="k">if</span> <span class="nb">int</span><span class="p">(</span><span class="n">item_idx</span><span class="p">)</span> <span class="ow">in</span> <span class="n">tset</span><span class="p">:</span>
-                <span class="n">dcg</span> <span class="o">+=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">log2</span><span class="p">(</span><span class="n">rank</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
-        <span class="n">ideal_len</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">tset</span><span class="p">))</span>
-        <span class="n">idcg</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">log2</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">ideal_len</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
-        <span class="n">vals</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dcg</span> <span class="o">/</span> <span class="n">idcg</span> <span class="k">if</span> <span class="n">idcg</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mf">0.0</span><span class="p">)</span>
-    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">vals</span><span class="p">))</span> <span class="k">if</span> <span class="n">vals</span> <span class="k">else</span> <span class="mf">0.0</span>
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">_debug_rows</span><span class="p">(</span><span class="n">target_sets</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">set</span><span class="p">[</span><span class="nb">int</span><span class="p">]],</span> <span class="n">pred_ranked</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span> <span class="n">k</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
-    <span class="n">rows</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">u</span><span class="p">,</span> <span class="p">(</span><span class="n">tset</span><span class="p">,</span> <span class="n">pred</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">target_sets</span><span class="p">,</span> <span class="n">pred_ranked</span><span class="p">)):</span>
-        <span class="k">if</span> <span class="n">u</span> <span class="o">&gt;=</span> <span class="n">limit</span><span class="p">:</span>
-            <span class="k">break</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">tset</span><span class="p">:</span>
-            <span class="k">continue</span>
-        <span class="n">hit_ranks</span> <span class="o">=</span> <span class="p">[</span><span class="n">rank</span> <span class="k">for</span> <span class="n">rank</span><span class="p">,</span> <span class="n">item_idx</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pred</span><span class="p">[:</span><span class="n">k</span><span class="p">],</span> <span class="n">start</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="k">if</span> <span class="nb">int</span><span class="p">(</span><span class="n">item_idx</span><span class="p">)</span> <span class="ow">in</span> <span class="n">tset</span><span class="p">]</span>
-        <span class="n">dcg</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">log2</span><span class="p">(</span><span class="n">r</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">hit_ranks</span><span class="p">)</span>
-        <span class="n">ideal_len</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">tset</span><span class="p">))</span>
-        <span class="n">idcg</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">log2</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">ideal_len</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
-        <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-            <span class="p">{</span>
-                <span class="s2">&quot;user_row&quot;</span><span class="p">:</span> <span class="n">u</span><span class="p">,</span>
-                <span class="s2">&quot;n_true&quot;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">tset</span><span class="p">),</span>
-                <span class="s2">&quot;n_hits_topk&quot;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">hit_ranks</span><span class="p">),</span>
-                <span class="s2">&quot;first_hit_rank&quot;</span><span class="p">:</span> <span class="n">hit_ranks</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">hit_ranks</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
-                <span class="s2">&quot;hit_ranks&quot;</span><span class="p">:</span> <span class="n">hit_ranks</span><span class="p">,</span>
-                <span class="s2">&quot;dcg&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">dcg</span><span class="p">),</span>
-                <span class="s2">&quot;idcg&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">idcg</span><span class="p">),</span>
-                <span class="s2">&quot;ndcg&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">dcg</span> <span class="o">/</span> <span class="n">idcg</span> <span class="k">if</span> <span class="n">idcg</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mf">0.0</span><span class="p">),</span>
-            <span class="p">}</span>
+        <span class="n">topk_vals</span><span class="p">,</span> <span class="n">topk_idx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">topk</span><span class="p">(</span><span class="n">scores</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">largest</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="nb">sorted</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">yield</span> <span class="p">(</span>
+            <span class="n">start</span><span class="p">,</span>
+            <span class="n">start</span> <span class="o">+</span> <span class="n">b</span><span class="p">,</span>
+            <span class="n">SRPTensor</span><span class="p">(</span>
+                <span class="n">cols</span><span class="o">=</span><span class="n">topk_idx</span><span class="p">,</span>
+                <span class="n">vals</span><span class="o">=</span><span class="n">topk_vals</span><span class="p">,</span>
+                <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">n_items</span><span class="p">),</span>
+                <span class="n">validate</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="p">),</span>
         <span class="p">)</span>
-    <span class="k">return</span> <span class="n">rows</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_default_metrics</span><span class="p">(</span><span class="n">k</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">RankingMetric</span><span class="p">]:</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">CalibratedRecall</span><span class="p">(</span><span class="n">k</span><span class="p">),</span> <span class="n">NDCG</span><span class="p">(</span><span class="n">k</span><span class="p">)]</span>
 
 
 <div class="viewcode-block" id="evaluate_item_embeddings">
@@ -659,10 +659,11 @@
     <span class="n">random_state</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">42</span><span class="p">,</span>
     <span class="n">eval_fold</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
     <span class="n">score_batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">512</span><span class="p">,</span>
+    <span class="n">metrics</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">RankingMetric</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">debug</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">debug_users</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
     <span class="n">show_progress</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Evaluate item embeddings with torch top-k retrieval.</span>
 
 <span class="sd">    - User profile: sum of source-item embeddings.</span>
@@ -681,35 +682,17 @@
         <span class="n">random_state</span><span class="o">=</span><span class="n">random_state</span><span class="p">,</span>
         <span class="n">eval_fold</span><span class="o">=</span><span class="n">eval_fold</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="n">source_indices</span> <span class="o">=</span> <span class="n">holdout</span><span class="p">[</span><span class="s2">&quot;source_indices&quot;</span><span class="p">]</span>  <span class="c1"># type: ignore[assignment]</span>
-    <span class="n">target_sets</span> <span class="o">=</span> <span class="p">[</span><span class="nb">set</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">holdout</span><span class="p">[</span><span class="s2">&quot;target_indices&quot;</span><span class="p">]]</span>  <span class="c1"># type: ignore[index]</span>
-
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">source_indices</span><span class="p">:</span>
-        <span class="n">out</span> <span class="o">=</span> <span class="p">{</span><span class="sa">f</span><span class="s2">&quot;recall@</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;ndcg@</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s2">&quot;n_eval_users&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">}</span>
-        <span class="k">if</span> <span class="n">debug</span><span class="p">:</span>
-            <span class="n">out</span><span class="p">[</span><span class="s2">&quot;debug&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">return</span> <span class="n">out</span>
-
-    <span class="n">e</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">item_embeddings</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
-    <span class="n">e</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-
-    <span class="n">pred_ranked</span> <span class="o">=</span> <span class="n">_compute_topk_predictions</span><span class="p">(</span>
-        <span class="n">e</span><span class="p">,</span>
-        <span class="n">source_indices</span><span class="p">,</span>
+    <span class="k">return</span> <span class="n">evaluate_item_embeddings_with_holdout</span><span class="p">(</span>
+        <span class="n">item_embeddings</span><span class="o">=</span><span class="n">item_embeddings</span><span class="p">,</span>
+        <span class="n">source_indices</span><span class="o">=</span><span class="n">holdout</span><span class="p">[</span><span class="s2">&quot;source_indices&quot;</span><span class="p">],</span>  <span class="c1"># type: ignore[arg-type]</span>
+        <span class="n">target_indices</span><span class="o">=</span><span class="n">holdout</span><span class="p">[</span><span class="s2">&quot;target_indices&quot;</span><span class="p">],</span>  <span class="c1"># type: ignore[arg-type]</span>
         <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
-        <span class="n">batch_size</span><span class="o">=</span><span class="n">score_batch_size</span><span class="p">,</span>
+        <span class="n">score_batch_size</span><span class="o">=</span><span class="n">score_batch_size</span><span class="p">,</span>
+        <span class="n">metrics</span><span class="o">=</span><span class="n">metrics</span><span class="p">,</span>
+        <span class="n">debug</span><span class="o">=</span><span class="n">debug</span><span class="p">,</span>
+        <span class="n">debug_users</span><span class="o">=</span><span class="n">debug_users</span><span class="p">,</span>
         <span class="n">show_progress</span><span class="o">=</span><span class="n">show_progress</span><span class="p">,</span>
-        <span class="n">desc</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;evaluate@</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-
-    <span class="n">out</span> <span class="o">=</span> <span class="p">{</span>
-        <span class="sa">f</span><span class="s2">&quot;recall@</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">:</span> <span class="n">_calibrated_recall</span><span class="p">(</span><span class="n">target_sets</span><span class="p">,</span> <span class="n">pred_ranked</span><span class="p">,</span> <span class="n">k</span><span class="p">),</span>
-        <span class="sa">f</span><span class="s2">&quot;ndcg@</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">:</span> <span class="n">_ndcg</span><span class="p">(</span><span class="n">target_sets</span><span class="p">,</span> <span class="n">pred_ranked</span><span class="p">,</span> <span class="n">k</span><span class="p">),</span>
-        <span class="s2">&quot;n_eval_users&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">target_sets</span><span class="p">)),</span>
-    <span class="p">}</span>
-    <span class="k">if</span> <span class="n">debug</span><span class="p">:</span>
-        <span class="n">out</span><span class="p">[</span><span class="s2">&quot;debug&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_debug_rows</span><span class="p">(</span><span class="n">target_sets</span><span class="p">,</span> <span class="n">pred_ranked</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="n">debug_users</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">out</span></div>
+    <span class="p">)</span></div>
 
 
 
@@ -722,31 +705,61 @@
     <span class="n">target_indices</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span>
     <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
     <span class="n">score_batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">512</span><span class="p">,</span>
+    <span class="n">metrics</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">RankingMetric</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">debug</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">debug_users</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
     <span class="n">show_progress</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Evaluate item embeddings against a precomputed source/target holdout.</span>
+
+<span class="sd">    Predictions are generated and evaluated one batch at a time. Supplying</span>
+<span class="sd">    ``metrics`` allows multiple cutoffs to reuse the same ranked predictions</span>
+<span class="sd">    and target-hit tensor.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">source_indices</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">target_indices</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;source_indices and target_indices must have same length&quot;</span><span class="p">)</span>
-    <span class="n">e</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">item_embeddings</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">item_embeddings</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;item_embeddings must be a 2D array&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">k</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;k must be &gt;= 1&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">k</span> <span class="o">&gt;</span> <span class="n">item_embeddings</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;k (</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">) cannot exceed the number of items (</span><span class="si">{</span><span class="n">item_embeddings</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">)&quot;</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="n">score_batch_size</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;score_batch_size must be &gt;= 1&quot;</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">errstate</span><span class="p">(</span><span class="n">over</span><span class="o">=</span><span class="s2">&quot;ignore&quot;</span><span class="p">,</span> <span class="n">invalid</span><span class="o">=</span><span class="s2">&quot;ignore&quot;</span><span class="p">):</span>
+        <span class="n">converted_embeddings</span> <span class="o">=</span> <span class="n">item_embeddings</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">converted_embeddings</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;item_embeddings must contain only finite values after &quot;</span>
+            <span class="s2">&quot;conversion to float32&quot;</span>
+        <span class="p">)</span>
+
+    <span class="n">e</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">converted_embeddings</span><span class="p">)</span>
     <span class="n">e</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-    <span class="n">target_sets</span> <span class="o">=</span> <span class="p">[</span><span class="nb">set</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">target_indices</span><span class="p">]</span>
-    <span class="n">pred_ranked</span> <span class="o">=</span> <span class="n">_compute_topk_predictions</span><span class="p">(</span>
+    <span class="n">targets</span> <span class="o">=</span> <span class="n">_indices_to_csr</span><span class="p">(</span><span class="n">target_indices</span><span class="p">,</span> <span class="n">n_items</span><span class="o">=</span><span class="n">item_embeddings</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">evaluator</span> <span class="o">=</span> <span class="n">RankingEvaluator</span><span class="p">(</span>
+        <span class="nb">list</span><span class="p">(</span><span class="n">metrics</span><span class="p">)</span> <span class="k">if</span> <span class="n">metrics</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">_default_metrics</span><span class="p">(</span><span class="n">k</span><span class="p">),</span>
+        <span class="n">validate_predictions</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">debug</span><span class="o">=</span><span class="n">debug</span><span class="p">,</span>
+        <span class="n">debug_users</span><span class="o">=</span><span class="n">debug_users</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">evaluator</span><span class="o">.</span><span class="n">required_k</span> <span class="o">&gt;</span> <span class="n">k</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;metrics require top-</span><span class="si">{</span><span class="n">evaluator</span><span class="o">.</span><span class="n">required_k</span><span class="si">}</span><span class="s2">, but retrieval was configured for top-</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+    <span class="k">for</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">predictions</span> <span class="ow">in</span> <span class="n">_iter_topk_predictions</span><span class="p">(</span>
         <span class="n">e</span><span class="p">,</span>
         <span class="n">source_indices</span><span class="p">,</span>
         <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
         <span class="n">batch_size</span><span class="o">=</span><span class="n">score_batch_size</span><span class="p">,</span>
         <span class="n">show_progress</span><span class="o">=</span><span class="n">show_progress</span><span class="p">,</span>
         <span class="n">desc</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;evaluate@</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">out</span> <span class="o">=</span> <span class="p">{</span>
-        <span class="sa">f</span><span class="s2">&quot;recall@</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">:</span> <span class="n">_calibrated_recall</span><span class="p">(</span><span class="n">target_sets</span><span class="p">,</span> <span class="n">pred_ranked</span><span class="p">,</span> <span class="n">k</span><span class="p">),</span>
-        <span class="sa">f</span><span class="s2">&quot;ndcg@</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">:</span> <span class="n">_ndcg</span><span class="p">(</span><span class="n">target_sets</span><span class="p">,</span> <span class="n">pred_ranked</span><span class="p">,</span> <span class="n">k</span><span class="p">),</span>
-        <span class="s2">&quot;n_eval_users&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">target_sets</span><span class="p">)),</span>
-    <span class="p">}</span>
-    <span class="k">if</span> <span class="n">debug</span><span class="p">:</span>
-        <span class="n">out</span><span class="p">[</span><span class="s2">&quot;debug&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_debug_rows</span><span class="p">(</span><span class="n">target_sets</span><span class="p">,</span> <span class="n">pred_ranked</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="n">debug_users</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">out</span></div>
+    <span class="p">):</span>
+        <span class="n">evaluator</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">evaluator</span><span class="o">.</span><span class="n">compute</span><span class="p">()</span></div>
 
 </pre></div>
 

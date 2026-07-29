@@ -6,20 +6,20 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Examples &mdash; Compresso Recsys 0.1.0 documentation</title>
+  <title>Examples &mdash; Compresso Recsys 0.1.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=01f34227"></script>
+      <script src="_static/documentation_options.js?v=a58bc63e"></script>
       <script src="_static/doctools.js?v=fd6eb6e6"></script>
       <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Checkpoint CLI Reference" href="cli-reference.html" />
+    <link rel="next" title="Citing Compresso Recsys" href="citing.html" />
     <link rel="prev" title="Quickstart" href="quickstart.html" /> 
 </head>
 
@@ -72,6 +72,16 @@
 <li class="toctree-l2"><a class="reference internal" href="#building-checkpoints">Building Checkpoints</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#checkpoint-read-write">Checkpoint Read/Write</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#evaluate-embeddings-from-python">Evaluate Embeddings From Python</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#evaluate-model-predictions">Evaluate Model Predictions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#train-and-evaluate-elsa">Train and Evaluate ELSA</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="citing.html">Citing Compresso Recsys</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#compresso">Compresso</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#ease">EASE</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#elsa">ELSA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#elsa-with-sampled-output-candidates">ELSA with sampled output candidates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#compressed-elsa">Compressed ELSA</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="cli-reference.html">Checkpoint CLI Reference</a><ul>
@@ -114,15 +124,6 @@
 <li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.load_cluster_graph_stage"><code class="docutils literal notranslate"><span class="pre">load_cluster_graph_stage()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="api/compresso_recsys.html#retrieval-api">Retrieval API</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.retrieval.build_eval_holdout"><code class="docutils literal notranslate"><span class="pre">build_eval_holdout()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.retrieval.build_item_cold_holdout"><code class="docutils literal notranslate"><span class="pre">build_item_cold_holdout()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.retrieval.build_leave_last_out_holdout"><code class="docutils literal notranslate"><span class="pre">build_leave_last_out_holdout()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.retrieval.build_temporal_holdout"><code class="docutils literal notranslate"><span class="pre">build_temporal_holdout()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.retrieval.evaluate_item_embeddings"><code class="docutils literal notranslate"><span class="pre">evaluate_item_embeddings()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.retrieval.evaluate_item_embeddings_with_holdout"><code class="docutils literal notranslate"><span class="pre">evaluate_item_embeddings_with_holdout()</span></code></a></li>
-</ul>
-</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="api/datasets.html">Datasets API</a></li>
@@ -130,6 +131,22 @@
 <li class="toctree-l3"><a class="reference internal" href="api/checkpoint.html#checkpoint-contexts">Checkpoint Contexts</a></li>
 <li class="toctree-l3"><a class="reference internal" href="api/checkpoint.html#manifest-and-json-helpers">Manifest and JSON Helpers</a></li>
 <li class="toctree-l3"><a class="reference internal" href="api/checkpoint.html#split-and-cluster-stages">Split and Cluster Stages</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api/models.html">Models API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#recommender-contract">Recommender Contract</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.Recommender"><code class="docutils literal notranslate"><span class="pre">Recommender</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#ease">EASE</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.EASEConfig"><code class="docutils literal notranslate"><span class="pre">EASEConfig</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.EASE"><code class="docutils literal notranslate"><span class="pre">EASE</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#elsa">ELSA</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#backend-performance">Backend Performance</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="api/retrieval.html">Retrieval API</a><ul>
@@ -143,6 +160,20 @@
 <li class="toctree-l3"><a class="reference internal" href="api/retrieval.html#embedding-evaluation">Embedding Evaluation</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="api/retrieval.html#compresso_recsys.retrieval.evaluate_item_embeddings"><code class="docutils literal notranslate"><span class="pre">evaluate_item_embeddings()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/retrieval.html#compresso_recsys.retrieval.evaluate_item_embeddings_with_holdout"><code class="docutils literal notranslate"><span class="pre">evaluate_item_embeddings_with_holdout()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api/evaluation.html">Ranking Evaluation API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/evaluation.html#predictions-and-targets">Predictions and Targets</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/evaluation.html#compresso_recsys.evaluation.evaluate_recommender"><code class="docutils literal notranslate"><span class="pre">evaluate_recommender()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/evaluation.html#compresso_recsys.evaluation.evaluate_ranked_predictions"><code class="docutils literal notranslate"><span class="pre">evaluate_ranked_predictions()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/evaluation.html#compresso_recsys.evaluation.RankingEvaluator"><code class="docutils literal notranslate"><span class="pre">RankingEvaluator</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/evaluation.html#metrics">Metrics</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/evaluation.html#default-metrics">Default Metrics</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/evaluation.html#optional-metrics">Optional Metrics</a></li>
 </ul>
 </li>
 </ul>
@@ -289,6 +320,174 @@ manually computed embedding matrix directly:</p>
 </pre></div>
 </div>
 </section>
+<section id="evaluate-model-predictions">
+<h2>Evaluate Model Predictions<a class="headerlink" href="#evaluate-model-predictions" title="Link to this heading"></a></h2>
+<p>The generic recommender evaluator requests one prediction batch at a time and
+immediately compares it with the corresponding CSR target rows. This keeps
+memory bounded during evaluation:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">compresso_recsys</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cr</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.evaluation</span><span class="w"> </span><span class="kn">import</span> <span class="n">evaluate_recommender</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">CalibratedRecall</span><span class="p">,</span> <span class="n">NDCG</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">EASE</span><span class="p">,</span> <span class="n">EASEConfig</span>
+
+<span class="k">with</span> <span class="n">cr</span><span class="o">.</span><span class="n">read_checkpoint</span><span class="p">(</span><span class="s2">&quot;artifacts/ml20m-elsa.zip&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">root</span><span class="p">:</span>
+    <span class="n">split</span> <span class="o">=</span> <span class="n">cr</span><span class="o">.</span><span class="n">load_recsys_split</span><span class="p">(</span><span class="n">root</span><span class="p">)</span>
+
+<span class="n">model</span> <span class="o">=</span> <span class="n">EASE</span><span class="p">(</span><span class="n">EASEConfig</span><span class="p">(</span><span class="n">l2</span><span class="o">=</span><span class="mf">500.0</span><span class="p">))</span>
+<span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">split</span><span class="p">[</span><span class="s2">&quot;x_train&quot;</span><span class="p">])</span>
+
+<span class="n">result</span> <span class="o">=</span> <span class="n">evaluate_recommender</span><span class="p">(</span>
+    <span class="n">model</span><span class="p">,</span>
+    <span class="n">source</span><span class="o">=</span><span class="n">split</span><span class="p">[</span><span class="s2">&quot;test_source_matrix&quot;</span><span class="p">],</span>
+    <span class="n">targets</span><span class="o">=</span><span class="n">split</span><span class="p">[</span><span class="s2">&quot;test_target_matrix&quot;</span><span class="p">],</span>
+    <span class="n">metrics</span><span class="o">=</span><span class="p">[</span>
+        <span class="n">CalibratedRecall</span><span class="p">([</span><span class="mi">20</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">100</span><span class="p">]),</span>
+        <span class="n">NDCG</span><span class="p">([</span><span class="mi">20</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">100</span><span class="p">]),</span>
+    <span class="p">],</span>
+    <span class="n">batch_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span>
+    <span class="n">show_progress</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Additional metrics can be opted into without changing the defaults:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">HitRate</span><span class="p">,</span> <span class="n">MAP</span><span class="p">,</span> <span class="n">MRR</span><span class="p">,</span> <span class="n">Precision</span><span class="p">,</span> <span class="n">Recall</span>
+
+<span class="n">result</span> <span class="o">=</span> <span class="n">evaluate_recommender</span><span class="p">(</span>
+    <span class="n">model</span><span class="p">,</span>
+    <span class="n">source</span><span class="o">=</span><span class="n">split</span><span class="p">[</span><span class="s2">&quot;test_source_matrix&quot;</span><span class="p">],</span>
+    <span class="n">targets</span><span class="o">=</span><span class="n">split</span><span class="p">[</span><span class="s2">&quot;test_target_matrix&quot;</span><span class="p">],</span>
+    <span class="n">metrics</span><span class="o">=</span><span class="p">[</span>
+        <span class="n">Recall</span><span class="p">([</span><span class="mi">20</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">100</span><span class="p">]),</span>
+        <span class="n">Precision</span><span class="p">([</span><span class="mi">20</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">100</span><span class="p">]),</span>
+        <span class="n">HitRate</span><span class="p">([</span><span class="mi">20</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">100</span><span class="p">]),</span>
+        <span class="n">MRR</span><span class="p">([</span><span class="mi">20</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">100</span><span class="p">]),</span>
+        <span class="n">MAP</span><span class="p">([</span><span class="mi">20</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">100</span><span class="p">]),</span>
+    <span class="p">],</span>
+    <span class="n">batch_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>For a model that already produced one complete <code class="xref py py-class docutils literal notranslate"><span class="pre">compresso.SRPTensor</span></code>,
+use <a class="reference internal" href="api/evaluation.html#compresso_recsys.evaluation.evaluate_ranked_predictions" title="compresso_recsys.evaluation.evaluate_ranked_predictions"><code class="xref py py-func docutils literal notranslate"><span class="pre">compresso_recsys.evaluation.evaluate_ranked_predictions()</span></code></a> instead.</p>
+</section>
+<section id="train-and-evaluate-elsa">
+<h2>Train and Evaluate ELSA<a class="headerlink" href="#train-and-evaluate-elsa" title="Link to this heading"></a></h2>
+<p>ELSA follows the same <code class="docutils literal notranslate"><span class="pre">fit</span></code> and evaluation interface as EASE. Set
+<code class="docutils literal notranslate"><span class="pre">max_output</span></code> to train against sampled negative candidates instead of the
+entire item catalog:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.evaluation</span><span class="w"> </span><span class="kn">import</span> <span class="n">evaluate_recommender</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">CalibratedRecall</span><span class="p">,</span> <span class="n">NDCG</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">ELSAConfig</span><span class="p">,</span> <span class="n">ELSATrainer</span>
+
+<span class="n">model</span> <span class="o">=</span> <span class="n">ELSATrainer</span><span class="p">(</span>
+    <span class="n">ELSAConfig</span><span class="p">(</span>
+        <span class="n">latent_dim</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span>
+        <span class="n">batch_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span>
+        <span class="n">max_output</span><span class="o">=</span><span class="mi">10_000</span><span class="p">,</span>
+        <span class="n">epochs</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+        <span class="n">lr</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+        <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cuda&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+<span class="p">)</span>
+<span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">split</span><span class="p">[</span><span class="s2">&quot;x_train&quot;</span><span class="p">])</span>
+
+<span class="n">result</span> <span class="o">=</span> <span class="n">evaluate_recommender</span><span class="p">(</span>
+    <span class="n">model</span><span class="p">,</span>
+    <span class="n">source</span><span class="o">=</span><span class="n">split</span><span class="p">[</span><span class="s2">&quot;test_source_matrix&quot;</span><span class="p">],</span>
+    <span class="n">targets</span><span class="o">=</span><span class="n">split</span><span class="p">[</span><span class="s2">&quot;test_target_matrix&quot;</span><span class="p">],</span>
+    <span class="n">metrics</span><span class="o">=</span><span class="p">[</span>
+        <span class="n">CalibratedRecall</span><span class="p">([</span><span class="mi">20</span><span class="p">,</span> <span class="mi">50</span><span class="p">]),</span>
+        <span class="n">NDCG</span><span class="p">(</span><span class="mi">100</span><span class="p">),</span>
+    <span class="p">],</span>
+    <span class="n">batch_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span>
+    <span class="n">show_progress</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>To search for a lottery-ticket ELSA with 64 retained values per item, add a
+nested compression configuration:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.models</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">ELSACompressionConfig</span><span class="p">,</span>
+    <span class="n">ELSAConfig</span><span class="p">,</span>
+    <span class="n">ELSATrainer</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">model</span> <span class="o">=</span> <span class="n">ELSATrainer</span><span class="p">(</span>
+    <span class="n">ELSAConfig</span><span class="p">(</span>
+        <span class="n">latent_dim</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span>
+        <span class="n">batch_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span>
+        <span class="n">max_output</span><span class="o">=</span><span class="mi">10_000</span><span class="p">,</span>
+        <span class="n">epochs</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+        <span class="n">lr</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+        <span class="n">decay</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cuda&quot;</span><span class="p">,</span>
+        <span class="n">compression</span><span class="o">=</span><span class="n">ELSACompressionConfig</span><span class="p">(</span>
+            <span class="n">k_target</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span>
+            <span class="n">num_stages</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+            <span class="n">stability_window</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+            <span class="n">change_threshold</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span>
+            <span class="n">mask_update_interval</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+            <span class="n">max_epochs_per_stage</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+            <span class="n">sparse_finetune_backend</span><span class="o">=</span><span class="s2">&quot;dense&quot;</span><span class="p">,</span>
+            <span class="n">sparse_inference_backend</span><span class="o">=</span><span class="s2">&quot;csr&quot;</span><span class="p">,</span>
+        <span class="p">),</span>
+    <span class="p">)</span>
+<span class="p">)</span>
+<span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">split</span><span class="p">[</span><span class="s2">&quot;x_train&quot;</span><span class="p">])</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">epochs</span></code> controls the final fixed-SRP fine-tuning, not mask search. A
+mask-search stage advances when it stabilizes or reaches
+<code class="docutils literal notranslate"><span class="pre">max_epochs_per_stage</span></code>; either transition rewinds and restarts its optimizer.
+Use <code class="docutils literal notranslate"><span class="pre">None</span></code> for an unlimited stability search. The sampler continues its
+random sequence across stages, so rewinds see new sampled negatives.
+Because this example sets <code class="docutils literal notranslate"><span class="pre">max_output</span></code>, both mask search and sparse
+fine-tuning gather only the batch’s candidate rows. Setting <code class="docutils literal notranslate"><span class="pre">max_output=None</span></code>
+scores the complete item catalog during training.
+The default <code class="docutils literal notranslate"><span class="pre">sparse_finetune_backend=&quot;dense&quot;</span></code> densifies those selected rows
+and uses dense matrix multiplication. Set it to <code class="docutils literal notranslate"><span class="pre">&quot;coo&quot;</span></code> to keep the fixed
+factors sparse through two differentiable sparse matrix multiplications. COO
+uses less fine-tuning memory and can also be faster for very small
+<code class="docutils literal notranslate"><span class="pre">k_target</span></code> values; dense operations tend to become more competitive as the
+ticket grows. The crossover depends on the device, batch, and candidate sizes.</p>
+<p>After fitting, the normalized sparse item factors can be exported without
+densifying:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">item_factors</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">elsa</span><span class="o">.</span><span class="n">export_item_embeddings</span><span class="p">()</span>
+<span class="n">payload</span> <span class="o">=</span> <span class="n">item_factors</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Both recommenders provide batch and full-matrix prediction methods. Seen items
+are excluded by default:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">batch_predictions</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict_on_batch</span><span class="p">(</span>
+    <span class="n">split</span><span class="p">[</span><span class="s2">&quot;test_source_matrix&quot;</span><span class="p">][:</span><span class="mi">1024</span><span class="p">],</span>
+    <span class="n">k</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">all_predictions</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span>
+    <span class="n">split</span><span class="p">[</span><span class="s2">&quot;test_source_matrix&quot;</span><span class="p">],</span>
+    <span class="n">k</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+    <span class="n">batch_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Compressed ELSA uses the configured <code class="docutils literal notranslate"><span class="pre">sparse_inference_backend</span></code> for both
+methods. <code class="docutils literal notranslate"><span class="pre">&quot;csr&quot;</span></code> is the memory-efficient default; <code class="docutils literal notranslate"><span class="pre">&quot;dense&quot;</span></code> caches one
+full dense normalized factor matrix and can be faster when the retained
+<code class="docutils literal notranslate"><span class="pre">k_target</span></code> is relatively large. Override the backend for one prediction
+without retraining:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">dense_predictions</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span>
+    <span class="n">split</span><span class="p">[</span><span class="s2">&quot;test_source_matrix&quot;</span><span class="p">],</span>
+    <span class="n">k</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+    <span class="n">batch_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span>
+    <span class="n">sparse_inference_backend</span><span class="o">=</span><span class="s2">&quot;dense&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>To allow previously interacted items in a diagnostic ranking, pass
+<code class="docutils literal notranslate"><span class="pre">exclude_seen=False</span></code> to either method.</p>
+</section>
 </section>
 
 
@@ -296,7 +495,7 @@ manually computed embedding matrix directly:</p>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="quickstart.html" class="btn btn-neutral float-left" title="Quickstart" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="cli-reference.html" class="btn btn-neutral float-right" title="Checkpoint CLI Reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="citing.html" class="btn btn-neutral float-right" title="Citing Compresso Recsys" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

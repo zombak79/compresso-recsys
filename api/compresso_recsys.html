@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Core API &mdash; Compresso Recsys 0.1.0 documentation</title>
+  <title>Core API &mdash; Compresso Recsys 0.1.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
 
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../_static/documentation_options.js?v=a58bc63e"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/js/theme.js"></script>
@@ -72,6 +72,16 @@
 <li class="toctree-l2"><a class="reference internal" href="../examples.html#building-checkpoints">Building Checkpoints</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../examples.html#checkpoint-read-write">Checkpoint Read/Write</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../examples.html#evaluate-embeddings-from-python">Evaluate Embeddings From Python</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples.html#evaluate-model-predictions">Evaluate Model Predictions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples.html#train-and-evaluate-elsa">Train and Evaluate ELSA</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../citing.html">Citing Compresso Recsys</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../citing.html#compresso">Compresso</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../citing.html#ease">EASE</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../citing.html#elsa">ELSA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../citing.html#elsa-with-sampled-output-candidates">ELSA with sampled output candidates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../citing.html#compressed-elsa">Compressed ELSA</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../cli-reference.html">Checkpoint CLI Reference</a><ul>
@@ -114,15 +124,6 @@
 <li class="toctree-l4"><a class="reference internal" href="#compresso_recsys.load_cluster_graph_stage"><code class="docutils literal notranslate"><span class="pre">load_cluster_graph_stage()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#retrieval-api">Retrieval API</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#compresso_recsys.retrieval.build_eval_holdout"><code class="docutils literal notranslate"><span class="pre">build_eval_holdout()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#compresso_recsys.retrieval.build_item_cold_holdout"><code class="docutils literal notranslate"><span class="pre">build_item_cold_holdout()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#compresso_recsys.retrieval.build_leave_last_out_holdout"><code class="docutils literal notranslate"><span class="pre">build_leave_last_out_holdout()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#compresso_recsys.retrieval.build_temporal_holdout"><code class="docutils literal notranslate"><span class="pre">build_temporal_holdout()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#compresso_recsys.retrieval.evaluate_item_embeddings"><code class="docutils literal notranslate"><span class="pre">evaluate_item_embeddings()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#compresso_recsys.retrieval.evaluate_item_embeddings_with_holdout"><code class="docutils literal notranslate"><span class="pre">evaluate_item_embeddings_with_holdout()</span></code></a></li>
-</ul>
-</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="datasets.html">Datasets API</a></li>
@@ -130,6 +131,22 @@
 <li class="toctree-l3"><a class="reference internal" href="checkpoint.html#checkpoint-contexts">Checkpoint Contexts</a></li>
 <li class="toctree-l3"><a class="reference internal" href="checkpoint.html#manifest-and-json-helpers">Manifest and JSON Helpers</a></li>
 <li class="toctree-l3"><a class="reference internal" href="checkpoint.html#split-and-cluster-stages">Split and Cluster Stages</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="models.html">Models API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="models.html#recommender-contract">Recommender Contract</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.Recommender"><code class="docutils literal notranslate"><span class="pre">Recommender</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="models.html#ease">EASE</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.EASEConfig"><code class="docutils literal notranslate"><span class="pre">EASEConfig</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.EASE"><code class="docutils literal notranslate"><span class="pre">EASE</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="models.html#elsa">ELSA</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="models.html#backend-performance">Backend Performance</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="retrieval.html">Retrieval API</a><ul>
@@ -143,6 +160,20 @@
 <li class="toctree-l3"><a class="reference internal" href="retrieval.html#embedding-evaluation">Embedding Evaluation</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="retrieval.html#compresso_recsys.retrieval.evaluate_item_embeddings"><code class="docutils literal notranslate"><span class="pre">evaluate_item_embeddings()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="retrieval.html#compresso_recsys.retrieval.evaluate_item_embeddings_with_holdout"><code class="docutils literal notranslate"><span class="pre">evaluate_item_embeddings_with_holdout()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="evaluation.html">Ranking Evaluation API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="evaluation.html#predictions-and-targets">Predictions and Targets</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="evaluation.html#compresso_recsys.evaluation.evaluate_recommender"><code class="docutils literal notranslate"><span class="pre">evaluate_recommender()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="evaluation.html#compresso_recsys.evaluation.evaluate_ranked_predictions"><code class="docutils literal notranslate"><span class="pre">evaluate_ranked_predictions()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="evaluation.html#compresso_recsys.evaluation.RankingEvaluator"><code class="docutils literal notranslate"><span class="pre">RankingEvaluator</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="evaluation.html#metrics">Metrics</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="evaluation.html#default-metrics">Default Metrics</a></li>
+<li class="toctree-l4"><a class="reference internal" href="evaluation.html#optional-metrics">Optional Metrics</a></li>
 </ul>
 </li>
 </ul>
@@ -580,151 +611,6 @@ scripts, so we read direct Hugging Face/McAuley data files instead.</p>
 <dd class="field-even"><ul class="simple">
 <li><p><strong>root</strong> (<em>str</em><em> | </em><em>Path</em>)</p></li>
 <li><p><strong>stage_dir</strong> (<em>str</em>)</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-</section>
-<section id="retrieval-api">
-<h2>Retrieval API<a class="headerlink" href="#retrieval-api" title="Link to this heading"></a></h2>
-<dl class="py function">
-<dt class="sig sig-object py" id="compresso_recsys.retrieval.build_eval_holdout">
-<span class="sig-prename descclassname"><span class="pre">compresso_recsys.retrieval.</span></span><span class="sig-name descname"><span class="pre">build_eval_holdout</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_item_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_interactions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_user_support</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">random_state</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">42</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_fold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/retrieval.html#build_eval_holdout"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.retrieval.build_eval_holdout" title="Link to this definition"></a></dt>
-<dd><p>Build fixed eval holdout (source/target) using compressed_elsa fold protocol.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code>]</span></p>
-</dd>
-<dt class="field-even">Parameters<span class="colon">:</span></dt>
-<dd class="field-even"><ul class="simple">
-<li><p><strong>train_item_ids</strong> (<em>Index</em><em> | </em><em>ndarray</em>)</p></li>
-<li><p><strong>eval_interactions</strong> (<em>DataFrame</em>)</p></li>
-<li><p><strong>min_user_support</strong> (<em>int</em>)</p></li>
-<li><p><strong>random_state</strong> (<em>int</em>)</p></li>
-<li><p><strong>eval_fold</strong> (<em>int</em>)</p></li>
-</ul>
-</dd>
-</dl>
-<dl class="simple">
-<dt>eval_fold:</dt><dd><ul class="simple">
-<li><p>0: stacked 5-fold behavior (paper default in compressed_elsa)</p></li>
-<li><p>1: single fold</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="compresso_recsys.retrieval.build_item_cold_holdout">
-<span class="sig-prename descclassname"><span class="pre">compresso_recsys.retrieval.</span></span><span class="sig-name descname"><span class="pre">build_item_cold_holdout</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">item_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interactions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source_item_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_item_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_source_items</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_target_items</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/retrieval.html#build_item_cold_holdout"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.retrieval.build_item_cold_holdout" title="Link to this definition"></a></dt>
-<dd><p>Build source=train-item and target=cold-item holdout for overlapping users.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code>]</span></p>
-</dd>
-<dt class="field-even">Parameters<span class="colon">:</span></dt>
-<dd class="field-even"><ul class="simple">
-<li><p><strong>item_ids</strong> (<em>Index</em><em> | </em><em>ndarray</em>)</p></li>
-<li><p><strong>interactions</strong> (<em>DataFrame</em>)</p></li>
-<li><p><strong>source_item_ids</strong> (<em>set</em><em>[</em><em>str</em><em>] </em><em>| </em><em>list</em><em>[</em><em>str</em><em>] </em><em>| </em><em>ndarray</em>)</p></li>
-<li><p><strong>target_item_ids</strong> (<em>set</em><em>[</em><em>str</em><em>] </em><em>| </em><em>list</em><em>[</em><em>str</em><em>] </em><em>| </em><em>ndarray</em>)</p></li>
-<li><p><strong>min_source_items</strong> (<em>int</em>)</p></li>
-<li><p><strong>min_target_items</strong> (<em>int</em>)</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="compresso_recsys.retrieval.build_leave_last_out_holdout">
-<span class="sig-prename descclassname"><span class="pre">compresso_recsys.retrieval.</span></span><span class="sig-name descname"><span class="pre">build_leave_last_out_holdout</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">item_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interactions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_source_items</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_target_items</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/retrieval.html#build_leave_last_out_holdout"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.retrieval.build_leave_last_out_holdout" title="Link to this definition"></a></dt>
-<dd><p>Build per-user source/target by holding out each user’s latest interaction.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code>]</span></p>
-</dd>
-<dt class="field-even">Parameters<span class="colon">:</span></dt>
-<dd class="field-even"><ul class="simple">
-<li><p><strong>item_ids</strong> (<em>Index</em><em> | </em><em>ndarray</em>)</p></li>
-<li><p><strong>interactions</strong> (<em>DataFrame</em>)</p></li>
-<li><p><strong>min_source_items</strong> (<em>int</em>)</p></li>
-<li><p><strong>min_target_items</strong> (<em>int</em>)</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="compresso_recsys.retrieval.build_temporal_holdout">
-<span class="sig-prename descclassname"><span class="pre">compresso_recsys.retrieval.</span></span><span class="sig-name descname"><span class="pre">build_temporal_holdout</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">item_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interactions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_frac</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_source_items</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_target_items</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/retrieval.html#build_temporal_holdout"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.retrieval.build_temporal_holdout" title="Link to this definition"></a></dt>
-<dd><p>Build source/target using a global timestamp cutoff.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code>]</span></p>
-</dd>
-<dt class="field-even">Parameters<span class="colon">:</span></dt>
-<dd class="field-even"><ul class="simple">
-<li><p><strong>item_ids</strong> (<em>Index</em><em> | </em><em>ndarray</em>)</p></li>
-<li><p><strong>interactions</strong> (<em>DataFrame</em>)</p></li>
-<li><p><strong>test_frac</strong> (<em>float</em>)</p></li>
-<li><p><strong>min_source_items</strong> (<em>int</em>)</p></li>
-<li><p><strong>min_target_items</strong> (<em>int</em>)</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="compresso_recsys.retrieval.evaluate_item_embeddings">
-<span class="sig-prename descclassname"><span class="pre">compresso_recsys.retrieval.</span></span><span class="sig-name descname"><span class="pre">evaluate_item_embeddings</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_item_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">item_embeddings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_interactions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">holdout_frac</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_items_per_user</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_user_support</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">random_state</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">42</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_fold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">score_batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">512</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">debug</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">debug_users</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_progress</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/retrieval.html#evaluate_item_embeddings"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.retrieval.evaluate_item_embeddings" title="Link to this definition"></a></dt>
-<dd><p>Evaluate item embeddings with torch top-k retrieval.</p>
-<ul class="simple">
-<li><p>User profile: sum of source-item embeddings.</p></li>
-<li><p>Scores: dot(profile, item_embedding).</p></li>
-<li><p>Seen source items are masked.</p></li>
-</ul>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span></p>
-</dd>
-<dt class="field-even">Parameters<span class="colon">:</span></dt>
-<dd class="field-even"><ul class="simple">
-<li><p><strong>train_item_ids</strong> (<em>Index</em>)</p></li>
-<li><p><strong>item_embeddings</strong> (<em>ndarray</em>)</p></li>
-<li><p><strong>eval_interactions</strong> (<em>DataFrame</em>)</p></li>
-<li><p><strong>k</strong> (<em>int</em>)</p></li>
-<li><p><strong>holdout_frac</strong> (<em>float</em>)</p></li>
-<li><p><strong>min_items_per_user</strong> (<em>int</em>)</p></li>
-<li><p><strong>min_user_support</strong> (<em>int</em>)</p></li>
-<li><p><strong>random_state</strong> (<em>int</em>)</p></li>
-<li><p><strong>eval_fold</strong> (<em>int</em>)</p></li>
-<li><p><strong>score_batch_size</strong> (<em>int</em>)</p></li>
-<li><p><strong>debug</strong> (<em>bool</em>)</p></li>
-<li><p><strong>debug_users</strong> (<em>int</em>)</p></li>
-<li><p><strong>show_progress</strong> (<em>bool</em>)</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="compresso_recsys.retrieval.evaluate_item_embeddings_with_holdout">
-<span class="sig-prename descclassname"><span class="pre">compresso_recsys.retrieval.</span></span><span class="sig-name descname"><span class="pre">evaluate_item_embeddings_with_holdout</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">item_embeddings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source_indices</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_indices</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">score_batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">512</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">debug</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">debug_users</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_progress</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/retrieval.html#evaluate_item_embeddings_with_holdout"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.retrieval.evaluate_item_embeddings_with_holdout" title="Link to this definition"></a></dt>
-<dd><dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span></p>
-</dd>
-<dt class="field-even">Parameters<span class="colon">:</span></dt>
-<dd class="field-even"><ul class="simple">
-<li><p><strong>item_embeddings</strong> (<em>ndarray</em>)</p></li>
-<li><p><strong>source_indices</strong> (<em>list</em><em>[</em><em>ndarray</em><em>]</em>)</p></li>
-<li><p><strong>target_indices</strong> (<em>list</em><em>[</em><em>ndarray</em><em>]</em>)</p></li>
-<li><p><strong>k</strong> (<em>int</em>)</p></li>
-<li><p><strong>score_batch_size</strong> (<em>int</em>)</p></li>
-<li><p><strong>debug</strong> (<em>bool</em>)</p></li>
-<li><p><strong>debug_users</strong> (<em>int</em>)</p></li>
-<li><p><strong>show_progress</strong> (<em>bool</em>)</p></li>
 </ul>
 </dd>
 </dl>

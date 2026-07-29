@@ -48,19 +48,3 @@ Checkpoint Helpers
 .. autofunction:: compresso_recsys.save_cluster_graph_stage
 
 .. autofunction:: compresso_recsys.load_cluster_graph_stage
-
-Retrieval API
--------------
-
-.. autofunction:: compresso_recsys.retrieval.build_eval_holdout
-
-.. autofunction:: compresso_recsys.retrieval.build_item_cold_holdout
-
-.. autofunction:: compresso_recsys.retrieval.build_leave_last_out_holdout
-
-.. autofunction:: compresso_recsys.retrieval.build_temporal_holdout
-
-.. autofunction:: compresso_recsys.retrieval.evaluate_item_embeddings
-
-.. autofunction:: compresso_recsys.retrieval.evaluate_item_embeddings_with_holdout
-
