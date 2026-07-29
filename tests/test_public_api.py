@@ -3,6 +3,9 @@ from __future__ import annotations
 import compresso_recsys as cr
 import compresso_recsys.checkpoint as checkpoint
 import compresso_recsys.datasets as datasets
+import compresso_recsys.evaluation as evaluation
+import compresso_recsys.metrics as metrics
+import compresso_recsys.models as models
 
 
 def test_top_level_public_api_is_intentional():
@@ -80,6 +83,32 @@ def test_submodule_public_apis_are_intentional():
             "MovieLens20M",
             "Goodbooks",
             "AmazonReviews2023",
+        },
+        evaluation: {
+            "RankingEvaluator",
+            "evaluate_ranked_predictions",
+            "evaluate_recommender",
+        },
+        metrics: {
+            "CalibratedRecall",
+            "HitRate",
+            "MAP",
+            "MRR",
+            "NDCG",
+            "Precision",
+            "Recall",
+            "RankingBatch",
+            "RankingMetric",
+        },
+        models: {
+            "CompressedELSA",
+            "EASE",
+            "EASEConfig",
+            "ELSA",
+            "ELSACompressionConfig",
+            "ELSAConfig",
+            "ELSATrainer",
+            "Recommender",
         },
     }
 
