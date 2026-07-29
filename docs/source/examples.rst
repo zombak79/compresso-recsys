@@ -263,9 +263,11 @@ Because this example sets ``max_output``, both mask search and sparse
 fine-tuning gather only the batch's candidate rows. Setting ``max_output=None``
 scores the complete item catalog during training.
 The default ``sparse_finetune_backend="dense"`` densifies those selected rows
-and is normally faster. Set it to ``"coo"`` to keep the fixed factors sparse
-through two differentiable sparse matrix multiplications, reducing
-fine-tuning memory at the cost of speed.
+and uses dense matrix multiplication. Set it to ``"coo"`` to keep the fixed
+factors sparse through two differentiable sparse matrix multiplications. COO
+uses less fine-tuning memory and can also be faster for very small
+``k_target`` values; dense operations tend to become more competitive as the
+ticket grows. The crossover depends on the device, batch, and candidate sizes.
 
 After fitting, the normalized sparse item factors can be exported without
 densifying:

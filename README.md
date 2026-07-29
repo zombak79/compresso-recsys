@@ -103,6 +103,9 @@ https://zombak79.github.io/compresso-recsys/
 The full CLI parameter table, checkpoint split schema, and supported Amazon
 Reviews 2023 categories are maintained in the
 [Checkpoint CLI Reference](https://zombak79.github.io/compresso-recsys/cli-reference.html).
+Academic references and copy-ready BibTeX for EASE, ELSA, large-scale ELSA,
+and compressed ELSA are available in the
+[citation guide](https://zombak79.github.io/compresso-recsys/citing.html).
 
 Build the docs locally:
 

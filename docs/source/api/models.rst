@@ -22,7 +22,8 @@ EASE is a closed-form collaborative-filtering model. Fitting creates a dense
 item-by-item coefficient matrix, so its memory use grows quadratically with
 the number of items. ``float32`` is the memory-efficient default. Select
 ``float64`` explicitly when additional numerical precision is more important
-than fit and prediction speed.
+than fit and prediction speed. See :doc:`../citing` for the original EASE
+paper and copy-ready BibTeX.
 
 .. autoclass:: compresso_recsys.models.EASEConfig
    :members:
@@ -36,6 +37,8 @@ ELSA
 ELSA learns a low-rank matrix of normalized item embeddings with a shallow
 linear autoencoder objective. Unlike EASE, its model size grows linearly with
 the number of items, making it suitable for larger catalogs and GPU training.
+See :doc:`../citing` for citations covering standard ELSA, large-scale
+candidate sampling, and compressed ELSA.
 
 During training, ``max_output`` can limit each batch's output candidates. All
 items with positive interactions in the batch are always retained, and the
@@ -62,13 +65,49 @@ the candidate set, mask search projects only those ``MaskedParam`` rows and
 sparse fine-tuning selects only those gradient-connected ``SRPParam`` rows.
 The default dense fine-tuning backend densifies that selection, while the COO
 backend keeps it sparse through differentiable sparse matrix multiplications.
-``max_output=None`` scores the complete catalog during training.
+COO can reduce both memory and runtime for highly sparse tickets, while dense
+matrix multiplication can win as the retained ``k`` grows. The crossover is
+hardware- and workload-dependent. ``max_output=None`` scores the complete
+catalog during training.
 
 Sparse inference defaults to cached CSR full-catalog scoring and densifies only
 the selected source rows. The dense inference backend instead caches one full
 normalized factor matrix and can be faster for less sparse tickets. Configure
 the normal backend in ``ELSACompressionConfig`` or override it per
 ``predict`` or ``predict_on_batch`` call without retraining.
+
+Backend Performance
+~~~~~~~~~~~~~~~~~~~
+
+Sparse backends are not necessarily slower. In one representative benchmark
+with ``latent_dim=4096``, their speed advantage disappeared between
+``k_target=16`` and ``k_target=32``:
+
+.. list-table:: Relative throughput compared with the corresponding dense backend
+   :header-rows: 1
+   :widths: 15 28 28
+
+   * - ``k_target``
+     - COO fine-tuning
+     - CSR inference
+   * - 8
+     - 32% faster
+     - 9% faster
+   * - 16
+     - 13% faster
+     - 4% faster
+   * - 32
+     - 4% slower
+     - 2.6% slower
+
+This table is illustrative rather than a universal selection rule. Sparse
+kernel overhead, device characteristics, batch size, candidate count, catalog
+size, and ``latent_dim`` all affect the crossover. Even above it, COO or CSR
+may be preferable because they avoid the much larger dense factor
+representation. For a new workload, benchmark both backends with the same
+trained ticket; ``sparse_inference_backend`` can be overridden per prediction
+call without retraining. Tiny metric differences between backends can occur
+because floating-point reductions use a different order.
 
 Compressed ELSA uses Compresso's exact ``MaskedParam.to_srp_param()``
 conversion, which preserves the final selected mask even for tied or
