@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+from dataclasses import replace
+
 import numpy as np
 import pytest
 import torch
 import torch.nn.functional as F
 from scipy.sparse import csc_matrix, csr_matrix
 
+from compresso import SRPTensor
 from compresso_recsys.evaluation import (
     evaluate_ranked_predictions,
     evaluate_recommender,
@@ -270,6 +273,8 @@ def test_elsa_config_rejects_invalid_values(name, value):
         ({"k_target": 2, "mask_update_interval": 0}, "mask_update_interval"),
         ({"k_target": 2, "max_epochs_per_stage": 0}, "max_epochs_per_stage"),
         ({"k_target": 2, "ste_alpha": 2}, "ste_alpha"),
+        ({"k_target": 2, "sparse_finetune_backend": "csr"}, "finetune"),
+        ({"k_target": 2, "sparse_inference_backend": "coo"}, "inference"),
     ],
 )
 def test_compression_config_rejects_invalid_values(kwargs, match):
@@ -419,6 +424,110 @@ def test_compressed_sparse_finetuning_selects_rows_and_preserves_gradients(
     assert torch.count_nonzero(model.sparse_A.values.grad[candidates]) > 0
 
 
+def test_compressed_coo_finetuning_matches_dense_outputs_and_gradients(
+    interactions,
+    monkeypatch,
+):
+    trainer = _compressed_trainer(
+        epochs=1,
+        use_relu=False,
+    ).fit(interactions)
+    assert isinstance(trainer.elsa, CompressedELSA)
+    model = trainer.elsa
+    assert model.sparse_A is not None
+    model.train()
+    candidates = torch.tensor([0, 2, 4, 6])
+    sources = candidates[:2]
+    x = torch.tensor([[1.0, 0.5], [0.25, 1.5]])
+    x_out = torch.tensor(
+        [[1.0, 0.5, 0.0, 0.0], [0.25, 1.5, 0.0, 0.0]]
+    )
+
+    model.compression = replace(
+        model.compression,
+        sparse_finetune_backend="dense",
+    )
+    model.zero_grad(set_to_none=True)
+    dense_output = model(
+        x,
+        sources=sources,
+        candidates=candidates,
+        x_out=x_out,
+    )
+    dense_output.square().sum().backward()
+    dense_gradient = model.sparse_A.values.grad.detach().clone()
+    model.zero_grad(set_to_none=True)
+
+    model.compression = replace(
+        model.compression,
+        sparse_finetune_backend="coo",
+    )
+
+    def fail_densification(self):
+        raise AssertionError("COO fine-tuning densified SRP factors")
+
+    monkeypatch.setattr(SRPTensor, "to_dense", fail_densification)
+    coo_output = model(
+        x,
+        sources=sources,
+        candidates=candidates,
+        x_out=x_out,
+    )
+    coo_output.square().sum().backward()
+
+    torch.testing.assert_close(coo_output, dense_output)
+    torch.testing.assert_close(model.sparse_A.values.grad, dense_gradient)
+
+
+def test_compressed_coo_finetuning_supports_full_catalog(
+    interactions,
+):
+    trainer = _compressed_trainer(
+        epochs=1,
+        use_relu=False,
+    ).fit(interactions)
+    assert isinstance(trainer.elsa, CompressedELSA)
+    model = trainer.elsa
+    assert model.sparse_A is not None
+    model.train()
+    source_columns = torch.tensor([0, 2, 4])
+    x = torch.tensor([[1.0, 0.5, 0.25], [0.25, 1.5, 0.0]])
+
+    model.compression = replace(
+        model.compression,
+        sparse_finetune_backend="dense",
+    )
+    dense_output = model(x, sources=source_columns)
+    model.compression = replace(
+        model.compression,
+        sparse_finetune_backend="coo",
+    )
+    coo_output = model(x, sources=source_columns)
+
+    torch.testing.assert_close(coo_output, dense_output)
+
+
+def test_compressed_fit_accepts_coo_finetuning(interactions):
+    trainer = _compressed_trainer(
+        epochs=1,
+        compression=ELSACompressionConfig(
+            k_target=2,
+            k_schedule=(4, 2),
+            stability_window=1,
+            change_threshold=100.0,
+            mask_update_interval=1,
+            sparse_finetune_backend="coo",
+        ),
+    ).fit(interactions)
+
+    assert isinstance(trainer.elsa, CompressedELSA)
+    assert trainer.elsa.phase == "inference"
+    assert any(
+        record.get("phase") == "sparse_finetune"
+        for record in trainer.history
+    )
+
+
 def test_compressed_stage_can_be_forced_after_epoch_limit(
     interactions,
     capsys,
@@ -498,10 +607,58 @@ def test_compressed_sparse_inference_matches_dense_scoring(
     )
     sources = torch.from_numpy(source_columns)
 
-    sparse_scores = trainer.elsa.score_all_items(x, sources=sources)
-    dense_scores = trainer.elsa(x, sources=sources)
+    sparse_scores = trainer.elsa.score_all_items(
+        x,
+        sources=sources,
+        backend="csr",
+    )
+    dense_backend_scores = trainer.elsa.score_all_items(
+        x,
+        sources=sources,
+        backend="dense",
+    )
+    dense_reference_scores = trainer.elsa(x, sources=sources)
 
-    torch.testing.assert_close(sparse_scores, dense_scores)
+    torch.testing.assert_close(sparse_scores, dense_reference_scores)
+    torch.testing.assert_close(dense_backend_scores, dense_reference_scores)
+
+
+def test_compressed_inference_builds_backend_caches_lazily(
+    interactions,
+    source,
+):
+    trainer = _compressed_trainer(
+        epochs=1,
+        compression=ELSACompressionConfig(
+            k_target=2,
+            k_schedule=(4, 2),
+            stability_window=1,
+            change_threshold=100.0,
+            mask_update_interval=1,
+            sparse_inference_backend="dense",
+        ),
+    ).fit(interactions)
+    assert isinstance(trainer.elsa, CompressedELSA)
+    model = trainer.elsa
+    assert model._inference_srp is not None
+    assert model._inference_dense is not None
+    assert model._inference_csr is None
+    dense_cache = model._inference_dense
+
+    trainer.predict_on_batch(
+        source,
+        k=3,
+        sparse_inference_backend="dense",
+    )
+    assert model._inference_dense is dense_cache
+
+    trainer.predict_on_batch(
+        source,
+        k=3,
+        sparse_inference_backend="csr",
+    )
+    assert model._inference_csr is not None
+    assert model._inference_dense is dense_cache
 
 
 def test_compressed_decay_starts_only_after_mask_search(interactions):
@@ -593,6 +750,60 @@ def test_predict_matches_predict_on_batch_across_batch_sizes(interactions, sourc
     assert actual.shape == source.shape
     torch.testing.assert_close(actual.cols, expected.cols)
     torch.testing.assert_close(actual.vals, expected.vals)
+
+
+def test_compressed_prediction_backend_override_preserves_rankings(
+    interactions,
+    source,
+):
+    trainer = _compressed_trainer(epochs=1).fit(interactions)
+
+    csr_predictions = trainer.predict_on_batch(
+        source,
+        k=3,
+        sparse_inference_backend="csr",
+    )
+    dense_predictions = trainer.predict_on_batch(
+        source,
+        k=3,
+        sparse_inference_backend="dense",
+    )
+    streamed_dense_predictions = trainer.predict(
+        source,
+        k=3,
+        batch_size=2,
+        show_progress=False,
+        sparse_inference_backend="dense",
+    )
+
+    torch.testing.assert_close(dense_predictions.cols, csr_predictions.cols)
+    torch.testing.assert_close(dense_predictions.vals, csr_predictions.vals)
+    torch.testing.assert_close(
+        streamed_dense_predictions.cols,
+        dense_predictions.cols,
+    )
+    torch.testing.assert_close(
+        streamed_dense_predictions.vals,
+        dense_predictions.vals,
+    )
+
+
+def test_dense_elsa_rejects_sparse_inference_backend(interactions, source):
+    trainer = _trainer(epochs=1).fit(interactions)
+
+    with pytest.raises(ValueError, match="only available for compressed ELSA"):
+        trainer.predict_on_batch(
+            source,
+            k=3,
+            sparse_inference_backend="dense",
+        )
+    with pytest.raises(ValueError, match="only available for compressed ELSA"):
+        trainer.predict(
+            source,
+            k=3,
+            show_progress=False,
+            sparse_inference_backend="csr",
+        )
 
 
 def test_predictions_exclude_seen_items_by_default(interactions, source):

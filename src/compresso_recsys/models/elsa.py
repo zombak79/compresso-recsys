@@ -23,6 +23,8 @@ __all__ = [
 
 OptimizerName = Literal["NAdam", "AdamW"]
 CompressionScoreMode = Literal["abs", "raw", "relu"]
+SparseFinetuneBackend = Literal["dense", "coo"]
+SparseInferenceBackend = Literal["csr", "dense"]
 
 
 def _canonical_csr(matrix: csr_matrix, *, name: str) -> csr_matrix:
@@ -68,6 +70,37 @@ def _normalize_srp(factors: SRPTensor) -> SRPTensor:
         shape=factors.shape,
         validate=False,
     )
+
+
+def _srp_to_coo(factors: SRPTensor) -> torch.Tensor:
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore",
+            message="Sparse invariant checks are implicitly disabled.*",
+            category=UserWarning,
+        )
+        return factors.to_coo()
+
+
+def _score_sparse_candidates(
+    x: torch.Tensor,
+    *,
+    source_embeddings: SRPTensor,
+    candidate_embeddings: SRPTensor,
+    x_out: torch.Tensor | None,
+    use_relu: bool,
+) -> torch.Tensor:
+    user_factors = torch.sparse.mm(
+        _srp_to_coo(source_embeddings).transpose(0, 1),
+        x.T,
+    ).T
+    scores = torch.sparse.mm(
+        _srp_to_coo(candidate_embeddings),
+        user_factors.T,
+    ).T
+    if x_out is not None:
+        scores = scores - x_out
+    return F.relu(scores) if use_relu else scores
 
 
 def _score_candidates(
@@ -233,7 +266,11 @@ class ELSACompressionConfig:
     ticket is found, it is converted to an :class:`compresso.SRPParam` and its
     values are trained for ``ELSAConfig.epochs``. ``max_epochs_per_stage`` can
     force an unstable stage to accept its latest proposed mask; ``None`` leaves
-    stability search unlimited.
+    stability search unlimited. ``sparse_finetune_backend="dense"`` densifies
+    only the selected SRP rows and uses dense matrix multiplication, while
+    ``"coo"`` preserves sparse factors for lower-memory fine-tuning.
+    ``sparse_inference_backend`` selects cached CSR or dense full-catalog
+    scoring and can be overridden by each prediction call.
     """
 
     k_target: int
@@ -245,6 +282,8 @@ class ELSACompressionConfig:
     max_epochs_per_stage: int | None = None
     score_mode: CompressionScoreMode = "abs"
     ste_alpha: float = 1.0
+    sparse_finetune_backend: SparseFinetuneBackend = "dense"
+    sparse_inference_backend: SparseInferenceBackend = "csr"
 
     def __post_init__(self) -> None:
         if self.k_target < 1:
@@ -281,6 +320,14 @@ class ELSACompressionConfig:
             raise ValueError("score_mode must be 'abs', 'raw', or 'relu'")
         if not np.isfinite(self.ste_alpha) or not 0 <= self.ste_alpha <= 1:
             raise ValueError("ste_alpha must be finite and in [0, 1]")
+        if self.sparse_finetune_backend not in {"dense", "coo"}:
+            raise ValueError(
+                "sparse_finetune_backend must be 'dense' or 'coo'"
+            )
+        if self.sparse_inference_backend not in {"csr", "dense"}:
+            raise ValueError(
+                "sparse_inference_backend must be 'csr' or 'dense'"
+            )
 
 
 @dataclass(frozen=True)
@@ -435,10 +482,12 @@ class CompressedELSA(nn.Module):
         self.phase = "mask_search"
         self._inference_srp: SRPTensor | None = None
         self._inference_csr: torch.Tensor | None = None
+        self._inference_dense: torch.Tensor | None = None
 
     def _invalidate_inference_cache(self) -> None:
         self._inference_srp = None
         self._inference_csr = None
+        self._inference_dense = None
 
     def _apply(self, fn):
         result = super()._apply(fn)
@@ -501,17 +550,32 @@ class CompressedELSA(nn.Module):
         self._invalidate_inference_cache()
 
     @torch.no_grad()
-    def prepare_inference(self) -> None:
-        """Cache normalized SRP and CSR factors for sparse inference."""
-        factors = self.normalized_item_srp().detach()
-        self._inference_srp = factors
-        with warnings.catch_warnings():
-            warnings.filterwarnings(
-                "ignore",
-                message="Sparse CSR tensor support is in beta state.*",
-                category=UserWarning,
+    def prepare_inference(
+        self,
+        backend: SparseInferenceBackend | None = None,
+    ) -> None:
+        """Cache normalized factors for the selected inference backend."""
+        resolved_backend = (
+            self.compression.sparse_inference_backend
+            if backend is None
+            else backend
+        )
+        if resolved_backend not in {"csr", "dense"}:
+            raise ValueError(
+                "sparse inference backend must be 'csr' or 'dense'"
             )
-            self._inference_csr = factors.to_csr()
+        if self._inference_srp is None:
+            self._inference_srp = self.normalized_item_srp().detach()
+        if resolved_backend == "csr" and self._inference_csr is None:
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    message="Sparse CSR tensor support is in beta state.*",
+                    category=UserWarning,
+                )
+                self._inference_csr = self._inference_srp.to_csr()
+        elif resolved_backend == "dense" and self._inference_dense is None:
+            self._inference_dense = self._inference_srp.to_dense()
         self.phase = "inference"
 
     @torch.no_grad()
@@ -528,6 +592,30 @@ class CompressedELSA(nn.Module):
         x_out: torch.Tensor | None = None,
     ) -> torch.Tensor:
         """Score candidates during mask search or sparse-value training."""
+        if (
+            self.sparse_A is not None
+            and self.compression.sparse_finetune_backend == "coo"
+        ):
+            candidate_embeddings = self.normalized_item_srp(candidates)
+            if candidates is None:
+                source_embeddings = (
+                    candidate_embeddings
+                    if sources is None
+                    else candidate_embeddings[sources]
+                )
+            else:
+                if x.shape[1] > candidate_embeddings.rows:
+                    raise ValueError(
+                        "the candidate prefix must contain every source item"
+                    )
+                source_embeddings = candidate_embeddings[: x.shape[1]]
+            return _score_sparse_candidates(
+                x,
+                source_embeddings=source_embeddings,
+                candidate_embeddings=candidate_embeddings,
+                x_out=x_out,
+                use_relu=self.use_relu,
+            )
         if candidates is not None:
             candidate_embeddings = self.normalized_item_embeddings(candidates)
             if x.shape[1] > candidate_embeddings.shape[0]:
@@ -554,19 +642,30 @@ class CompressedELSA(nn.Module):
         x: torch.Tensor,
         *,
         sources: torch.Tensor,
+        backend: SparseInferenceBackend | None = None,
     ) -> torch.Tensor:
-        """Score the full catalog through the cached SRP-to-CSR path."""
-        if self._inference_srp is None or self._inference_csr is None:
-            self.prepare_inference()
+        """Score the full catalog with cached sparse or dense factors."""
+        resolved_backend = (
+            self.compression.sparse_inference_backend
+            if backend is None
+            else backend
+        )
+        self.prepare_inference(resolved_backend)
         assert self._inference_srp is not None
-        assert self._inference_csr is not None
 
-        source_factors = self._inference_srp[sources].to_dense()
-        user_factors = x @ source_factors
-        scores = torch.sparse.mm(
-            self._inference_csr,
-            user_factors.T,
-        ).T
+        if resolved_backend == "csr":
+            assert self._inference_csr is not None
+            source_factors = self._inference_srp[sources].to_dense()
+            user_factors = x @ source_factors
+            scores = torch.sparse.mm(
+                self._inference_csr,
+                user_factors.T,
+            ).T
+        else:
+            assert self._inference_dense is not None
+            source_factors = self._inference_dense[sources]
+            user_factors = x @ source_factors
+            scores = user_factors @ self._inference_dense.T
         return F.relu(scores) if self.use_relu else scores
 
 
@@ -914,13 +1013,23 @@ class ELSATrainer:
         *,
         k: int,
         exclude_seen: bool = True,
+        sparse_inference_backend: SparseInferenceBackend | None = None,
     ) -> SRPTensor:
         """Predict ranked items for one source batch.
 
-        Seen source items are excluded unless ``exclude_seen`` is false.
+        Seen source items are excluded unless ``exclude_seen`` is false. For
+        compressed ELSA, ``sparse_inference_backend`` overrides the configured
+        inference backend for this call.
         """
         source = self._prepare_source(source)
         assert self.elsa is not None and self.input_dim is not None
+        if (
+            sparse_inference_backend is not None
+            and not isinstance(self.elsa, CompressedELSA)
+        ):
+            raise ValueError(
+                "sparse_inference_backend is only available for compressed ELSA"
+            )
         if not 1 <= int(k) <= self.input_dim:
             raise ValueError(f"k must be in [1, {self.input_dim}], got {k}")
         if exclude_seen:
@@ -949,6 +1058,7 @@ class ELSATrainer:
             scores = self.elsa.score_all_items(
                 x,
                 sources=source_columns_tensor,
+                backend=sparse_inference_backend,
             )
         else:
             scores = self.elsa(
@@ -973,11 +1083,14 @@ class ELSATrainer:
         batch_size: int | None = None,
         exclude_seen: bool = True,
         show_progress: bool | None = None,
+        sparse_inference_backend: SparseInferenceBackend | None = None,
     ) -> SRPTensor:
         """Predict ranked items for all source rows in batches.
 
         Each batch delegates to :meth:`predict_on_batch`. Seen source items
-        are excluded unless ``exclude_seen`` is false.
+        are excluded unless ``exclude_seen`` is false. For compressed ELSA,
+        ``sparse_inference_backend`` overrides the configured inference backend
+        for every batch.
         """
         source = self._prepare_source(source)
         resolved_batch_size = (
@@ -1009,6 +1122,7 @@ class ELSATrainer:
                 source[start:end],
                 k=k,
                 exclude_seen=exclude_seen,
+                sparse_inference_backend=sparse_inference_backend,
             )
             columns.append(predictions.cols)
             values.append(predictions.vals)
@@ -1018,6 +1132,7 @@ class ELSATrainer:
                 source,
                 k=k,
                 exclude_seen=exclude_seen,
+                sparse_inference_backend=sparse_inference_backend,
             )
         return SRPTensor(
             cols=torch.vstack(columns),

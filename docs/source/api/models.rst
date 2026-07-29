@@ -59,10 +59,16 @@ after a fixed number of epochs. This bounds training time but may select a less
 stable ticket. Training checkpoints during this phase are not currently
 resumable, and ``torch.compile`` is not supported. When ``max_output`` limits
 the candidate set, mask search projects only those ``MaskedParam`` rows and
-sparse fine-tuning selects only those gradient-connected ``SRPParam`` rows
-before densifying. ``max_output=None`` intentionally scores and materializes
-the complete catalog. Inference selects source rows from normalized SRP factors
-and scores the catalog through a CSR matrix multiplication.
+sparse fine-tuning selects only those gradient-connected ``SRPParam`` rows.
+The default dense fine-tuning backend densifies that selection, while the COO
+backend keeps it sparse through differentiable sparse matrix multiplications.
+``max_output=None`` scores the complete catalog during training.
+
+Sparse inference defaults to cached CSR full-catalog scoring and densifies only
+the selected source rows. The dense inference backend instead caches one full
+normalized factor matrix and can be faster for less sparse tickets. Configure
+the normal backend in ``ELSACompressionConfig`` or override it per
+``predict`` or ``predict_on_batch`` call without retraining.
 
 Compressed ELSA uses Compresso's exact ``MaskedParam.to_srp_param()``
 conversion, which preserves the final selected mask even for tied or

@@ -247,6 +247,8 @@ nested compression configuration:
                change_threshold=0.01,
                mask_update_interval=10,
                max_epochs_per_stage=20,
+               sparse_finetune_backend="dense",
+               sparse_inference_backend="csr",
            ),
        )
    )
@@ -260,6 +262,10 @@ random sequence across stages, so rewinds see new sampled negatives.
 Because this example sets ``max_output``, both mask search and sparse
 fine-tuning gather only the batch's candidate rows. Setting ``max_output=None``
 scores the complete item catalog during training.
+The default ``sparse_finetune_backend="dense"`` densifies those selected rows
+and is normally faster. Set it to ``"coo"`` to keep the fixed factors sparse
+through two differentiable sparse matrix multiplications, reducing
+fine-tuning memory at the cost of speed.
 
 After fitting, the normalized sparse item factors can be exported without
 densifying:
@@ -283,6 +289,21 @@ are excluded by default:
        split["test_source_matrix"],
        k=100,
        batch_size=1024,
+   )
+
+Compressed ELSA uses the configured ``sparse_inference_backend`` for both
+methods. ``"csr"`` is the memory-efficient default; ``"dense"`` caches one
+full dense normalized factor matrix and can be faster when the retained
+``k_target`` is relatively large. Override the backend for one prediction
+without retraining:
+
+.. code-block:: python
+
+   dense_predictions = model.predict(
+       split["test_source_matrix"],
+       k=100,
+       batch_size=1024,
+       sparse_inference_backend="dense",
    )
 
 To allow previously interacted items in a diagnostic ranking, pass
