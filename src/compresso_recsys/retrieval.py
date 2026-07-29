@@ -376,6 +376,14 @@ def _iter_topk_predictions(
       interaction vector over item ids.
     """
     n_items = e.shape[0]
+    if k < 1:
+        raise ValueError("k must be >= 1")
+    if k > n_items:
+        raise ValueError(
+            f"k ({k}) cannot exceed the number of items ({n_items})"
+        )
+    if batch_size < 1:
+        raise ValueError("batch_size must be >= 1")
 
     starts = range(0, len(source_indices), batch_size)
     for start in _progress(starts, enabled=show_progress, desc=desc):
@@ -498,7 +506,15 @@ def evaluate_item_embeddings_with_holdout(
     if score_batch_size < 1:
         raise ValueError("score_batch_size must be >= 1")
 
-    e = torch.from_numpy(item_embeddings.astype(np.float32))
+    with np.errstate(over="ignore", invalid="ignore"):
+        converted_embeddings = item_embeddings.astype(np.float32)
+    if not np.isfinite(converted_embeddings).all():
+        raise ValueError(
+            "item_embeddings must contain only finite values after "
+            "conversion to float32"
+        )
+
+    e = torch.from_numpy(converted_embeddings)
     e = torch.nn.functional.normalize(e, dim=-1)
     targets = _indices_to_csr(target_indices, n_items=item_embeddings.shape[0])
     evaluator = RankingEvaluator(

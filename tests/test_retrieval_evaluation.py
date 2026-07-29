@@ -88,6 +88,38 @@ def test_embedding_retrieval_masks_seen_items(embedding_fixture):
             assert set(predictions.cols[local_row].tolist()).isdisjoint(source_items.tolist())
 
 
+@pytest.mark.parametrize(
+    ("k", "batch_size", "match"),
+    [
+        (0, 2, "k must be >= 1"),
+        (7, 2, "cannot exceed"),
+        (3, 0, "batch_size must be >= 1"),
+        (3, -1, "batch_size must be >= 1"),
+    ],
+)
+def test_embedding_retrieval_validates_direct_configuration(
+    embedding_fixture,
+    k,
+    batch_size,
+    match,
+):
+    embeddings, source, _ = embedding_fixture
+    normalized = torch.nn.functional.normalize(
+        torch.from_numpy(embeddings),
+        dim=-1,
+    )
+
+    with pytest.raises(ValueError, match=match):
+        list(
+            _iter_topk_predictions(
+                normalized,
+                source,
+                k=k,
+                batch_size=batch_size,
+            )
+        )
+
+
 def test_embedding_evaluator_validates_configuration(embedding_fixture):
     embeddings, source, targets = embedding_fixture
 
@@ -105,6 +137,32 @@ def test_embedding_evaluator_validates_configuration(embedding_fixture):
             target_indices=targets,
             k=3,
             metrics=[CalibratedRecall(4)],
+        )
+
+
+@pytest.mark.parametrize(
+    "invalid_value",
+    [
+        np.nan,
+        np.inf,
+        -np.inf,
+        np.finfo(np.float64).max,
+    ],
+)
+def test_embedding_evaluator_rejects_nonfinite_float32_embeddings(
+    embedding_fixture,
+    invalid_value,
+):
+    embeddings, source, targets = embedding_fixture
+    invalid_embeddings = embeddings.astype(np.float64)
+    invalid_embeddings[0, 0] = invalid_value
+
+    with pytest.raises(ValueError, match="finite values"):
+        evaluate_item_embeddings_with_holdout(
+            item_embeddings=invalid_embeddings,
+            source_indices=source,
+            target_indices=targets,
+            k=3,
         )
 
 
