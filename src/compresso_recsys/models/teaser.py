@@ -177,6 +177,8 @@ def _canonical_item_ids(
     item_ids: Sequence[Hashable] | np.ndarray,
     *,
     expected_rows: int | None = None,
+    expected_rows_name: str = "item_features",
+    expected_rows_unit: str = "rows",
     name: str = "item_ids",
 ) -> np.ndarray:
     if isinstance(item_ids, (str, bytes)):
@@ -191,8 +193,8 @@ def _canonical_item_ids(
     ids[:] = values
     if expected_rows is not None and ids.size != expected_rows:
         raise ValueError(
-            f"{name} has {ids.size} entries, but item_features has "
-            f"{expected_rows} rows"
+            f"{name} has {ids.size} entries, but {expected_rows_name} has "
+            f"{expected_rows} {expected_rows_unit}"
         )
     if ids.size < 1:
         raise ValueError(f"{name} must contain at least one item")
@@ -898,6 +900,59 @@ class TEASER:
             self._candidates = catalog
             self.decoder_features_ = catalog.item_features
         return catalog
+
+    def align_source(
+        self,
+        source: csr_matrix,
+        *,
+        item_ids: Sequence[Hashable] | np.ndarray,
+    ) -> csr_matrix:
+        """Align an external CSR matrix to the fitted source vocabulary.
+
+        ``item_ids`` describes the columns of ``source``. The returned columns
+        follow :attr:`source_item_ids_`; external candidate-only columns are
+        omitted. Alignment uses sparse column indexing and never densifies the
+        matrix. If the input is already aligned, it is returned unchanged.
+        """
+        if not self.is_fitted or self.source_item_ids_ is None:
+            raise RuntimeError("TEASER must be fitted before aligning source data")
+        if not isspmatrix_csr(source):
+            raise TypeError("source must be a scipy.sparse.csr_matrix")
+        if (
+            item_ids is self.source_item_ids_
+            and source.shape[1] == self.source_item_ids_.size
+        ):
+            return source
+        external_ids = _canonical_item_ids(
+            item_ids,
+            expected_rows=source.shape[1],
+            expected_rows_name="source",
+            expected_rows_unit="columns",
+        )
+        if np.array_equal(external_ids, self.source_item_ids_):
+            return source
+
+        external_to_column = {
+            item_id: column for column, item_id in enumerate(external_ids.tolist())
+        }
+        missing = [
+            item_id
+            for item_id in self.source_item_ids_.tolist()
+            if item_id not in external_to_column
+        ]
+        if missing:
+            raise ValueError(
+                f"source item_ids is missing fitted source item ID: {missing[0]!r}"
+            )
+        columns = np.fromiter(
+            (
+                external_to_column[item_id]
+                for item_id in self.source_item_ids_.tolist()
+            ),
+            dtype=np.int64,
+            count=self.source_item_ids_.size,
+        )
+        return source[:, columns].tocsr()
 
     def _prepare_source(self, source: csr_matrix) -> csr_matrix:
         if (

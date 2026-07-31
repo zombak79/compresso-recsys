@@ -413,6 +413,92 @@ def test_failed_catalog_rebuild_is_atomic(interactions, item_features):
     assert model.candidates is original
 
 
+def test_align_source_selects_and_reorders_columns_by_stable_id(
+    interactions,
+    item_features,
+    source,
+):
+    source_columns = np.array([4, 0, 2], dtype=np.int64)
+    source_ids = np.array(list("ABCDEF"), dtype=object)
+    model = TEASER(TEASERConfig(max_iterations=1)).fit(
+        interactions[:, source_columns],
+        item_features[source_columns],
+        item_ids=source_ids[source_columns],
+    )
+
+    aligned = model.align_source(source, item_ids=source_ids)
+    expected = source[:, source_columns]
+
+    assert isinstance(aligned, csr_matrix)
+    assert aligned.shape == (source.shape[0], source_columns.size)
+    np.testing.assert_array_equal(aligned.toarray(), expected.toarray())
+    assert model.align_source(aligned, item_ids=model.source_item_ids_) is aligned
+
+
+def test_aligned_source_produces_same_predictions_as_manual_projection(
+    interactions,
+    item_features,
+    source,
+):
+    train_columns = np.array([0, 2, 4], dtype=np.int64)
+    item_ids = np.array(list("ABCDEF"), dtype=object)
+    model = TEASER(TEASERConfig(max_iterations=2)).fit(
+        interactions[:, train_columns],
+        item_features[train_columns],
+        item_ids=item_ids[train_columns],
+    )
+    model.build_candidates(item_ids=item_ids, item_features=item_features)
+
+    aligned = model.align_source(source, item_ids=item_ids)
+    expected = model.predict_on_batch(source[:, train_columns], k=3)
+    actual = model.predict_on_batch(aligned, k=3)
+
+    torch.testing.assert_close(actual.cols, expected.cols)
+    torch.testing.assert_close(actual.vals, expected.vals)
+
+
+def test_align_source_validates_model_matrix_and_item_ids(
+    interactions,
+    item_features,
+    source,
+):
+    with pytest.raises(RuntimeError, match="fitted"):
+        TEASER().align_source(source, item_ids=list("ABCDEF"))
+
+    model = TEASER(TEASERConfig(max_iterations=1)).fit(
+        interactions[:, [0, 2]],
+        item_features[[0, 2]],
+        item_ids=["A", "C"],
+    )
+    with pytest.raises(TypeError, match="csr_matrix"):
+        model.align_source(csc_matrix(source), item_ids=list("ABCDEF"))
+    with pytest.raises(ValueError, match="source has 6 columns"):
+        model.align_source(source, item_ids=["A", "B"])
+    with pytest.raises(ValueError, match="duplicate"):
+        model.align_source(source, item_ids=["A", "B", "C", "D", "E", "E"])
+    with pytest.raises(ValueError, match="missing fitted source item ID: 'C'"):
+        model.align_source(
+            csr_matrix((source.shape[0], 2)),
+            item_ids=["A", "B"],
+        )
+
+
+def test_align_source_handles_empty_user_batches(interactions, item_features):
+    model = TEASER(TEASERConfig(max_iterations=1)).fit(
+        interactions[:, [1, 3]],
+        item_features[[1, 3]],
+        item_ids=["B", "D"],
+    )
+
+    aligned = model.align_source(
+        csr_matrix((0, interactions.shape[1])),
+        item_ids=list("ABCDEF"),
+    )
+
+    assert aligned.shape == (0, 2)
+    assert aligned.nnz == 0
+
+
 def test_predict_uses_one_catalog_snapshot_across_batches(
     interactions,
     item_features,

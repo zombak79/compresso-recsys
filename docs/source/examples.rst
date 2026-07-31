@@ -236,18 +236,47 @@ Serve New TEASER Candidates
 ---------------------------
 
 Stable item IDs separate the fixed source vocabulary from the mutable output
-catalog. For embedding features, identify the embedding model and revision at
-fit time:
+catalog. Fit a production-style model only on warm source items, then publish
+the complete initial candidate catalog. ``feature_space_id`` is an optional
+caller-provided label used to reject explicitly incompatible updates:
 
 .. code-block:: python
 
+   train_items = split["train_item_indices"]
+
    model.fit(
-       interactions=split["x_train"],
-       item_features=item_embeddings,
-       item_ids=split["item_ids"],
-       metadata=split["entity_metadata"],
-       train_item_indices=split["train_item_indices"],
+       interactions=split["x_train"][:, train_items],
+       item_features=item_embeddings[train_items],
+       item_ids=split["item_ids"][train_items],
+       metadata=split["entity_metadata"].iloc[train_items].reset_index(drop=True),
        feature_space_id="Qwen/Qwen3-Embedding-0.6B@revision",
+   )
+
+   model.build_candidates(
+       item_ids=split["item_ids"],
+       item_features=item_embeddings,
+       metadata=split["entity_metadata"],
+       feature_space_id="Qwen/Qwen3-Embedding-0.6B@revision",
+   )
+
+Checkpoint source matrices still use the complete checkpoint item space. Align
+one to the fitted warm source vocabulary before prediction or evaluation:
+
+.. code-block:: python
+
+   result = evaluate_recommender(
+       model,
+       source=model.align_source(
+           split["test_source_matrix"],
+           item_ids=split["item_ids"],
+       ),
+       targets=split["test_target_matrix"],
+       metrics=[
+           CalibratedRecall([20, 50]),
+           NDCG(100),
+       ],
+       batch_size=1024,
+       show_progress=True,
    )
 
 Register new decoder-only candidates without retraining:
@@ -273,7 +302,7 @@ allowlist contains registered IDs; it does not rebuild or copy the catalog:
 
    catalog = model.candidates
    predictions = model.predict(
-       source,
+       model.align_source(source, item_ids=source_item_ids),
        k=100,
        candidate_ids=eligible_item_ids,
    )
