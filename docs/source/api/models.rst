@@ -101,9 +101,58 @@ See :doc:`../citing` for the original TEASER paper.
 
 .. autoclass:: compresso_recsys.models.TEASER
    :members:
+   :inherited-members:
 
 .. autoclass:: compresso_recsys.models.CandidateCatalog
    :members:
+
+LEMSA
+-----
+
+LEMSA (Language Embeddings Meet Shallow Autoencoders) is an inductive shallow
+autoencoder for recommending cold items to warm users. It learns one encoder
+row per warm item while keeping supplied item embeddings fixed as its decoder.
+New candidates therefore need only an embedding in the same feature space;
+they do not require interactions or retraining.
+
+LEMSA uses diagonal gating rather than TEASER's global zero-diagonal
+constraint. When encoder row ``i`` is updated, only users who interacted with
+item ``i`` are used, and item ``i`` is removed from both their reconstruction
+targets and the fixed decoder. This blocks the direct self-copy shortcut for
+the row being learned while preserving the semantic contribution of every
+other item in each user's history. The resulting encoder-decoder diagonal is
+intentionally unconstrained.
+
+The default ``solver="eigen"`` implementation is exact. It rotates training
+into the eigenspace of the feature Gram matrix, where every closed-form row
+system is diagonal minus rank one and can be solved with the Sherman-Morrison
+identity. The encoder is rotated back to the original input feature space after
+training, so candidate embeddings,
+:meth:`~compresso_recsys.models.LEMSA.user_profiles`, and catalog updates retain
+their original language-embedding coordinates. ``solver="direct"`` evaluates
+the same sequential objective with a dense solve for every row and is intended
+for small reference checks.
+
+Exact sequential fitting maintains a dense user-by-feature profile matrix and
+dense item-by-feature encoder. Its main storage is therefore
+``(users + warm_items) * feature_dim`` rather than a dense item-by-item matrix.
+``precompute_batch_size`` bounds the temporary user buffer used to form fixed
+semantic target sums. The feature Gram matrix and eigendecomposition still
+cost ``feature_dim ** 2`` memory.
+
+LEMSA shares TEASER's stable-ID candidate catalog, sparse ``align_source``
+operation, atomic candidate replacement and updates, metadata handling, and
+prediction-time candidate allowlists. Source histories remain restricted to
+items with fitted encoder rows.
+
+See :doc:`../citing` for the original LEMSA paper.
+
+.. autoclass:: compresso_recsys.models.LEMSAConfig
+   :members:
+
+.. autoclass:: compresso_recsys.models.LEMSA
+   :members:
+   :inherited-members:
 
 TEASERGD
 --------

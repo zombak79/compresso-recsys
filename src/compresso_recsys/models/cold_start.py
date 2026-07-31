@@ -760,3 +760,215 @@ class FeatureCatalogMixin:
             source_to_candidate=source_to_candidate,
             candidate_to_local=candidate_to_local,
         )
+
+
+class _LinearFeatureRecommenderMixin(FeatureCatalogMixin):
+    """Shared prediction path for linear fixed-feature cold-start models."""
+
+    _model_name = "model"
+
+    def _on_catalog_published(self, catalog: CandidateCatalog) -> None:
+        self.decoder_features_ = catalog.item_features
+
+    def _prepare_source(self, source: csr_matrix) -> csr_matrix:
+        if (
+            not self.is_fitted
+            or self.n_items_ is None
+            or self.train_item_indices_ is None
+            or self.train_item_mask_ is None
+        ):
+            raise RuntimeError(
+                f"{self._model_name} must be fitted before prediction"
+            )
+        source = canonical_csr(source, name="source")
+        if source.shape[1] != self.n_items_:
+            raise ValueError(
+                f"source has {source.shape[1]} items, but {self._model_name} "
+                f"was fitted with {self.n_items_} items"
+            )
+        if source.data.size and not np.all(source.data == 1):
+            raise ValueError("source must contain binary implicit values equal to 1")
+
+        cold_positions = np.flatnonzero(~self.train_item_mask_[source.indices])
+        if cold_positions.size:
+            cold_item = int(source.indices[cold_positions[0]])
+            raise ValueError(
+                f"source contains item {cold_item}, which has no fitted encoder row"
+            )
+        return source
+
+    def user_profiles(self, source: csr_matrix) -> np.ndarray:
+        """Transform binary source histories into item-feature profiles."""
+        source = self._prepare_source(source)
+        return self._profiles_from_prepared_source(source)
+
+    def _profiles_from_prepared_source(self, source: csr_matrix) -> np.ndarray:
+        assert self.encoder_ is not None
+        assert self.train_item_indices_ is not None
+        return np.asarray(
+            source[:, self.train_item_indices_] @ self.encoder_,
+            dtype=self.dtype,
+        )
+
+    def _score_profiles(
+        self,
+        profiles: np.ndarray,
+        *,
+        candidate_features: csr_matrix | np.ndarray,
+    ) -> np.ndarray:
+        if isspmatrix_csr(candidate_features):
+            scores = (candidate_features @ profiles.T).T
+        else:
+            scores = profiles @ candidate_features.T
+        return np.asarray(scores, dtype=self.dtype)
+
+    def _predict_prepared_batch(
+        self,
+        source: csr_matrix,
+        *,
+        k: int,
+        exclude_seen: bool,
+        catalog: CandidateCatalog,
+        candidate_rows: np.ndarray,
+        candidate_features: csr_matrix | np.ndarray,
+        source_to_candidate_rows: np.ndarray,
+        candidate_to_local: np.ndarray,
+    ) -> SRPTensor:
+        if not 1 <= int(k) <= candidate_rows.size:
+            raise ValueError(f"k must be in [1, {candidate_rows.size}], got {k}")
+
+        seen_counts = np.diff(source.indptr)
+        source_rows = np.repeat(
+            np.arange(source.shape[0], dtype=np.int64),
+            seen_counts,
+        )
+        seen_candidate_rows = source_to_candidate_rows[source.indices]
+        registered = seen_candidate_rows >= 0
+        seen_local_rows = np.full(seen_candidate_rows.shape, -1, dtype=np.int64)
+        seen_local_rows[registered] = candidate_to_local[
+            seen_candidate_rows[registered]
+        ]
+        selected_seen = seen_local_rows >= 0
+
+        if exclude_seen:
+            selected_seen_counts = np.bincount(
+                source_rows[selected_seen],
+                minlength=source.shape[0],
+            )
+            available_counts = candidate_rows.size - selected_seen_counts
+            if available_counts.size and np.any(available_counts < k):
+                row = int(np.flatnonzero(available_counts < k)[0])
+                raise ValueError(
+                    f"source row {row} has only {available_counts[row]} unseen "
+                    f"items among the selected candidates, fewer than k={k}"
+                )
+
+        if source.shape[0] == 0:
+            value_dtype = torch.from_numpy(np.empty(0, dtype=self.dtype)).dtype
+            return SRPTensor(
+                cols=torch.empty((0, k), dtype=torch.long),
+                vals=torch.empty((0, k), dtype=value_dtype),
+                shape=(0, catalog.n_items),
+            )
+
+        scores = self._score_profiles(
+            self._profiles_from_prepared_source(source),
+            candidate_features=candidate_features,
+        )
+        if exclude_seen and bool(selected_seen.any()):
+            scores[source_rows[selected_seen], seen_local_rows[selected_seen]] = -np.inf
+        local_predictions = SRPTensor.from_dense(
+            torch.from_numpy(scores),
+            k=int(k),
+            score_mode="raw",
+        )
+        global_columns = torch.from_numpy(candidate_rows).to(
+            local_predictions.cols.device
+        )[local_predictions.cols]
+        return SRPTensor(
+            cols=global_columns,
+            vals=local_predictions.vals,
+            shape=(source.shape[0], catalog.n_items),
+        )
+
+    def predict_on_batch(
+        self,
+        source: csr_matrix,
+        *,
+        k: int,
+        exclude_seen: bool = True,
+        candidate_ids: Sequence[Hashable] | np.ndarray | None = None,
+    ) -> SRPTensor:
+        """Predict ranked top-``k`` items for one source batch."""
+        source = self._prepare_source(source)
+        selection = self._resolve_candidate_selection(candidate_ids)
+        return self._predict_prepared_batch(
+            source,
+            k=k,
+            exclude_seen=exclude_seen,
+            catalog=selection.catalog,
+            candidate_rows=selection.rows,
+            candidate_features=selection.features,
+            source_to_candidate_rows=selection.source_to_candidate,
+            candidate_to_local=selection.candidate_to_local,
+        )
+
+    def predict(
+        self,
+        source: csr_matrix,
+        *,
+        k: int = 100,
+        batch_size: int = 1024,
+        exclude_seen: bool = True,
+        candidate_ids: Sequence[Hashable] | np.ndarray | None = None,
+        show_progress: bool = False,
+    ) -> SRPTensor:
+        """Predict ranked top-``k`` items for all source rows in batches."""
+        source = self._prepare_source(source)
+        if batch_size < 1:
+            raise ValueError("batch_size must be >= 1")
+        selection = self._resolve_candidate_selection(candidate_ids)
+        if not 1 <= int(k) <= selection.rows.size:
+            raise ValueError(f"k must be in [1, {selection.rows.size}], got {k}")
+
+        columns: list[torch.Tensor] = []
+        values: list[torch.Tensor] = []
+        starts = range(0, source.shape[0], batch_size)
+        if show_progress:
+            try:
+                from tqdm.auto import tqdm
+
+                starts = tqdm(starts, desc=f"{self._model_name} predict@{k}")
+            except Exception:  # pragma: no cover - optional display helper
+                pass
+        for start in starts:
+            end = min(start + batch_size, source.shape[0])
+            predictions = self._predict_prepared_batch(
+                source[start:end],
+                k=k,
+                exclude_seen=exclude_seen,
+                catalog=selection.catalog,
+                candidate_rows=selection.rows,
+                candidate_features=selection.features,
+                source_to_candidate_rows=selection.source_to_candidate,
+                candidate_to_local=selection.candidate_to_local,
+            )
+            columns.append(predictions.cols)
+            values.append(predictions.vals)
+
+        if not columns:
+            return self._predict_prepared_batch(
+                source,
+                k=k,
+                exclude_seen=exclude_seen,
+                catalog=selection.catalog,
+                candidate_rows=selection.rows,
+                candidate_features=selection.features,
+                source_to_candidate_rows=selection.source_to_candidate,
+                candidate_to_local=selection.candidate_to_local,
+            )
+        return SRPTensor(
+            cols=torch.vstack(columns),
+            vals=torch.vstack(values),
+            shape=(source.shape[0], selection.catalog.n_items),
+        )

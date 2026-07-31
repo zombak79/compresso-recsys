@@ -232,6 +232,57 @@ SciPy CSR matrix, or an :class:`compresso.SRPTensor`. Its rows must follow
 original ADMM solver is intended as a reproducible baseline and can require
 substantial memory for large warm-item catalogs.
 
+Train LEMSA with Language Embeddings
+------------------------------------
+
+LEMSA learns warm-item encoder directions in the same space as fixed language
+embeddings. For an item cold-start split, train encoder rows only for warm
+items while retaining every embedding in the initial candidate catalog:
+
+.. code-block:: python
+
+   from compresso_recsys.evaluation import evaluate_recommender
+   from compresso_recsys.metrics import CalibratedRecall, MRR, NDCG
+   from compresso_recsys.models import LEMSA, LEMSAConfig
+
+   model = LEMSA(
+       LEMSAConfig(
+           l2_encoder=0.05,
+           epochs=10,
+           solver="eigen",
+           dtype="float32",
+       )
+   )
+   model.fit(
+       split["x_train"],
+       item_features=item_embeddings,
+       train_item_indices=split["train_item_indices"],
+       item_ids=split["item_ids"],
+       metadata=split["entity_metadata"],
+       feature_space_id="Qwen/Qwen3-Embedding-0.6B",
+       show_progress=True,
+   )
+
+   result = evaluate_recommender(
+       model,
+       source=split["test_source_matrix"],
+       targets=split["test_target_matrix"],
+       metrics=[
+           CalibratedRecall([20, 50]),
+           NDCG(100),
+           MRR([20, 50, 100]),
+       ],
+       batch_size=1024,
+       show_progress=True,
+   )
+
+``solver="eigen"`` performs the paper's sequential closed-form updates using
+an exact rank-one solver. ``solver="direct"`` has the same result but performs
+a dense solve per item and is mainly useful for reproducing the equations on
+small datasets. New item embeddings can subsequently be published through
+``update_candidates`` or a complete catalog can be replaced with
+``build_candidates`` without fitting new encoder rows.
+
 Train TEASER with Gradient Descent
 ----------------------------------
 

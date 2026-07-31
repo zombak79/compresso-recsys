@@ -111,6 +111,8 @@ def test_submodule_public_apis_are_intentional():
             "ELSAConfig",
             "ELSATrainer",
             "ItemVocabulary",
+            "LEMSA",
+            "LEMSAConfig",
             "Recommender",
             "TEASER",
             "TEASERConfig",

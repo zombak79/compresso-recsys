@@ -10,6 +10,7 @@ from .elsa import (
     ELSAConfig,
     ELSATrainer,
 )
+from .lemsa import LEMSA, LEMSAConfig
 from .teaser import TEASER, TEASERConfig
 from .teaser_gd import TEASERGD, TEASERGDConfig, TEASERGDTrainer
 
@@ -25,6 +26,8 @@ __all__ = [
     "ELSATrainer",
     "Recommender",
     "ItemVocabulary",
+    "LEMSA",
+    "LEMSAConfig",
     "TEASER",
     "TEASERConfig",
     "TEASERGD",
