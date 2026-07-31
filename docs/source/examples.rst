@@ -250,6 +250,7 @@ items while retaining every embedding in the initial candidate catalog:
            l2_encoder=0.05,
            epochs=10,
            solver="eigen",
+           update_batch_size=128,
            dtype="float32",
        )
    )
@@ -276,10 +277,14 @@ items while retaining every embedding in the initial candidate catalog:
        show_progress=True,
    )
 
-``solver="eigen"`` performs the paper's sequential closed-form updates using
-an exact rank-one solver. ``solver="direct"`` has the same result but performs
-a dense solve per item and is mainly useful for reproducing the equations on
-small datasets. New item embeddings can subsequently be published through
+``solver="eigen"`` performs exact rank-one row solves. Rows are computed in
+snapshot-based blocks controlled by ``update_batch_size`` and committed only
+after the whole block has been solved. Use ``1`` for sequential Gauss-Seidel
+updates or ``None`` for a full Jacobi sweep. The appendix does not report its
+batch size, so validation comparisons across several values are appropriate
+for strict replication. ``solver="direct"`` solves the same systems densely
+and is mainly useful for reproducing the equations on small datasets. New item
+embeddings can subsequently be published through
 ``update_candidates`` or a complete catalog can be replaced with
 ``build_candidates`` without fitting new encoder rows.
 

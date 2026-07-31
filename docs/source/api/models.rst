@@ -130,11 +130,20 @@ identity. The encoder is rotated back to the original input feature space after
 training, so candidate embeddings,
 :meth:`~compresso_recsys.models.LEMSA.user_profiles`, and catalog updates retain
 their original language-embedding coordinates. ``solver="direct"`` evaluates
-the same sequential objective with a dense solve for every row and is intended
-for small reference checks.
+the same row systems with dense solves and is intended for small reference
+checks.
 
-Exact sequential fitting maintains a dense user-by-feature profile matrix and
-dense item-by-feature encoder. Its main storage is therefore
+Rows are updated in snapshot-based blocks, matching the parallel update
+strategy described by the paper's appendix. Every row in a block is solved
+against the same frozen encoder and user profiles, then all changes are
+committed together. ``update_batch_size=1`` recovers sequential Gauss-Seidel
+updates, while ``update_batch_size=None`` performs one full Jacobi update per
+epoch. The default is ``128`` because the paper reports small parallel batches
+but does not publish the exact batch size; tune it on validation data when
+strict reproduction matters.
+
+Fitting maintains a dense user-by-feature profile matrix and dense
+item-by-feature encoder. Its main storage is therefore
 ``(users + warm_items) * feature_dim`` rather than a dense item-by-item matrix.
 ``precompute_batch_size`` bounds the temporary user buffer used to form fixed
 semantic target sums. The feature Gram matrix and eigendecomposition still

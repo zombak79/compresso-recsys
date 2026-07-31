@@ -68,25 +68,35 @@ def _literal_lemsa(
     l2_encoder: float,
     epochs: int,
     encoder_init: str = "zeros",
+    update_batch_size: int | None = 1,
 ) -> np.ndarray:
     encoder = (
         np.zeros_like(features) if encoder_init == "zeros" else features.copy()
     )
+    batch_size = (
+        interactions.shape[1]
+        if update_batch_size is None
+        else update_batch_size
+    )
     for _ in range(epochs):
-        for item in range(interactions.shape[1]):
-            users = np.flatnonzero(interactions[:, item])
-            keep = np.arange(interactions.shape[1]) != item
-            decoder = features[keep]
-            if users.size == 0:
-                encoder[item] = 0
-                continue
-            restricted = interactions[np.ix_(users, keep)]
-            context = restricted @ encoder[keep]
-            residual = restricted - context @ decoder.T
-            matrix = users.size * decoder.T @ decoder
-            matrix.flat[:: matrix.shape[0] + 1] += l2_encoder
-            right_hand_side = decoder.T @ residual.T @ np.ones(users.size)
-            encoder[item] = np.linalg.solve(matrix, right_hand_side)
+        for block_start in range(0, interactions.shape[1], batch_size):
+            block_end = min(block_start + batch_size, interactions.shape[1])
+            next_rows = encoder[block_start:block_end].copy()
+            for offset, item in enumerate(range(block_start, block_end)):
+                users = np.flatnonzero(interactions[:, item])
+                keep = np.arange(interactions.shape[1]) != item
+                decoder = features[keep]
+                if users.size == 0:
+                    next_rows[offset] = 0
+                    continue
+                restricted = interactions[np.ix_(users, keep)]
+                context = restricted @ encoder[keep]
+                residual = restricted - context @ decoder.T
+                matrix = users.size * decoder.T @ decoder
+                matrix.flat[:: matrix.shape[0] + 1] += l2_encoder
+                right_hand_side = decoder.T @ residual.T @ np.ones(users.size)
+                next_rows[offset] = np.linalg.solve(matrix, right_hand_side)
+            encoder[block_start:block_end] = next_rows
     return encoder
 
 
@@ -97,6 +107,7 @@ def _fit(
     solver: str = "eigen",
     epochs: int = 2,
     encoder_init: str = "zeros",
+    update_batch_size: int | None = 1,
 ) -> LEMSA:
     return LEMSA(
         LEMSAConfig(
@@ -104,6 +115,7 @@ def _fit(
             epochs=epochs,
             solver=solver,
             encoder_init=encoder_init,
+            update_batch_size=update_batch_size,
             precompute_batch_size=2,
             dtype="float64",
         )
@@ -118,6 +130,7 @@ def test_defaults_are_production_oriented():
     assert config.solver == "eigen"
     assert config.encoder_init == "zeros"
     assert config.tolerance is None
+    assert config.update_batch_size == 128
     assert config.precompute_batch_size == 8192
     assert config.dtype == "float32"
 
@@ -149,6 +162,49 @@ def test_fit_matches_literal_gated_coordinate_updates(
     assert model.n_epochs_ == 3
     assert len(model.fit_history_) == 3
     assert all(row["solver_fallbacks"] == 0 for row in model.fit_history_)
+
+
+@pytest.mark.parametrize("solver", ["direct", "eigen"])
+@pytest.mark.parametrize("update_batch_size", [2, None])
+def test_fit_matches_literal_snapshot_block_updates(
+    interactions,
+    item_features,
+    solver,
+    update_batch_size,
+):
+    model = _fit(
+        interactions,
+        item_features,
+        solver=solver,
+        epochs=3,
+        update_batch_size=update_batch_size,
+    )
+    expected = _literal_lemsa(
+        interactions.toarray(),
+        item_features,
+        l2_encoder=0.17,
+        epochs=3,
+        update_batch_size=update_batch_size,
+    )
+
+    np.testing.assert_allclose(model.encoder_, expected, rtol=1e-11, atol=1e-11)
+
+
+def test_snapshot_block_size_changes_update_schedule(interactions, item_features):
+    sequential = _fit(
+        interactions,
+        item_features,
+        epochs=2,
+        update_batch_size=1,
+    )
+    full_sweep = _fit(
+        interactions,
+        item_features,
+        epochs=2,
+        update_batch_size=None,
+    )
+
+    assert not np.allclose(sequential.encoder_, full_sweep.encoder_)
 
 
 def test_eigen_and_direct_solvers_produce_identical_scores(
@@ -409,6 +465,9 @@ def test_tolerance_can_stop_after_first_sweep(interactions, item_features):
         ("encoder_init", "xavier"),
         ("tolerance", 0),
         ("tolerance", np.inf),
+        ("update_batch_size", 0),
+        ("update_batch_size", 1.5),
+        ("update_batch_size", True),
         ("precompute_batch_size", 0),
         ("precompute_batch_size", True),
         ("dtype", "float16"),

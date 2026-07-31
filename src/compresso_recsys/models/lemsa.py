@@ -97,6 +97,57 @@ def _solve_eigen_row(
     return np.linalg.solve(matrix, right_hand_side), True
 
 
+def _solve_eigen_rows(
+    *,
+    supports: np.ndarray,
+    features: np.ndarray,
+    eigenvalues: np.ndarray,
+    right_hand_sides: np.ndarray,
+    l2_encoder: float,
+) -> tuple[np.ndarray, int]:
+    """Solve a block of diagonal-minus-rank-one LEMSA row systems."""
+    result = np.zeros_like(right_hand_sides)
+    active = supports > 0
+    if not np.any(active):
+        return result, 0
+
+    active_supports = supports[active, None]
+    active_features = features[active]
+    active_rhs = right_hand_sides[active]
+    diagonal_inverse = 1.0 / (active_supports * eigenvalues + l2_encoder)
+    base = diagonal_inverse * active_rhs
+    scaled_features = diagonal_inverse * active_features
+    denominators = 1.0 - supports[active] * np.sum(
+        active_features * scaled_features,
+        axis=1,
+    )
+    threshold = 32.0 * np.finfo(right_hand_sides.dtype).eps
+    stable = np.isfinite(denominators) & (denominators > threshold)
+
+    solved = base.copy()
+    solved[stable] += (
+        active_supports[stable]
+        * scaled_features[stable]
+        * (
+            np.sum(active_features[stable] * base[stable], axis=1)
+            / denominators[stable]
+        )[:, None]
+    )
+
+    fallback_indices = np.flatnonzero(active)[~stable]
+    for item in fallback_indices:
+        solved_row, _ = _solve_eigen_row(
+            support=int(supports[item]),
+            feature=features[item],
+            eigenvalues=eigenvalues,
+            right_hand_side=right_hand_sides[item],
+            l2_encoder=l2_encoder,
+        )
+        result[item] = solved_row
+    result[np.flatnonzero(active)[stable]] = solved[stable]
+    return result, int(fallback_indices.size)
+
+
 def _solve_direct_row(
     *,
     support: int,
@@ -124,7 +175,7 @@ class LEMSAConfig:
     l2_encoder:
         Positive ridge regularization applied to each encoder-row update.
     epochs:
-        Maximum number of sequential coordinate-descent sweeps.
+        Maximum number of block coordinate-descent sweeps.
     solver:
         ``"eigen"`` rotates the feature Gram matrix to diagonal form and uses
         an exact rank-one solve. ``"direct"`` solves the literal dense system
@@ -133,6 +184,11 @@ class LEMSAConfig:
         Initialize encoder rows with zeros or their fixed feature rows.
     tolerance:
         Optional relative encoder-change threshold for early stopping.
+    update_batch_size:
+        Number of encoder rows computed from the same frozen model snapshot
+        before their updates are applied together. ``1`` selects sequential
+        Gauss-Seidel updates, while ``None`` uses one full Jacobi update per
+        epoch.
     precompute_batch_size:
         User batch size used while computing fixed semantic target sums.
     dtype:
@@ -144,6 +200,7 @@ class LEMSAConfig:
     solver: LEMSASolver = "eigen"
     encoder_init: LEMSAEncoderInit = "zeros"
     tolerance: float | None = None
+    update_batch_size: int | None = 128
     precompute_batch_size: int = 8192
     dtype: LEMSADataType = "float32"
 
@@ -164,6 +221,12 @@ class LEMSAConfig:
             not np.isfinite(self.tolerance) or self.tolerance <= 0
         ):
             raise ValueError("tolerance must be finite and > 0, or None")
+        if self.update_batch_size is not None and (
+            isinstance(self.update_batch_size, bool)
+            or not isinstance(self.update_batch_size, (int, np.integer))
+            or self.update_batch_size < 1
+        ):
+            raise ValueError("update_batch_size must be >= 1, or None")
         if (
             isinstance(self.precompute_batch_size, bool)
             or not isinstance(self.precompute_batch_size, (int, np.integer))
@@ -322,61 +385,92 @@ class LEMSA(_LinearFeatureRecommenderMixin):
         x_csc = x.tocsc()
         supports = np.diff(x_csc.indptr)
         history: list[dict[str, float]] = []
+        update_batch_size = (
+            x.shape[1]
+            if self.cfg.update_batch_size is None
+            else min(int(self.cfg.update_batch_size), x.shape[1])
+        )
 
         for epoch in range(int(self.cfg.epochs)):
             squared_change = 0.0
             max_row_change = 0.0
             fallbacks = 0
-            rows = _progress(
-                range(x.shape[1]),
+            blocks = _progress(
+                range(0, x.shape[1], update_batch_size),
                 enabled=show_progress,
                 desc=f"LEMSA epoch {epoch + 1}",
             )
-            for item in rows:
-                start, end = x_csc.indptr[item : item + 2]
-                users = x_csc.indices[start:end]
-                support = int(supports[item])
-                feature = solver_features[item]
-                old_encoder = encoder[item].copy()
+            for block_start in blocks:
+                block_end = min(block_start + update_batch_size, x.shape[1])
+                block = slice(block_start, block_end)
+                block_supports = supports[block]
+                block_features = solver_features[block]
+                old_rows = encoder[block]
 
-                if support == 0:
-                    next_encoder = np.zeros_like(old_encoder)
+                # Context and every solve read the same frozen block snapshot.
+                context_sums = np.asarray(
+                    x_csc[:, block].T @ user_profiles,
+                    dtype=self.dtype,
+                )
+                context_sums -= block_supports[:, None] * old_rows
+                target = target_sums[block] - block_supports[:, None] * block_features
+
+                if self.cfg.solver == "eigen":
+                    assert eigenvalues is not None
+                    gram_context = eigenvalues * context_sums
+                    gram_context -= block_features * np.sum(
+                        block_features * context_sums,
+                        axis=1,
+                        keepdims=True,
+                    )
+                    next_rows, block_fallbacks = _solve_eigen_rows(
+                        supports=block_supports,
+                        features=block_features,
+                        eigenvalues=eigenvalues,
+                        right_hand_sides=target - gram_context,
+                        l2_encoder=float(self.cfg.l2_encoder),
+                    )
+                    fallbacks += block_fallbacks
                 else:
-                    target_sum = target_sums[item] - support * feature
-                    context_sum = user_profiles[users].sum(axis=0)
-                    context_sum -= support * old_encoder
-
-                    if self.cfg.solver == "eigen":
-                        assert eigenvalues is not None
-                        gram_context = eigenvalues * context_sum
-                        gram_context -= feature * float(feature @ context_sum)
-                        right_hand_side = target_sum - gram_context
-                        next_encoder, used_fallback = _solve_eigen_row(
-                            support=support,
-                            feature=feature,
-                            eigenvalues=eigenvalues,
-                            right_hand_side=right_hand_side,
-                            l2_encoder=float(self.cfg.l2_encoder),
-                        )
-                        fallbacks += int(used_fallback)
-                    else:
-                        gram_without_item = feature_gram - np.outer(feature, feature)
-                        right_hand_side = target_sum - gram_without_item @ context_sum
-                        next_encoder = _solve_direct_row(
-                            support=support,
-                            feature=feature,
+                    next_rows = np.empty_like(old_rows)
+                    for offset in range(block_end - block_start):
+                        next_rows[offset] = _solve_direct_row(
+                            support=int(block_supports[offset]),
+                            feature=block_features[offset],
                             feature_gram=feature_gram,
-                            right_hand_side=right_hand_side,
+                            right_hand_side=(
+                                target[offset]
+                                - (
+                                    feature_gram
+                                    - np.outer(
+                                        block_features[offset],
+                                        block_features[offset],
+                                    )
+                                )
+                                @ context_sums[offset]
+                            ),
                             l2_encoder=float(self.cfg.l2_encoder),
                         )
 
-                delta = np.asarray(next_encoder - old_encoder, dtype=self.dtype)
-                encoder[item] = next_encoder
-                if users.size:
-                    user_profiles[users] += delta
-                row_change = float(np.linalg.norm(delta))
-                squared_change += row_change * row_change
-                max_row_change = max(max_row_change, row_change)
+                deltas = np.asarray(
+                    next_rows - old_rows,
+                    dtype=self.dtype,
+                )
+                encoder[block] = next_rows
+
+                # Commit profile changes only after every row has been solved.
+                for offset, item in enumerate(range(block_start, block_end)):
+                    start, end = x_csc.indptr[item : item + 2]
+                    users = x_csc.indices[start:end]
+                    if users.size:
+                        user_profiles[users] += deltas[offset]
+
+                row_changes = np.linalg.norm(deltas, axis=1)
+                squared_change += float(row_changes @ row_changes)
+                max_row_change = max(
+                    max_row_change,
+                    float(row_changes.max(initial=0.0)),
+                )
 
             encoder_norm = float(np.linalg.norm(encoder))
             relative_change = float(np.sqrt(squared_change)) / max(
