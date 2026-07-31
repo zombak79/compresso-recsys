@@ -138,9 +138,10 @@ strategy described by the paper's appendix. Every row in a block is solved
 against the same frozen encoder and user profiles, then all changes are
 committed together. ``update_batch_size=1`` recovers sequential Gauss-Seidel
 updates, while ``update_batch_size=None`` performs one full Jacobi update per
-epoch. The default is ``128`` because the paper reports small parallel batches
-but does not publish the exact batch size; tune it on validation data when
-strict reproduction matters.
+epoch. The paper reports small parallel batches but does not publish the exact
+batch size. Because simultaneous updates can be unstable when many items
+co-occur, the correctness-first default is ``1``; larger values must be
+selected on validation data.
 
 Fitting maintains a dense user-by-feature profile matrix and dense
 item-by-feature encoder. Its main storage is therefore
@@ -162,6 +163,44 @@ See :doc:`../citing` for the original LEMSA paper.
 .. autoclass:: compresso_recsys.models.LEMSA
    :members:
    :inherited-members:
+
+LEMSAGD
+-------
+
+LEMSAGD trains the same unconstrained ``E @ S.T`` architecture through
+symmetric held-out reconstruction rather than the paper's item-wise ALS
+objective. Every eligible user history is randomly divided into two non-empty
+views on each epoch. The model learns both directions, ``x -> y`` and
+``y -> x``, and averages their normalized reconstruction losses. Consequently,
+every interaction serves as both context and a positive target.
+
+The active source view is removed from its loss mask. Source interactions are
+therefore not mislabeled as negative outputs, and the encoder-decoder diagonal
+is neither subtracted nor explicitly penalized. Identity copying cannot reduce
+the objective because source and target views are disjoint. Prediction uses
+the full unconstrained scores and applies ordinary seen-item masking afterward.
+
+Only users retaining at least two warm interactions can form the two views;
+other users are ignored during fitting but remain fully supported during
+prediction. Splits are reproducible from ``seed`` and refreshed as training
+advances. ``split_probability`` controls assignment to the first view, while
+both views are forced to contain at least one interaction.
+
+The trainer reuses TEASERGD's fixed dense or CSR feature decoder, stable-ID
+candidate catalog, cold candidate updates, optional popularity feature,
+Xavier or feature initialization, row-normalized encoder option, NAdam/AdamW,
+cosine decay, ``torch.compile``, and source-prefix ``max_output`` sampling.
+LEMSAGD is an experimental denoising variant inspired by LEMSA; it is not the
+gradient equivalent of the paper's gated ALS algorithm.
+
+.. autoclass:: compresso_recsys.models.LEMSAGDConfig
+   :members:
+
+.. autoclass:: compresso_recsys.models.LEMSAGD
+   :members:
+
+.. autoclass:: compresso_recsys.models.LEMSAGDTrainer
+   :members:
 
 TEASERGD
 --------

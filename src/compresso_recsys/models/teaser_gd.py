@@ -315,6 +315,8 @@ class TEASERGDConfig:
 class TEASERGDTrainer(FeatureCatalogMixin):
     """Fit TEASER with PyTorch, sampled outputs, and cold candidate catalogs."""
 
+    _fit_name = "TEASERGD"
+
     def __init__(self, config: TEASERGDConfig | None = None) -> None:
         self.cfg = config if config is not None else TEASERGDConfig()
         self._init_feature_catalog_state()
@@ -354,6 +356,35 @@ class TEASERGDTrainer(FeatureCatalogMixin):
             lr=float(self.cfg.lr),
             weight_decay=float(self.cfg.weight_decay),
         )
+
+    def _build_base_model(self, *, input_dim: int, feature_dim: int) -> TEASERGD:
+        return TEASERGD(
+            input_dim=input_dim,
+            feature_dim=feature_dim,
+            use_relu=self.cfg.use_relu,
+            normalize_encoder=self.cfg.normalize_encoder,
+        )
+
+    def _build_batch_sampler(
+        self,
+        interactions: csr_matrix,
+    ) -> InteractionBatchSampler:
+        return InteractionBatchSampler(
+            interactions,
+            device=self.device,
+            batch_size=self.cfg.batch_size,
+            shuffle=True,
+            max_output=self.cfg.max_output,
+            seed=self.cfg.seed,
+        )
+
+    def _empty_epoch_sums(self) -> dict[str, float]:
+        return {
+            "loss": 0.0,
+            "reconstruction": 0.0,
+            "coefficient_l2": 0.0,
+            "encoder_l2": 0.0,
+        }
 
     def _coefficient_penalty(self) -> torch.Tensor:
         assert self._training_features is not None
@@ -469,11 +500,9 @@ class TEASERGDTrainer(FeatureCatalogMixin):
         if show_progress is not None and not isinstance(show_progress, bool):
             raise ValueError("show_progress must be a bool or None")
         torch.manual_seed(int(self.cfg.seed))
-        base_model = TEASERGD(
+        base_model = self._build_base_model(
             input_dim=train_indices.size,
             feature_dim=training_features.shape[1],
-            use_relu=self.cfg.use_relu,
-            normalize_encoder=self.cfg.normalize_encoder,
         ).to(self.device)
         if self.cfg.encoder_init == "features":
             _initialize_encoder_from_features(base_model, training_features)
@@ -504,14 +533,7 @@ class TEASERGDTrainer(FeatureCatalogMixin):
             include_popularity=self.cfg.include_popularity,
         )
 
-        dataset = InteractionBatchSampler(
-            training_interactions,
-            device=self.device,
-            batch_size=self.cfg.batch_size,
-            shuffle=True,
-            max_output=self.cfg.max_output,
-            seed=self.cfg.seed,
-        )
+        dataset = self._build_batch_sampler(training_interactions)
         assert self.optimizer is not None
         scheduler = (
             torch.optim.lr_scheduler.CosineAnnealingLR(
@@ -528,21 +550,16 @@ class TEASERGDTrainer(FeatureCatalogMixin):
         epoch_iter = self._progress_with_override(
             range(1, self.cfg.epochs + 1),
             total=self.cfg.epochs,
-            desc="TEASERGD fit",
+            desc=f"{self._fit_name} fit",
             enabled=progress_enabled,
         )
         for epoch in epoch_iter:
-            sums = {
-                "loss": 0.0,
-                "reconstruction": 0.0,
-                "coefficient_l2": 0.0,
-                "encoder_l2": 0.0,
-            }
+            sums = self._empty_epoch_sums()
             batches = 0
             batch_iter = self._progress_with_override(
                 range(len(dataset)),
                 total=len(dataset),
-                desc=f"TEASERGD epoch {epoch}",
+                desc=f"{self._fit_name} epoch {epoch}",
                 enabled=progress_enabled,
             )
             for batch_index in batch_iter:

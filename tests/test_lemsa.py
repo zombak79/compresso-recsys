@@ -130,7 +130,7 @@ def test_defaults_are_production_oriented():
     assert config.solver == "eigen"
     assert config.encoder_init == "zeros"
     assert config.tolerance is None
-    assert config.update_batch_size == 128
+    assert config.update_batch_size == 1
     assert config.precompute_batch_size == 8192
     assert config.dtype == "float32"
 

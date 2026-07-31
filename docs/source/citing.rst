@@ -56,7 +56,10 @@ LEMSA
 -----
 
 For :class:`compresso_recsys.models.LEMSA`, cite the diagonal-gating shallow
-autoencoder paper:
+autoencoder paper. The experimental
+:class:`compresso_recsys.models.LEMSAGDTrainer` is inspired by this work but
+uses a distinct symmetric split-history objective; describe that distinction
+when citing it.
 
 .. code-block:: bibtex
 

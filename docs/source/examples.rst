@@ -250,7 +250,7 @@ items while retaining every embedding in the initial candidate catalog:
            l2_encoder=0.05,
            epochs=10,
            solver="eigen",
-           update_batch_size=128,
+           update_batch_size=1,
            dtype="float32",
        )
    )
@@ -287,6 +287,56 @@ and is mainly useful for reproducing the equations on small datasets. New item
 embeddings can subsequently be published through
 ``update_candidates`` or a complete catalog can be replaced with
 ``build_candidates`` without fitting new encoder rows.
+
+Train LEMSAGD with Symmetric History Splits
+-------------------------------------------
+
+LEMSAGD leaves ``E @ S.T`` unconstrained and prevents identity training by
+predicting disjoint halves of each user history from one another:
+
+.. code-block:: python
+
+   from compresso_recsys.models import LEMSAGDConfig, LEMSAGDTrainer
+
+   model = LEMSAGDTrainer(
+       LEMSAGDConfig(
+           device="cuda",
+           batch_size=1024,
+           max_output=10_000,
+           epochs=10,
+           lr=1e-3,
+           decay=True,
+           split_probability=0.5,
+           use_relu=True,
+           encoder_init="xavier",
+           normalize_encoder=False,
+           l2_encoder=0.0,
+       )
+   )
+   model.fit(
+       split["x_train"],
+       item_features=item_embeddings,
+       train_item_indices=split["train_item_indices"],
+       item_ids=split["item_ids"],
+       metadata=split["entity_metadata"],
+       feature_space_id="Qwen/Qwen3-Embedding-0.6B",
+   )
+
+   result = evaluate_recommender(
+       model,
+       source=split["test_source_matrix"],
+       targets=split["test_target_matrix"],
+       metrics=[CalibratedRecall([20, 50]), NDCG(100)],
+       batch_size=1024,
+       show_progress=True,
+   )
+
+The two random views are regenerated during training, and both directions are
+optimized in every batch. Source entries are excluded from the corresponding
+loss rather than treated as negative labels. Users with fewer than two warm
+interactions do not contribute training examples. This model is an
+experimental split-history variant, not an exact reproduction of LEMSA's ALS
+optimizer.
 
 Train TEASER with Gradient Descent
 ----------------------------------

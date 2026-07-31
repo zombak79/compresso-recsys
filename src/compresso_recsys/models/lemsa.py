@@ -200,7 +200,7 @@ class LEMSAConfig:
     solver: LEMSASolver = "eigen"
     encoder_init: LEMSAEncoderInit = "zeros"
     tolerance: float | None = None
-    update_batch_size: int | None = 128
+    update_batch_size: int | None = 1
     precompute_batch_size: int = 8192
     dtype: LEMSADataType = "float32"
 

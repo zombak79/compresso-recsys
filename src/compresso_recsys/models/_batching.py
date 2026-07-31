@@ -19,6 +19,16 @@ class InteractionBatch:
     candidates: torch.Tensor | None
 
 
+@dataclass(frozen=True)
+class SymmetricInteractionBatch:
+    """Two disjoint views of the same user histories."""
+
+    x: torch.Tensor
+    y: torch.Tensor
+    sources: torch.Tensor
+    candidates: torch.Tensor | None
+
+
 def normalized_mse(
     predictions: torch.Tensor,
     targets: torch.Tensor,
@@ -158,3 +168,124 @@ class InteractionBatchSampler:
     def on_epoch_end(self) -> None:
         if self.shuffle:
             self.rng.shuffle(self.user_indices)
+
+
+class SymmetricInteractionBatchSampler(InteractionBatchSampler):
+    """Random non-empty history splits for symmetric cross-reconstruction."""
+
+    def __init__(
+        self,
+        interactions: csr_matrix,
+        *,
+        device: torch.device,
+        batch_size: int,
+        shuffle: bool,
+        max_output: int | None,
+        seed: int,
+        split_probability: float,
+    ) -> None:
+        super().__init__(
+            interactions,
+            device=device,
+            batch_size=batch_size,
+            shuffle=False,
+            max_output=max_output,
+            seed=seed,
+        )
+        self.shuffle = bool(shuffle)
+        self.split_probability = float(split_probability)
+        self.user_indices = np.flatnonzero(
+            np.diff(interactions.indptr) >= 2
+        ).astype(np.int64, copy=False)
+        if self.user_indices.size == 0:
+            raise ValueError(
+                "symmetric interaction splitting requires at least one user "
+                "with two interactions"
+            )
+        if self.shuffle:
+            self.on_epoch_end()
+
+    def __len__(self) -> int:
+        return math.ceil(self.user_indices.size / self.batch_size)
+
+    def __getitem__(self, batch_index: int) -> SymmetricInteractionBatch:
+        start = int(batch_index) * self.batch_size
+        end = min(start + self.batch_size, self.user_indices.size)
+        if start < 0 or start >= self.user_indices.size:
+            raise IndexError(batch_index)
+
+        matrix = self.interactions[self.user_indices[start:end]]
+        source_columns = np.flatnonzero(
+            np.asarray(matrix.getnnz(axis=0)).ravel()
+        ).astype(np.int64, copy=False)
+        if self.max_output is None:
+            candidate_columns = None
+        else:
+            negative_mask = np.ones(matrix.shape[1], dtype=bool)
+            negative_mask[source_columns] = False
+            negative_pool = self.item_indices[negative_mask]
+            n_negatives = min(
+                len(negative_pool),
+                max(0, int(self.max_output) - len(source_columns)),
+            )
+            if n_negatives == len(negative_pool):
+                negative_columns = negative_pool
+            elif n_negatives > 0:
+                negative_columns = self.rng.choice(
+                    negative_pool,
+                    size=n_negatives,
+                    replace=False,
+                    shuffle=False,
+                )
+            else:
+                negative_columns = np.empty(0, dtype=np.int64)
+            candidate_columns = np.concatenate(
+                (source_columns, negative_columns)
+            )
+
+        row_indices = np.repeat(
+            np.arange(matrix.shape[0], dtype=np.int64),
+            np.diff(matrix.indptr),
+        )
+        source_lookup = np.empty(matrix.shape[1], dtype=np.int64)
+        source_lookup[source_columns] = np.arange(
+            source_columns.size,
+            dtype=np.int64,
+        )
+        local_columns = source_lookup[matrix.indices]
+        in_x = self.rng.random(matrix.nnz) < self.split_probability
+        for row in range(matrix.shape[0]):
+            row_start, row_end = matrix.indptr[row : row + 2]
+            if bool(in_x[row_start:row_end].all()):
+                position = int(self.rng.integers(row_start, row_end))
+                in_x[position] = False
+            elif not bool(in_x[row_start:row_end].any()):
+                position = int(self.rng.integers(row_start, row_end))
+                in_x[position] = True
+
+        values = matrix.data.astype(np.float32, copy=False)
+        shape = (matrix.shape[0], source_columns.size)
+        x = self._sparse_tensor(
+            row_indices[in_x],
+            local_columns[in_x],
+            values[in_x],
+            shape=shape,
+        )
+        y = self._sparse_tensor(
+            row_indices[~in_x],
+            local_columns[~in_x],
+            values[~in_x],
+            shape=shape,
+        )
+        if candidate_columns is None:
+            sources = torch.from_numpy(source_columns).to(self.device)
+            candidates = None
+        else:
+            candidates = torch.from_numpy(candidate_columns).to(self.device)
+            sources = candidates[: source_columns.size]
+        return SymmetricInteractionBatch(
+            x=x,
+            y=y,
+            sources=sources,
+            candidates=candidates,
+        )
