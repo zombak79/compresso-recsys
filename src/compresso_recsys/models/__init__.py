@@ -9,6 +9,7 @@ from .elsa import (
     ELSAConfig,
     ELSATrainer,
 )
+from .teaser import TEASER, TEASERConfig
 
 __all__ = [
     "CompressedELSA",
@@ -19,4 +20,6 @@ __all__ = [
     "ELSAConfig",
     "ELSATrainer",
     "Recommender",
+    "TEASER",
+    "TEASERConfig",
 ]

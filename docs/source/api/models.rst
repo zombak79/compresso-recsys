@@ -31,6 +31,37 @@ paper and copy-ready BibTeX.
 .. autoclass:: compresso_recsys.models.EASE
    :members:
 
+TEASER
+------
+
+TEASER learns item-to-feature encoder weights from binary implicit interactions
+while keeping the supplied item-feature matrix fixed as its decoder. The
+reference implementation uses the original ADMM updates. It accepts item
+features as a SciPy CSR matrix, :class:`compresso.SRPTensor`, NumPy array, or
+PyTorch tensor. Binary tags reproduce the original model, while real-valued
+dense or sparse embeddings provide the same fixed-decoder abstraction without
+necessarily retaining human-readable feature explanations.
+
+For an item cold-start split, pass the checkpoint's ``train_item_indices`` to
+``fit``. Only those interaction columns and feature rows participate in ADMM,
+but the decoder keeps feature rows for every item. Validation and test items can
+therefore be ranked from metadata without being treated as zero-valued training
+targets. Source histories must contain fitted training items.
+
+The original solver forms a dense warm-item Gram matrix and eigendecomposes it,
+so fit memory grows quadratically and fit time cubically with the number of warm
+items. It also forms a dense feature Gram matrix. Sparse item features reduce
+input storage and can accelerate prediction, but do not remove those training
+costs. ``float64`` is the parity-oriented default.
+
+See :doc:`../citing` for the original TEASER paper.
+
+.. autoclass:: compresso_recsys.models.TEASERConfig
+   :members:
+
+.. autoclass:: compresso_recsys.models.TEASER
+   :members:
+
 ELSA
 ----
 

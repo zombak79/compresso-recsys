@@ -109,6 +109,8 @@ def test_submodule_public_apis_are_intentional():
             "ELSAConfig",
             "ELSATrainer",
             "Recommender",
+            "TEASER",
+            "TEASERConfig",
         },
     }
 

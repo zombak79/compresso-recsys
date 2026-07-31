@@ -34,6 +34,22 @@ For :class:`compresso_recsys.models.EASE`, cite the original EASE paper:
      year={2019}
    }
 
+TEASER
+------
+
+For :class:`compresso_recsys.models.TEASER`, cite the original TEASER paper:
+
+.. code-block:: bibtex
+
+   @inproceedings{depauw2022who,
+     title={Who do you think I am? Interactive User Modelling with Item Metadata},
+     author={De Pauw, Joey and Ruymbeek, Koen and Goethals, Bart},
+     booktitle={Proceedings of the 16th ACM Conference on Recommender Systems},
+     pages={640--643},
+     year={2022},
+     doi={10.1145/3523227.3551470}
+   }
+
 ELSA
 ----
 

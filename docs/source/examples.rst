@@ -183,6 +183,53 @@ Additional metrics can be opted into without changing the defaults:
 For a model that already produced one complete :class:`compresso.SRPTensor`,
 use :func:`compresso_recsys.evaluation.evaluate_ranked_predictions` instead.
 
+Train TEASER for Cold Items
+---------------------------
+
+TEASER consumes the checkpoint's item-feature matrix directly. With an
+``item_split`` checkpoint, fit only encoder rows for warm items while retaining
+all item features in the fixed decoder:
+
+.. code-block:: python
+
+   from compresso_recsys.evaluation import evaluate_recommender
+   from compresso_recsys.metrics import CalibratedRecall, NDCG
+   from compresso_recsys.models import TEASER, TEASERConfig
+
+   model = TEASER(
+       TEASERConfig(
+           l2_coefficients=0.05,
+           l2_encoder=0.05,
+           rho=0.05,
+           max_iterations=10,
+       )
+   )
+   model.fit(
+       split["x_train"],
+       item_features=split["entity_tag_matrix"],
+       train_item_indices=split["train_item_indices"],
+       feature_names=split["tag_names"],
+       show_progress=True,
+   )
+
+   result = evaluate_recommender(
+       model,
+       source=split["test_source_matrix"],
+       targets=split["test_target_matrix"],
+       metrics=[
+           CalibratedRecall([20, 50]),
+           NDCG(100),
+       ],
+       batch_size=1024,
+       show_progress=True,
+   )
+
+``item_features`` may instead be a dense NumPy or PyTorch embedding matrix, a
+SciPy CSR matrix, or an :class:`compresso.SRPTensor`. Its rows must follow
+``split["item_ids"]``. Interactions must be binary implicit feedback. The
+original ADMM solver is intended as a reproducible baseline and can require
+substantial memory for large warm-item catalogs.
+
 Train and Evaluate ELSA
 -----------------------
 
