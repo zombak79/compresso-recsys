@@ -315,6 +315,7 @@ class LeaveOneOutInteractionBatchSampler(InteractionBatchSampler):
         shuffle: bool,
         max_output: int | None,
         seed: int,
+        batch_order: str = "round_robin",
     ) -> None:
         super().__init__(
             interactions,
@@ -325,17 +326,26 @@ class LeaveOneOutInteractionBatchSampler(InteractionBatchSampler):
             seed=seed,
         )
         self.shuffle = bool(shuffle)
+        if batch_order not in {"round_robin", "grouped"}:
+            raise ValueError(
+                "batch_order must be 'round_robin' or 'grouped'"
+            )
+        self.batch_order = batch_order
+        self.user_degrees = np.diff(interactions.indptr).astype(
+            np.int64,
+            copy=False,
+        )
         self.eligible_users = np.flatnonzero(
-            np.diff(interactions.indptr) >= 2
+            self.user_degrees >= 2
         ).astype(np.int64, copy=False)
         if self.eligible_users.size == 0:
             raise ValueError(
                 "leave-one-out training requires at least one user with two "
                 "interactions"
             )
-        self.event_indices = self._events_for_users(self.eligible_users)
-        if self.shuffle:
-            self.on_epoch_end()
+        self.event_indices = np.empty(0, dtype=np.int64)
+        self.batch_indptr = np.empty(0, dtype=np.int64)
+        self._rebuild_epoch_order(randomize=self.shuffle)
 
     def _events_for_users(self, users: np.ndarray) -> np.ndarray:
         counts = np.diff(self.interactions.indptr)[users].astype(
@@ -351,18 +361,70 @@ class LeaveOneOutInteractionBatchSampler(InteractionBatchSampler):
         return repeated_starts + within_group
 
     def __len__(self) -> int:
-        return math.ceil(self.event_indices.size / self.batch_size)
+        return max(0, self.batch_indptr.size - 1)
 
     @property
     def n_examples(self) -> int:
         """Number of observed interactions visited in one complete epoch."""
         return int(self.event_indices.size)
 
+    def _fixed_batch_indptr(self, n_examples: int) -> np.ndarray:
+        starts = np.arange(0, n_examples, self.batch_size, dtype=np.int64)
+        return np.append(starts, np.int64(n_examples))
+
+    def _round_robin_order(
+        self,
+        *,
+        randomize: bool,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        per_user_events = np.arange(self.interactions.nnz, dtype=np.int64)
+        if randomize:
+            for user in self.eligible_users:
+                start, end = self.interactions.indptr[user : user + 2]
+                self.rng.shuffle(per_user_events[start:end])
+
+        n_examples = int(self.user_degrees[self.eligible_users].sum())
+        event_indices = np.empty(n_examples, dtype=np.int64)
+        batch_ends = [0]
+        cursor = 0
+        max_degree = int(self.user_degrees[self.eligible_users].max())
+        # Batch each interaction depth separately so users cannot repeat.
+        for depth in range(max_degree):
+            active_users = self.eligible_users[
+                self.user_degrees[self.eligible_users] > depth
+            ].copy()
+            if randomize:
+                self.rng.shuffle(active_users)
+            round_events = per_user_events[
+                self.interactions.indptr[active_users] + depth
+            ]
+            round_start = cursor
+            cursor += active_users.size
+            event_indices[round_start:cursor] = round_events
+            for local_start in range(0, active_users.size, self.batch_size):
+                batch_ends.append(
+                    round_start
+                    + min(local_start + self.batch_size, active_users.size)
+                )
+        return event_indices, np.asarray(batch_ends, dtype=np.int64)
+
+    def _rebuild_epoch_order(self, *, randomize: bool) -> None:
+        if self.batch_order == "round_robin":
+            self.event_indices, self.batch_indptr = self._round_robin_order(
+                randomize=randomize,
+            )
+            return
+
+        users = self.eligible_users.copy()
+        if randomize:
+            self.rng.shuffle(users)
+        self.event_indices = self._events_for_users(users)
+        self.batch_indptr = self._fixed_batch_indptr(self.event_indices.size)
+
     def __getitem__(self, batch_index: int) -> LeaveOneOutInteractionBatch:
-        start = int(batch_index) * self.batch_size
-        end = min(start + self.batch_size, self.event_indices.size)
-        if start < 0 or start >= self.event_indices.size:
+        if batch_index < 0 or batch_index >= len(self):
             raise IndexError(batch_index)
+        start, end = self.batch_indptr[batch_index : batch_index + 2]
 
         events = self.event_indices[start:end]
         user_rows = np.searchsorted(
@@ -447,5 +509,4 @@ class LeaveOneOutInteractionBatchSampler(InteractionBatchSampler):
 
     def on_epoch_end(self) -> None:
         if self.shuffle:
-            self.rng.shuffle(self.eligible_users)
-            self.event_indices = self._events_for_users(self.eligible_users)
+            self._rebuild_epoch_order(randomize=True)

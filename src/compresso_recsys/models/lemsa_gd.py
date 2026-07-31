@@ -27,6 +27,7 @@ __all__ = ["LEMSAGD", "LEMSAGDConfig", "LEMSAGDTrainer"]
 OptimizerName = Literal["NAdam", "AdamW"]
 EncoderInit = Literal["xavier", "features"]
 TrainingMode = Literal["leave_one_out", "symmetric"]
+LOOBatchOrder = Literal["round_robin", "grouped"]
 
 
 def _cross_reconstruction_loss(
@@ -92,14 +93,16 @@ class LEMSAGD(TEASERGD):
 
 @dataclass(frozen=True)
 class LEMSAGDConfig:
-    """Configuration for symmetric split-history LEMSA training.
+    """Configuration for held-out reconstruction LEMSA training.
 
     ``training_mode="leave_one_out"`` visits every eligible interaction once
     per epoch, removes it from its user history, and predicts it as a one-hot
-    target. ``"symmetric"`` randomly divides histories into two non-empty
-    views and optimizes both directions. Active source entries are excluded
-    from each loss, so the encoder-decoder diagonal is neither subtracted nor
-    penalized.
+    target. Its default ``loo_batch_order="round_robin"`` places at most one
+    example from each user in a batch. ``"grouped"`` retains user-contiguous
+    ordering. ``training_mode="symmetric"`` randomly divides histories into
+    two non-empty views and optimizes both directions. Active source entries
+    are excluded from each loss, so the encoder-decoder diagonal is neither
+    subtracted nor penalized.
     """
 
     batch_size: int = 1024
@@ -109,6 +112,7 @@ class LEMSAGDConfig:
     weight_decay: float = 0.0
     l2_encoder: float = 0.0
     training_mode: TrainingMode = "leave_one_out"
+    loo_batch_order: LOOBatchOrder = "round_robin"
     split_probability: float = 0.5
     decay: bool = False
     compile: bool = False
@@ -144,6 +148,10 @@ class LEMSAGDConfig:
         if self.training_mode not in {"leave_one_out", "symmetric"}:
             raise ValueError(
                 "training_mode must be 'leave_one_out' or 'symmetric'"
+            )
+        if self.loo_batch_order not in {"round_robin", "grouped"}:
+            raise ValueError(
+                "loo_batch_order must be 'round_robin' or 'grouped'"
             )
         if self.optimizer not in {"NAdam", "AdamW"}:
             raise ValueError("optimizer must be 'NAdam' or 'AdamW'")
@@ -190,6 +198,7 @@ class LEMSAGDTrainer(TEASERGDTrainer):
                 shuffle=True,
                 max_output=self.cfg.max_output,
                 seed=self.cfg.seed,
+                batch_order=self.cfg.loo_batch_order,
             )
         return SymmetricInteractionBatchSampler(
             interactions,

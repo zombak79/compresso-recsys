@@ -204,6 +204,7 @@ def test_leave_one_out_sampler_visits_every_interaction_exactly_once(
         batch = sampler[batch_index]
         x = batch.x.to_dense()
         candidates = batch.candidates
+        assert len(batch.user_rows) == len(set(batch.user_rows.tolist()))
         for row in range(x.shape[0]):
             user = int(batch.user_rows[row])
             target = int(batch.target_items[row])
@@ -227,6 +228,48 @@ def test_leave_one_out_sampler_visits_every_interaction_exactly_once(
     ]
     assert sampler.n_examples == interactions.nnz
     assert sorted(visited) == sorted(expected)
+
+
+def test_round_robin_order_is_reproducible_across_epochs(interactions):
+    kwargs = dict(
+        device=torch.device("cpu"),
+        batch_size=3,
+        shuffle=True,
+        max_output=None,
+        seed=19,
+        batch_order="round_robin",
+    )
+    first = LeaveOneOutInteractionBatchSampler(interactions, **kwargs)
+    second = LeaveOneOutInteractionBatchSampler(interactions, **kwargs)
+
+    np.testing.assert_array_equal(first.event_indices, second.event_indices)
+    np.testing.assert_array_equal(first.batch_indptr, second.batch_indptr)
+    initial_events = first.event_indices.copy()
+    first.on_epoch_end()
+    second.on_epoch_end()
+    np.testing.assert_array_equal(first.event_indices, second.event_indices)
+    np.testing.assert_array_equal(first.batch_indptr, second.batch_indptr)
+    assert not np.array_equal(initial_events, first.event_indices)
+    for batch_index in range(len(first)):
+        users = first[batch_index].user_rows.tolist()
+        assert len(users) == len(set(users))
+
+
+def test_grouped_leave_one_out_order_remains_available(interactions):
+    sampler = LeaveOneOutInteractionBatchSampler(
+        interactions,
+        device=torch.device("cpu"),
+        batch_size=4,
+        shuffle=False,
+        max_output=None,
+        seed=0,
+        batch_order="grouped",
+    )
+
+    first_batch_users = sampler[0].user_rows.tolist()
+
+    assert len(first_batch_users) > len(set(first_batch_users))
+    assert sampler.n_examples == interactions.nnz
 
 
 def test_leave_one_out_sampler_skips_single_interaction_users():
@@ -368,6 +411,7 @@ def test_protocols_defaults_and_configuration_validation():
     assert isinstance(model, ColdStartRecommender)
     assert config.split_probability == 0.5
     assert config.training_mode == "leave_one_out"
+    assert config.loo_batch_order == "round_robin"
     assert config.include_popularity is False
     assert config.l2_encoder == 0.0
 
@@ -381,6 +425,7 @@ def test_protocols_defaults_and_configuration_validation():
         {"split_probability": 1},
         {"split_probability": np.nan},
         {"training_mode": "pairs"},
+        {"loo_batch_order": "random"},
         {"optimizer": "SGD"},
         {"encoder_init": "zeros"},
         {"normalize_encoder": "yes"},

@@ -176,11 +176,20 @@ interaction is predicted exactly once during a complete epoch.
 
 Virtual examples are generated directly from the original CSR matrix. The
 trainer stores an ordering of its observed entries but never materializes the
-much larger expanded source or target CSR matrices. Users are shuffled while
-their leave-one-out events remain contiguous, improving history and candidate
-reuse within each batch. ``batch_size`` counts virtual interaction examples,
-not unique users, so a complete epoch is substantially longer than one epoch
-of ordinary user-level reconstruction.
+much larger expanded source or target CSR matrices. The default
+``loo_batch_order="round_robin"`` takes one target from every active user,
+shuffles those users, and divides that round into batches before moving to the
+next target per user. A batch therefore contains at most one example from any
+user. The target order within each user and the user order within each round
+are reshuffled each epoch. ``loo_batch_order="grouped"`` retains the older
+user-contiguous ordering when batch locality is preferred. Round-robin batches
+usually span a wider union of source items, so grouped ordering can be faster
+when source-prefix candidate sampling would otherwise exceed ``max_output``.
+
+Round boundaries are preserved, so some batches can be smaller than
+``batch_size``. That setting counts virtual interaction examples rather than
+unique users, and a complete epoch is substantially longer than one epoch of
+ordinary user-level reconstruction.
 
 The active source history is removed from its loss mask. Source interactions
 are therefore not mislabeled as negative outputs, and the encoder-decoder

@@ -288,11 +288,11 @@ embeddings can subsequently be published through
 ``update_candidates`` or a complete catalog can be replaced with
 ``build_candidates`` without fitting new encoder rows.
 
-Train LEMSAGD with Symmetric History Splits
--------------------------------------------
+Train LEMSAGD with Leave-One-Out Targets
+----------------------------------------
 
 LEMSAGD leaves ``E @ S.T`` unconstrained and prevents identity training by
-predicting disjoint halves of each user history from one another:
+predicting interactions that have been removed from their source histories:
 
 .. code-block:: python
 
@@ -307,6 +307,7 @@ predicting disjoint halves of each user history from one another:
            lr=1e-3,
            decay=True,
            training_mode="leave_one_out",
+           loo_batch_order="round_robin",
            use_relu=True,
            encoder_init="xavier",
            normalize_encoder=False,
@@ -334,9 +335,12 @@ predicting disjoint halves of each user history from one another:
 The virtual sampler visits every eligible observed interaction exactly once per
 epoch. For each example it removes that interaction from its original CSR user
 row and predicts it from the remaining history. It stores no expanded source
-or target matrix. Source entries are excluded from the loss rather than
+or target matrix. Round-robin ordering contributes at most one example per user
+to each batch; target order within users and user order within rounds are
+reshuffled every epoch. Source entries are excluded from the loss rather than
 treated as negative labels. Users with fewer than two warm interactions do not
-contribute training examples.
+contribute training examples. Set ``loo_batch_order="grouped"`` to keep each
+user's virtual examples contiguous instead.
 
 Set ``training_mode="symmetric"`` to use complementary random history views
 instead; ``split_probability`` controls that mode's split. Leave-one-out has
