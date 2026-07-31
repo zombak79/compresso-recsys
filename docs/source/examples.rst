@@ -232,11 +232,56 @@ SciPy CSR matrix, or an :class:`compresso.SRPTensor`. Its rows must follow
 original ADMM solver is intended as a reproducible baseline and can require
 substantial memory for large warm-item catalogs.
 
+Train TEASER with Gradient Descent
+----------------------------------
+
+Use TEASERGD when the ADMM solver's dense warm-item Gram matrix is too costly.
+The production catalog API is the same, while training supports ELSA-style
+output candidate sampling:
+
+.. code-block:: python
+
+   from compresso_recsys.models import TEASERGDConfig, TEASERGDTrainer
+
+   model = TEASERGDTrainer(
+       TEASERGDConfig(
+           device="cuda",
+           batch_size=1024,
+           max_output=10_000,
+           epochs=10,
+           lr=1e-3,
+           decay=True,
+           coefficient_regularization_samples=4096,
+       )
+   )
+   model.fit(
+       split["x_train"],
+       item_features=item_embeddings,
+       train_item_indices=split["train_item_indices"],
+       item_ids=split["item_ids"],
+       metadata=split["entity_metadata"],
+       feature_space_id="Qwen/Qwen3-Embedding-0.6B",
+   )
+
+   result = evaluate_recommender(
+       model,
+       source=split["test_source_matrix"],
+       targets=split["test_target_matrix"],
+       metrics=[CalibratedRecall([20, 50]), NDCG(100)],
+       batch_size=1024,
+       show_progress=True,
+   )
+
+``max_output=None`` trains against every warm item. With a finite value, every
+positive item represented in the current user batch is retained and sampled
+negatives fill the remaining output budget. The source-prefix rule is what
+makes exact diagonal removal possible in the sampled output.
+
 Serve New TEASER Candidates
 ---------------------------
 
 Stable item IDs separate the fixed source vocabulary from the mutable output
-catalog. Fit a production-style model only on warm source items, then publish
+catalog for both TEASER solvers. Fit a production-style model only on warm source items, then publish
 the complete initial candidate catalog. ``feature_space_id`` is an optional
 caller-provided label used to reject explicitly incompatible updates:
 

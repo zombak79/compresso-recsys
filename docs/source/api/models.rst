@@ -15,6 +15,17 @@ previously interacted items.
 .. autoclass:: compresso_recsys.models.Recommender
    :members:
 
+Feature-based cold-start models additionally implement
+:class:`compresso_recsys.models.ColdStartRecommender`. Its source vocabulary
+is fixed by training, while its identified candidate catalog can be rebuilt or
+updated independently.
+
+.. autoclass:: compresso_recsys.models.ColdStartRecommender
+   :members:
+
+.. autoclass:: compresso_recsys.models.ItemVocabulary
+   :members:
+
 EASE
 ----
 
@@ -92,6 +103,48 @@ See :doc:`../citing` for the original TEASER paper.
    :members:
 
 .. autoclass:: compresso_recsys.models.CandidateCatalog
+   :members:
+
+TEASERGD
+--------
+
+TEASERGD keeps TEASER's fixed item-feature decoder but learns the encoder with
+PyTorch instead of the reference ADMM solver. It never materializes the dense
+item-by-item coefficient matrix. A batch first forms user feature profiles and
+then scores candidate feature rows, so model storage grows with
+``warm_items * feature_dim`` rather than ``warm_items ** 2``.
+
+Training shares ELSA's scalable controls: ``max_output`` retains every source
+item appearing in a batch as the candidate prefix and fills the remaining
+budget with sampled negatives, cosine-normalized reconstruction is optimized
+with NAdam or AdamW, and optional cosine learning-rate decay and
+``torch.compile`` are available. The self coefficient is removed exactly using
+``(encoder * item_features).sum(-1)`` for each source item. No dense coefficient
+matrix is needed for that correction.
+
+The original TEASER coefficient penalty is represented by a Monte Carlo mean
+over random off-diagonal item pairs. Its cost is
+``coefficient_regularization_samples * feature_dim`` per batch; set the sample
+count to zero to disable it. :meth:`~compresso_recsys.models.TEASERGD.exact_coefficient_squared_norm`
+is provided for diagnostics on small problems, but deliberately materializes
+the coefficient matrix and should not be used in large training loops.
+
+Dense feature matrices are cached on the training device and indexed there.
+CSR feature matrices remain sparse for candidate scoring and only selected
+source rows are densified. Full candidate tensors are cached for prediction and
+invalidated when the catalog changes. TEASERGD uses the same stable-ID catalog,
+``align_source``, cold-candidate updates, metadata handling, and candidate
+allowlists as the ADMM implementation above.
+
+See :doc:`../citing` for the original TEASER paper.
+
+.. autoclass:: compresso_recsys.models.TEASERGDConfig
+   :members:
+
+.. autoclass:: compresso_recsys.models.TEASERGD
+   :members:
+
+.. autoclass:: compresso_recsys.models.TEASERGDTrainer
    :members:
 
 ELSA

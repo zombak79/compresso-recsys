@@ -87,8 +87,8 @@ compresso-recsys-build-checkpoint \
   embeddings, metrics, and Compresso cluster-graph stages.
 - Calibrated Recall and nDCG defaults, with optional standard Recall,
   Precision, Hit Rate, MRR, and MAP at configurable cutoffs.
-- Batched EASE, dense ELSA, and lottery-ticket compressed ELSA models with
-  streaming evaluation.
+- Batched EASE, ADMM and gradient-trained TEASER cold-start models, dense ELSA,
+  and lottery-ticket compressed ELSA with streaming evaluation.
 - A checkpoint-building console command:
   `compresso-recsys-build-checkpoint`.
 
@@ -103,8 +103,8 @@ https://zombak79.github.io/compresso-recsys/
 The full CLI parameter table, checkpoint split schema, and supported Amazon
 Reviews 2023 categories are maintained in the
 [Checkpoint CLI Reference](https://zombak79.github.io/compresso-recsys/cli-reference.html).
-Academic references and copy-ready BibTeX for EASE, ELSA, large-scale ELSA,
-and compressed ELSA are available in the
+Academic references and copy-ready BibTeX for EASE, TEASER, ELSA, large-scale
+ELSA, and compressed ELSA are available in the
 [citation guide](https://zombak79.github.io/compresso-recsys/citing.html).
 
 Build the docs locally:

@@ -102,6 +102,7 @@ def test_submodule_public_apis_are_intentional():
         },
         models: {
             "CandidateCatalog",
+            "ColdStartRecommender",
             "CompressedELSA",
             "EASE",
             "EASEConfig",
@@ -109,9 +110,13 @@ def test_submodule_public_apis_are_intentional():
             "ELSACompressionConfig",
             "ELSAConfig",
             "ELSATrainer",
+            "ItemVocabulary",
             "Recommender",
             "TEASER",
             "TEASERConfig",
+            "TEASERGD",
+            "TEASERGDConfig",
+            "TEASERGDTrainer",
         },
     }
 

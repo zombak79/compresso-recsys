@@ -37,7 +37,9 @@ For :class:`compresso_recsys.models.EASE`, cite the original EASE paper:
 TEASER
 ------
 
-For :class:`compresso_recsys.models.TEASER`, cite the original TEASER paper:
+For :class:`compresso_recsys.models.TEASER` or
+:class:`compresso_recsys.models.TEASERGDTrainer`, cite the original TEASER
+paper:
 
 .. code-block:: bibtex
 
