@@ -15,7 +15,10 @@ from compresso_recsys.models import (
     TEASERGDConfig,
     TEASERGDTrainer,
 )
-from compresso_recsys.models.teaser_gd import _teaser_reconstruction_loss
+from compresso_recsys.models.teaser_gd import (
+    _initialize_encoder_from_features,
+    _teaser_reconstruction_loss,
+)
 
 
 @pytest.fixture
@@ -127,6 +130,47 @@ def test_forward_preserves_encoder_gradients():
     assert torch.isfinite(model.encoder.grad).all()
     assert torch.count_nonzero(model.encoder.grad[[0, 2]]) > 0
     assert torch.count_nonzero(model.encoder.grad[1]) == 0
+
+
+def test_optional_encoder_normalization_matches_explicit_l2_normalization():
+    features = torch.tensor([[1.0, 0.0], [0.0, 2.0], [1.0, 1.0]])
+    model = TEASERGD(3, 2, use_relu=False, normalize_encoder=True)
+    with torch.no_grad():
+        model.encoder.copy_(torch.tensor([[3.0, 4.0], [0.0, 2.0], [-2.0, 0.0]]))
+    x = torch.tensor([[1.0, 0.0, 1.0]])
+
+    actual = model(
+        x,
+        sources=torch.arange(3),
+        source_features=features,
+        candidate_features=features,
+        source_candidate_positions=torch.arange(3),
+    )
+    encoder = torch.nn.functional.normalize(model.encoder, dim=-1)
+    coefficients = encoder @ features.T
+    coefficients.fill_diagonal_(0)
+
+    torch.testing.assert_close(actual, x @ coefficients)
+    torch.testing.assert_close(
+        model.encoder_weights().norm(dim=-1),
+        torch.ones(3),
+    )
+
+
+@pytest.mark.parametrize("sparse", [False, True])
+def test_feature_encoder_initialization_supports_dense_and_csr(sparse):
+    features = np.array(
+        [[1.0, 0.0, 2.0], [0.0, -1.0, 0.0], [3.0, 0.0, 1.0]],
+        dtype=np.float32,
+    )
+    model = TEASERGD(3, 3)
+
+    _initialize_encoder_from_features(
+        model,
+        csr_matrix(features) if sparse else features,
+    )
+
+    torch.testing.assert_close(model.encoder, torch.from_numpy(features))
 
 
 def test_exact_coefficient_norm_matches_materialized_matrix():
@@ -248,6 +292,38 @@ def test_loss_modes_use_distinct_documented_scales(interactions, item_features):
     expected_encoder_ratio = item_features.size / interactions.shape[0]
     assert teaser.history[0]["encoder_l2"] == pytest.approx(
         normalized.history[0]["encoder_l2"] * expected_encoder_ratio
+    )
+
+
+def test_trainer_applies_feature_initialization_before_training(
+    interactions,
+    item_features,
+    monkeypatch,
+):
+    def no_update(self, batch, training_features):
+        return {
+            "loss": 0.0,
+            "reconstruction": 0.0,
+            "coefficient_l2": 0.0,
+            "encoder_l2": 0.0,
+        }
+
+    monkeypatch.setattr(TEASERGDTrainer, "_train_step", no_update)
+    model = TEASERGDTrainer(
+        _config(
+            epochs=1,
+            encoder_init="features",
+            normalize_encoder=True,
+        )
+    ).fit(interactions, csr_matrix(item_features))
+
+    torch.testing.assert_close(
+        model._base_model.encoder.cpu(),
+        torch.from_numpy(item_features),
+    )
+    torch.testing.assert_close(
+        model._base_model.encoder_weights().norm(dim=-1).cpu(),
+        torch.ones(item_features.shape[0]),
     )
 
 
@@ -376,9 +452,12 @@ def test_streaming_evaluation(interactions, item_features):
 
 
 def test_protocols_and_configuration_validation():
-    model = TEASERGDTrainer(_config())
+    config = _config()
+    model = TEASERGDTrainer(config)
     assert isinstance(model, Recommender)
     assert isinstance(model, ColdStartRecommender)
+    assert config.encoder_init == "xavier"
+    assert config.normalize_encoder is False
 
     for kwargs in (
         {"batch_size": 0},
@@ -389,6 +468,8 @@ def test_protocols_and_configuration_validation():
         {"l2_coefficients": -1},
         {"optimizer": "SGD"},
         {"loss": "mse"},
+        {"encoder_init": "zeros"},
+        {"normalize_encoder": "yes"},
     ):
         with pytest.raises(ValueError):
             TEASERGDConfig(**kwargs)

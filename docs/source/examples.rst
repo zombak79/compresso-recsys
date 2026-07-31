@@ -251,8 +251,11 @@ output candidate sampling:
            epochs=10,
            lr=1e-3,
            decay=True,
-           loss="teaser",
+           loss="normalized_mse",
            use_relu=False,
+           encoder_init="features",
+           normalize_encoder=True,
+           l2_encoder=0.0,
            coefficient_regularization_samples=4096,
        )
    )

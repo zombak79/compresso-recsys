@@ -132,6 +132,22 @@ are importance-weighted to estimate the complete output error. Set
 ``use_relu=False`` with this mode for parity with the paper; enabling ReLU is an
 optional modification of the original model.
 
+The encoder defaults to Xavier initialization. Set
+``encoder_init="features"`` to initialize each warm encoder row from its fixed
+decoder feature row, making the initial coefficient matrix a diagonal-free
+metadata-similarity model ``S @ S.T``. This is particularly useful for sparse
+SAE codes because active feature dimensions receive a meaningful signal before
+the first gradient update. Dense and CSR features are both supported; the CSR
+path fills the allocated encoder directly without constructing another dense
+feature matrix.
+
+``normalize_encoder=True`` applies row-wise L2 normalization to the effective
+encoder in every training and inference path, as ELSA does for its item
+factors. The underlying trainable parameter remains unnormalized. Explicit
+``l2_encoder`` and optimizer ``weight_decay`` still regularize that underlying
+parameter, so start with both set to zero when evaluating encoder
+normalization.
+
 The original TEASER coefficient penalty is estimated from random off-diagonal
 item pairs. Its cost is
 ``coefficient_regularization_samples * feature_dim`` per batch; set the sample

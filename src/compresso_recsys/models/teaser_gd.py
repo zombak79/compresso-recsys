@@ -38,6 +38,7 @@ __all__ = ["TEASERGD", "TEASERGDConfig", "TEASERGDTrainer"]
 
 OptimizerName = Literal["NAdam", "AdamW"]
 TEASERGDLoss = Literal["normalized_mse", "teaser"]
+EncoderInit = Literal["xavier", "features"]
 
 
 def _teaser_reconstruction_loss(
@@ -115,6 +116,36 @@ def _score_feature_rows(
     return torch.sparse.mm(candidate_features, profiles.T).T
 
 
+@torch.no_grad()
+def _initialize_encoder_from_features(
+    model: TEASERGD,
+    features: csr_matrix | np.ndarray,
+) -> None:
+    """Copy dense or sparse fixed features into the trainable encoder."""
+    if features.shape != (model.input_dim, model.feature_dim):
+        raise ValueError("features shape must match input_dim and feature_dim")
+    if not isspmatrix_csr(features):
+        model.encoder.copy_(
+            torch.from_numpy(
+                np.array(features, dtype=np.float32, order="C", copy=True)
+            ).to(model.encoder.device)
+        )
+        return
+
+    coo = features.tocoo()
+    model.encoder.zero_()
+    rows = torch.from_numpy(coo.row.astype(np.int64, copy=False)).to(
+        model.encoder.device
+    )
+    columns = torch.from_numpy(coo.col.astype(np.int64, copy=False)).to(
+        model.encoder.device
+    )
+    values = torch.from_numpy(coo.data.astype(np.float32, copy=True)).to(
+        model.encoder.device
+    )
+    model.encoder[rows, columns] = values
+
+
 class TEASERGD(nn.Module):
     """Trainable TEASER encoder with a fixed feature decoder.
 
@@ -130,6 +161,7 @@ class TEASERGD(nn.Module):
         feature_dim: int,
         *,
         use_relu: bool = True,
+        normalize_encoder: bool = False,
     ) -> None:
         super().__init__()
         if input_dim < 1:
@@ -139,8 +171,19 @@ class TEASERGD(nn.Module):
         self.input_dim = int(input_dim)
         self.feature_dim = int(feature_dim)
         self.use_relu = bool(use_relu)
+        self.normalize_encoder = bool(normalize_encoder)
         self.encoder = nn.Parameter(torch.empty(self.input_dim, self.feature_dim))
         nn.init.xavier_uniform_(self.encoder)
+
+    def encoder_weights(
+        self,
+        rows: torch.Tensor | None = None,
+    ) -> torch.Tensor:
+        """Return effective encoder rows, optionally normalized as in ELSA."""
+        weights = self.encoder if rows is None else self.encoder[rows]
+        if self.normalize_encoder:
+            return F.normalize(weights, p=2.0, dim=-1)
+        return weights
 
     def forward(
         self,
@@ -161,7 +204,7 @@ class TEASERGD(nn.Module):
         if source_candidate_positions.shape != sources.shape:
             raise ValueError("source_candidate_positions must match sources")
 
-        source_encoder = self.encoder[sources]
+        source_encoder = self.encoder_weights(sources)
         profiles = x @ source_encoder
         scores = _score_feature_rows(profiles, candidate_features)
         diagonal = (source_encoder * source_features).sum(dim=-1)
@@ -184,8 +227,9 @@ class TEASERGD(nn.Module):
             item_features = item_features.to_dense()
         if item_features.shape != (self.input_dim, self.feature_dim):
             raise ValueError("item_features shape must match input_dim and feature_dim")
-        coefficients = self.encoder @ item_features.T
-        diagonal = (self.encoder * item_features).sum(dim=-1)
+        encoder = self.encoder_weights()
+        coefficients = encoder @ item_features.T
+        diagonal = (encoder * item_features).sum(dim=-1)
         return coefficients.square().sum() - diagonal.square().sum()
 
 
@@ -219,6 +263,8 @@ class TEASERGDConfig:
     include_popularity: bool = True
     optimizer: OptimizerName = "NAdam"
     loss: TEASERGDLoss = "normalized_mse"
+    encoder_init: EncoderInit = "xavier"
+    normalize_encoder: bool = False
 
     def __post_init__(self) -> None:
         for name in ("batch_size", "epochs"):
@@ -251,7 +297,15 @@ class TEASERGDConfig:
             raise ValueError("optimizer must be 'NAdam' or 'AdamW'")
         if self.loss not in {"normalized_mse", "teaser"}:
             raise ValueError("loss must be 'normalized_mse' or 'teaser'")
-        for name in ("decay", "compile", "show_progress", "use_relu"):
+        if self.encoder_init not in {"xavier", "features"}:
+            raise ValueError("encoder_init must be 'xavier' or 'features'")
+        for name in (
+            "decay",
+            "compile",
+            "show_progress",
+            "use_relu",
+            "normalize_encoder",
+        ):
             if not isinstance(getattr(self, name), bool):
                 raise ValueError(f"{name} must be a bool")
         if not isinstance(self.include_popularity, bool):
@@ -314,7 +368,7 @@ class TEASERGDTrainer(FeatureCatalogMixin):
         right += right >= left
         left_tensor = torch.from_numpy(left).long().to(self.device)
         right_features = self._training_feature_rows(right)
-        coefficients = (model.encoder[left_tensor] * right_features).sum(-1)
+        coefficients = (model.encoder_weights(left_tensor) * right_features).sum(-1)
         penalty = coefficients.square().mean()
         if self.cfg.loss == "teaser":
             assert self._n_training_users is not None
@@ -415,11 +469,15 @@ class TEASERGDTrainer(FeatureCatalogMixin):
         if show_progress is not None and not isinstance(show_progress, bool):
             raise ValueError("show_progress must be a bool or None")
         torch.manual_seed(int(self.cfg.seed))
-        model: TEASERGD | nn.Module = TEASERGD(
+        base_model = TEASERGD(
             input_dim=train_indices.size,
             feature_dim=training_features.shape[1],
             use_relu=self.cfg.use_relu,
+            normalize_encoder=self.cfg.normalize_encoder,
         ).to(self.device)
+        if self.cfg.encoder_init == "features":
+            _initialize_encoder_from_features(base_model, training_features)
+        model: TEASERGD | nn.Module = base_model
         if self.cfg.compile:
             model = torch.compile(model)
         self.teaser = model
