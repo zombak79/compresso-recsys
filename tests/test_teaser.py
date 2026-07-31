@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import numpy as np
+import pandas as pd
 import pytest
 import torch
 from scipy.sparse import csc_matrix, csr_matrix
@@ -11,7 +12,7 @@ from compresso_recsys.evaluation import (
     evaluate_recommender,
 )
 from compresso_recsys.metrics import CalibratedRecall, NDCG
-from compresso_recsys.models import Recommender, TEASER, TEASERConfig
+from compresso_recsys.models import CandidateCatalog, Recommender, TEASER, TEASERConfig
 
 
 @pytest.fixture
@@ -219,6 +220,225 @@ def test_cold_items_cannot_be_used_as_source_history(item_features):
 
     with pytest.raises(ValueError, match="no fitted encoder row"):
         model.predict_on_batch(csr_matrix([[0, 1, 0, 0]]), k=2)
+
+
+def test_fit_builds_id_aware_candidate_catalog(interactions, item_features):
+    item_ids = np.array([f"book-{index}" for index in range(interactions.shape[1])])
+    metadata = pd.DataFrame({"item_id": item_ids, "title": list("ABCDEF")})
+
+    model = TEASER(TEASERConfig(max_iterations=1)).fit(
+        interactions,
+        item_features,
+        item_ids=item_ids,
+        metadata=metadata,
+        feature_space_id="encoder@revision",
+    )
+
+    assert isinstance(model.candidates, CandidateCatalog)
+    assert model.candidates.version == 1
+    assert model.candidates.feature_space_id == "encoder@revision"
+    assert model.n_candidates_ == interactions.shape[1]
+    np.testing.assert_array_equal(model.candidates.item_ids, item_ids)
+    assert model.candidates.metadata.equals(metadata)
+    np.testing.assert_array_equal(
+        model.candidates.rows_for(["book-4", "book-1"]),
+        [4, 1],
+    )
+    np.testing.assert_array_equal(
+        model.candidates.ids_for(torch.tensor([[4, 1]])),
+        [["book-4", "book-1"]],
+    )
+
+
+def test_fit_validates_item_identity_and_metadata(interactions, item_features):
+    model = TEASER(TEASERConfig(max_iterations=1))
+
+    with pytest.raises(ValueError, match="duplicate"):
+        model.fit(interactions, item_features, item_ids=[0, 1, 2, 3, 4, 4])
+    with pytest.raises(ValueError, match="item_features has 6 rows"):
+        model.fit(interactions, item_features, item_ids=[0, 1])
+    with pytest.raises(ValueError, match="must match item_ids"):
+        model.fit(
+            interactions,
+            item_features,
+            item_ids=list("ABCDEF"),
+            metadata=pd.DataFrame({"item_id": list("BACDEF")}),
+        )
+    with pytest.raises(TypeError, match="pandas.DataFrame"):
+        model.fit(interactions, item_features, metadata=[{}])
+    with pytest.raises(ValueError, match="feature_space_id"):
+        model.fit(interactions, item_features, feature_space_id="")
+
+
+def test_build_candidates_replaces_catalog_but_not_source_vocabulary(
+    interactions,
+    item_features,
+    source,
+):
+    source_ids = list("ABCDEF")
+    model = TEASER(TEASERConfig(max_iterations=2)).fit(
+        interactions,
+        item_features,
+        item_ids=source_ids,
+        feature_space_id="features-v1",
+    )
+    candidate_ids = ["new-1", "A", "new-2"]
+    candidate_features = np.vstack((item_features[0], item_features[0], item_features[5]))
+
+    catalog = model.build_candidates(
+        item_ids=candidate_ids,
+        item_features=candidate_features,
+        metadata=pd.DataFrame({"item_id": candidate_ids, "title": ["N1", "A", "N2"]}),
+        feature_space_id="features-v1",
+    )
+    predictions = model.predict_on_batch(source[:1], k=3, exclude_seen=False)
+    profiles = model.user_profiles(source[:1])
+    expected = np.asarray(catalog.item_features @ profiles.T).T
+
+    assert catalog.version == 2
+    assert predictions.shape == (1, 3)
+    np.testing.assert_allclose(predictions.to_dense().numpy(), expected)
+    np.testing.assert_array_equal(
+        np.asarray(catalog.item_features[:, -1]).ravel(),
+        [0.0, model.source_popularity_[0], 0.0],
+    )
+    unseen = model.predict_on_batch(source[:1], k=2)
+    assert 1 not in unseen.cols[0].tolist()  # A moved to candidate row 1.
+    assert model.n_items_ == interactions.shape[1]
+    with pytest.raises(ValueError, match="fitted with 6 items"):
+        model.predict_on_batch(csr_matrix((1, 3)), k=1)
+
+
+def test_update_candidates_appends_replaces_and_ignores_conflicts(
+    interactions,
+    item_features,
+):
+    model = TEASER(TEASERConfig(max_iterations=1, include_popularity=False)).fit(
+        interactions,
+        item_features,
+        item_ids=list("ABCDEF"),
+        metadata=pd.DataFrame({"item_id": list("ABCDEF"), "title": list("abcdef")}),
+    )
+
+    with pytest.raises(ValueError, match="already exists"):
+        model.update_candidates(item_ids=["A"], item_features=item_features[[5]])
+
+    replaced = model.update_candidates(
+        item_ids=["C", "G"],
+        item_features=csr_matrix(np.vstack(([9, 8, 7], [6, 5, 4]))),
+        metadata=pd.DataFrame({"item_id": ["C", "G"], "title": ["new-c", "new-g"]}),
+        on_conflict="replace",
+    )
+    assert replaced.item_ids.tolist() == list("ABCDEFG")
+    np.testing.assert_array_equal(replaced.item_features[2].toarray(), [[9, 8, 7]])
+    np.testing.assert_array_equal(replaced.item_features[6].toarray(), [[6, 5, 4]])
+    assert replaced.metadata.loc[2, "title"] == "new-c"
+    assert replaced.metadata.loc[6, "title"] == "new-g"
+
+    ignored = model.update_candidates(
+        item_ids=["C"],
+        item_features=np.array([[1, 1, 1]], dtype=np.float64),
+        metadata=pd.DataFrame({"item_id": ["C"], "title": ["ignored"]}),
+        on_conflict="ignore",
+    )
+    assert ignored is replaced
+    np.testing.assert_array_equal(ignored.item_features[2].toarray(), [[9, 8, 7]])
+    assert ignored.metadata.loc[2, "title"] == "new-c"
+
+
+def test_candidate_allowlist_scores_only_registered_ids_and_returns_global_rows(
+    interactions,
+    item_features,
+    source,
+):
+    model = TEASER(TEASERConfig(max_iterations=2)).fit(
+        interactions,
+        item_features,
+        item_ids=list("ABCDEF"),
+    )
+    model.update_candidates(
+        item_ids=["G", "H"],
+        item_features=item_features[[4, 5]],
+    )
+
+    predictions = model.predict_on_batch(
+        source[:2],
+        k=3,
+        candidate_ids=["H", "B", "G", "D"],
+    )
+
+    assert predictions.shape == (2, 8)
+    assert set(predictions.cols.flatten().tolist()).issubset({1, 3, 6, 7})
+    assert 1 not in predictions.cols[1].tolist()  # B is seen in the second row.
+    with pytest.raises(KeyError, match="unknown candidate"):
+        model.predict_on_batch(source[:1], k=1, candidate_ids=["missing"])
+    with pytest.raises(ValueError, match="duplicate"):
+        model.predict_on_batch(source[:1], k=1, candidate_ids=["G", "G"])
+    with pytest.raises(ValueError, match="unseen items among the selected candidates"):
+        model.predict_on_batch(source[:1], k=2, candidate_ids=["A", "B"])
+
+
+def test_remove_candidates_and_feature_space_validation(interactions, item_features):
+    model = TEASER(TEASERConfig(max_iterations=1)).fit(
+        interactions,
+        item_features,
+        item_ids=list("ABCDEF"),
+        feature_space_id="features-v1",
+    )
+
+    catalog = model.remove_candidates(["B", "E"])
+    assert catalog.item_ids.tolist() == ["A", "C", "D", "F"]
+    assert catalog.version == 2
+    with pytest.raises(KeyError, match="unknown candidate"):
+        model.remove_candidates(["missing"])
+    assert model.remove_candidates(["missing"], missing="ignore") is catalog
+    with pytest.raises(ValueError, match="feature_space_id"):
+        model.update_candidates(
+            item_ids=["G"],
+            item_features=item_features[[0]],
+            feature_space_id="other-space",
+        )
+
+
+def test_failed_catalog_rebuild_is_atomic(interactions, item_features):
+    model = TEASER(TEASERConfig(max_iterations=1)).fit(interactions, item_features)
+    original = model.candidates
+
+    with pytest.raises(ValueError, match="input features"):
+        model.build_candidates(
+            item_ids=["new"],
+            item_features=np.ones((1, item_features.shape[1] + 1)),
+        )
+
+    assert model.candidates is original
+
+
+def test_predict_uses_one_catalog_snapshot_across_batches(
+    interactions,
+    item_features,
+    source,
+    monkeypatch,
+):
+    model = TEASER(TEASERConfig(max_iterations=1)).fit(interactions, item_features)
+    original_predict = model._predict_prepared_batch
+    versions: list[int] = []
+
+    def recording_predict(source_batch, **kwargs):
+        versions.append(kwargs["catalog"].version)
+        result = original_predict(source_batch, **kwargs)
+        if len(versions) == 1:
+            model.build_candidates(
+                item_ids=["new-0", "new-1", "new-2"],
+                item_features=item_features[:3],
+            )
+        return result
+
+    monkeypatch.setattr(model, "_predict_prepared_batch", recording_predict)
+    predictions = model.predict(source, k=2, batch_size=2, exclude_seen=False)
+
+    assert versions == [1, 1]
+    assert predictions.shape == source.shape
+    assert model.candidates.version == 2
 
 
 def test_predict_matches_predict_on_batch(interactions, item_features, source):

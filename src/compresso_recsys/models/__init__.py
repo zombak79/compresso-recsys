@@ -9,10 +9,11 @@ from .elsa import (
     ELSAConfig,
     ELSATrainer,
 )
-from .teaser import TEASER, TEASERConfig
+from .teaser import CandidateCatalog, TEASER, TEASERConfig
 
 __all__ = [
     "CompressedELSA",
+    "CandidateCatalog",
     "EASE",
     "EASEConfig",
     "ELSA",

@@ -101,6 +101,7 @@ def test_submodule_public_apis_are_intentional():
             "RankingMetric",
         },
         models: {
+            "CandidateCatalog",
             "CompressedELSA",
             "EASE",
             "EASEConfig",

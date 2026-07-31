@@ -349,6 +349,20 @@ class _InvalidRecommender:
         )
 
 
+class _DifferentCatalogRecommender:
+    def __init__(self, n_candidates: int) -> None:
+        self.n_candidates = n_candidates
+
+    def predict_on_batch(self, source: csr_matrix, *, k: int) -> SRPTensor:
+        columns = torch.arange(k, dtype=torch.long).expand(source.shape[0], -1).clone()
+        values = torch.arange(k, 0, -1, dtype=torch.float32).expand(source.shape[0], -1).clone()
+        return SRPTensor(
+            cols=columns,
+            vals=values,
+            shape=(source.shape[0], self.n_candidates),
+        )
+
+
 def test_evaluate_recommender_streams_batches_and_derives_required_k():
     model = _RecordingRecommender()
     source = csr_matrix((5, 6), dtype=np.float32)
@@ -398,6 +412,26 @@ def test_evaluate_recommender_validates_predictions_by_default():
         )
 
 
+def test_evaluate_recommender_allows_distinct_source_and_candidate_spaces():
+    source = csr_matrix((3, 2), dtype=np.float32)
+    targets = csr_matrix(
+        (
+            np.ones(3, dtype=np.float32),
+            (np.arange(3), np.array([0, 1, 3])),
+        ),
+        shape=(3, 4),
+    )
+
+    result = evaluate_recommender(
+        _DifferentCatalogRecommender(4),
+        source=source,
+        targets=targets,
+        metrics=[CalibratedRecall(2)],
+    )
+
+    assert result == {"recall@2": pytest.approx(2 / 3), "n_eval_users": 3.0}
+
+
 def test_evaluate_recommender_handles_empty_input_without_calling_model():
     model = _RecordingRecommender()
 
@@ -429,7 +463,7 @@ def test_evaluate_recommender_validates_model_and_matrices():
             targets=csr_matrix((1, 4)),
             metrics=[CalibratedRecall(1)],
         )
-    with pytest.raises(ValueError, match="source shape"):
+    with pytest.raises(ValueError, match="source rows"):
         evaluate_recommender(
             model,
             source=csr_matrix((1, 4)),

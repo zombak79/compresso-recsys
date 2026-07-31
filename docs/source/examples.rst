@@ -208,6 +208,8 @@ all item features in the fixed decoder:
        split["x_train"],
        item_features=split["entity_tag_matrix"],
        train_item_indices=split["train_item_indices"],
+       item_ids=split["item_ids"],
+       metadata=split["entity_metadata"],
        feature_names=split["tag_names"],
        show_progress=True,
    )
@@ -229,6 +231,58 @@ SciPy CSR matrix, or an :class:`compresso.SRPTensor`. Its rows must follow
 ``split["item_ids"]``. Interactions must be binary implicit feedback. The
 original ADMM solver is intended as a reproducible baseline and can require
 substantial memory for large warm-item catalogs.
+
+Serve New TEASER Candidates
+---------------------------
+
+Stable item IDs separate the fixed source vocabulary from the mutable output
+catalog. For embedding features, identify the embedding model and revision at
+fit time:
+
+.. code-block:: python
+
+   model.fit(
+       interactions=split["x_train"],
+       item_features=item_embeddings,
+       item_ids=split["item_ids"],
+       metadata=split["entity_metadata"],
+       train_item_indices=split["train_item_indices"],
+       feature_space_id="Qwen/Qwen3-Embedding-0.6B@revision",
+   )
+
+Register new decoder-only candidates without retraining:
+
+.. code-block:: python
+
+   catalog = model.update_candidates(
+       item_ids=new_item_ids,
+       item_features=new_item_embeddings,
+       metadata=new_metadata,
+       on_conflict="error",
+       feature_space_id="Qwen/Qwen3-Embedding-0.6B@revision",
+   )
+
+Use :meth:`~compresso_recsys.models.TEASER.build_candidates` when publishing a
+complete catalog snapshot is simpler than incremental changes. Both operations
+validate everything before atomically swapping the catalog.
+
+Prediction can score the complete catalog or a request-specific allowlist. An
+allowlist contains registered IDs; it does not rebuild or copy the catalog:
+
+.. code-block:: python
+
+   catalog = model.candidates
+   predictions = model.predict(
+       source,
+       k=100,
+       candidate_ids=eligible_item_ids,
+   )
+   recommended_item_ids = catalog.ids_for(predictions.cols)
+
+The prediction columns remain global rows in ``catalog`` rather than positions
+inside ``eligible_item_ids``. Resolve them against the same catalog snapshot.
+New items cannot be present in ``source`` until a retrained encoder gives them
+source rows.
 
 Train and Evaluate ELSA
 -----------------------

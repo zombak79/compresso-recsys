@@ -42,11 +42,34 @@ PyTorch tensor. Binary tags reproduce the original model, while real-valued
 dense or sparse embeddings provide the same fixed-decoder abstraction without
 necessarily retaining human-readable feature explanations.
 
+TEASER separates two item spaces for production cold start. The source
+vocabulary is fixed at fit time: only items with fitted encoder rows may appear
+in user history. The candidate catalog is an immutable, versioned snapshot that
+can be rebuilt or updated without retraining. New candidates receive a decoder
+row from their features and can be recommended immediately, but cannot appear
+in source history until the model is retrained.
+
 For an item cold-start split, pass the checkpoint's ``train_item_indices`` to
 ``fit``. Only those interaction columns and feature rows participate in ADMM,
 but the decoder keeps feature rows for every item. Validation and test items can
 therefore be ranked from metadata without being treated as zero-valued training
 targets. Source histories must contain fitted training items.
+
+Pass stable ``item_ids`` and optional aligned ``metadata`` to ``fit`` to build
+the initial catalog. :meth:`~compresso_recsys.models.TEASER.update_candidates`
+appends new IDs and can replace existing rows;
+:meth:`~compresso_recsys.models.TEASER.build_candidates` atomically replaces
+the entire catalog; and
+:meth:`~compresso_recsys.models.TEASER.remove_candidates` removes IDs. When an
+embedding model supplies the features, set ``feature_space_id`` during fit so
+later updates can reject an explicitly different model or revision.
+
+``predict`` and ``predict_on_batch`` accept ``candidate_ids`` as a shared
+allowlist for the batch. They gather and score only those registered rows. The
+result remains an :class:`compresso.SRPTensor` over the complete current
+catalog, so its columns can be resolved with
+:meth:`~compresso_recsys.models.CandidateCatalog.ids_for`. Unknown and duplicate
+allowlist IDs are rejected.
 
 The original solver forms a dense warm-item Gram matrix and eigendecomposes it,
 so fit memory grows quadratically and fit time cubically with the number of warm
@@ -60,6 +83,9 @@ See :doc:`../citing` for the original TEASER paper.
    :members:
 
 .. autoclass:: compresso_recsys.models.TEASER
+   :members:
+
+.. autoclass:: compresso_recsys.models.CandidateCatalog
    :members:
 
 ELSA

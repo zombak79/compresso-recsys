@@ -383,15 +383,18 @@ def evaluate_recommender(
     The largest metric cutoff determines the ``k`` passed to the model's
     ``predict_on_batch`` method. Source and target rows are sliced together,
     and each prediction batch is immediately sent to :class:`RankingEvaluator`.
+    Source and target column counts may differ: source columns describe the
+    model's history vocabulary, while target columns describe its candidates.
     """
     if not isinstance(model, Recommender):
         raise TypeError("model must implement predict_on_batch(source, *, k)")
     if not isspmatrix_csr(source):
         raise TypeError("source must be a scipy.sparse.csr_matrix")
     targets = _canonical_csr(targets)
-    if source.shape != targets.shape:
+    if source.shape[0] != targets.shape[0]:
         raise ValueError(
-            f"source shape {source.shape} must match target shape {targets.shape}"
+            f"source rows ({source.shape[0]}) must match target rows "
+            f"({targets.shape[0]})"
         )
     if batch_size < 1:
         raise ValueError("batch_size must be >= 1")
