@@ -15,6 +15,7 @@ from compresso_recsys.models import (
     TEASERGDConfig,
     TEASERGDTrainer,
 )
+from compresso_recsys.models.teaser_gd import _teaser_reconstruction_loss
 
 
 @pytest.fixture
@@ -139,6 +140,39 @@ def test_exact_coefficient_norm_matches_materialized_matrix():
     torch.testing.assert_close(actual, coefficients.square().sum())
 
 
+def test_teaser_reconstruction_matches_frobenius_error():
+    predictions = torch.tensor([[1.0, 2.0, 3.0, 4.0], [0.0, 1.0, 2.0, 3.0]])
+    targets = torch.tensor([[1.0, 0.0, 1.0, 0.0], [0.0, 1.0, 0.0, 1.0]])
+
+    sampled = _teaser_reconstruction_loss(
+        predictions,
+        targets,
+        n_source_items=2,
+        n_items=6,
+    )
+    squared = (predictions - targets).square()
+    expected = torch.cat((squared[:, :2], squared[:, 2:] * 2.0), dim=1)
+
+    torch.testing.assert_close(sampled, expected.sum(dim=-1).mean())
+
+
+def test_teaser_reconstruction_full_output_needs_no_weighting():
+    predictions = torch.randn(3, 6)
+    targets = torch.randn(3, 6)
+
+    actual = _teaser_reconstruction_loss(
+        predictions,
+        targets,
+        n_source_items=2,
+        n_items=6,
+    )
+
+    torch.testing.assert_close(
+        actual,
+        (predictions - targets).square().sum(dim=-1).mean(),
+    )
+
+
 @pytest.mark.parametrize("sparse", [False, True])
 def test_fit_predict_and_candidate_catalog(interactions, item_features, sparse):
     features = csr_matrix(item_features) if sparse else item_features
@@ -186,6 +220,35 @@ def test_full_output_training_and_empty_prediction(interactions, item_features):
     assert result.shape == (0, interactions.shape[1])
     assert result.cols.shape == (0, 2)
     assert model._training_tensor_cache is not None
+
+
+def test_loss_modes_use_distinct_documented_scales(interactions, item_features):
+    common = dict(
+        epochs=1,
+        batch_size=interactions.shape[0],
+        max_output=None,
+        lr=1e-3,
+        show_progress=False,
+        include_popularity=False,
+        coefficient_regularization_samples=0,
+        l2_coefficients=0.0,
+        seed=9,
+        use_relu=False,
+    )
+    normalized = TEASERGDTrainer(TEASERGDConfig(**common, loss="normalized_mse")).fit(
+        interactions, item_features
+    )
+    teaser = TEASERGDTrainer(TEASERGDConfig(**common, loss="teaser")).fit(
+        interactions,
+        item_features,
+    )
+
+    assert normalized.history[0]["reconstruction"] <= 2.0
+    assert teaser.history[0]["reconstruction"] > 2.0
+    expected_encoder_ratio = item_features.size / interactions.shape[0]
+    assert teaser.history[0]["encoder_l2"] == pytest.approx(
+        normalized.history[0]["encoder_l2"] * expected_encoder_ratio
+    )
 
 
 def test_new_candidates_are_scored_without_refitting(interactions, item_features):
@@ -325,6 +388,7 @@ def test_protocols_and_configuration_validation():
         {"lr": np.inf},
         {"l2_coefficients": -1},
         {"optimizer": "SGD"},
+        {"loss": "mse"},
     ):
         with pytest.raises(ValueError):
             TEASERGDConfig(**kwargs)

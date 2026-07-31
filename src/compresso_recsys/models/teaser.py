@@ -87,7 +87,7 @@ class TEASERConfig:
     l2_encoder: float = 0.05
     rho: float = 0.05
     max_iterations: int = 10
-    include_popularity: bool = True
+    include_popularity: bool = False
     dtype: TEASERDataType = "float64"
 
     def __post_init__(self) -> None:

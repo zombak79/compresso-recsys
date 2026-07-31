@@ -122,10 +122,22 @@ with NAdam or AdamW, and optional cosine learning-rate decay and
 ``(encoder * item_features).sum(-1)`` for each source item. No dense coefficient
 matrix is needed for that correction.
 
-The original TEASER coefficient penalty is represented by a Monte Carlo mean
-over random off-diagonal item pairs. Its cost is
+``loss="normalized_mse"`` is the default and preserves the ELSA-style
+row-normalized reconstruction objective. ``loss="teaser"`` instead optimizes
+the original TEASER objective divided by the number of training users:
+per-user Frobenius reconstruction plus the complete off-diagonal coefficient
+norm and encoder norm. Dividing every term by the same constant does not change
+the minimizer. With sampled output candidates, negative reconstruction errors
+are importance-weighted to estimate the complete output error. Set
+``use_relu=False`` with this mode for parity with the paper; enabling ReLU is an
+optional modification of the original model.
+
+The original TEASER coefficient penalty is estimated from random off-diagonal
+item pairs. Its cost is
 ``coefficient_regularization_samples * feature_dim`` per batch; set the sample
-count to zero to disable it. :meth:`~compresso_recsys.models.TEASERGD.exact_coefficient_squared_norm`
+count to zero to disable it. TEASER loss mode scales the estimate to the full
+coefficient-matrix norm, while normalized-MSE mode preserves the previous mean
+penalty. :meth:`~compresso_recsys.models.TEASERGD.exact_coefficient_squared_norm`
 is provided for diagnostics on small problems, but deliberately materializes
 the coefficient matrix and should not be used in large training loops.
 

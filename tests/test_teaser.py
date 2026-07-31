@@ -81,7 +81,7 @@ def test_teaser_defaults_match_reference_configuration():
     assert config.l2_encoder == 0.05
     assert config.rho == 0.05
     assert config.max_iterations == 10
-    assert config.include_popularity is True
+    assert config.include_popularity is False
     assert config.dtype == "float64"
 
 
@@ -175,7 +175,9 @@ def test_cold_items_are_decoder_only_candidates(item_features):
             dtype=np.float64,
         )
     )
-    model = TEASER(TEASERConfig(max_iterations=3)).fit(
+    model = TEASER(
+        TEASERConfig(max_iterations=3, include_popularity=True)
+    ).fit(
         interactions,
         csr_matrix(item_features),
         train_item_indices=train_indices,
@@ -276,7 +278,9 @@ def test_build_candidates_replaces_catalog_but_not_source_vocabulary(
     source,
 ):
     source_ids = list("ABCDEF")
-    model = TEASER(TEASERConfig(max_iterations=2)).fit(
+    model = TEASER(
+        TEASERConfig(max_iterations=2, include_popularity=True)
+    ).fit(
         interactions,
         item_features,
         item_ids=source_ids,

@@ -37,6 +37,30 @@ from compresso_recsys.models.cold_start import (
 __all__ = ["TEASERGD", "TEASERGDConfig", "TEASERGDTrainer"]
 
 OptimizerName = Literal["NAdam", "AdamW"]
+TEASERGDLoss = Literal["normalized_mse", "teaser"]
+
+
+def _teaser_reconstruction_loss(
+    predictions: torch.Tensor,
+    targets: torch.Tensor,
+    *,
+    n_source_items: int,
+    n_items: int,
+) -> torch.Tensor:
+    """Estimate the original TEASER Frobenius reconstruction per user."""
+    squared_error = (predictions - targets).square()
+    n_sampled_negatives = predictions.shape[1] - n_source_items
+    n_available_negatives = n_items - n_source_items
+    if 0 < n_sampled_negatives < n_available_negatives:
+        negative_weight = n_available_negatives / n_sampled_negatives
+        squared_error = torch.cat(
+            (
+                squared_error[:, :n_source_items],
+                squared_error[:, n_source_items:] * negative_weight,
+            ),
+            dim=1,
+        )
+    return squared_error.sum(dim=-1).mean()
 
 
 def _dense_feature_rows(
@@ -169,7 +193,11 @@ class TEASERGD(nn.Module):
 class TEASERGDConfig:
     """Configuration for gradient-trained TEASER.
 
-    ``max_output`` uses the same source-prefix candidate sampling as ELSA.
+    ``loss="normalized_mse"`` preserves the ELSA-style objective, while
+    ``loss="teaser"`` uses the original TEASER Frobenius reconstruction and
+    regularization scale. ``max_output`` uses the same source-prefix candidate
+    sampling as ELSA. In TEASER mode, sampled negatives are importance-weighted
+    to estimate full-output reconstruction.
     ``coefficient_regularization_samples`` controls a Monte Carlo estimate of
     the mean squared off-diagonal coefficient; zero disables that term.
     """
@@ -190,6 +218,7 @@ class TEASERGDConfig:
     use_relu: bool = True
     include_popularity: bool = True
     optimizer: OptimizerName = "NAdam"
+    loss: TEASERGDLoss = "normalized_mse"
 
     def __post_init__(self) -> None:
         for name in ("batch_size", "epochs"):
@@ -220,6 +249,8 @@ class TEASERGDConfig:
                 raise ValueError(f"{name} must be finite and {relation}")
         if self.optimizer not in {"NAdam", "AdamW"}:
             raise ValueError("optimizer must be 'NAdam' or 'AdamW'")
+        if self.loss not in {"normalized_mse", "teaser"}:
+            raise ValueError("loss must be 'normalized_mse' or 'teaser'")
         for name in ("decay", "compile", "show_progress", "use_relu"):
             if not isinstance(getattr(self, name), bool):
                 raise ValueError(f"{name} must be a bool")
@@ -247,6 +278,7 @@ class TEASERGDTrainer(FeatureCatalogMixin):
         self._candidate_tensor_cache: tuple[int, torch.Tensor] | None = None
         self._training_tensor_cache: torch.Tensor | None = None
         self._regularizer_rng: np.random.Generator | None = None
+        self._n_training_users: int | None = None
         self._is_fitted = False
 
     @property
@@ -283,7 +315,11 @@ class TEASERGDTrainer(FeatureCatalogMixin):
         left_tensor = torch.from_numpy(left).long().to(self.device)
         right_features = self._training_feature_rows(right)
         coefficients = (model.encoder[left_tensor] * right_features).sum(-1)
-        return coefficients.square().mean()
+        penalty = coefficients.square().mean()
+        if self.cfg.loss == "teaser":
+            assert self._n_training_users is not None
+            penalty = penalty * (n_items * (n_items - 1) / self._n_training_users)
+        return penalty
 
     def _training_tensor(self) -> torch.Tensor:
         assert self._training_features is not None
@@ -391,6 +427,7 @@ class TEASERGDTrainer(FeatureCatalogMixin):
         self._training_features = training_features
         self._training_tensor_cache = None
         self._regularizer_rng = np.random.default_rng(self.cfg.seed + 1)
+        self._n_training_users = int(training_interactions.shape[0])
         self.train_item_indices_ = train_indices.copy()
         self.train_item_mask_ = np.zeros(n_items, dtype=bool)
         self.train_item_mask_[train_indices] = True
@@ -522,10 +559,22 @@ class TEASERGDTrainer(FeatureCatalogMixin):
             candidate_features=candidate_features,
             source_candidate_positions=positions,
         )
-        reconstruction = normalized_mse(predictions, targets)
+        if self.cfg.loss == "normalized_mse":
+            reconstruction = normalized_mse(predictions, targets)
+        else:
+            reconstruction = _teaser_reconstruction_loss(
+                predictions,
+                targets,
+                n_source_items=x.shape[1],
+                n_items=training_features.shape[0],
+            )
         base_model = self._base_model
         coefficient_l2 = self._coefficient_penalty()
-        encoder_l2 = base_model.encoder.square().mean()
+        if self.cfg.loss == "normalized_mse":
+            encoder_l2 = base_model.encoder.square().mean()
+        else:
+            assert self._n_training_users is not None
+            encoder_l2 = base_model.encoder.square().sum() / self._n_training_users
         loss = (
             reconstruction
             + float(self.cfg.l2_coefficients) * coefficient_l2

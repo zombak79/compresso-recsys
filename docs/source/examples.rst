@@ -251,6 +251,8 @@ output candidate sampling:
            epochs=10,
            lr=1e-3,
            decay=True,
+           loss="teaser",
+           use_relu=False,
            coefficient_regularization_samples=4096,
        )
    )
@@ -275,7 +277,9 @@ output candidate sampling:
 ``max_output=None`` trains against every warm item. With a finite value, every
 positive item represented in the current user batch is retained and sampled
 negatives fill the remaining output budget. The source-prefix rule is what
-makes exact diagonal removal possible in the sampled output.
+makes exact diagonal removal possible in the sampled output. TEASER loss mode
+importance-weights sampled negative errors. Use ``loss="normalized_mse"`` for
+the ELSA-style row-normalized objective instead.
 
 Serve New TEASER Candidates
 ---------------------------
