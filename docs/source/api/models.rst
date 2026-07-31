@@ -168,30 +168,42 @@ LEMSAGD
 -------
 
 LEMSAGD trains the same unconstrained ``E @ S.T`` architecture through
-symmetric held-out reconstruction rather than the paper's item-wise ALS
-objective. Every eligible user history is randomly divided into two non-empty
-views on each epoch. The model learns both directions, ``x -> y`` and
-``y -> x``, and averages their normalized reconstruction losses. Consequently,
-every interaction serves as both context and a positive target.
+held-out reconstruction rather than the paper's item-wise ALS objective. Its
+default ``training_mode="leave_one_out"`` creates one virtual example for
+every observed interaction of every eligible user. The designated interaction
+is removed from the source history and used as a one-hot target, so each
+interaction is predicted exactly once during a complete epoch.
 
-The active source view is removed from its loss mask. Source interactions are
-therefore not mislabeled as negative outputs, and the encoder-decoder diagonal
-is neither subtracted nor explicitly penalized. Identity copying cannot reduce
-the objective because source and target views are disjoint. Prediction uses
-the full unconstrained scores and applies ordinary seen-item masking afterward.
+Virtual examples are generated directly from the original CSR matrix. The
+trainer stores an ordering of its observed entries but never materializes the
+much larger expanded source or target CSR matrices. Users are shuffled while
+their leave-one-out events remain contiguous, improving history and candidate
+reuse within each batch. ``batch_size`` counts virtual interaction examples,
+not unique users, so a complete epoch is substantially longer than one epoch
+of ordinary user-level reconstruction.
 
-Only users retaining at least two warm interactions can form the two views;
-other users are ignored during fitting but remain fully supported during
-prediction. Splits are reproducible from ``seed`` and refreshed as training
-advances. ``split_probability`` controls assignment to the first view, while
-both views are forced to contain at least one interaction.
+The active source history is removed from its loss mask. Source interactions
+are therefore not mislabeled as negative outputs, and the encoder-decoder
+diagonal is neither subtracted nor explicitly penalized. Identity copying
+cannot reduce the objective because the target interaction is absent from its
+source. Prediction uses the full unconstrained scores and applies ordinary
+seen-item masking afterward.
+
+Only users retaining at least two warm interactions can leave out a target
+while preserving non-empty context; other users are ignored during fitting but
+remain fully supported during prediction. ``training_mode="symmetric"`` retains
+the earlier denoising
+ablation: histories are randomly divided into two non-empty views and both
+``x -> y`` and ``y -> x`` are optimized. ``split_probability`` applies only to
+this mode. All ordering, splitting, and negative sampling is reproducible from
+``seed``.
 
 The trainer reuses TEASERGD's fixed dense or CSR feature decoder, stable-ID
 candidate catalog, cold candidate updates, optional popularity feature,
 Xavier or feature initialization, row-normalized encoder option, NAdam/AdamW,
 cosine decay, ``torch.compile``, and source-prefix ``max_output`` sampling.
-LEMSAGD is an experimental denoising variant inspired by LEMSA; it is not the
-gradient equivalent of the paper's gated ALS algorithm.
+LEMSAGD is an experimental held-out reconstruction variant inspired by LEMSA;
+it is not the gradient equivalent of the paper's gated ALS algorithm.
 
 .. autoclass:: compresso_recsys.models.LEMSAGDConfig
    :members:

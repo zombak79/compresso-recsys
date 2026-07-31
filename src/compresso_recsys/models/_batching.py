@@ -29,6 +29,18 @@ class SymmetricInteractionBatch:
     candidates: torch.Tensor | None
 
 
+@dataclass(frozen=True)
+class LeaveOneOutInteractionBatch:
+    """Virtual leave-one-out rows derived from an interaction CSR matrix."""
+
+    x: torch.Tensor
+    sources: torch.Tensor
+    candidates: torch.Tensor | None
+    target_positions: torch.Tensor
+    user_rows: torch.Tensor
+    target_items: torch.Tensor
+
+
 def normalized_mse(
     predictions: torch.Tensor,
     targets: torch.Tensor,
@@ -289,3 +301,151 @@ class SymmetricInteractionBatchSampler(InteractionBatchSampler):
             sources=sources,
             candidates=candidates,
         )
+
+
+class LeaveOneOutInteractionBatchSampler(InteractionBatchSampler):
+    """Visit every eligible observed interaction as a held-out target."""
+
+    def __init__(
+        self,
+        interactions: csr_matrix,
+        *,
+        device: torch.device,
+        batch_size: int,
+        shuffle: bool,
+        max_output: int | None,
+        seed: int,
+    ) -> None:
+        super().__init__(
+            interactions,
+            device=device,
+            batch_size=batch_size,
+            shuffle=False,
+            max_output=max_output,
+            seed=seed,
+        )
+        self.shuffle = bool(shuffle)
+        self.eligible_users = np.flatnonzero(
+            np.diff(interactions.indptr) >= 2
+        ).astype(np.int64, copy=False)
+        if self.eligible_users.size == 0:
+            raise ValueError(
+                "leave-one-out training requires at least one user with two "
+                "interactions"
+            )
+        self.event_indices = self._events_for_users(self.eligible_users)
+        if self.shuffle:
+            self.on_epoch_end()
+
+    def _events_for_users(self, users: np.ndarray) -> np.ndarray:
+        counts = np.diff(self.interactions.indptr)[users].astype(
+            np.int64,
+            copy=False,
+        )
+        repeated_starts = np.repeat(
+            self.interactions.indptr[users].astype(np.int64, copy=False),
+            counts,
+        )
+        group_starts = np.repeat(np.cumsum(counts) - counts, counts)
+        within_group = np.arange(int(counts.sum()), dtype=np.int64) - group_starts
+        return repeated_starts + within_group
+
+    def __len__(self) -> int:
+        return math.ceil(self.event_indices.size / self.batch_size)
+
+    @property
+    def n_examples(self) -> int:
+        """Number of observed interactions visited in one complete epoch."""
+        return int(self.event_indices.size)
+
+    def __getitem__(self, batch_index: int) -> LeaveOneOutInteractionBatch:
+        start = int(batch_index) * self.batch_size
+        end = min(start + self.batch_size, self.event_indices.size)
+        if start < 0 or start >= self.event_indices.size:
+            raise IndexError(batch_index)
+
+        events = self.event_indices[start:end]
+        user_rows = np.searchsorted(
+            self.interactions.indptr,
+            events,
+            side="right",
+        ) - 1
+        target_items = self.interactions.indices[events]
+        matrix = self.interactions[user_rows]
+        row_indices = np.repeat(
+            np.arange(matrix.shape[0], dtype=np.int64),
+            np.diff(matrix.indptr),
+        )
+        keep = matrix.indices != target_items[row_indices]
+        source_global_columns = matrix.indices[keep]
+        source_columns = np.unique(source_global_columns).astype(
+            np.int64,
+            copy=False,
+        )
+        source_lookup = np.empty(matrix.shape[1], dtype=np.int64)
+        source_lookup[source_columns] = np.arange(
+            source_columns.size,
+            dtype=np.int64,
+        )
+        source_local_columns = source_lookup[source_global_columns]
+        x = self._sparse_tensor(
+            row_indices[keep],
+            source_local_columns,
+            matrix.data[keep].astype(np.float32, copy=False),
+            shape=(matrix.shape[0], source_columns.size),
+        )
+
+        if self.max_output is None:
+            candidate_columns = None
+            target_positions = target_items.astype(np.int64, copy=False)
+        else:
+            unique_targets = np.unique(target_items)
+            target_only = unique_targets[
+                ~np.isin(unique_targets, source_columns, assume_unique=True)
+            ]
+            mandatory = np.concatenate((source_columns, target_only))
+            negative_mask = np.ones(matrix.shape[1], dtype=bool)
+            negative_mask[mandatory] = False
+            negative_pool = self.item_indices[negative_mask]
+            n_negatives = min(
+                negative_pool.size,
+                max(0, int(self.max_output) - mandatory.size),
+            )
+            if n_negatives == negative_pool.size:
+                negative_columns = negative_pool
+            elif n_negatives > 0:
+                negative_columns = self.rng.choice(
+                    negative_pool,
+                    size=n_negatives,
+                    replace=False,
+                    shuffle=False,
+                )
+            else:
+                negative_columns = np.empty(0, dtype=np.int64)
+            candidate_columns = np.concatenate((mandatory, negative_columns))
+            candidate_lookup = np.empty(matrix.shape[1], dtype=np.int64)
+            candidate_lookup[candidate_columns] = np.arange(
+                candidate_columns.size,
+                dtype=np.int64,
+            )
+            target_positions = candidate_lookup[target_items]
+
+        sources = torch.from_numpy(source_columns).to(self.device)
+        candidates = (
+            None
+            if candidate_columns is None
+            else torch.from_numpy(candidate_columns).to(self.device)
+        )
+        return LeaveOneOutInteractionBatch(
+            x=x,
+            sources=sources,
+            candidates=candidates,
+            target_positions=torch.from_numpy(target_positions).to(self.device),
+            user_rows=torch.from_numpy(user_rows).to(self.device),
+            target_items=torch.from_numpy(target_items).to(self.device),
+        )
+
+    def on_epoch_end(self) -> None:
+        if self.shuffle:
+            self.rng.shuffle(self.eligible_users)
+            self.event_indices = self._events_for_users(self.eligible_users)

@@ -306,7 +306,7 @@ predicting disjoint halves of each user history from one another:
            epochs=10,
            lr=1e-3,
            decay=True,
-           split_probability=0.5,
+           training_mode="leave_one_out",
            use_relu=True,
            encoder_init="xavier",
            normalize_encoder=False,
@@ -331,12 +331,18 @@ predicting disjoint halves of each user history from one another:
        show_progress=True,
    )
 
-The two random views are regenerated during training, and both directions are
-optimized in every batch. Source entries are excluded from the corresponding
-loss rather than treated as negative labels. Users with fewer than two warm
-interactions do not contribute training examples. This model is an
-experimental split-history variant, not an exact reproduction of LEMSA's ALS
-optimizer.
+The virtual sampler visits every eligible observed interaction exactly once per
+epoch. For each example it removes that interaction from its original CSR user
+row and predicts it from the remaining history. It stores no expanded source
+or target matrix. Source entries are excluded from the loss rather than
+treated as negative labels. Users with fewer than two warm interactions do not
+contribute training examples.
+
+Set ``training_mode="symmetric"`` to use complementary random history views
+instead; ``split_probability`` controls that mode's split. Leave-one-out has
+approximately ``x_train.nnz`` examples per epoch, so it is intentionally much
+more expensive than symmetric user-level batches. This model is experimental,
+not an exact reproduction of LEMSA's ALS optimizer.
 
 Train TEASER with Gradient Descent
 ----------------------------------

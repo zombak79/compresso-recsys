@@ -15,7 +15,10 @@ from compresso_recsys.models import (
     LEMSAGDTrainer,
     Recommender,
 )
-from compresso_recsys.models._batching import SymmetricInteractionBatchSampler
+from compresso_recsys.models._batching import (
+    LeaveOneOutInteractionBatchSampler,
+    SymmetricInteractionBatchSampler,
+)
 from compresso_recsys.models.lemsa_gd import _cross_reconstruction_loss
 
 
@@ -86,23 +89,30 @@ def test_forward_matches_unconstrained_coefficients():
 
 def test_cross_reconstruction_ignores_source_coordinates_and_gradients():
     predictions = torch.tensor(
-        [[10.0, 0.4, -0.2]],
+        [[0.4, -0.2, 10.0]],
         requires_grad=True,
     )
-    targets = torch.tensor([[0.0, 1.0, 0.0]])
-    source = torch.tensor([[1.0, 0.0, 0.0]])
+    targets = torch.tensor([[1.0, 0.0, 0.0]])
+    source = torch.tensor([[1.0]])
+    source_positions = torch.tensor([2])
 
-    first = _cross_reconstruction_loss(predictions, targets, source=source)
-    changed = _cross_reconstruction_loss(
-        torch.tensor([[-999.0, 0.4, -0.2]]),
+    first = _cross_reconstruction_loss(
+        predictions,
         targets,
         source=source,
+        source_positions=source_positions,
+    )
+    changed = _cross_reconstruction_loss(
+        torch.tensor([[0.4, -0.2, -999.0]]),
+        targets,
+        source=source,
+        source_positions=source_positions,
     )
     first.backward()
 
     torch.testing.assert_close(first.detach(), changed)
-    assert predictions.grad[0, 0] == 0
-    assert torch.count_nonzero(predictions.grad[0, 1:]) > 0
+    assert predictions.grad[0, 2] == 0
+    assert torch.count_nonzero(predictions.grad[0, :2]) > 0
 
 
 def test_symmetric_sampler_produces_disjoint_nonempty_complete_views(
@@ -175,6 +185,75 @@ def test_sampler_rejects_data_without_splittable_users():
         )
 
 
+@pytest.mark.parametrize("max_output", [None, 4])
+def test_leave_one_out_sampler_visits_every_interaction_exactly_once(
+    interactions,
+    max_output,
+):
+    sampler = LeaveOneOutInteractionBatchSampler(
+        interactions,
+        device=torch.device("cpu"),
+        batch_size=4,
+        shuffle=False,
+        max_output=max_output,
+        seed=5,
+    )
+    visited: list[tuple[int, int]] = []
+
+    for batch_index in range(len(sampler)):
+        batch = sampler[batch_index]
+        x = batch.x.to_dense()
+        candidates = batch.candidates
+        for row in range(x.shape[0]):
+            user = int(batch.user_rows[row])
+            target = int(batch.target_items[row])
+            source_items = set(
+                batch.sources[torch.nonzero(x[row], as_tuple=False).flatten()].tolist()
+            )
+            original = set(interactions[user].indices.tolist())
+
+            assert target not in source_items
+            assert source_items | {target} == original
+            if candidates is None:
+                assert int(batch.target_positions[row]) == target
+            else:
+                assert int(candidates[batch.target_positions[row]]) == target
+            visited.append((user, target))
+
+    expected = [
+        (user, int(item))
+        for user in range(interactions.shape[0])
+        for item in interactions[user].indices
+    ]
+    assert sampler.n_examples == interactions.nnz
+    assert sorted(visited) == sorted(expected)
+
+
+def test_leave_one_out_sampler_skips_single_interaction_users():
+    interactions = csr_matrix(
+        np.array(
+            [
+                [1, 0, 0],
+                [1, 1, 0],
+            ],
+            dtype=np.float32,
+        )
+    )
+    sampler = LeaveOneOutInteractionBatchSampler(
+        interactions,
+        device=torch.device("cpu"),
+        batch_size=4,
+        shuffle=False,
+        max_output=None,
+        seed=0,
+    )
+
+    batch = sampler[0]
+
+    assert sampler.n_examples == 2
+    assert set(batch.user_rows.tolist()) == {1}
+
+
 @pytest.mark.parametrize("sparse", [False, True])
 def test_fit_predict_and_candidate_catalog(
     interactions,
@@ -218,6 +297,15 @@ def test_training_is_deterministic(interactions, item_features):
         second._base_model.encoder,
     )
     assert first.history == second.history
+
+
+def test_symmetric_training_mode_remains_available(interactions, item_features):
+    model = LEMSAGDTrainer(
+        _config(epochs=1, training_mode="symmetric")
+    ).fit(interactions, item_features)
+
+    assert len(model.history) == 1
+    assert np.isfinite(model.history[0]["loss"])
 
 
 def test_train_item_subset_supports_cold_candidates(item_features):
@@ -279,6 +367,7 @@ def test_protocols_defaults_and_configuration_validation():
     assert isinstance(model, Recommender)
     assert isinstance(model, ColdStartRecommender)
     assert config.split_probability == 0.5
+    assert config.training_mode == "leave_one_out"
     assert config.include_popularity is False
     assert config.l2_encoder == 0.0
 
@@ -291,6 +380,7 @@ def test_protocols_defaults_and_configuration_validation():
         {"split_probability": 0},
         {"split_probability": 1},
         {"split_probability": np.nan},
+        {"training_mode": "pairs"},
         {"optimizer": "SGD"},
         {"encoder_init": "zeros"},
         {"normalize_encoder": "yes"},

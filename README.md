@@ -88,8 +88,8 @@ compresso-recsys-build-checkpoint \
 - Calibrated Recall and nDCG defaults, with optional standard Recall,
   Precision, Hit Rate, MRR, and MAP at configurable cutoffs.
 - Batched EASE, ADMM and gradient-trained TEASER cold-start models, gated LEMSA
-  and split-history LEMSAGD for language-embedding cold start, dense ELSA, and
-  lottery-ticket compressed ELSA with streaming evaluation.
+  and virtual leave-one-out LEMSAGD for language-embedding cold start, dense
+  ELSA, and lottery-ticket compressed ELSA with streaming evaluation.
 - A checkpoint-building console command:
   `compresso-recsys-build-checkpoint`.
 
