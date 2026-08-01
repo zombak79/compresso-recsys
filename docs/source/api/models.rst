@@ -143,6 +143,22 @@ batch size. Because simultaneous updates can be unstable when many items
 co-occur, the correctness-first default is ``1``; larger values must be
 selected on validation data.
 
+``update_rate`` optionally damps each closed-form proposal before updating the
+encoder and cached user profiles. If ``e*`` is the solved row, the committed
+row is ``e + update_rate * (e* - e)``. The default ``1.0`` preserves the exact
+paper-compatible update; smaller values retain the same fixed points while
+using a more conservative optimization path. When ``tolerance`` is configured,
+convergence is tested against the full undamped proposal so a small update rate
+cannot cause premature stopping. Both applied and proposed changes are exposed
+in ``fit_history_``.
+
+Set ``shuffle_updates=True`` to draw a reproducible item permutation from
+``seed`` before every epoch. Sequential updates then avoid a persistent catalog
+order bias, while snapshot blocks are formed from consecutive rows in the
+permutation. Shuffling has no numerical effect when ``update_batch_size=None``
+because the complete item set is still solved from one frozen Jacobi snapshot.
+The default is ``False`` to preserve the original deterministic row order.
+
 Fitting maintains a dense user-by-feature profile matrix and dense
 item-by-feature encoder. Its main storage is therefore
 ``(users + warm_items) * feature_dim`` rather than a dense item-by-item matrix.

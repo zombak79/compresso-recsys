@@ -69,6 +69,9 @@ def _literal_lemsa(
     epochs: int,
     encoder_init: str = "zeros",
     update_batch_size: int | None = 1,
+    update_rate: float = 1.0,
+    shuffle_updates: bool = False,
+    seed: int = 0,
 ) -> np.ndarray:
     encoder = (
         np.zeros_like(features) if encoder_init == "zeros" else features.copy()
@@ -78,11 +81,17 @@ def _literal_lemsa(
         if update_batch_size is None
         else update_batch_size
     )
+    rng = np.random.default_rng(seed)
     for _ in range(epochs):
+        update_order = np.arange(interactions.shape[1])
+        if shuffle_updates:
+            rng.shuffle(update_order)
         for block_start in range(0, interactions.shape[1], batch_size):
             block_end = min(block_start + batch_size, interactions.shape[1])
-            next_rows = encoder[block_start:block_end].copy()
-            for offset, item in enumerate(range(block_start, block_end)):
+            block_items = update_order[block_start:block_end]
+            old_rows = encoder[block_items].copy()
+            next_rows = old_rows.copy()
+            for offset, item in enumerate(block_items):
                 users = np.flatnonzero(interactions[:, item])
                 keep = np.arange(interactions.shape[1]) != item
                 decoder = features[keep]
@@ -96,7 +105,7 @@ def _literal_lemsa(
                 matrix.flat[:: matrix.shape[0] + 1] += l2_encoder
                 right_hand_side = decoder.T @ residual.T @ np.ones(users.size)
                 next_rows[offset] = np.linalg.solve(matrix, right_hand_side)
-            encoder[block_start:block_end] = next_rows
+            encoder[block_items] = old_rows + update_rate * (next_rows - old_rows)
     return encoder
 
 
@@ -108,6 +117,9 @@ def _fit(
     epochs: int = 2,
     encoder_init: str = "zeros",
     update_batch_size: int | None = 1,
+    update_rate: float = 1.0,
+    shuffle_updates: bool = False,
+    seed: int = 0,
 ) -> LEMSA:
     return LEMSA(
         LEMSAConfig(
@@ -116,6 +128,9 @@ def _fit(
             solver=solver,
             encoder_init=encoder_init,
             update_batch_size=update_batch_size,
+            update_rate=update_rate,
+            shuffle_updates=shuffle_updates,
+            seed=seed,
             precompute_batch_size=2,
             dtype="float64",
         )
@@ -131,17 +146,22 @@ def test_defaults_are_production_oriented():
     assert config.encoder_init == "zeros"
     assert config.tolerance is None
     assert config.update_batch_size == 1
+    assert config.update_rate == 1.0
+    assert config.shuffle_updates is False
+    assert config.seed == 0
     assert config.precompute_batch_size == 8192
     assert config.dtype == "float32"
 
 
 @pytest.mark.parametrize("solver", ["direct", "eigen"])
 @pytest.mark.parametrize("encoder_init", ["zeros", "features"])
+@pytest.mark.parametrize("update_rate", [1.0, 0.25])
 def test_fit_matches_literal_gated_coordinate_updates(
     interactions,
     item_features,
     solver,
     encoder_init,
+    update_rate,
 ):
     model = _fit(
         interactions,
@@ -149,6 +169,7 @@ def test_fit_matches_literal_gated_coordinate_updates(
         solver=solver,
         epochs=3,
         encoder_init=encoder_init,
+        update_rate=update_rate,
     )
     expected = _literal_lemsa(
         interactions.toarray(),
@@ -156,6 +177,7 @@ def test_fit_matches_literal_gated_coordinate_updates(
         l2_encoder=0.17,
         epochs=3,
         encoder_init=encoder_init,
+        update_rate=update_rate,
     )
 
     np.testing.assert_allclose(model.encoder_, expected, rtol=1e-11, atol=1e-11)
@@ -205,6 +227,89 @@ def test_snapshot_block_size_changes_update_schedule(interactions, item_features
     )
 
     assert not np.allclose(sequential.encoder_, full_sweep.encoder_)
+
+
+@pytest.mark.parametrize("solver", ["direct", "eigen"])
+def test_shuffled_damped_blocks_match_literal_updates(
+    interactions,
+    item_features,
+    solver,
+):
+    model = _fit(
+        interactions,
+        item_features,
+        solver=solver,
+        epochs=4,
+        update_batch_size=2,
+        update_rate=0.4,
+        shuffle_updates=True,
+        seed=19,
+    )
+    expected = _literal_lemsa(
+        interactions.toarray(),
+        item_features,
+        l2_encoder=0.17,
+        epochs=4,
+        update_batch_size=2,
+        update_rate=0.4,
+        shuffle_updates=True,
+        seed=19,
+    )
+
+    np.testing.assert_allclose(model.encoder_, expected, rtol=1e-11, atol=1e-11)
+
+
+def test_shuffled_updates_are_seeded_and_change_the_sequential_schedule(
+    interactions,
+    item_features,
+):
+    first = _fit(
+        interactions,
+        item_features,
+        epochs=3,
+        shuffle_updates=True,
+        seed=7,
+    )
+    repeated = _fit(
+        interactions,
+        item_features,
+        epochs=3,
+        shuffle_updates=True,
+        seed=7,
+    )
+    different = _fit(
+        interactions,
+        item_features,
+        epochs=3,
+        shuffle_updates=True,
+        seed=8,
+    )
+
+    np.testing.assert_array_equal(first.encoder_, repeated.encoder_)
+    assert not np.allclose(first.encoder_, different.encoder_)
+
+
+def test_shuffling_does_not_change_full_jacobi_updates(
+    interactions,
+    item_features,
+):
+    ordered = _fit(
+        interactions,
+        item_features,
+        epochs=3,
+        update_batch_size=None,
+        shuffle_updates=False,
+    )
+    shuffled = _fit(
+        interactions,
+        item_features,
+        epochs=3,
+        update_batch_size=None,
+        shuffle_updates=True,
+        seed=7,
+    )
+
+    np.testing.assert_allclose(ordered.encoder_, shuffled.encoder_, rtol=1e-11, atol=1e-11)
 
 
 def test_eigen_and_direct_solvers_produce_identical_scores(
@@ -454,6 +559,48 @@ def test_tolerance_can_stop_after_first_sweep(interactions, item_features):
     assert model.n_epochs_ == 1
 
 
+def test_damping_reports_applied_and_proposed_changes_separately(
+    interactions,
+    item_features,
+):
+    model = LEMSA(
+        LEMSAConfig(
+            epochs=1,
+            update_rate=0.25,
+            dtype="float64",
+        )
+    ).fit(interactions, item_features)
+
+    record = model.fit_history_[0]
+    np.testing.assert_allclose(
+        record["relative_change"],
+        0.25 * record["relative_proposal_change"],
+        rtol=1e-12,
+        atol=1e-12,
+    )
+    np.testing.assert_allclose(
+        record["max_row_change"],
+        0.25 * record["max_row_proposal_change"],
+        rtol=1e-12,
+        atol=1e-12,
+    )
+
+
+def test_tolerance_uses_undamped_proposal_change(interactions, item_features):
+    model = LEMSA(
+        LEMSAConfig(
+            epochs=2,
+            tolerance=2.0,
+            update_rate=0.1,
+            dtype="float64",
+        )
+    ).fit(interactions, item_features)
+
+    assert model.fit_history_[0]["relative_change"] <= 2.0
+    assert model.fit_history_[0]["relative_proposal_change"] > 2.0
+    assert model.n_epochs_ == 2
+
+
 @pytest.mark.parametrize(
     ("field", "value"),
     [
@@ -468,6 +615,15 @@ def test_tolerance_can_stop_after_first_sweep(interactions, item_features):
         ("update_batch_size", 0),
         ("update_batch_size", 1.5),
         ("update_batch_size", True),
+        ("update_rate", 0),
+        ("update_rate", -0.1),
+        ("update_rate", 1.1),
+        ("update_rate", np.nan),
+        ("update_rate", True),
+        ("shuffle_updates", 1),
+        ("seed", -1),
+        ("seed", 1.5),
+        ("seed", True),
         ("precompute_batch_size", 0),
         ("precompute_batch_size", True),
         ("dtype", "float16"),

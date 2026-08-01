@@ -189,6 +189,15 @@ class LEMSAConfig:
         before their updates are applied together. ``1`` selects sequential
         Gauss-Seidel updates, while ``None`` uses one full Jacobi update per
         epoch.
+    update_rate:
+        Fraction of each closed-form row update to apply. ``1.0`` installs the
+        exact row solution; smaller values damp the update without changing
+        the objective's fixed points.
+    shuffle_updates:
+        Shuffle encoder-row order independently before every epoch. This
+        affects sequential and block updates, but not a full Jacobi update.
+    seed:
+        Random seed used for reproducible update-order shuffling.
     precompute_batch_size:
         User batch size used while computing fixed semantic target sums.
     dtype:
@@ -201,6 +210,9 @@ class LEMSAConfig:
     encoder_init: LEMSAEncoderInit = "zeros"
     tolerance: float | None = None
     update_batch_size: int | None = 1
+    update_rate: float = 1.0
+    shuffle_updates: bool = False
+    seed: int = 0
     precompute_batch_size: int = 8192
     dtype: LEMSADataType = "float32"
 
@@ -227,6 +239,20 @@ class LEMSAConfig:
             or self.update_batch_size < 1
         ):
             raise ValueError("update_batch_size must be >= 1, or None")
+        if (
+            isinstance(self.update_rate, bool)
+            or not np.isfinite(self.update_rate)
+            or not 0 < self.update_rate <= 1
+        ):
+            raise ValueError("update_rate must be finite and in (0, 1]")
+        if not isinstance(self.shuffle_updates, bool):
+            raise ValueError("shuffle_updates must be a bool")
+        if (
+            isinstance(self.seed, bool)
+            or not isinstance(self.seed, (int, np.integer))
+            or self.seed < 0
+        ):
+            raise ValueError("seed must be a non-negative integer")
         if (
             isinstance(self.precompute_batch_size, bool)
             or not isinstance(self.precompute_batch_size, (int, np.integer))
@@ -385,6 +411,7 @@ class LEMSA(_LinearFeatureRecommenderMixin):
         x_csc = x.tocsc()
         supports = np.diff(x_csc.indptr)
         history: list[dict[str, float]] = []
+        rng = np.random.default_rng(int(self.cfg.seed))
         update_batch_size = (
             x.shape[1]
             if self.cfg.update_batch_size is None
@@ -393,8 +420,13 @@ class LEMSA(_LinearFeatureRecommenderMixin):
 
         for epoch in range(int(self.cfg.epochs)):
             squared_change = 0.0
+            squared_proposal_change = 0.0
             max_row_change = 0.0
+            max_row_proposal_change = 0.0
             fallbacks = 0
+            update_order = np.arange(x.shape[1], dtype=np.int64)
+            if self.cfg.shuffle_updates:
+                rng.shuffle(update_order)
             blocks = _progress(
                 range(0, x.shape[1], update_batch_size),
                 enabled=show_progress,
@@ -402,7 +434,12 @@ class LEMSA(_LinearFeatureRecommenderMixin):
             )
             for block_start in blocks:
                 block_end = min(block_start + update_batch_size, x.shape[1])
-                block = slice(block_start, block_end)
+                if self.cfg.shuffle_updates:
+                    block: slice | np.ndarray = update_order[block_start:block_end]
+                    block_items = block
+                else:
+                    block = slice(block_start, block_end)
+                    block_items = update_order[block]
                 block_supports = supports[block]
                 block_features = solver_features[block]
                 old_rows = encoder[block]
@@ -452,24 +489,40 @@ class LEMSA(_LinearFeatureRecommenderMixin):
                             l2_encoder=float(self.cfg.l2_encoder),
                         )
 
-                deltas = np.asarray(
+                proposal_deltas = np.asarray(
                     next_rows - old_rows,
                     dtype=self.dtype,
                 )
-                encoder[block] = next_rows
+                if self.cfg.update_rate == 1.0:
+                    deltas = proposal_deltas
+                    encoder[block] = next_rows
+                else:
+                    deltas = np.asarray(
+                        float(self.cfg.update_rate) * proposal_deltas,
+                        dtype=self.dtype,
+                    )
+                    encoder[block] = old_rows + deltas
 
                 # Commit profile changes only after every row has been solved.
-                for offset, item in enumerate(range(block_start, block_end)):
+                for offset, item in enumerate(block_items):
                     start, end = x_csc.indptr[item : item + 2]
                     users = x_csc.indices[start:end]
                     if users.size:
                         user_profiles[users] += deltas[offset]
 
                 row_changes = np.linalg.norm(deltas, axis=1)
+                row_proposal_changes = np.linalg.norm(proposal_deltas, axis=1)
                 squared_change += float(row_changes @ row_changes)
+                squared_proposal_change += float(
+                    row_proposal_changes @ row_proposal_changes
+                )
                 max_row_change = max(
                     max_row_change,
                     float(row_changes.max(initial=0.0)),
+                )
+                max_row_proposal_change = max(
+                    max_row_proposal_change,
+                    float(row_proposal_changes.max(initial=0.0)),
                 )
 
             encoder_norm = float(np.linalg.norm(encoder))
@@ -477,14 +530,25 @@ class LEMSA(_LinearFeatureRecommenderMixin):
                 encoder_norm,
                 float(np.finfo(self.dtype).tiny),
             )
+            relative_proposal_change = float(
+                np.sqrt(squared_proposal_change)
+            ) / max(
+                encoder_norm,
+                float(np.finfo(self.dtype).tiny),
+            )
             history.append(
                 {
                     "relative_change": relative_change,
                     "max_row_change": max_row_change,
+                    "relative_proposal_change": relative_proposal_change,
+                    "max_row_proposal_change": max_row_proposal_change,
                     "solver_fallbacks": float(fallbacks),
                 }
             )
-            if self.cfg.tolerance is not None and relative_change <= self.cfg.tolerance:
+            if (
+                self.cfg.tolerance is not None
+                and relative_proposal_change <= self.cfg.tolerance
+            ):
                 break
 
         if rotation is not None:

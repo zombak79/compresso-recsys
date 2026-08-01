@@ -251,6 +251,9 @@ items while retaining every embedding in the initial candidate catalog:
            epochs=10,
            solver="eigen",
            update_batch_size=1,
+           update_rate=0.1,
+           shuffle_updates=True,
+           seed=0,
            dtype="float32",
        )
    )
@@ -276,6 +279,12 @@ items while retaining every embedding in the initial candidate catalog:
        batch_size=1024,
        show_progress=True,
    )
+
+``update_rate`` moves partway toward each exact closed-form row solution and
+``shuffle_updates`` removes persistent catalog-order bias between epochs. Use
+``update_rate=1.0`` and ``shuffle_updates=False`` for the original full-update,
+fixed-order behavior. Smaller update rates generally require more epochs and
+should be selected together with ``l2_encoder`` on validation data.
 
 ``solver="eigen"`` performs exact rank-one row solves. Rows are computed in
 snapshot-based blocks controlled by ``update_batch_size`` and committed only
