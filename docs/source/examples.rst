@@ -380,6 +380,7 @@ output candidate sampling:
            use_relu=False,
            encoder_init="features",
            normalize_encoder=True,
+           diagonal_scale=1.0,
            l2_encoder=0.0,
            coefficient_regularization_samples=4096,
        )
@@ -407,7 +408,9 @@ positive item represented in the current user batch is retained and sampled
 negatives fill the remaining output budget. The source-prefix rule is what
 makes exact diagonal removal possible in the sampled output. TEASER loss mode
 importance-weights sampled negative errors. Use ``loss="normalized_mse"`` for
-the ELSA-style row-normalized objective instead.
+the ELSA-style row-normalized objective instead. Set ``diagonal_scale=0.0`` to
+disable self-coefficient subtraction or use a value between zero and one for a
+partial correction; ``1.0`` preserves standard TEASER behavior.
 
 Serve New TEASER Candidates
 ---------------------------

@@ -252,9 +252,12 @@ Training shares ELSA's scalable controls: ``max_output`` retains every source
 item appearing in a batch as the candidate prefix and fills the remaining
 budget with sampled negatives, cosine-normalized reconstruction is optimized
 with NAdam or AdamW, and optional cosine learning-rate decay and
-``torch.compile`` are available. The self coefficient is removed exactly using
-``(encoder * item_features).sum(-1)`` for each source item. No dense coefficient
-matrix is needed for that correction.
+``torch.compile`` are available. ``diagonal_scale`` multiplies the self
+coefficient removed using ``(encoder * item_features).sum(-1)`` for each source
+item. The default ``1.0`` removes it completely, ``0.0`` leaves it untouched,
+and intermediate values subtract that fraction. No dense coefficient matrix is
+needed for the correction. Values below one intentionally relax TEASER's
+anti-identity constraint and apply consistently during training and inference.
 
 ``loss="normalized_mse"`` is the default and preserves the ELSA-style
 row-normalized reconstruction objective. ``loss="teaser"`` instead optimizes
@@ -264,16 +267,18 @@ norm and encoder norm. Dividing every term by the same constant does not change
 the minimizer. With sampled output candidates, negative reconstruction errors
 are importance-weighted to estimate the complete output error. Set
 ``use_relu=False`` with this mode for parity with the paper; enabling ReLU is an
-optional modification of the original model.
+optional modification of the original model. Paper parity also requires
+``diagonal_scale=1.0``.
 
 The encoder defaults to Xavier initialization. Set
 ``encoder_init="features"`` to initialize each warm encoder row from its fixed
-decoder feature row, making the initial coefficient matrix a diagonal-free
-metadata-similarity model ``S @ S.T``. This is particularly useful for sparse
-SAE codes because active feature dimensions receive a meaningful signal before
-the first gradient update. Dense and CSR features are both supported; the CSR
-path fills the allocated encoder directly without constructing another dense
-feature matrix.
+decoder feature row, making the initial coefficient matrix a scaled-diagonal
+variant of the metadata-similarity model ``S @ S.T``. At the default
+``diagonal_scale=1.0`` its diagonal is removed. This is particularly useful for
+sparse SAE codes because active feature dimensions receive a meaningful signal
+before the first gradient update. Dense and CSR features are both supported;
+the CSR path fills the allocated encoder directly without constructing another
+dense feature matrix.
 
 ``normalize_encoder=True`` applies row-wise L2 normalization to the effective
 encoder in every training and inference path, as ELSA does for its item
@@ -282,8 +287,9 @@ factors. The underlying trainable parameter remains unnormalized. Explicit
 parameter, so start with both set to zero when evaluating encoder
 normalization.
 
-The original TEASER coefficient penalty is estimated from random off-diagonal
-item pairs. Its cost is
+The TEASER coefficient penalty is estimated from random off-diagonal item pairs
+and, when ``diagonal_scale < 1``, matching sampled residual-diagonal entries.
+Its cost is
 ``coefficient_regularization_samples * feature_dim`` per batch; set the sample
 count to zero to disable it. TEASER loss mode scales the estimate to the full
 coefficient-matrix norm, while normalized-MSE mode preserves the previous mean

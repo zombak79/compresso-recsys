@@ -149,10 +149,10 @@ def _initialize_encoder_from_features(
 class TEASERGD(nn.Module):
     """Trainable TEASER encoder with a fixed feature decoder.
 
-    The model represents the diagonal-free coefficient matrix as ``E @ S.T``
-    without constructing it. ``source_candidate_positions`` identifies each
-    source item's position in the candidate output so the diagonal contribution
-    ``(E * S).sum(-1)`` can be removed exactly.
+    The model represents the coefficient matrix as ``E @ S.T`` without
+    constructing it. ``source_candidate_positions`` identifies each source
+    item's position in the candidate output so ``diagonal_scale`` can remove
+    all or part of the diagonal contribution ``(E * S).sum(-1)`` exactly.
     """
 
     def __init__(
@@ -162,16 +162,24 @@ class TEASERGD(nn.Module):
         *,
         use_relu: bool = True,
         normalize_encoder: bool = False,
+        diagonal_scale: float = 1.0,
     ) -> None:
         super().__init__()
         if input_dim < 1:
             raise ValueError("input_dim must be >= 1")
         if feature_dim < 1:
             raise ValueError("feature_dim must be >= 1")
+        if (
+            isinstance(diagonal_scale, bool)
+            or not np.isfinite(diagonal_scale)
+            or not 0 <= diagonal_scale <= 1
+        ):
+            raise ValueError("diagonal_scale must be finite and in [0, 1]")
         self.input_dim = int(input_dim)
         self.feature_dim = int(feature_dim)
         self.use_relu = bool(use_relu)
         self.normalize_encoder = bool(normalize_encoder)
+        self.diagonal_scale = float(diagonal_scale)
         self.encoder = nn.Parameter(torch.empty(self.input_dim, self.feature_dim))
         nn.init.xavier_uniform_(self.encoder)
 
@@ -194,7 +202,7 @@ class TEASERGD(nn.Module):
         candidate_features: torch.Tensor,
         source_candidate_positions: torch.Tensor,
     ) -> torch.Tensor:
-        """Score candidates and remove every represented self coefficient."""
+        """Score candidates and scale represented self-coefficient removal."""
         if x.shape[1] != sources.numel():
             raise ValueError("x columns must match sources")
         if source_features.shape != (sources.numel(), self.feature_dim):
@@ -210,7 +218,7 @@ class TEASERGD(nn.Module):
         diagonal = (source_encoder * source_features).sum(dim=-1)
         valid = source_candidate_positions >= 0
         positions = source_candidate_positions[valid]
-        correction = -(x[:, valid] * diagonal[valid])
+        correction = -self.diagonal_scale * (x[:, valid] * diagonal[valid])
         scores = scores.scatter_add(
             1,
             positions.expand(x.shape[0], -1),
@@ -222,7 +230,7 @@ class TEASERGD(nn.Module):
         self,
         item_features: torch.Tensor,
     ) -> torch.Tensor:
-        """Return exact ``||E S.T - diag(E S.T)||_F^2`` for diagnostics."""
+        """Return the exact effective coefficient squared norm."""
         if item_features.layout != torch.strided:
             item_features = item_features.to_dense()
         if item_features.shape != (self.input_dim, self.feature_dim):
@@ -230,7 +238,8 @@ class TEASERGD(nn.Module):
         encoder = self.encoder_weights()
         coefficients = encoder @ item_features.T
         diagonal = (encoder * item_features).sum(dim=-1)
-        return coefficients.square().sum() - diagonal.square().sum()
+        removed_fraction = self.diagonal_scale * (2.0 - self.diagonal_scale)
+        return coefficients.square().sum() - removed_fraction * diagonal.square().sum()
 
 
 @dataclass(frozen=True)
@@ -243,7 +252,7 @@ class TEASERGDConfig:
     sampling as ELSA. In TEASER mode, sampled negatives are importance-weighted
     to estimate full-output reconstruction.
     ``coefficient_regularization_samples`` controls a Monte Carlo estimate of
-    the mean squared off-diagonal coefficient; zero disables that term.
+    the effective coefficient norm; zero disables that term.
     """
 
     batch_size: int = 1024
@@ -265,6 +274,7 @@ class TEASERGDConfig:
     loss: TEASERGDLoss = "normalized_mse"
     encoder_init: EncoderInit = "xavier"
     normalize_encoder: bool = False
+    diagonal_scale: float = 1.0
 
     def __post_init__(self) -> None:
         for name in ("batch_size", "epochs"):
@@ -293,6 +303,12 @@ class TEASERGDConfig:
             if not np.isfinite(value) or value < 0 or (name == "lr" and value == 0):
                 relation = "> 0" if name == "lr" else ">= 0"
                 raise ValueError(f"{name} must be finite and {relation}")
+        if (
+            isinstance(self.diagonal_scale, bool)
+            or not np.isfinite(self.diagonal_scale)
+            or not 0 <= self.diagonal_scale <= 1
+        ):
+            raise ValueError("diagonal_scale must be finite and in [0, 1]")
         if self.optimizer not in {"NAdam", "AdamW"}:
             raise ValueError("optimizer must be 'NAdam' or 'AdamW'")
         if self.loss not in {"normalized_mse", "teaser"}:
@@ -363,6 +379,7 @@ class TEASERGDTrainer(FeatureCatalogMixin):
             feature_dim=feature_dim,
             use_relu=self.cfg.use_relu,
             normalize_encoder=self.cfg.normalize_encoder,
+            diagonal_scale=self.cfg.diagonal_scale,
         )
 
     def _build_batch_sampler(
@@ -401,9 +418,24 @@ class TEASERGDTrainer(FeatureCatalogMixin):
         right_features = self._training_feature_rows(right)
         coefficients = (model.encoder_weights(left_tensor) * right_features).sum(-1)
         penalty = coefficients.square().mean()
+        residual_diagonal_scale = 1.0 - model.diagonal_scale
+        diagonal_penalty = model.encoder.new_zeros(())
+        if residual_diagonal_scale:
+            left_features = self._training_feature_rows(left)
+            diagonal = (
+                model.encoder_weights(left_tensor) * left_features
+            ).sum(-1)
+            diagonal_penalty = (
+                residual_diagonal_scale**2 * diagonal.square().mean()
+            )
         if self.cfg.loss == "teaser":
             assert self._n_training_users is not None
             penalty = penalty * (n_items * (n_items - 1) / self._n_training_users)
+            penalty = penalty + (
+                diagonal_penalty * n_items / self._n_training_users
+            )
+        else:
+            penalty = penalty + diagonal_penalty / (n_items - 1)
         return penalty
 
     def _training_tensor(self) -> torch.Tensor:

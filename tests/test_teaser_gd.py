@@ -67,11 +67,17 @@ def _config(**overrides) -> TEASERGDConfig:
     return TEASERGDConfig(**values)
 
 
-def test_forward_matches_explicit_diagonal_free_coefficients():
+@pytest.mark.parametrize("diagonal_scale", [0.0, 0.35, 1.0])
+def test_forward_matches_explicit_scaled_diagonal_coefficients(diagonal_scale):
     features = torch.tensor(
         [[1.0, 0.0], [1.0, 2.0], [-1.0, 1.0]],
     )
-    model = TEASERGD(3, 2, use_relu=False)
+    model = TEASERGD(
+        3,
+        2,
+        use_relu=False,
+        diagonal_scale=diagonal_scale,
+    )
     with torch.no_grad():
         model.encoder.copy_(torch.tensor([[0.5, 1.0], [2.0, -0.5], [1.5, 0.25]]))
     x = torch.tensor([[1.0, 0.0, 1.0], [0.0, 2.0, 0.0]])
@@ -84,16 +90,24 @@ def test_forward_matches_explicit_diagonal_free_coefficients():
         source_candidate_positions=torch.arange(3),
     )
     coefficients = model.encoder @ features.T
-    expected_coefficients = coefficients - torch.diag(torch.diag(coefficients))
+    expected_coefficients = coefficients - diagonal_scale * torch.diag(
+        torch.diag(coefficients)
+    )
 
     torch.testing.assert_close(actual, x @ expected_coefficients)
 
 
-def test_forward_handles_source_prefix_and_sampled_candidates():
+@pytest.mark.parametrize("diagonal_scale", [0.0, 0.4, 1.0])
+def test_forward_handles_source_prefix_and_sampled_candidates(diagonal_scale):
     features = torch.tensor(
         [[1.0, 0.0], [0.0, 1.0], [1.0, 1.0], [-1.0, 2.0]],
     )
-    model = TEASERGD(4, 2, use_relu=False)
+    model = TEASERGD(
+        4,
+        2,
+        use_relu=False,
+        diagonal_scale=diagonal_scale,
+    )
     with torch.no_grad():
         model.encoder.copy_(torch.arange(8, dtype=torch.float32).reshape(4, 2) / 4)
     sources = torch.tensor([2, 0])
@@ -108,8 +122,8 @@ def test_forward_handles_source_prefix_and_sampled_candidates():
         source_candidate_positions=torch.tensor([0, 1]),
     )
     coefficients = model.encoder[sources] @ features[candidates].T
-    coefficients[0, 0] = 0
-    coefficients[1, 1] = 0
+    coefficients[0, 0] *= 1.0 - diagonal_scale
+    coefficients[1, 1] *= 1.0 - diagonal_scale
 
     torch.testing.assert_close(actual, x @ coefficients)
 
@@ -173,15 +187,83 @@ def test_feature_encoder_initialization_supports_dense_and_csr(sparse):
     torch.testing.assert_close(model.encoder, torch.from_numpy(features))
 
 
-def test_exact_coefficient_norm_matches_materialized_matrix():
-    model = TEASERGD(3, 2, use_relu=False)
+@pytest.mark.parametrize("diagonal_scale", [0.0, 0.6, 1.0])
+def test_exact_coefficient_norm_matches_materialized_matrix(diagonal_scale):
+    model = TEASERGD(
+        3,
+        2,
+        use_relu=False,
+        diagonal_scale=diagonal_scale,
+    )
     features = torch.randn(3, 2)
     coefficients = model.encoder @ features.T
-    coefficients = coefficients - torch.diag(torch.diag(coefficients))
+    coefficients = coefficients - diagonal_scale * torch.diag(
+        torch.diag(coefficients)
+    )
 
     actual = model.exact_coefficient_squared_norm(features)
 
     torch.testing.assert_close(actual, coefficients.square().sum())
+
+
+@pytest.mark.parametrize("loss", ["normalized_mse", "teaser"])
+@pytest.mark.parametrize("diagonal_scale", [0.0, 0.4, 1.0])
+def test_coefficient_penalty_includes_residual_diagonal(
+    item_features,
+    loss,
+    diagonal_scale,
+):
+    n_items, feature_dim = item_features.shape
+    samples = 64
+    n_users = 7
+    trainer = TEASERGDTrainer(
+        _config(
+            loss=loss,
+            diagonal_scale=diagonal_scale,
+            coefficient_regularization_samples=samples,
+        )
+    )
+    model = TEASERGD(
+        n_items,
+        feature_dim,
+        use_relu=False,
+        diagonal_scale=diagonal_scale,
+    )
+    with torch.no_grad():
+        model.encoder.copy_(
+            torch.arange(n_items * feature_dim, dtype=torch.float32).reshape(
+                n_items,
+                feature_dim,
+            )
+            / 10
+        )
+    trainer.teaser = model
+    trainer._training_features = item_features
+    trainer._regularizer_rng = np.random.default_rng(11)
+    trainer._n_training_users = n_users
+
+    actual = trainer._coefficient_penalty()
+
+    rng = np.random.default_rng(11)
+    left = rng.integers(0, n_items, size=samples)
+    right = rng.integers(0, n_items - 1, size=samples)
+    right += right >= left
+    encoder = model.encoder.detach()
+    features = torch.from_numpy(item_features)
+    off_diagonal = (encoder[left] * features[right]).sum(-1).square().mean()
+    residual_diagonal = (
+        (1.0 - diagonal_scale) ** 2
+        * (encoder[left] * features[left]).sum(-1).square().mean()
+    )
+    if loss == "teaser":
+        expected = (
+            off_diagonal * n_items * (n_items - 1) / n_users
+            + residual_diagonal * n_items / n_users
+        )
+    else:
+        expected = off_diagonal + residual_diagonal / (n_items - 1)
+
+    torch.testing.assert_close(actual, expected)
 
 
 def test_teaser_reconstruction_matches_frobenius_error():
@@ -458,6 +540,7 @@ def test_protocols_and_configuration_validation():
     assert isinstance(model, ColdStartRecommender)
     assert config.encoder_init == "xavier"
     assert config.normalize_encoder is False
+    assert config.diagonal_scale == 1.0
 
     for kwargs in (
         {"batch_size": 0},
@@ -470,6 +553,26 @@ def test_protocols_and_configuration_validation():
         {"loss": "mse"},
         {"encoder_init": "zeros"},
         {"normalize_encoder": "yes"},
+        {"diagonal_scale": -0.1},
+        {"diagonal_scale": 1.1},
+        {"diagonal_scale": np.nan},
+        {"diagonal_scale": True},
     ):
         with pytest.raises(ValueError):
             TEASERGDConfig(**kwargs)
+
+    for diagonal_scale in (-0.1, 1.1, np.nan, True):
+        with pytest.raises(ValueError, match="diagonal_scale"):
+            TEASERGD(3, 2, diagonal_scale=diagonal_scale)
+
+
+def test_trainer_propagates_diagonal_scale(interactions, item_features):
+    trainer = TEASERGDTrainer(
+        _config(
+            epochs=1,
+            diagonal_scale=0.25,
+            coefficient_regularization_samples=0,
+        )
+    ).fit(interactions, item_features)
+
+    assert trainer._base_model.diagonal_scale == 0.25
