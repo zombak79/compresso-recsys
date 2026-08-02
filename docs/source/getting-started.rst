@@ -64,7 +64,10 @@ What Goes Into a Checkpoint
 
 The dataset builder writes one portable ZIP file. The core split contains:
 
-* ``item_ids``: item-id order used by every embedding matrix
+* ``item_ids``: global catalog order used by metadata and embedding stages
+* ``train_item_ids``, ``val_item_ids``, and ``test_item_ids``: column order for
+  each split's source and target matrices; these equal ``item_ids`` for legacy
+  single-catalog splits
 * ``train_source_matrix`` / ``train_target_matrix``:
   sparse matrices defining the training input and target
 * ``val_source_matrix`` / ``val_target_matrix`` and
@@ -79,9 +82,10 @@ The dataset builder writes one portable ZIP file. The core split contains:
   the protocol partitions items, especially for cold-item experiments
 * optional ``entity_metadata``, ``entity_tag_matrix``, and ``tag_names``
 
-For compatibility with older scripts, ``x_train`` loaded by
-:func:`compresso_recsys.load_recsys_split` is an alias for
-``train_source_matrix``.
+For ordinary reconstruction splits, ``x_train`` loaded by
+:func:`compresso_recsys.load_recsys_split` equals ``train_source_matrix``. For
+``temporal``, it is the boolean union of the train source and target, so models
+that consume one interaction matrix can use every training-period event.
 
 Additional experiment stages can append their own directories to the same
 checkpoint. Each stage can save embeddings, sparse representations, model
@@ -108,9 +112,12 @@ Split Modes
    users may occur after a given user's held-out target.
 
 ``temporal``
-   Uses a global timestamp split. For Amazon Reviews 2023, this uses the
-   predefined ``0core_timestamp_w_his`` split with item histories. This is the
-   recommended split mode when future-to-past leakage must be avoided.
+   Builds three equal target windows at the end of the timestamp range. The
+   default window is 339 days and can be changed with
+   ``temporal_period_hours``. Histories expand through time, and each split has
+   a cumulative catalog containing warm items plus newly supported cold items.
+   Source and target share a column order within a split, but train,
+   validation, and test may have different widths.
 
 Retrieval Metrics
 -----------------

@@ -84,6 +84,36 @@ The same configuration can be executed from the command line:
      --min_target_items 1 \
      --annotation_source none
 
+Amazon temporal checkpoint with three five-day target windows:
+
+.. code-block:: python
+
+   checkpoint_path = cr.build_recsys_checkpoint(
+       dataset="amazon2023",
+       amazon_category="Pet_Supplies",
+       checkpoint_path="artifacts/pets-temporal.zip",
+       split_mode="temporal",
+       temporal_period_hours=24 * 5,
+       metadata_text_fields=["title", "features", "description", "categories"],
+       min_entity_text_words=20,
+       min_user_support=10,
+       item_min_support=10,
+       min_value_to_keep=1.0,
+       annotation_source="none",
+   )
+
+Temporal source and target matrices share columns within each stage. Catalogs
+expand between stages, so always use the matching item-ID array:
+
+.. code-block:: python
+
+   with cr.read_checkpoint(checkpoint_path) as root:
+       split = cr.load_recsys_split(root)
+
+   assert split["val_source_matrix"].shape == split["val_target_matrix"].shape
+   assert split["val_source_matrix"].shape[1] == len(split["val_item_ids"])
+   assert split["test_source_matrix"].shape[1] == len(split["test_item_ids"])
+
 Checkpoint Read/Write
 ---------------------
 

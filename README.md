@@ -74,10 +74,15 @@ compresso-recsys-build-checkpoint \
   --amazon_category Toys_and_Games \
   --checkpoint_path artifacts/amazon_toys/temporal_exp001.zip \
   --split_mode temporal \
+  --temporal_period_hours 8136 \
   --metadata_text_fields title,features,description,categories \
   --min_entity_text_words 30 \
   --annotation_source none
 ```
+
+Temporal checkpoints use expanding histories and cumulative mixed warm/cold
+catalogs. Their train, validation, and test matrices are aligned by the
+corresponding `train_item_ids`, `val_item_ids`, and `test_item_ids` arrays.
 
 ## What Is Included
 
