@@ -116,6 +116,32 @@ def test_temporal_split_builds_expanding_mixed_catalogs_and_filters_support():
     )
 
 
+def test_temporal_prefilter_remains_an_upper_bound_for_repeated_events():
+    rows = [
+        {"user_id": "good", "item_id": "A", "value": 1.0, "timestamp": 900},
+        {"user_id": "good", "item_id": "B", "value": 1.0, "timestamp": 1_800},
+        {"user_id": "good", "item_id": "C", "value": 1.0, "timestamp": 5_400},
+        {"user_id": "good", "item_id": "D", "value": 1.0, "timestamp": 9_000},
+        {"user_id": "good", "item_id": "E", "value": 1.0, "timestamp": 14_400},
+    ]
+    for _ in range(2):
+        rows.extend(
+            [
+                {"user_id": "duplicate", "item_id": "A", "value": 1.0, "timestamp": 900},
+                {"user_id": "duplicate", "item_id": "C", "value": 1.0, "timestamp": 5_400},
+            ]
+        )
+
+    split = _build_temporal_split(
+        _temporal_args(min_user_support=3, item_min_support=1),
+        pd.DataFrame(rows),
+    )
+
+    assert split["train_user_ids"].tolist() == ["good"]
+    assert split["extra_metadata"]["train_stage"]["initial_users"] == 2
+    assert split["extra_metadata"]["train_stage"]["prefiltered_users"] == 2
+
+
 def test_temporal_split_rejects_period_longer_than_available_history():
     with pytest.raises(ValueError, match="three target windows"):
         _build_temporal_split(

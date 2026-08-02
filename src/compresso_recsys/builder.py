@@ -93,6 +93,15 @@ class _CheckpointProgress:
         self.current = True
         self.bar.set_description_str(message)
 
+    def detail(self, message: str) -> None:
+        """Update the active step label without advancing the progress bar."""
+        if not self.enabled:
+            return
+        if self.bar is None:
+            print(f"[compresso-recsys] {message}", flush=True)
+            return
+        self.bar.set_description_str(message)
+
 
 def parse_args():
     p = argparse.ArgumentParser()
@@ -631,29 +640,61 @@ def _timestamps_in_seconds(values: pd.Series) -> np.ndarray:
     return timestamps
 
 
-def _matrix_for_users_and_items(
-    df: pd.DataFrame,
+def _matrix_from_temporal_codes(
     *,
-    user_ids: np.ndarray,
-    item_ids: np.ndarray,
+    event_mask: np.ndarray,
+    global_user_codes: np.ndarray,
+    global_item_codes: np.ndarray,
+    values: np.ndarray,
+    user_lookup: np.ndarray,
+    item_lookup: np.ndarray,
+    shape: tuple[int, int],
 ) -> csr_matrix:
-    if len(user_ids) == 0 or len(item_ids) == 0 or df.empty:
-        return csr_matrix((len(user_ids), len(item_ids)), dtype=np.float32)
-    users = pd.Index(np.asarray(user_ids).astype(str))
-    items = pd.Index(np.asarray(item_ids).astype(str))
-    user_codes = pd.Categorical(df["user_id"].astype(str), categories=users).codes
-    item_codes = pd.Categorical(df["item_id"].astype(str), categories=items).codes
-    valid = (user_codes >= 0) & (item_codes >= 0)
-    values = df["value"].astype(float).to_numpy()[valid]
+    if not bool(event_mask.any()) or shape[0] == 0 or shape[1] == 0:
+        return csr_matrix(shape, dtype=np.float32)
+
+    rows = user_lookup[global_user_codes[event_mask]]
+    cols = item_lookup[global_item_codes[event_mask]]
+    valid = (rows >= 0) & (cols >= 0)
     matrix = csr_matrix(
-        (values, (user_codes[valid], item_codes[valid])),
-        shape=(len(users), len(items)),
+        (values[event_mask][valid], (rows[valid], cols[valid])),
+        shape=shape,
         dtype=np.float32,
     )
     matrix.sum_duplicates()
     matrix.eliminate_zeros()
     matrix.sort_indices()
     return matrix
+
+
+def _temporal_user_upper_bound(
+    *,
+    source_mask: np.ndarray,
+    target_mask: np.ndarray,
+    global_user_codes: np.ndarray,
+    n_users: int,
+    min_user_support: int,
+    min_source_items: int,
+    min_target_items: int,
+) -> tuple[np.ndarray, int]:
+    """Reject users that cannot meet support before allocating tall CSRs.
+
+    Event counts are an upper bound on distinct nonzero item counts. Keeping a
+    user here does not guarantee eligibility, but rejecting one is always safe;
+    the exact fixed-point filter still runs on the resulting sparse matrices.
+    """
+    source_counts = np.bincount(
+        global_user_codes[source_mask], minlength=n_users
+    )
+    target_counts = np.bincount(
+        global_user_codes[target_mask], minlength=n_users
+    )
+    keep = source_counts >= min_source_items
+    keep &= target_counts >= min_target_items
+    source_counts += target_counts
+    initial_users = int(np.count_nonzero(source_counts > 0))
+    keep &= source_counts >= min_user_support
+    return np.flatnonzero(keep).astype(np.int64, copy=False), initial_users
 
 
 def _csr_row_indices(matrix: csr_matrix) -> list[np.ndarray]:
@@ -739,72 +780,119 @@ def _filter_temporal_pair(
 
 def _build_temporal_stage(
     *,
-    source_df: pd.DataFrame,
-    target_df: pd.DataFrame,
-    inherited_item_ids: np.ndarray,
+    source_mask: np.ndarray,
+    target_mask: np.ndarray,
+    global_user_codes: np.ndarray,
+    global_item_codes: np.ndarray,
+    global_user_ids: np.ndarray,
+    global_item_ids: np.ndarray,
+    values: np.ndarray,
+    inherited_item_codes: np.ndarray,
     args,
     stage: str,
 ) -> dict[str, object]:
-    observed_item_ids = np.union1d(
-        source_df["item_id"].astype(str).unique(),
-        target_df["item_id"].astype(str).unique(),
+    observed_item_codes = np.unique(
+        global_item_codes[source_mask | target_mask]
     )
-    inherited_item_ids = np.asarray(inherited_item_ids).astype(str)
-    new_item_ids = np.setdiff1d(
-        observed_item_ids,
-        inherited_item_ids,
-        assume_unique=False,
+    inherited_item_codes = np.asarray(inherited_item_codes, dtype=np.int64)
+    new_item_codes = np.setdiff1d(
+        observed_item_codes,
+        inherited_item_codes,
+        assume_unique=True,
     )
-    item_ids = np.concatenate((inherited_item_ids, new_item_ids))
-    user_ids = np.union1d(
-        source_df["user_id"].astype(str).unique(),
-        target_df["user_id"].astype(str).unique(),
+    item_codes = np.concatenate((inherited_item_codes, new_item_codes))
+
+    user_codes, initial_users = _temporal_user_upper_bound(
+        source_mask=source_mask,
+        target_mask=target_mask,
+        global_user_codes=global_user_codes,
+        n_users=len(global_user_ids),
+        min_user_support=args.min_user_support,
+        min_source_items=args.min_source_items,
+        min_target_items=args.min_target_items,
     )
-    source = _matrix_for_users_and_items(
-        source_df,
-        user_ids=user_ids,
-        item_ids=item_ids,
+    if len(user_codes) == 0:
+        raise ValueError(
+            f"{stage} temporal window has no users after support filtering"
+        )
+
+    user_lookup = np.full(len(global_user_ids), -1, dtype=np.int64)
+    user_lookup[user_codes] = np.arange(len(user_codes), dtype=np.int64)
+    eligible_users = np.zeros(len(global_user_ids), dtype=bool)
+    eligible_users[user_codes] = True
+    matrix_source_mask = source_mask & eligible_users[global_user_codes]
+    matrix_target_mask = target_mask & eligible_users[global_user_codes]
+    item_lookup = np.full(len(global_item_ids), -1, dtype=np.int64)
+    item_lookup[item_codes] = np.arange(len(item_codes), dtype=np.int64)
+    shape = (len(user_codes), len(item_codes))
+    source = _matrix_from_temporal_codes(
+        event_mask=matrix_source_mask,
+        global_user_codes=global_user_codes,
+        global_item_codes=global_item_codes,
+        values=values,
+        user_lookup=user_lookup,
+        item_lookup=item_lookup,
+        shape=shape,
     )
-    target = _matrix_for_users_and_items(
-        target_df,
-        user_ids=user_ids,
-        item_ids=item_ids,
+    target = _matrix_from_temporal_codes(
+        event_mask=matrix_target_mask,
+        global_user_codes=global_user_codes,
+        global_item_codes=global_item_codes,
+        values=values,
+        user_lookup=user_lookup,
+        item_lookup=item_lookup,
+        shape=shape,
     )
+    user_ids = global_user_ids[user_codes]
+    item_ids = global_item_ids[item_codes]
     source, target, user_ids, item_ids, stats = _filter_temporal_pair(
         source,
         target,
         user_ids=user_ids,
         item_ids=item_ids,
-        inherited_items=len(inherited_item_ids),
+        inherited_items=len(inherited_item_codes),
         min_user_support=args.min_user_support,
         item_min_support=args.item_min_support,
         min_source_items=args.min_source_items,
         min_target_items=args.min_target_items,
         stage=stage,
     )
+    stats["initial_users"] = initial_users
+    stats["prefiltered_users"] = int(len(user_codes))
+    retained_item_codes = pd.Index(global_item_ids).get_indexer(item_ids)
     return {
         "source": source,
         "target": target,
         "user_ids": user_ids,
         "item_ids": item_ids,
+        "item_codes": retained_item_codes.astype(np.int64, copy=False),
         "stats": stats,
     }
 
 
-def _build_temporal_split(args, proc_df):
+def _build_temporal_split(args, proc_df, progress: _CheckpointProgress | None = None):
     if "timestamp" not in proc_df.columns:
         raise ValueError("temporal split requires a timestamp column")
-    df = proc_df.copy()
-    df["user_id"] = df["user_id"].astype(str)
-    df["item_id"] = df["item_id"].astype(str)
-    df["_timestamp_seconds"] = _timestamps_in_seconds(df["timestamp"])
-    df = df[np.isfinite(df["_timestamp_seconds"])].copy()
-    if df.empty:
+    timestamps = _timestamps_in_seconds(proc_df["timestamp"])
+    finite = np.isfinite(timestamps)
+    if not bool(finite.any()):
         raise ValueError("temporal split requires non-empty timestamp values")
+    timestamps = timestamps[finite]
+    values = proc_df.loc[finite, "value"].to_numpy(dtype=np.float32)
+    global_user_codes, global_user_ids = pd.factorize(
+        proc_df.loc[finite, "user_id"], sort=True
+    )
+    global_item_codes, global_item_ids = pd.factorize(
+        proc_df.loc[finite, "item_id"], sort=True
+    )
+    global_user_codes = global_user_codes.astype(np.int64, copy=False)
+    global_item_codes = global_item_codes.astype(np.int64, copy=False)
+    global_user_ids = np.asarray(global_user_ids, dtype=object)
+    global_item_ids = np.asarray(global_item_ids, dtype=object)
 
     period_seconds = float(args.temporal_period_hours) * 60.0 * 60.0
-    timestamp_min = float(df["_timestamp_seconds"].min())
-    timestamp_max = float(df["_timestamp_seconds"].max())
+    timestamp_min = float(timestamps.min())
+    timestamp_max = float(timestamps.max())
     train_target_start = timestamp_max - 3.0 * period_seconds
     validation_target_start = timestamp_max - 2.0 * period_seconds
     test_target_start = timestamp_max - period_seconds
@@ -815,31 +903,47 @@ def _build_temporal_split(args, proc_df):
             f"the available {span_hours:.3f}-hour timestamp span"
         )
 
-    timestamps = df["_timestamp_seconds"]
+    if progress is not None:
+        progress.detail("Building temporal split: train")
     train_stage = _build_temporal_stage(
-        source_df=df[timestamps < train_target_start],
-        target_df=df[
-            (timestamps >= train_target_start)
-            & (timestamps < validation_target_start)
-        ],
-        inherited_item_ids=np.asarray([], dtype=str),
+        source_mask=timestamps < train_target_start,
+        target_mask=(timestamps >= train_target_start)
+        & (timestamps < validation_target_start),
+        global_user_codes=global_user_codes,
+        global_item_codes=global_item_codes,
+        global_user_ids=global_user_ids,
+        global_item_ids=global_item_ids,
+        values=values,
+        inherited_item_codes=np.asarray([], dtype=np.int64),
         args=args,
         stage="train",
     )
+    if progress is not None:
+        progress.detail("Building temporal split: validation")
     val_stage = _build_temporal_stage(
-        source_df=df[timestamps < validation_target_start],
-        target_df=df[
-            (timestamps >= validation_target_start)
-            & (timestamps < test_target_start)
-        ],
-        inherited_item_ids=train_stage["item_ids"],
+        source_mask=timestamps < validation_target_start,
+        target_mask=(timestamps >= validation_target_start)
+        & (timestamps < test_target_start),
+        global_user_codes=global_user_codes,
+        global_item_codes=global_item_codes,
+        global_user_ids=global_user_ids,
+        global_item_ids=global_item_ids,
+        values=values,
+        inherited_item_codes=train_stage["item_codes"],
         args=args,
         stage="validation",
     )
+    if progress is not None:
+        progress.detail("Building temporal split: test")
     test_stage = _build_temporal_stage(
-        source_df=df[timestamps < test_target_start],
-        target_df=df[timestamps >= test_target_start],
-        inherited_item_ids=val_stage["item_ids"],
+        source_mask=timestamps < test_target_start,
+        target_mask=timestamps >= test_target_start,
+        global_user_codes=global_user_codes,
+        global_item_codes=global_item_codes,
+        global_user_ids=global_user_ids,
+        global_item_ids=global_item_ids,
+        values=values,
+        inherited_item_codes=val_stage["item_codes"],
         args=args,
         stage="test",
     )
@@ -913,7 +1017,7 @@ def _build_temporal_split(args, proc_df):
     }
 
 
-def _build_split_payload(args, ds, proc_df):
+def _build_split_payload(args, ds, proc_df, progress: _CheckpointProgress | None = None):
     if args.split_mode == "user_split":
         return _build_user_split(args, ds, proc_df)
     if args.split_mode == "item_split":
@@ -921,7 +1025,7 @@ def _build_split_payload(args, ds, proc_df):
     if args.split_mode == "leave_last_out":
         return _build_leave_last_out_split(args, proc_df)
     if args.split_mode == "temporal":
-        return _build_temporal_split(args, proc_df)
+        return _build_temporal_split(args, proc_df, progress=progress)
     raise ValueError(f"Unsupported split_mode: {args.split_mode}")
 
 
@@ -946,7 +1050,7 @@ def _build_recsys_checkpoint_from_args(args) -> Path:
         )
 
         progress.step(f"Building {args.split_mode} split")
-        split_payload = _build_split_payload(args, ds, proc_df)
+        split_payload = _build_split_payload(args, ds, proc_df, progress=progress)
         item_ids = split_payload["item_ids"]
         val_holdout = split_payload["val_holdout"]
         test_holdout = split_payload["test_holdout"]
