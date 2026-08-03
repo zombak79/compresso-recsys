@@ -58,6 +58,52 @@ columns in the complete catalog space.
    :members:
    :private-members: _install_feature_catalog, _prepare_source, _resolve_candidate_selection
 
+Training Interaction Batches
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+:class:`compresso_recsys.models.InteractionBatchSampler` provides the compact
+source-prefix batching used by ELSA and TEASERGD. It keeps the interaction
+matrix sparse until the training step chooses to densify the selected active
+columns. ``batch.x`` uses local compact columns; ``batch.sources`` maps those
+columns to global fitted item rows.
+
+When ``max_output`` is an integer, ``batch.candidates`` begins with exactly
+``batch.sources`` and appends items absent from the whole batch. It is a soft
+limit because active sources are never dropped. With ``max_output=None``,
+``batch.candidates`` is ``None`` and the model should score its complete output
+catalog. Call ``on_epoch_end()`` after each epoch to advance shuffling and
+negative sampling reproducibly.
+
+.. code-block:: python
+
+   from compresso_recsys.models import InteractionBatchSampler
+
+   sampler = InteractionBatchSampler(
+       interactions,
+       device="cuda",
+       batch_size=1024,
+       shuffle=True,
+       max_output=5000,
+       seed=0,
+   )
+
+   for batch_index in range(len(sampler)):
+       batch = sampler[batch_index]
+       x = batch.x.to_dense()
+       predictions = model(
+           x,
+           sources=batch.sources,
+           candidates=batch.candidates,
+       )
+
+   sampler.on_epoch_end()
+
+.. autoclass:: compresso_recsys.models.InteractionBatch
+   :members:
+
+.. autoclass:: compresso_recsys.models.InteractionBatchSampler
+   :members:
+
 Transductive Models in Expanding Catalogs
 -----------------------------------------
 

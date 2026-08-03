@@ -6,6 +6,7 @@ import compresso_recsys.datasets as datasets
 import compresso_recsys.evaluation as evaluation
 import compresso_recsys.metrics as metrics
 import compresso_recsys.models as models
+import compresso_recsys.models.batching as batching
 
 
 def test_top_level_public_api_is_intentional():
@@ -100,6 +101,10 @@ def test_submodule_public_apis_are_intentional():
             "RankingBatch",
             "RankingMetric",
         },
+        batching: {
+            "InteractionBatch",
+            "InteractionBatchSampler",
+        },
         models: {
             "BaseColdStartRecommender",
             "BaseCollaborativeRecommender",
@@ -113,6 +118,8 @@ def test_submodule_public_apis_are_intentional():
             "ELSAConfig",
             "ELSATrainer",
             "ItemVocabulary",
+            "InteractionBatch",
+            "InteractionBatchSampler",
             "LEMSA",
             "LEMSAConfig",
             "LEMSAGD",

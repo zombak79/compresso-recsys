@@ -9,10 +9,17 @@ import torch
 import torch.nn.functional as F
 from scipy.sparse import csr_matrix
 
+from compresso_recsys.models._validation import canonical_csr
+
 
 @dataclass(frozen=True)
 class InteractionBatch:
-    """Compact interaction batch with source-prefix output candidates."""
+    """Compact interaction batch with source-prefix output candidates.
+
+    ``x`` is a sparse COO tensor whose columns correspond positionally to the
+    global item rows in ``sources``. ``candidates`` is either ``None`` for the
+    full output catalog or a global-row tensor beginning with ``sources``.
+    """
 
     x: torch.Tensor
     sources: torch.Tensor
@@ -69,23 +76,57 @@ def dense_training_target(
 
 
 class InteractionBatchSampler:
-    """Batched sparse interactions with optional output candidate sampling."""
+    """Batched sparse interactions with optional output candidate sampling.
+
+    Every batch packs the union of its active source items into ``batch.x``.
+    ``batch.sources`` maps those local columns back to global item rows. When
+    ``max_output`` is set, ``batch.candidates`` starts with that exact source
+    prefix and appends sampled items absent from the complete batch. The limit
+    is therefore soft when a batch already contains more active source items.
+    ``None`` leaves output selection to the model and denotes the full catalog.
+    """
 
     def __init__(
         self,
         interactions: csr_matrix,
         *,
-        device: torch.device,
+        device: torch.device | str,
         batch_size: int,
         shuffle: bool,
         max_output: int | None,
         seed: int,
     ) -> None:
+        interactions = canonical_csr(interactions, name="interactions")
+        if interactions.shape[0] < 1 or interactions.shape[1] < 1:
+            raise ValueError(
+                "interactions must contain at least one user and one item"
+            )
+        if (
+            isinstance(batch_size, bool)
+            or not isinstance(batch_size, (int, np.integer))
+            or batch_size < 1
+        ):
+            raise ValueError("batch_size must be an integer >= 1")
+        if not isinstance(shuffle, (bool, np.bool_)):
+            raise TypeError("shuffle must be a bool")
+        if max_output is not None and (
+            isinstance(max_output, bool)
+            or not isinstance(max_output, (int, np.integer))
+            or max_output < 1
+        ):
+            raise ValueError("max_output must be an integer >= 1 or None")
+        if (
+            isinstance(seed, bool)
+            or not isinstance(seed, (int, np.integer))
+            or seed < 0
+        ):
+            raise ValueError("seed must be a non-negative integer")
+
         self.interactions = interactions
-        self.device = device
+        self.device = torch.device(device)
         self.batch_size = int(batch_size)
         self.shuffle = bool(shuffle)
-        self.max_output = max_output
+        self.max_output = None if max_output is None else int(max_output)
         self.user_indices = np.arange(interactions.shape[0], dtype=np.int64)
         self.item_indices = np.arange(interactions.shape[1], dtype=np.int64)
         self.rng = np.random.default_rng(seed)

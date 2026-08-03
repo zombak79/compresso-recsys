@@ -1,6 +1,7 @@
 """Collaborative-filtering models."""
 
 from .base import BaseCollaborativeRecommender, Recommender
+from .batching import InteractionBatch, InteractionBatchSampler
 from .cold_start import (
     BaseColdStartRecommender,
     CandidateCatalog,
@@ -35,6 +36,8 @@ __all__ = [
     "ELSATrainer",
     "Recommender",
     "ItemVocabulary",
+    "InteractionBatch",
+    "InteractionBatchSampler",
     "LEMSA",
     "LEMSAConfig",
     "LEMSAGD",
