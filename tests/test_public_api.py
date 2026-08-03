@@ -104,6 +104,7 @@ def test_submodule_public_apis_are_intentional():
         batching: {
             "InteractionBatch",
             "InteractionBatchSampler",
+            "dense_training_target",
         },
         models: {
             "BaseColdStartRecommender",
@@ -111,6 +112,9 @@ def test_submodule_public_apis_are_intentional():
             "CandidateCatalog",
             "ColdStartRecommender",
             "CompressedELSA",
+            "CSELSA",
+            "CSELSAConfig",
+            "CSELSATrainer",
             "EASE",
             "EASEConfig",
             "ELSA",
@@ -120,6 +124,7 @@ def test_submodule_public_apis_are_intentional():
             "ItemVocabulary",
             "InteractionBatch",
             "InteractionBatchSampler",
+            "dense_training_target",
             "LEMSA",
             "LEMSAConfig",
             "LEMSAGD",

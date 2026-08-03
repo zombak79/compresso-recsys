@@ -1,7 +1,11 @@
 """Collaborative-filtering models."""
 
 from .base import BaseCollaborativeRecommender, Recommender
-from .batching import InteractionBatch, InteractionBatchSampler
+from .batching import (
+    InteractionBatch,
+    InteractionBatchSampler,
+    dense_training_target,
+)
 from .cold_start import (
     BaseColdStartRecommender,
     CandidateCatalog,
@@ -9,6 +13,7 @@ from .cold_start import (
     ItemVocabulary,
     WarmCatalogAdapter,
 )
+from .cs_elsa import CSELSA, CSELSAConfig, CSELSATrainer
 from .ease import EASE, EASEConfig
 from .elsa import (
     CompressedELSA,
@@ -28,6 +33,9 @@ __all__ = [
     "CompressedELSA",
     "CandidateCatalog",
     "ColdStartRecommender",
+    "CSELSA",
+    "CSELSAConfig",
+    "CSELSATrainer",
     "EASE",
     "EASEConfig",
     "ELSA",
@@ -38,6 +46,7 @@ __all__ = [
     "ItemVocabulary",
     "InteractionBatch",
     "InteractionBatchSampler",
+    "dense_training_target",
     "LEMSA",
     "LEMSAConfig",
     "LEMSAGD",
