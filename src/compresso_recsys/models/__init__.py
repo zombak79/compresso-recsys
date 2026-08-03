@@ -1,7 +1,12 @@
 """Collaborative-filtering models."""
 
 from .base import Recommender
-from .cold_start import CandidateCatalog, ColdStartRecommender, ItemVocabulary
+from .cold_start import (
+    CandidateCatalog,
+    ColdStartRecommender,
+    ItemVocabulary,
+    WarmCatalogAdapter,
+)
 from .ease import EASE, EASEConfig
 from .elsa import (
     CompressedELSA,
@@ -37,4 +42,5 @@ __all__ = [
     "TEASERGD",
     "TEASERGDConfig",
     "TEASERGDTrainer",
+    "WarmCatalogAdapter",
 ]

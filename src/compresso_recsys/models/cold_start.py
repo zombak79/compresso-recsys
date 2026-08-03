@@ -18,6 +18,7 @@ __all__ = [
     "CandidateCatalog",
     "ColdStartRecommender",
     "ItemVocabulary",
+    "WarmCatalogAdapter",
 ]
 
 ItemFeatures = csr_matrix | SRPTensor | np.ndarray | torch.Tensor
@@ -290,6 +291,138 @@ class ItemVocabulary:
             count=self.n_items,
         )
         return matrix[:, columns].tocsr()
+
+
+class WarmCatalogAdapter:
+    """Expose a fixed-catalog recommender in a larger identified catalog.
+
+    The wrapped model continues to consume and rank only its training items.
+    :meth:`align_source` selects those columns from an interaction matrix over
+    the expanded catalog, while :meth:`predict_on_batch` remaps the resulting
+    ranked columns back into that catalog. Cold candidates remain valid target
+    items but can never be emitted by the wrapped model.
+
+    Parameters
+    ----------
+    model:
+        Fitted recommender whose prediction columns follow ``train_item_ids``.
+    train_item_ids:
+        Item IDs in the exact column order used to fit ``model``.
+    catalog_item_ids:
+        Expanded source and target catalog. It must contain every training ID.
+    """
+
+    def __init__(
+        self,
+        model: Recommender,
+        train_item_ids: Sequence[Hashable] | np.ndarray,
+        catalog_item_ids: Sequence[Hashable] | np.ndarray,
+    ) -> None:
+        if not isinstance(model, Recommender):
+            raise TypeError("model must implement predict_on_batch(source, *, k)")
+        train_vocabulary = ItemVocabulary.from_ids(
+            train_item_ids,
+            name="train_item_ids",
+        )
+        catalog_vocabulary = ItemVocabulary.from_ids(
+            catalog_item_ids,
+            name="catalog_item_ids",
+        )
+        missing = [
+            item_id
+            for item_id in train_vocabulary.item_ids.tolist()
+            if item_id not in catalog_vocabulary.id_to_row
+        ]
+        if missing:
+            raise ValueError(
+                "catalog_item_ids is missing training item ID: "
+                f"{missing[0]!r}"
+            )
+
+        train_to_catalog = np.fromiter(
+            (
+                catalog_vocabulary.id_to_row[item_id]
+                for item_id in train_vocabulary.item_ids.tolist()
+            ),
+            dtype=np.int64,
+            count=train_vocabulary.n_items,
+        )
+        train_to_catalog.setflags(write=False)
+
+        self.model = model
+        self.train_item_ids = train_vocabulary.item_ids
+        self.catalog_item_ids = catalog_vocabulary.item_ids
+        self.train_to_catalog = train_to_catalog
+        self.catalog_size = catalog_vocabulary.n_items
+        self._identity_alignment = np.array_equal(
+            self.train_item_ids,
+            self.catalog_item_ids,
+        )
+        self._mapping_lock = RLock()
+        self._mapping_by_device: dict[torch.device, torch.Tensor] = {}
+
+    def align_source(self, source: csr_matrix) -> csr_matrix:
+        """Select training-item columns from an expanded-catalog CSR matrix."""
+        source = canonical_csr(source, name="source")
+        if source.shape[1] != self.catalog_size:
+            raise ValueError(
+                f"source has {source.shape[1]} items, but catalog_item_ids has "
+                f"{self.catalog_size} entries"
+            )
+        if self._identity_alignment:
+            return source
+        return source[:, self.train_to_catalog].tocsr()
+
+    def _mapping_on(self, device: torch.device) -> torch.Tensor:
+        with self._mapping_lock:
+            mapping = self._mapping_by_device.get(device)
+            if mapping is None:
+                mapping = torch.tensor(
+                    self.train_to_catalog,
+                    dtype=torch.long,
+                    device=device,
+                )
+                self._mapping_by_device[device] = mapping
+            return mapping
+
+    def predict_on_batch(
+        self,
+        source: csr_matrix,
+        *,
+        k: int,
+        exclude_seen: bool = True,
+    ) -> SRPTensor:
+        """Predict warm items and express their columns in the full catalog."""
+        source = canonical_csr(source, name="source")
+        if source.shape[1] != len(self.train_item_ids):
+            raise ValueError(
+                f"source has {source.shape[1]} items, but train_item_ids has "
+                f"{len(self.train_item_ids)} entries; call align_source() first"
+            )
+        predictions = self.model.predict_on_batch(
+            source,
+            k=k,
+            exclude_seen=exclude_seen,
+        )
+        if not isinstance(predictions, SRPTensor):
+            raise TypeError("model.predict_on_batch() must return an SRPTensor")
+        if predictions.rows != source.shape[0]:
+            raise ValueError(
+                "model prediction rows must match the source rows"
+            )
+        if predictions.cols_total != len(self.train_item_ids):
+            raise ValueError(
+                "model prediction items must match train_item_ids: expected "
+                f"{len(self.train_item_ids)}, got {predictions.cols_total}"
+            )
+
+        mapping = self._mapping_on(predictions.cols.device)
+        return SRPTensor(
+            cols=mapping[predictions.cols],
+            vals=predictions.vals,
+            shape=(predictions.rows, self.catalog_size),
+            validate=False,
+        )
 
 
 @dataclass(frozen=True, init=False)

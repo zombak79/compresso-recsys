@@ -26,6 +26,46 @@ updated independently.
 .. autoclass:: compresso_recsys.models.ItemVocabulary
    :members:
 
+Transductive Models in Expanding Catalogs
+-----------------------------------------
+
+:class:`compresso_recsys.models.WarmCatalogAdapter` evaluates a fixed-catalog
+model such as EASE or ELSA against a larger validation or test catalog. It
+selects the fitted warm columns from the stage source matrix and remaps warm
+prediction indices into the expanded target space. Cold targets remain part of
+the metric calculation, but the wrapped transductive model cannot recommend
+them. This makes the result directly comparable with a cold-start model on the
+same users and targets while preserving the transductive model's limitation.
+
+The item IDs supplied to the adapter define both column orders, so evaluation
+does not depend on warm items occupying a catalog prefix:
+
+.. code-block:: python
+
+   from compresso_recsys.evaluation import evaluate_recommender
+   from compresso_recsys.models import WarmCatalogAdapter
+
+   adapted_elsa = WarmCatalogAdapter(
+       elsa,
+       train_item_ids=split["train_item_ids"],
+       catalog_item_ids=split["test_item_ids"],
+   )
+
+   result = evaluate_recommender(
+       adapted_elsa,
+       source=adapted_elsa.align_source(split["test_source_matrix"]),
+       targets=split["test_target_matrix"],
+       metrics=metrics,
+       batch_size=1024,
+   )
+
+The input to :meth:`~compresso_recsys.models.WarmCatalogAdapter.align_source`
+must use the exact column order declared by ``catalog_item_ids``. Construct a
+separate adapter for validation when its catalog differs from the test catalog.
+
+.. autoclass:: compresso_recsys.models.WarmCatalogAdapter
+   :members:
+
 EASE
 ----
 
