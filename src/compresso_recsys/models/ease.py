@@ -9,6 +9,7 @@ from scipy.sparse import csr_matrix
 
 from compresso import SRPTensor
 from compresso_recsys.models._validation import canonical_csr
+from compresso_recsys.models.base import BaseCollaborativeRecommender
 
 __all__ = ["EASE", "EASEConfig"]
 
@@ -49,7 +50,7 @@ class EASEConfig:
             raise ValueError("dtype must be 'float32' or 'float64'")
 
 
-class EASE:
+class EASE(BaseCollaborativeRecommender):
     """Embarrassingly Shallow Autoencoder recommender.
 
     EASE learns a closed-form item-to-item coefficient matrix from a sparse
@@ -67,6 +68,11 @@ class EASE:
     def is_fitted(self) -> bool:
         """Whether the item coefficient matrix has been fitted."""
         return self.coefficients_ is not None
+
+    @property
+    def n_items(self) -> int | None:
+        """Number of fitted item columns, or ``None`` before fitting."""
+        return self.n_items_
 
     @property
     def dtype(self) -> np.dtype:

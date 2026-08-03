@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from threading import RLock
 from types import MappingProxyType
@@ -15,6 +16,7 @@ from compresso_recsys.models._validation import canonical_csr
 from compresso_recsys.models.base import Recommender
 
 __all__ = [
+    "BaseColdStartRecommender",
     "CandidateCatalog",
     "ColdStartRecommender",
     "ItemVocabulary",
@@ -559,8 +561,125 @@ class ColdStartRecommender(Recommender, Protocol):
     ) -> CandidateCatalog: ...
 
 
-class FeatureCatalogMixin:
-    """Reusable source-vocabulary and feature-catalog implementation."""
+class BaseColdStartRecommender(ABC):
+    """Reusable base for feature-driven cold-start recommenders.
+
+    Subclasses implement :meth:`fit`, :attr:`is_fitted`, and
+    :meth:`predict_on_batch`. The base owns the fitted source vocabulary and
+    provides atomic candidate catalog replacement, updates, removal, stable-ID
+    source alignment, metadata handling, and feature-space validation.
+
+    Subclass constructors must call ``super().__init__()``. During fitting,
+    call :meth:`_install_feature_catalog` after learning the source encoder to
+    publish the initial candidate catalog.
+    """
+
+    def __init__(self) -> None:
+        self._init_feature_catalog_state()
+
+    @property
+    @abstractmethod
+    def is_fitted(self) -> bool:
+        """Whether the model is ready for prediction."""
+
+    @abstractmethod
+    def fit(
+        self,
+        interactions: csr_matrix,
+        item_features: ItemFeatures,
+        **kwargs,
+    ) -> BaseColdStartRecommender:
+        """Fit a source encoder and publish the initial candidate catalog."""
+
+    @abstractmethod
+    def predict_on_batch(
+        self,
+        source: csr_matrix,
+        *,
+        k: int,
+        exclude_seen: bool = True,
+        candidate_ids: Sequence[Hashable] | np.ndarray | None = None,
+    ) -> SRPTensor:
+        """Return ranked predictions against the current candidate catalog."""
+
+    def _prepare_source(self, source: csr_matrix) -> csr_matrix:
+        """Validate source columns against the fitted source vocabulary."""
+        if not self.is_fitted or self.source_vocabulary_ is None:
+            raise RuntimeError(
+                f"{type(self).__name__} must be fitted before prediction"
+            )
+        source = canonical_csr(source, name="source")
+        if source.shape[1] != self.source_vocabulary_.n_items:
+            raise ValueError(
+                f"source has {source.shape[1]} items, but "
+                f"{type(self).__name__} was fitted with "
+                f"{self.source_vocabulary_.n_items} source items"
+            )
+        return source
+
+    def predict(
+        self,
+        source: csr_matrix,
+        *,
+        k: int = 100,
+        batch_size: int = 1024,
+        exclude_seen: bool = True,
+        candidate_ids: Sequence[Hashable] | np.ndarray | None = None,
+        show_progress: bool = False,
+    ) -> SRPTensor:
+        """Predict all source rows by repeatedly calling ``predict_on_batch``."""
+        source = self._prepare_source(source)
+        if batch_size < 1:
+            raise ValueError("batch_size must be >= 1")
+        catalog = self.candidates
+        selected_items = (
+            catalog.n_items
+            if candidate_ids is None
+            else catalog.rows_for(candidate_ids).size
+        )
+        if not 1 <= int(k) <= selected_items:
+            raise ValueError(f"k must be in [1, {selected_items}], got {k}")
+
+        columns: list[torch.Tensor] = []
+        values: list[torch.Tensor] = []
+        starts = range(0, source.shape[0], batch_size)
+        if show_progress:
+            try:
+                from tqdm.auto import tqdm
+
+                starts = tqdm(
+                    starts,
+                    desc=f"{type(self).__name__} predict@{k}",
+                )
+            except Exception:  # pragma: no cover - optional display helper
+                pass
+        for start in starts:
+            result = self.predict_on_batch(
+                source[start : start + batch_size],
+                k=k,
+                exclude_seen=exclude_seen,
+                candidate_ids=candidate_ids,
+            )
+            if result.cols_total != catalog.n_items:
+                raise ValueError(
+                    "predict_on_batch() item count must match the candidate catalog"
+                )
+            columns.append(result.cols)
+            values.append(result.vals)
+
+        if not columns:
+            return self.predict_on_batch(
+                source,
+                k=k,
+                exclude_seen=exclude_seen,
+                candidate_ids=candidate_ids,
+            )
+        return SRPTensor(
+            cols=torch.vstack(columns),
+            vals=torch.vstack(values),
+            shape=(source.shape[0], catalog.n_items),
+            validate=False,
+        )
 
     def _init_feature_catalog_state(self) -> None:
         self._catalog_lock = RLock()
@@ -895,7 +1014,7 @@ class FeatureCatalogMixin:
         )
 
 
-class _LinearFeatureRecommenderMixin(FeatureCatalogMixin):
+class _LinearFeatureRecommenderMixin(BaseColdStartRecommender):
     """Shared prediction path for linear fixed-feature cold-start models."""
 
     _model_name = "model"

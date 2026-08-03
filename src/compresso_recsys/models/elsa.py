@@ -17,6 +17,7 @@ from compresso_recsys.models._batching import (
     normalized_mse,
 )
 from compresso_recsys.models._validation import canonical_csr
+from compresso_recsys.models.base import BaseCollaborativeRecommender
 
 __all__ = [
     "CompressedELSA",
@@ -505,7 +506,7 @@ class CompressedELSA(nn.Module):
         return F.relu(scores) if self.use_relu else scores
 
 
-class ELSATrainer:
+class ELSATrainer(BaseCollaborativeRecommender):
     """Fit and run ELSA with sparse interaction matrices."""
 
     def __init__(self, config: ELSAConfig | None = None) -> None:
@@ -528,6 +529,11 @@ class ELSATrainer:
     def is_fitted(self) -> bool:
         """Whether :meth:`fit` has completed at least once."""
         return self._is_fitted
+
+    @property
+    def n_items(self) -> int | None:
+        """Number of fitted item columns, or ``None`` before building."""
+        return self.input_dim
 
     def build(self, input_dim: int) -> ELSATrainer:
         """Initialize the ELSA model and optimizer."""

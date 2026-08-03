@@ -22,9 +22,9 @@ from compresso_recsys.models._validation import (
     canonical_train_item_indices,
 )
 from compresso_recsys.models.cold_start import (
+    BaseColdStartRecommender,
     CandidateCatalog,
     CandidateSelection,
-    FeatureCatalogMixin,
     ItemFeatures,
     append_column,
     canonical_feature_space_id,
@@ -328,14 +328,14 @@ class TEASERGDConfig:
             raise ValueError("include_popularity must be a bool")
 
 
-class TEASERGDTrainer(FeatureCatalogMixin):
+class TEASERGDTrainer(BaseColdStartRecommender):
     """Fit TEASER with PyTorch, sampled outputs, and cold candidate catalogs."""
 
     _fit_name = "TEASERGD"
 
     def __init__(self, config: TEASERGDConfig | None = None) -> None:
+        super().__init__()
         self.cfg = config if config is not None else TEASERGDConfig()
-        self._init_feature_catalog_state()
         self.device = torch.device(self.cfg.device)
         self.teaser: TEASERGD | nn.Module | None = None
         self.optimizer: torch.optim.Optimizer | None = None

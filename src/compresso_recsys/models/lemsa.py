@@ -276,8 +276,8 @@ class LEMSA(_LinearFeatureRecommenderMixin):
     _model_name = "LEMSA"
 
     def __init__(self, config: LEMSAConfig | None = None) -> None:
+        super().__init__()
         self.cfg = config if config is not None else LEMSAConfig()
-        self._init_feature_catalog_state()
         self.encoder_: np.ndarray | None = None
         self.decoder_features_: csr_matrix | np.ndarray | None = None
         self.train_item_indices_: np.ndarray | None = None

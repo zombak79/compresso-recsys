@@ -117,8 +117,8 @@ class TEASER(_LinearFeatureRecommenderMixin):
     _model_name = "TEASER"
 
     def __init__(self, config: TEASERConfig | None = None) -> None:
+        super().__init__()
         self.cfg = config if config is not None else TEASERConfig()
-        self._init_feature_catalog_state()
         self.encoder_: np.ndarray | None = None
         self.decoder_features_: csr_matrix | np.ndarray | None = None
         self.diagonal_: np.ndarray | None = None

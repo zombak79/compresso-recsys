@@ -1,7 +1,8 @@
 """Collaborative-filtering models."""
 
-from .base import Recommender
+from .base import BaseCollaborativeRecommender, Recommender
 from .cold_start import (
+    BaseColdStartRecommender,
     CandidateCatalog,
     ColdStartRecommender,
     ItemVocabulary,
@@ -21,6 +22,8 @@ from .teaser import TEASER, TEASERConfig
 from .teaser_gd import TEASERGD, TEASERGDConfig, TEASERGDTrainer
 
 __all__ = [
+    "BaseColdStartRecommender",
+    "BaseCollaborativeRecommender",
     "CompressedELSA",
     "CandidateCatalog",
     "ColdStartRecommender",

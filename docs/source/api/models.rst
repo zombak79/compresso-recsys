@@ -26,6 +26,38 @@ updated independently.
 .. autoclass:: compresso_recsys.models.ItemVocabulary
    :members:
 
+Implementing New Models
+-----------------------
+
+The protocols above are sufficient when a model only needs to work with the
+evaluation API. Model authors who want Compresso RecSys validation, batched
+prediction, and catalog management can instead inherit one of the abstract
+bases.
+
+Use :class:`compresso_recsys.models.BaseCollaborativeRecommender` for a model
+whose fitted source and candidate catalog has one fixed positional item space.
+Implement ``fit``, ``is_fitted``, ``n_items``, and ``predict_on_batch``. Call
+the inherited ``_prepare_source`` at the start of ``predict_on_batch``; the
+base then supplies ``predict`` with bounded batching and optional progress.
+
+.. autoclass:: compresso_recsys.models.BaseCollaborativeRecommender
+   :members:
+   :private-members: _prepare_source
+
+Use :class:`compresso_recsys.models.BaseColdStartRecommender` when source items
+are fixed by fitting but identified candidates can be rebuilt or updated from
+features. Subclass constructors must call ``super().__init__()``. After fitting
+the source encoder, call ``_install_feature_catalog`` once with the fitted
+source IDs and initial candidate features. The inherited catalog methods then
+validate later features against that feature space and preserve stable IDs.
+``predict_on_batch`` can call ``_resolve_candidate_selection`` to resolve an
+optional candidate allowlist while keeping returned :class:`compresso.SRPTensor`
+columns in the complete catalog space.
+
+.. autoclass:: compresso_recsys.models.BaseColdStartRecommender
+   :members:
+   :private-members: _install_feature_catalog, _prepare_source, _resolve_candidate_selection
+
 Transductive Models in Expanding Catalogs
 -----------------------------------------
 
