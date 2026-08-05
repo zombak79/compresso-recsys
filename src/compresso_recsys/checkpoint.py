@@ -175,6 +175,35 @@ def save_recsys_split(
     entity_metadata: pd.DataFrame | None = None,
     metadata: dict[str, Any] | None = None,
 ) -> None:
+    """Write the split stage of a checkpoint.
+
+    Item partitions
+    ---------------
+    ``train_item_indices``, ``val_item_indices`` and ``test_item_indices`` are
+    positions into ``item_ids`` naming the items **that phase introduces**, not
+    the items it may score. They partition the catalog by first appearance:
+
+    - ``user_split``: training spans every item and the later phases introduce
+      none, so the train partition is the full range and val/test are empty.
+    - ``item_split``: three disjoint partitions, the val/test ones being the
+      cold items held out of training.
+    - ``leave_last_out``: train holds the items that never appear as a target,
+      val/test hold the target items.
+    - ``temporal``: each phase introduces the items first seen in its window,
+      so the partitions are consecutive ranges of the growing catalog.
+
+    An empty partition therefore means "this phase introduces no new items",
+    which is not the same as "this phase has no candidates". The candidate space
+    of a phase is ``{phase}_item_ids``, which defaults to ``item_ids`` when not
+    given. Callers that select feature or metadata rows for a phase should index
+    with that phase's ``*_item_ids`` (or the union of partitions up to it),
+    because mirroring ``train_item_indices`` into a later phase silently yields
+    an empty selection for splits that hold no items out.
+
+    Passing ``None`` for a partition omits its file, and
+    :func:`load_recsys_split` then falls back to the whole catalog for train and
+    to an empty array for val/test. Prefer writing all three explicitly.
+    """
     root = Path(root)
     data_dir = root / SPLIT_DIR
     if data_dir.exists():
@@ -280,6 +309,17 @@ def save_recsys_split(
 
 
 def load_recsys_split(root: str | Path) -> dict[str, Any]:
+    """Read the split stage of a checkpoint.
+
+    See :func:`save_recsys_split` for what ``*_item_indices`` mean: they are the
+    items each phase *introduces*, so they are empty for phases that hold no
+    items out, while ``*_item_ids`` give the candidate space and default to
+    ``item_ids``.
+
+    For checkpoints written before every partition was stored explicitly, a
+    missing ``train_item_indices.npy`` loads as the full catalog range and
+    missing val/test files load as empty arrays.
+    """
     root = Path(root)
     split = np.load(root / SPLIT_DIR / "split.npz", allow_pickle=True)
     tags_path = root / SPLIT_DIR / "entity_tags.npz"

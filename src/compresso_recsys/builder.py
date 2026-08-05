@@ -513,14 +513,19 @@ def _build_user_split(args, ds, proc_df):
         random_state=args.seed,
         eval_fold=args.eval_fold,
     )
+    catalog_item_ids = test_holdout["item_ids"]
     return {
-        "item_ids": test_holdout["item_ids"],
+        "item_ids": catalog_item_ids,
         "x_train": x_train,
         "train_source_matrix": x_train,
         "train_target_matrix": x_train,
         "val_holdout": val_holdout,
         "test_holdout": test_holdout,
-        "train_item_indices": None,
+        # Every item is present while training and no later phase introduces new
+        # ones, so training spans the catalog and validation/test add nothing.
+        # Written out explicitly instead of left as None so that every split mode
+        # stores all three partitions and none of them has to be inferred.
+        "train_item_indices": np.arange(len(catalog_item_ids), dtype=np.int64),
         "val_item_indices": np.array([], dtype=np.int64),
         "test_item_indices": np.array([], dtype=np.int64),
         "train_user_ids": np.asarray(train_user_index).astype(str),
