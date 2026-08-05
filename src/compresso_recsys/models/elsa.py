@@ -596,6 +596,16 @@ class ELSATrainer(BaseCollaborativeRecommender):
             return iterable
         return tqdm(iterable, total=total, desc=desc)
 
+    def _progress_bar(self, *, total: int, desc: str):
+        """A bar to drive by hand, or ``None`` when progress is unavailable."""
+        if not self.cfg.show_progress:
+            return None
+        try:
+            from tqdm.auto import tqdm
+        except Exception:  # pragma: no cover - optional dependency fallback
+            return None
+        return tqdm(total=total, desc=desc)
+
     def _set_lr(self, learning_rate: float) -> None:
         if self.optimizer is None:
             raise RuntimeError("trainer must be built before setting learning rate")
@@ -658,20 +668,26 @@ class ELSATrainer(BaseCollaborativeRecommender):
         dataset: _ELSAInteractionDataset,
         *,
         desc: str,
+        bar=None,
     ) -> tuple[dict[str, float], bool]:
+        """Run one epoch, reporting into a caller-owned bar when given.
+
+        The bar belongs to the caller so that one bar is rewound and relabelled
+        per epoch, rather than a finished bar being left behind for each.
+        """
         sums: dict[str, float] = {}
         n_batches = 0
         rewind_triggered = False
-        batch_iter = self._progress(
-            range(len(dataset)),
-            total=len(dataset),
-            desc=desc,
-        )
-        for batch_index in batch_iter:
+        if bar is not None:
+            bar.reset(total=len(dataset))
+            bar.set_description(desc)
+        for batch_index in range(len(dataset)):
             stats = self.train_step(*dataset[batch_index])
             for key, value in stats.items():
                 sums[key] = sums.get(key, 0.0) + float(value.cpu().item())
             n_batches += 1
+            if bar is not None:
+                bar.update(1)
             if bool(self._last_controller_info.get("rewind_triggered", False)):
                 rewind_triggered = True
                 break
@@ -703,26 +719,34 @@ class ELSATrainer(BaseCollaborativeRecommender):
             total=self.cfg.epochs,
             desc="ELSA fit" if phase is None else "ELSA sparse fine-tune",
         )
-        for epoch in epoch_iter:
-            record: dict[str, float | str] = self._run_epoch(
-                dataset,
-                desc=f"ELSA epoch {epoch}",
-            )[0]
-            record["epoch"] = float(epoch)
-            record["lr"] = self._current_lr()
-            if phase is not None:
-                record["phase"] = phase
-            self.history.append(record)
-            if hasattr(epoch_iter, "set_postfix"):
-                epoch_iter.set_postfix(
-                    {
-                        "loss": f"{record['loss']:.4f}",
-                        "cosine": f"{record['cosine_loss']:.4f}",
-                        "lr": f"{record['lr']:.2E}",
-                    }
-                )
-            if scheduler is not None:
-                scheduler.step()
+        batch_bar = self._progress_bar(total=len(dataset), desc="ELSA epoch 1")
+        try:
+            for epoch in epoch_iter:
+                record: dict[str, float | str] = self._run_epoch(
+                    dataset,
+                    desc=f"ELSA epoch {epoch}",
+                    bar=batch_bar,
+                )[0]
+                record["epoch"] = float(epoch)
+                record["lr"] = self._current_lr()
+                if phase is not None:
+                    record["phase"] = phase
+                self.history.append(record)
+                if hasattr(epoch_iter, "set_postfix"):
+                    epoch_iter.set_postfix(
+                        {
+                            "loss": f"{record['loss']:.4f}",
+                            "cosine": f"{record['cosine_loss']:.4f}",
+                            "lr": f"{record['lr']:.2E}",
+                        }
+                    )
+                if scheduler is not None:
+                    scheduler.step()
+        finally:
+            if batch_bar is not None:
+                batch_bar.close()
+            if hasattr(epoch_iter, "close"):
+                epoch_iter.close()
 
     def _fit_compressed_mask_search(
         self,
@@ -732,67 +756,78 @@ class ELSATrainer(BaseCollaborativeRecommender):
             raise RuntimeError("compressed ELSA model was not built")
         search_epoch = 0
         stage_epoch = 0
-        while True:
-            masked_A = self.elsa.masked_A
-            if masked_A is None:  # pragma: no cover - defensive invariant
-                raise RuntimeError("mask-search parameter is unavailable")
-            search_epoch += 1
-            stage_epoch += 1
-            stage_idx = int(masked_A.stage_idx)
-            k_current = int(masked_A.k_current)
-            record: dict[str, float | str] = self._run_epoch(
-                dataset,
-                desc=(f"ELSA mask stage {stage_idx + 1} " f"epoch {stage_epoch}"),
-            )[0]
-            rewind_triggered = bool(
-                self._last_controller_info.get("rewind_triggered", False)
-            )
-            transition = "stable" if rewind_triggered else "none"
-            max_stage_epochs = (
-                self.cfg.compression.max_epochs_per_stage
-                if self.cfg.compression is not None
-                else None
-            )
-            if (
-                not rewind_triggered
-                and max_stage_epochs is not None
-                and stage_epoch >= max_stage_epochs
-            ):
-                # Temporary compatibility path until Compresso exposes a
-                # public forced-stage transition on SparsityController.
-                masked_A.stage_completed = True
-                rewind_stats = masked_A.rewind()
-                print(
-                    "[ELSATrainer] Forced rewind "
-                    f"(max_epochs_per_stage={max_stage_epochs}): "
-                    f"{rewind_stats}"
+        # Mask search runs an unbounded number of epochs, so one reused bar
+        # matters even more here than during fixed-epoch training.
+        batch_bar = self._progress_bar(
+            total=len(dataset),
+            desc="ELSA mask stage 1 epoch 1",
+        )
+        try:
+            while True:
+                masked_A = self.elsa.masked_A
+                if masked_A is None:  # pragma: no cover - defensive invariant
+                    raise RuntimeError("mask-search parameter is unavailable")
+                search_epoch += 1
+                stage_epoch += 1
+                stage_idx = int(masked_A.stage_idx)
+                k_current = int(masked_A.k_current)
+                record: dict[str, float | str] = self._run_epoch(
+                    dataset,
+                    desc=(f"ELSA mask stage {stage_idx + 1} " f"epoch {stage_epoch}"),
+                    bar=batch_bar,
+                )[0]
+                rewind_triggered = bool(
+                    self._last_controller_info.get("rewind_triggered", False)
                 )
-                if self.sparsity_controller is not None:
-                    self.sparsity_controller.num_restarts += 1
-                rewind_triggered = True
-                transition = "forced"
-            record.update(
-                {
-                    "epoch": float(search_epoch),
-                    "stage_epoch": float(stage_epoch),
-                    "stage": float(stage_idx),
-                    "k": float(k_current),
-                    "mask_change": float(masked_A.last_change),
-                    "lr": self._current_lr(),
-                    "phase": "mask_search",
-                    "transition": transition,
-                }
-            )
-            self.history.append(record)
-            if not rewind_triggered:
-                continue
+                transition = "stable" if rewind_triggered else "none"
+                max_stage_epochs = (
+                    self.cfg.compression.max_epochs_per_stage
+                    if self.cfg.compression is not None
+                    else None
+                )
+                if (
+                    not rewind_triggered
+                    and max_stage_epochs is not None
+                    and stage_epoch >= max_stage_epochs
+                ):
+                    # Temporary compatibility path until Compresso exposes a
+                    # public forced-stage transition on SparsityController.
+                    masked_A.stage_completed = True
+                    rewind_stats = masked_A.rewind()
+                    print(
+                        "[ELSATrainer] Forced rewind "
+                        f"(max_epochs_per_stage={max_stage_epochs}): "
+                        f"{rewind_stats}"
+                    )
+                    if self.sparsity_controller is not None:
+                        self.sparsity_controller.num_restarts += 1
+                    rewind_triggered = True
+                    transition = "forced"
+                record.update(
+                    {
+                        "epoch": float(search_epoch),
+                        "stage_epoch": float(stage_epoch),
+                        "stage": float(stage_idx),
+                        "k": float(k_current),
+                        "mask_change": float(masked_A.last_change),
+                        "lr": self._current_lr(),
+                        "phase": "mask_search",
+                        "transition": transition,
+                    }
+                )
+                self.history.append(record)
+                if not rewind_triggered:
+                    continue
 
-            schedule_done = bool(masked_A.schedule_done)
-            self._reset_optimizer()
-            self._set_lr(float(self.cfg.lr))
-            stage_epoch = 0
-            if schedule_done:
-                break
+                schedule_done = bool(masked_A.schedule_done)
+                self._reset_optimizer()
+                self._set_lr(float(self.cfg.lr))
+                stage_epoch = 0
+                if schedule_done:
+                    break
+        finally:
+            if batch_bar is not None:
+                batch_bar.close()
 
         self.elsa.convert_to_srp()
         self.sparsity_controller = None

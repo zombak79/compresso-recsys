@@ -585,30 +585,42 @@ class TEASERGDTrainer(BaseColdStartRecommender):
             desc=f"{self._fit_name} fit",
             enabled=progress_enabled,
         )
-        for epoch in epoch_iter:
-            sums = self._empty_epoch_sums()
-            batches = 0
-            batch_iter = self._progress_with_override(
-                range(len(dataset)),
-                total=len(dataset),
-                desc=f"{self._fit_name} epoch {epoch}",
-                enabled=progress_enabled,
-            )
-            for batch_index in batch_iter:
-                batch = dataset[batch_index]
-                stats = self._train_step(batch, training_features)
-                for key, value in stats.items():
-                    sums[key] += float(value)
-                batches += 1
-            dataset.on_epoch_end()
-            record = {key: value / max(1, batches) for key, value in sums.items()}
-            record["epoch"] = float(epoch)
-            record["lr"] = float(self.optimizer.param_groups[0]["lr"])
-            self.history.append(record)
-            if hasattr(epoch_iter, "set_postfix"):
-                epoch_iter.set_postfix(loss=f"{record['loss']:.4f}")
-            if scheduler is not None:
-                scheduler.step()
+        # A single batch bar is rewound and relabelled each epoch, rather than a
+        # finished bar being left behind per epoch.
+        batch_bar = self._progress_bar_with_override(
+            total=len(dataset),
+            desc=f"{self._fit_name} epoch 1",
+            enabled=progress_enabled,
+        )
+        try:
+            for epoch in epoch_iter:
+                sums = self._empty_epoch_sums()
+                batches = 0
+                if batch_bar is not None:
+                    batch_bar.reset(total=len(dataset))
+                    batch_bar.set_description(f"{self._fit_name} epoch {epoch}")
+                for batch_index in range(len(dataset)):
+                    batch = dataset[batch_index]
+                    stats = self._train_step(batch, training_features)
+                    for key, value in stats.items():
+                        sums[key] += float(value)
+                    batches += 1
+                    if batch_bar is not None:
+                        batch_bar.update(1)
+                dataset.on_epoch_end()
+                record = {key: value / max(1, batches) for key, value in sums.items()}
+                record["epoch"] = float(epoch)
+                record["lr"] = float(self.optimizer.param_groups[0]["lr"])
+                self.history.append(record)
+                if hasattr(epoch_iter, "set_postfix"):
+                    epoch_iter.set_postfix(loss=f"{record['loss']:.4f}")
+                if scheduler is not None:
+                    scheduler.step()
+        finally:
+            if batch_bar is not None:
+                batch_bar.close()
+            if hasattr(epoch_iter, "close"):
+                epoch_iter.close()
         self._is_fitted = True
         return self
 
@@ -621,6 +633,17 @@ class TEASERGDTrainer(BaseColdStartRecommender):
         except Exception:  # pragma: no cover
             return iterable
         return tqdm(iterable, total=total, desc=desc)
+
+    @staticmethod
+    def _progress_bar_with_override(*, total: int, desc: str, enabled: bool):
+        """A bar to drive by hand, or ``None`` when progress is unavailable."""
+        if not enabled:
+            return None
+        try:
+            from tqdm.auto import tqdm
+        except Exception:  # pragma: no cover - optional display helper
+            return None
+        return tqdm(total=total, desc=desc)
 
     def _train_step(
         self,
