@@ -112,6 +112,8 @@ def test_submodule_public_apis_are_intentional():
             "CandidateCatalog",
             "ColdStartRecommender",
             "CompressedELSA",
+            "ContentRecommender",
+            "ContentRecommenderConfig",
             "EASE",
             "EASEConfig",
             "ELSA",

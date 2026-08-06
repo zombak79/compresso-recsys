@@ -13,6 +13,7 @@ from .cold_start import (
     ItemVocabulary,
     WarmCatalogAdapter,
 )
+from .content import ContentRecommender, ContentRecommenderConfig
 from .ease import EASE, EASEConfig
 from .elsa import (
     CompressedELSA,
@@ -32,6 +33,8 @@ __all__ = [
     "CompressedELSA",
     "CandidateCatalog",
     "ColdStartRecommender",
+    "ContentRecommender",
+    "ContentRecommenderConfig",
     "EASE",
     "EASEConfig",
     "ELSA",
