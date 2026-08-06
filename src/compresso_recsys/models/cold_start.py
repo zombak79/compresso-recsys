@@ -907,17 +907,28 @@ class BaseColdStartRecommender(ABC):
         new = incoming if incoming is not None else pd.DataFrame()
         columns = old.columns.union(new.columns, sort=False)
         result = old.reindex(columns=columns)
+        # A column only the incoming frame carries is missing for every
+        # pre-existing item, so it holds NA and has to accept whatever the
+        # incoming values are. Reindexing alone would default it to float64,
+        # which then rejects non-numeric incoming values.
+        introduced = [column for column in columns if column not in old.columns]
+        if introduced:
+            result[introduced] = result[introduced].astype(object)
         if addition_input_rows.size:
-            additions = pd.DataFrame(
-                pd.NA,
-                index=range(addition_input_rows.size),
-                columns=columns,
-            )
+            # Extend the index rather than concatenating an all-NA frame.
+            # Concat resolves result dtypes while excluding all-NA columns,
+            # which pandas warns about and will stop doing, and which silently
+            # widened float and datetime metadata to object on newer pandas.
+            result = result.reset_index(drop=True)
+            start = len(result)
+            result = result.reindex(range(start + int(addition_input_rows.size)))
             if incoming is not None:
-                additions.loc[:, incoming.columns] = (
-                    incoming.iloc[addition_input_rows].reset_index(drop=True).to_numpy()
-                )
-            result = pd.concat((result, additions), ignore_index=True)
+                block = incoming.iloc[addition_input_rows]
+                for column in incoming.columns:
+                    # Per column, so each one promotes on its own terms.
+                    result.iloc[start:, result.columns.get_loc(column)] = block[
+                        column
+                    ].to_numpy()
         if incoming is not None and replace_input_rows.size:
             result.loc[replace_catalog_rows, incoming.columns] = incoming.iloc[
                 replace_input_rows
