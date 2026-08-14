@@ -238,7 +238,7 @@ no seed at all, being closed-form, so only one side of the comparison can move.
 
 To claim ELSA is the better *method* rather than that this ELSA beat this EASE,
 that has to be measured rather than assumed. :ref:`stats-seeds` does exactly
-that, on these models: five seeds, and the gap turns out to be about nine times
+that, on these models: five seeds, and the gap turns out to be about ten times
 the spread they produce.
 
 Reading the output
@@ -531,97 +531,67 @@ removes one avoidable source of confusion, not all of them.
 This conditions on one training run
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Everything here resamples **users**. It answers whether an advantage is stable
-across different samples of users from this population.
+Everything so far resamples **users**, so the interval answers one question:
+would this advantage hold on a different sample of users? Gradient-trained
+models depend on a random seed as well, and retraining moves the result in a way
+the interval cannot see. Whether you are writing this up or deciding what to
+ship, you want the advantage to be a property of the method rather than of one
+lucky run.
 
-It says nothing about whether the advantage survives retraining with a different
-random seed. If your training is stochastic — and gradient-trained models are —
-a reviewer will ask, and "we bootstrapped over users" is not an answer.
-
-So measure it. Retrain the stochastic model under matched seeds and evaluate
-every one on identical users and targets:
+Measure it: retrain under matched seeds, evaluate each on identical users and
+targets, and collect the differences.
 
 .. code-block:: python
 
-   seeds = range(5)
-   ease_result = evaluate_recommender(
-       EASE(EASEConfig(l2=700.0)).fit(x_train),
-       source=source, targets=targets, metrics=metrics, sample_ids=user_ids,
-   )
-
-   differences = {}
-   for seed in seeds:
-       elsa = ELSATrainer(
-           ELSAConfig(latent_dim=3250, batch_size=2048, epochs=10,
-                      lr=0.05, device=device, seed=seed)
-       ).fit(x_train)
+   differences = []
+   for seed in range(5):
+       config = ELSAConfig(latent_dim=3250, batch_size=2048, epochs=10,
+                           lr=0.05, device=device, seed=seed)
        result = evaluate_recommender(
-           elsa, source=source, targets=targets, metrics=metrics,
-           sample_ids=user_ids,
+           ELSATrainer(config).fit(x_train),
+           source=source, targets=targets, metrics=metrics, sample_ids=user_ids,
        )
-       differences[seed] = compare_pair(
-           ease_result, result, metric="ndcg@100", random_state=0,
-       ).difference
+       differences.append(
+           compare_pair(ease_result, result, metric="ndcg@100").difference
+       )
 
-Only ELSA is retrained. EASE is a closed-form solve with no seed at all, so the
-spread below is ELSA's training variance alone rather than a symmetric wobble in
-both models. On GoodBooks, five seeds give:
-
-.. code-block:: text
-
-   metric                  seed 0    seed 1    seed 2    seed 3    seed 4
-   ndcg@100              0.005420  0.005698  0.006920  0.005982  0.005559
-   calibrated_recall@20  0.010846  0.010942  0.011201  0.009937  0.010876
-   recall@20             0.010686  0.010889  0.010913  0.009822  0.010734
-   mrr@20                0.023938  0.025372  0.025198  0.025392  0.027660
-
-Set the spread beside the interval, because they answer different questions —
-*would this hold on other users?* against *would this hold if I retrained?*
+Only ELSA is retrained — EASE is closed-form and has no seed — so this measures
+one model's training variance, not a symmetric wobble in both. Its five
+nDCG@100 differences come out 0.0054, 0.0057, 0.0069, 0.0060 and 0.0056:
 
 .. code-block:: text
 
-   metric                    mean   seed sd   half-CI   ratio   combined
-   ndcg@100              0.005916  0.000598  0.002510    0.24   0.002581
-   calibrated_recall@20  0.010760  0.000481  0.003083    0.16   0.003120
-   recall@20             0.010609  0.000450  0.003062    0.15   0.003095
-   mrr@20                0.025512  0.001344  0.010391    0.13   0.010478
+   metric                    mean   user SE   seed SD   ratio   widens by
+   ndcg@100              0.005916  0.001279  0.000598    0.47       10.4%
+   calibrated_recall@20  0.010760  0.001575  0.000481    0.31        4.6%
+   recall@20             0.010609  0.001560  0.000450    0.29        4.1%
+   mrr@20                0.025512  0.005311  0.001344    0.25        3.2%
 
-**The ratio is the number to read.** Seed variation is a sixth to a quarter of
-the user-sampling uncertainty, so the per-user interval was already describing
-most of what is uncertain here. Treating the two as independent sources and
-adding their variances gives ``combined``, which is 1 to 3% wider than the
-interval alone — reseeding barely moves the answer.
+**user SE** is ``bootstrap_standard_error``: how much the difference moves when
+you resample users. **seed SD** is the standard deviation of the difference
+across the five runs: how much it moves when you retrain. Both describe the same
+quantity moving, so putting one over the other gives a **ratio** you can read
+directly:
 
-Had the ratio come out above 1, the reading would reverse: the interval would be
-precise about *this* ELSA while saying little about ELSA, and the honest report
-would lead with the seed spread.
+* **Well below 1** — user sampling is the larger unknown, and the interval is
+  most of the uncertainty. Here it runs 0.25 to 0.47, so retraining matters but
+  users matter more.
+* **Near or above 1** — retraining is at least as large. The interval is then
+  precise about *this* trained model while saying little about the method, and
+  reporting it alone would overstate what you know.
 
-**Then answer the blunter question.** A reviewer rarely asks for a standard
-deviation; they ask whether the result could go the other way.
+The two sources are roughly independent, so combining them in quadrature gives
+the **widens by** column: allowing for retraining stretches the interval by 3 to
+10%, most for nDCG@100 where seed noise is nearly half the user noise.
 
-.. code-block:: text
+There is also a blunter check needing no statistics at all — **did any seed
+reverse the sign?** Across four metrics and five seeds, all twenty differences
+favour ELSA. That either holds or it does not, and it is a stronger statement
+than any interval.
 
-   ndcg@100              range [0.0054, 0.0069]   all positive
-   calibrated_recall@20  range [0.0099, 0.0112]   all positive
-   recall@20             range [0.0098, 0.0109]   all positive
-   mrr@20                range [0.0239, 0.0277]   all positive
-
-Twenty seed-metric combinations, every one favouring ELSA. That is a stronger
-claim than any interval, and it either holds or it does not.
-
-.. warning::
-
-   **Five seeds cannot resolve a close call.** A standard deviation from five
-   runs carries roughly 35% relative error, so the 0.24 above is really "somewhere
-   near a quarter". That is fine for concluding *clearly smaller*, and would be
-   fine for *clearly larger*. It is not enough to distinguish a ratio of 0.9 from
-   1.1. If yours lands near 1, run more seeds rather than reporting the number as
-   though it settled anything.
-
-   Note also that ``ndcg@100`` has both the smallest relative gain and the
-   largest ratio. A metric reading a hundred ranks deep is the most sensitive to
-   the fine ordering that reseeding perturbs, so it is where seed noise shows up
-   first — and where a small effect deserves the most suspicion.
+One limit: five runs give a standard deviation with roughly 35% relative error,
+enough to show *clearly smaller* or *clearly larger* but not to separate 0.9
+from 1.1. If yours lands near 1, run more seeds rather than reporting it.
 
 Choosing the settings
 ---------------------
