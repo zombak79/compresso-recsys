@@ -231,11 +231,15 @@ governs is the *randomization test*: flipping the sign of a zero changes
 nothing, so only those 1,009 differences can move the null distribution, and a
 small count there makes it coarse. :ref:`stats-trap-tied` returns to this.
 
-**What this does not establish.** Both models were trained once. A 1% nDCG
-difference is well inside what a different random seed could move for ELSA,
-which is gradient-trained; EASE has no seed at all, being closed-form. To claim
-ELSA is the better *method* rather than that this ELSA beat this EASE, train
-several seeded runs and report their spread alongside these intervals.
+**What this does not establish, yet.** Both models were trained once. These
+intervals say the advantage would survive a different sample of users; they say
+nothing about whether it survives retraining ELSA with a different seed. EASE has
+no seed at all, being closed-form, so only one side of the comparison can move.
+
+To claim ELSA is the better *method* rather than that this ELSA beat this EASE,
+that has to be measured rather than assumed. :ref:`stats-seeds` does exactly
+that, on these models: five seeds, and the gap turns out to be about nine times
+the spread they produce.
 
 Reading the output
 ------------------
@@ -522,6 +526,8 @@ are not inverses of one another — so even at matching levels, and before any
 multiplicity adjustment, they can occasionally disagree. Matching the levels
 removes one avoidable source of confusion, not all of them.
 
+.. _stats-seeds:
+
 This conditions on one training run
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -532,14 +538,90 @@ It says nothing about whether the advantage survives retraining with a different
 random seed. If your training is stochastic — and gradient-trained models are —
 a reviewer will ask, and "we bootstrapped over users" is not an answer.
 
-The standard response is to train each model under five or more matched seeds,
-evaluate every seed on identical users and targets, and report the mean and
-standard deviation across seeds alongside the per-user interval. State plainly
-that the two quantify different things.
+So measure it. Retrain the stochastic model under matched seeds and evaluate
+every one on identical users and targets:
 
-This matters most when the effect is small. A difference of 0.4% may be
-statistically distinguishable across users and still well inside what reseeding
-would move.
+.. code-block:: python
+
+   seeds = range(5)
+   ease_result = evaluate_recommender(
+       EASE(EASEConfig(l2=700.0)).fit(x_train),
+       source=source, targets=targets, metrics=metrics, sample_ids=user_ids,
+   )
+
+   differences = {}
+   for seed in seeds:
+       elsa = ELSATrainer(
+           ELSAConfig(latent_dim=3250, batch_size=2048, epochs=10,
+                      lr=0.05, device=device, seed=seed)
+       ).fit(x_train)
+       result = evaluate_recommender(
+           elsa, source=source, targets=targets, metrics=metrics,
+           sample_ids=user_ids,
+       )
+       differences[seed] = compare_pair(
+           ease_result, result, metric="ndcg@100", random_state=0,
+       ).difference
+
+Only ELSA is retrained. EASE is a closed-form solve with no seed at all, so the
+spread below is ELSA's training variance alone rather than a symmetric wobble in
+both models. On GoodBooks, five seeds give:
+
+.. code-block:: text
+
+   metric                  seed 0    seed 1    seed 2    seed 3    seed 4
+   ndcg@100              0.005420  0.005698  0.006920  0.005982  0.005559
+   calibrated_recall@20  0.010846  0.010942  0.011201  0.009937  0.010876
+   recall@20             0.010686  0.010889  0.010913  0.009822  0.010734
+   mrr@20                0.023938  0.025372  0.025198  0.025392  0.027660
+
+Set the spread beside the interval, because they answer different questions —
+*would this hold on other users?* against *would this hold if I retrained?*
+
+.. code-block:: text
+
+   metric                    mean   seed sd   half-CI   ratio   combined
+   ndcg@100              0.005916  0.000598  0.002510    0.24   0.002581
+   calibrated_recall@20  0.010760  0.000481  0.003083    0.16   0.003120
+   recall@20             0.010609  0.000450  0.003062    0.15   0.003095
+   mrr@20                0.025512  0.001344  0.010391    0.13   0.010478
+
+**The ratio is the number to read.** Seed variation is a sixth to a quarter of
+the user-sampling uncertainty, so the per-user interval was already describing
+most of what is uncertain here. Treating the two as independent sources and
+adding their variances gives ``combined``, which is 1 to 3% wider than the
+interval alone — reseeding barely moves the answer.
+
+Had the ratio come out above 1, the reading would reverse: the interval would be
+precise about *this* ELSA while saying little about ELSA, and the honest report
+would lead with the seed spread.
+
+**Then answer the blunter question.** A reviewer rarely asks for a standard
+deviation; they ask whether the result could go the other way.
+
+.. code-block:: text
+
+   ndcg@100              range [0.0054, 0.0069]   all positive
+   calibrated_recall@20  range [0.0099, 0.0112]   all positive
+   recall@20             range [0.0098, 0.0109]   all positive
+   mrr@20                range [0.0239, 0.0277]   all positive
+
+Twenty seed-metric combinations, every one favouring ELSA. That is a stronger
+claim than any interval, and it either holds or it does not.
+
+.. warning::
+
+   **Five seeds cannot resolve a close call.** A standard deviation from five
+   runs carries roughly 35% relative error, so the 0.24 above is really "somewhere
+   near a quarter". That is fine for concluding *clearly smaller*, and would be
+   fine for *clearly larger*. It is not enough to distinguish a ratio of 0.9 from
+   1.1. If yours lands near 1, run more seeds rather than reporting the number as
+   though it settled anything.
+
+   Note also that ``ndcg@100`` has both the smallest relative gain and the
+   largest ratio. A metric reading a hundred ranks deep is the most sensitive to
+   the fine ordering that reseeding perturbs, so it is where seed noise shows up
+   first — and where a small effect deserves the most suspicion.
 
 Choosing the settings
 ---------------------
@@ -820,6 +902,8 @@ State all of these, every time:
 #. the sampling unit, with ``n_samples``, ``n_nonzero`` and — when one user
    owns several rows — ``n_units``;
 #. the test, the number of resamples, and whether p-values were adjusted;
+#. the seed spread for any stochastic model, beside the interval and named as a
+   different quantity — see :ref:`stats-seeds`;
 #. that inference is conditional on the fitted run, plus separate seed
    variability;
 #. which metric was primary, declared in advance.
