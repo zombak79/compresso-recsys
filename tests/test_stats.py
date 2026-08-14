@@ -18,12 +18,19 @@ N = 400
 METRIC = "ndcg@20"
 
 
+# Fixtures stand in for two models evaluated against one target matrix, so they
+# share a fingerprint. Passing None models a result assembled by hand, which
+# comparison cannot verify and warns about.
+TARGETS = "same-targets"
+
+
 def _result(
     values,
     *,
     metric: str = METRIC,
     sample_ids=None,
     collect: bool = True,
+    fingerprint: str | None = TARGETS,
 ) -> EvaluationResult:
     """Build a result directly, so tests are about statistics rather than ranking."""
     array = np.asarray(values, dtype=np.float32)
@@ -35,6 +42,7 @@ def _result(
         n_rows=int(array.size),
         n_eval_users=int(array.size),
         required_k=20,
+        target_fingerprint=fingerprint,
     )
 
 
@@ -48,6 +56,7 @@ def _multi(**columns) -> EvaluationResult:
         n_rows=size,
         n_eval_users=size,
         required_k=20,
+        target_fingerprint=TARGETS,
     )
 
 
@@ -1002,3 +1011,73 @@ def test_t_test_on_a_constant_difference_warns_that_it_is_undefined():
         n_resamples=99, test_method="randomization",
     )
     assert randomized.p_value == pytest.approx(1 / 100)
+
+
+# --------------------------------------------------------------------------
+# target provenance
+# --------------------------------------------------------------------------
+
+
+def test_different_targets_are_refused_even_when_ids_match():
+    """The failure no identifier check can see.
+
+    Two evaluations on unrelated datasets both number their rows from zero, so
+    positional identifiers agree and the comparison would otherwise proceed.
+    """
+    rng = np.random.default_rng(60)
+    base = rng.random(N)
+    other = base + rng.normal(0.02, 0.1, N)
+
+    with pytest.raises(ValueError, match="different target matrices"):
+        compare_pair(
+            _result(base, fingerprint="dataset-a"),
+            _result(other, fingerprint="dataset-b"),
+            metric=METRIC,
+            n_resamples=99,
+        )
+
+
+def test_missing_fingerprint_warns_rather_than_refusing():
+    """Hand-built results stay usable; they just cannot be verified."""
+    rng = np.random.default_rng(61)
+    base = rng.random(N)
+    other = base + rng.normal(0.02, 0.1, N)
+
+    with pytest.warns(RuntimeWarning, match="no target fingerprint"):
+        comparison = compare_pair(
+            _result(base, fingerprint=None),
+            _result(other),
+            metric=METRIC,
+            n_resamples=99,
+        )
+
+    assert comparison.n_samples == N
+
+
+def test_matching_fingerprints_pass_quietly():
+    rng = np.random.default_rng(62)
+    base = rng.random(N)
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", RuntimeWarning)
+        compare_pair(
+            _result(base),
+            _result(base + rng.normal(0.02, 0.1, N)),
+            metric=METRIC,
+            n_resamples=99,
+        )
+
+
+def test_duplicate_sample_ids_are_refused():
+    """They would let the paired bootstrap treat one unit as two draws."""
+    values = np.random.default_rng(63).random(4)
+
+    with pytest.raises(ValueError, match="sample_ids must be unique"):
+        _result(values, sample_ids=np.array([0, 1, 1, 2]))
+
+
+def test_sample_ids_are_read_only():
+    result = _result(np.random.default_rng(64).random(8))
+
+    with pytest.raises(ValueError, match="read-only"):
+        result.sample_ids[0] = 999

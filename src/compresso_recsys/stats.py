@@ -308,6 +308,30 @@ def _paired_values(
             "reordering or intersecting after the fact."
         )
 
+    # Matching identifiers say the same users were scored. They cannot say the
+    # users were scored against the same relevant items, which is the other half
+    # of what pairing assumes and the half a positional identifier hides
+    # completely: two evaluations on unrelated datasets both number their rows
+    # from zero.
+    left_print = baseline.target_fingerprint
+    right_print = candidate.target_fingerprint
+    if left_print is None or right_print is None:
+        warnings.warn(
+            f"{baseline_name} or {candidate_name} carries no target fingerprint, "
+            "so the comparison cannot confirm both models were scored against "
+            "the same relevant items. Results built by hand rather than by an "
+            "evaluator are unverifiable this way; check the pairing yourself.",
+            RuntimeWarning,
+            stacklevel=3,
+        )
+    elif left_print != right_print:
+        raise ValueError(
+            f"{baseline_name} and {candidate_name} were evaluated against "
+            "different target matrices. Their sample_ids match, so this would "
+            "otherwise have paired users who were scored on different relevant "
+            "items. Re-evaluate both models against the same targets."
+        )
+
     x = np.asarray(baseline.per_user[metric], dtype=np.float64)
     y = np.asarray(candidate.per_user[metric], dtype=np.float64)
     if x.shape != y.shape:

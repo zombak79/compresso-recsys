@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import warnings
 from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any, Literal
@@ -33,6 +35,62 @@ def _owned(array: np.ndarray, source: Any) -> np.ndarray:
     return array.copy() if array is source else array
 
 
+class _TargetFingerprint:
+    """Canonical, batch-size independent digest of the target matrix.
+
+    Two evaluations can only be paired when they scored the same users against
+    the same relevant items. Identifiers catch a different user set; this
+    catches the same identifiers against different targets, which no identifier
+    check can see.
+
+    The evaluator receives targets one batch at a time and never holds the
+    whole matrix, so the digest has to be accumulated. Three properties make
+    the result independent of how the rows were divided:
+
+    * Row counts and column indices go into two separate streams. Interleaving
+      them per batch would put the bytes in a different order for a different
+      ``batch_size``, while each stream on its own is simply the same sequence
+      of rows however it was chunked, and blake2b digests a stream in pieces
+      exactly as it digests it whole.
+    * Neither stream contains ``indptr``, whose values are rebased to zero in
+      every slice. Row lengths carry the same information and survive slicing.
+    * Both are cast to fixed width and byte order, so the same logical matrix
+      agrees across platforms and across int32 and int64 index dtypes.
+
+    Values are not hashed. Targets are binary relevance and only nonzero
+    locations matter, so two matrices that differ solely in stored values are
+    genuinely the same evaluation.
+
+    Canonical form -- sorted, deduplicated, no stored zeros -- is a
+    precondition, supplied by :func:`_canonical_csr` before every update.
+    """
+
+    __slots__ = ("_row_lengths", "_indices", "_n_items", "_n_rows")
+
+    def __init__(self) -> None:
+        self._row_lengths = hashlib.blake2b(digest_size=16)
+        self._indices = hashlib.blake2b(digest_size=16)
+        self._n_items: int | None = None
+        self._n_rows = 0
+
+    def update(self, targets: csr_matrix) -> None:
+        """Fold one canonical batch in, in global row order."""
+        if self._n_items is None:
+            self._n_items = int(targets.shape[1])
+        self._row_lengths.update(np.diff(targets.indptr).astype("<u8").tobytes())
+        self._indices.update(targets.indices.astype("<i8", copy=False).tobytes())
+        self._n_rows += int(targets.shape[0])
+
+    def digest(self) -> str:
+        """Hex digest binding both streams to the matrix shape."""
+        final = hashlib.blake2b(digest_size=16)
+        final.update(int(self._n_items or 0).to_bytes(8, "big"))
+        final.update(self._n_rows.to_bytes(8, "big"))
+        final.update(self._row_lengths.digest())
+        final.update(self._indices.digest())
+        return final.hexdigest()
+
+
 @dataclass(eq=False)
 class EvaluationResult(Mapping[str, Any]):
     """Aggregate metrics plus the per-user observations behind them.
@@ -63,6 +121,11 @@ class EvaluationResult(Mapping[str, Any]):
     # and produced nothing. The mapping exposes ``"debug"`` in the second case
     # but not the first, so a caller that asked for debug always finds the key.
     debug_rows: tuple[dict[str, Any], ...] | None = None
+    # Identifies the targets these metrics were computed against, so paired
+    # comparison can refuse two results that scored the same users on different
+    # relevant items. ``None`` for results built by hand rather than by an
+    # evaluator; comparison warns rather than failing in that case.
+    target_fingerprint: str | None = None
 
     def __post_init__(self) -> None:
         for key, value in self.metrics.items():
@@ -118,6 +181,18 @@ class EvaluationResult(Mapping[str, Any]):
                 f"sample_ids has {ids.shape[0]} values, "
                 f"expected n_eval_users={self.n_eval_users}"
             )
+        # Identifiers name the units a paired bootstrap resamples. Duplicates
+        # would let it treat two rows describing the same user as independent
+        # draws, understating the interval.
+        if ids.shape[0] and np.unique(ids).shape[0] != ids.shape[0]:
+            raise ValueError(
+                "sample_ids must be unique: they identify the units that paired "
+                "comparison resamples, and repeats would be treated as "
+                "independent observations"
+            )
+        # As with the per-user values above: frozen so a later mutation cannot
+        # silently invalidate the pairing this result was matched on.
+        ids.setflags(write=False)
         self.sample_ids = ids
 
     def _mapping_view(self) -> dict[str, Any]:
@@ -361,6 +436,7 @@ class RankingEvaluator:
         self._debug_rows: list[dict[str, Any]] = []
         self._value_chunks: dict[str, list[np.ndarray]] = {}
         self._id_chunks: list[np.ndarray] = []
+        self._fingerprint = _TargetFingerprint()
 
     def _validate_metric_values(
         self,
@@ -478,6 +554,7 @@ class RankingEvaluator:
         sample_ids: Sequence[Any] | np.ndarray | None = None,
     ) -> None:
         targets = _canonical_csr(targets)
+        self._fingerprint.update(targets)
         if self.validate_predictions:
             self._validate(predictions, targets)
         else:
@@ -562,6 +639,7 @@ class RankingEvaluator:
             required_k=self.required_k,
             metadata=dict(self.metadata),
             debug_rows=tuple(self._debug_rows) if self.debug else None,
+            target_fingerprint=self._fingerprint.digest(),
         )
 
 

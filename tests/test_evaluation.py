@@ -522,3 +522,88 @@ def test_metrics_accumulate_from_accelerator_predictions():
     assert result[f"calibrated_recall@{k}"] == pytest.approx(1.0)
     assert result[f"ndcg@{k}"] == pytest.approx(1.0)
     assert result.per_user[f"ndcg@{k}"].dtype == np.float32
+
+
+# --------------------------------------------------------------------------
+# target fingerprint
+# --------------------------------------------------------------------------
+
+
+def _random_targets(rows: int, cols: int, seed: int) -> csr_matrix:
+    rng = np.random.default_rng(seed)
+    dense = (rng.random((rows, cols)) < 0.3).astype(np.float32)
+    dense[:, 0] = 1.0  # every row has at least one target
+    return csr_matrix(dense)
+
+
+def _fingerprint_of(targets: csr_matrix, *, batch_size: int) -> str:
+    return evaluate_recommender(
+        _RecordingRecommender(),
+        source=csr_matrix(targets.shape, dtype=np.float32),
+        targets=targets,
+        metrics=[NDCG(4)],
+        batch_size=batch_size,
+    ).target_fingerprint
+
+
+def test_target_fingerprint_does_not_depend_on_batch_size():
+    """The property the whole accumulator design exists to guarantee.
+
+    The evaluator sees targets one batch at a time and each slice rebases its
+    own indptr, so a digest built the obvious way would differ per batch_size.
+    """
+    targets = _random_targets(20, 8, seed=1)
+
+    prints = {_fingerprint_of(targets, batch_size=b) for b in (1, 3, 7, 20, 64)}
+
+    assert len(prints) == 1
+
+
+def test_target_fingerprint_distinguishes_different_random_targets():
+    one = _fingerprint_of(_random_targets(20, 8, seed=1), batch_size=4)
+    other = _fingerprint_of(_random_targets(20, 8, seed=2), batch_size=4)
+
+    assert one != other
+
+
+def test_target_fingerprint_ignores_stored_values_but_not_locations():
+    """Targets are binary relevance, so only nonzero locations define them."""
+    targets = _random_targets(20, 8, seed=3)
+    reweighted = targets.copy()
+    reweighted.data = reweighted.data * 7.0
+
+    moved = targets.copy().toarray()
+    moved[0, 1] = 1.0 - moved[0, 1]
+    moved[:, 0] = 1.0
+
+    assert _fingerprint_of(targets, batch_size=4) == _fingerprint_of(
+        reweighted, batch_size=4
+    )
+    assert _fingerprint_of(targets, batch_size=4) != _fingerprint_of(
+        csr_matrix(moved), batch_size=4
+    )
+
+
+def test_target_fingerprint_survives_an_int32_index_dtype():
+    """Fixed-width casting, so index dtype cannot change the digest."""
+    targets = _random_targets(20, 8, seed=4)
+    widened = targets.copy()
+    widened.indices = widened.indices.astype(np.int64)
+    widened.indptr = widened.indptr.astype(np.int64)
+
+    assert _fingerprint_of(targets, batch_size=4) == _fingerprint_of(
+        widened, batch_size=4
+    )
+
+
+def test_target_fingerprint_notices_a_column_space_change():
+    """Same nonzeros, wider catalog: not the same evaluation."""
+    targets = _random_targets(20, 8, seed=5)
+    padded = csr_matrix(
+        (targets.data, targets.indices, targets.indptr),
+        shape=(targets.shape[0], targets.shape[1] + 4),
+    )
+
+    assert _fingerprint_of(targets, batch_size=4) != _fingerprint_of(
+        padded, batch_size=4
+    )
