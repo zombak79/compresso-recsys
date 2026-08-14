@@ -11,8 +11,6 @@ from compresso_recsys.models import (
     BaseCollaborativeRecommender,
     EASE,
     ELSATrainer,
-    LEMSA,
-    LEMSAGDTrainer,
     TEASER,
     TEASERGDTrainer,
 )
@@ -177,6 +175,4 @@ def test_builtin_models_use_the_public_bases():
     assert isinstance(ELSATrainer(), BaseCollaborativeRecommender)
     assert isinstance(TEASER(), BaseColdStartRecommender)
     assert isinstance(TEASERGDTrainer(), BaseColdStartRecommender)
-    assert isinstance(LEMSA(), BaseColdStartRecommender)
-    assert isinstance(LEMSAGDTrainer(), BaseColdStartRecommender)
 

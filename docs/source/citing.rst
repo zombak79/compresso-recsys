@@ -52,26 +52,6 @@ paper:
      doi={10.1145/3523227.3551470}
    }
 
-LEMSA
------
-
-For :class:`compresso_recsys.models.LEMSA`, cite the diagonal-gating shallow
-autoencoder paper. The experimental
-:class:`compresso_recsys.models.LEMSAGDTrainer` is inspired by this work but
-uses a distinct symmetric split-history objective; describe that distinction
-when citing it.
-
-.. code-block:: bibtex
-
-   @inproceedings{alves2026language,
-     title={Language Embeddings Meet Shallow Autoencoders},
-     author={Alves, Rodrigo and Van{\v{c}}ura, Vojt{\v{e}}ch and Kord{\'\i}k, Pavel and Ledent, Antoine},
-     booktitle={34th ACM Conference on User Modeling, Adaptation and Personalization},
-     pages={398--402},
-     year={2026},
-     doi={10.1145/3774935.3806192}
-   }
-
 ELSA
 ----
 

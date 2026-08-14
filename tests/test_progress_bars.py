@@ -12,8 +12,6 @@ from compresso_recsys.models import (
     ELSACompressionConfig,
     ELSAConfig,
     ELSATrainer,
-    LEMSAGDConfig,
-    LEMSAGDTrainer,
     TEASERGDConfig,
     TEASERGDTrainer,
 )
@@ -133,29 +131,11 @@ def _fit_teaser_gd(*, show_progress: bool = True):
     return trainer.fit(_interactions(), _item_features())
 
 
-def _fit_lemsa_gd(*, show_progress: bool = True):
-    trainer = LEMSAGDTrainer(
-        LEMSAGDConfig(
-            epochs=EPOCHS,
-            batch_size=2,
-            max_output=4,
-            lr=0.01,
-            show_progress=show_progress,
-            include_popularity=False,
-            seed=3,
-        )
-    )
-    return trainer.fit(_interactions(), _item_features())
-
-
 TRAINERS = pytest.mark.parametrize(
     ("fit", "label", "trainer_class", "step"),
     [
         (_fit_elsa, "ELSA", ELSATrainer, "train_step"),
         (_fit_teaser_gd, "TEASERGD", TEASERGDTrainer, "_train_step"),
-        # LEMSAGDTrainer inherits fit() from TEASERGDTrainer but overrides the
-        # step, so it needs its own entry rather than the parent's.
-        (_fit_lemsa_gd, "LEMSAGD", LEMSAGDTrainer, "_train_step"),
     ],
 )
 

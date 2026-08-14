@@ -110,9 +110,9 @@ class ContentRecommender(BaseColdStartRecommender):
     ) -> "ContentRecommender":
         """Publish ``item_features`` as both the source and candidate space.
 
-        Unlike :class:`LEMSA` and :class:`TEASER`, this model takes no
-        interaction matrix. It holds no parameters and scores directly in
-        feature space, so there is nothing to learn from user histories.
+        Unlike :class:`TEASER`, this model takes no interaction matrix. It
+        holds no parameters and scores directly in feature space, so there is
+        nothing to learn from user histories.
         """
         features = np.array(
             item_features.todense() if issparse(item_features) else item_features,
