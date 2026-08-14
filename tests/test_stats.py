@@ -1116,7 +1116,7 @@ def test_two_sided_without_a_reference_still_compares_every_pair():
 
 
 # --------------------------------------------------------------------------
-# clustered evaluation rows
+# rows that share an evaluation unit
 # --------------------------------------------------------------------------
 
 
@@ -1136,18 +1136,18 @@ def _stacked(values, folds: int = 5, *, jitter: float = 0.0, seed: int = 0):
     return rows, ids
 
 
-def test_unclustered_ids_report_one_cluster_per_row():
+def test_unique_ids_report_one_unit_per_row():
     comparison = compare_pair(
         _result(np.random.default_rng(70).random(N)),
         _result(np.random.default_rng(71).random(N)),
         metric=METRIC, n_resamples=99,
     )
 
-    assert comparison.n_clusters == comparison.n_samples == N
+    assert comparison.n_units == comparison.n_samples == N
 
 
 def test_duplicating_every_row_does_not_narrow_the_interval():
-    """The property the whole cluster path exists to protect.
+    """The property the whole repeated-row path exists to protect.
 
     Five identical copies of a dataset carry no more information than one. Row
     resampling would shrink the interval by about sqrt(5) anyway; resampling
@@ -1170,7 +1170,7 @@ def test_duplicating_every_row_does_not_narrow_the_interval():
     )
 
     assert stacked.n_samples == 1000
-    assert stacked.n_clusters == 200
+    assert stacked.n_units == 200
     assert stacked.difference == pytest.approx(single.difference, abs=1e-9)
 
     single_width = single.ci_high - single.ci_low
@@ -1211,7 +1211,7 @@ def test_correlated_folds_widen_the_interval_over_row_resampling():
     rows_b, ids = _stacked(base, jitter=0.05, seed=1)
     rows_o, _ = _stacked(other, jitter=0.05, seed=2)
 
-    clustered = compare_pair(
+    grouped = compare_pair(
         _result(rows_b, sample_ids=ids), _result(rows_o, sample_ids=ids),
         metric=METRIC, n_resamples=2999, random_state=0,
     )
@@ -1221,13 +1221,13 @@ def test_correlated_folds_widen_the_interval_over_row_resampling():
         metric=METRIC, n_resamples=2999, random_state=0,
     )
 
-    ratio = (clustered.ci_high - clustered.ci_low) / (
+    ratio = (grouped.ci_high - grouped.ci_low) / (
         as_independent.ci_high - as_independent.ci_low
     )
     assert 1.0 < ratio < np.sqrt(5)
 
 
-def test_clustered_randomization_flips_whole_users():
+def test_randomization_flips_whole_users():
     """Sign assignments per row would give a far smaller p than the null allows."""
     rng = np.random.default_rng(75)
     base = rng.random(120)
@@ -1235,7 +1235,7 @@ def test_clustered_randomization_flips_whole_users():
     rows_b, ids = _stacked(base)
     rows_o, _ = _stacked(other)
 
-    clustered = compare_pair(
+    grouped = compare_pair(
         _result(rows_b, sample_ids=ids), _result(rows_o, sample_ids=ids),
         metric=METRIC, n_resamples=2999, random_state=0,
     )
@@ -1245,10 +1245,10 @@ def test_clustered_randomization_flips_whole_users():
         metric=METRIC, n_resamples=2999, random_state=0,
     )
 
-    assert clustered.p_value > as_independent.p_value
+    assert grouped.p_value > as_independent.p_value
 
 
-def test_clustered_t_test_uses_cluster_means():
+def test_t_test_uses_unit_means_when_rows_repeat():
     from scipy.stats import ttest_1samp
 
     rng = np.random.default_rng(76)
@@ -1263,7 +1263,7 @@ def test_clustered_t_test_uses_cluster_means():
     )
 
     d = _stored(rows_o) - _stored(rows_b)
-    cluster_means = np.array([d[ids == u].mean() for u in np.unique(ids)])
+    unit_means = np.array([d[ids == u].mean() for u in np.unique(ids)])
     assert comparison.p_value == pytest.approx(
-        float(ttest_1samp(cluster_means, 0.0).pvalue), rel=1e-9
+        float(ttest_1samp(unit_means, 0.0).pvalue), rel=1e-9
     )

@@ -99,9 +99,9 @@ so both models see the same 9,975 items and are evaluated on 2,500 unseen users.
 
 ``eval_fold=1`` gives each held-out user a single source/target draw, so one row
 means one user. The default, ``eval_fold=0``, evaluates every user in five folds
-and stacks them, which is a different and equally valid protocol — but it makes
-the rows *clustered*, and that changes how they must be resampled. See
-:ref:`stats-clusters`.
+and stacks them, which is a different and equally valid protocol — but it gives
+each user several rows, and that changes how they must be resampled. See
+:ref:`stats-repeated-rows`.
 
 Train both models
 ~~~~~~~~~~~~~~~~~
@@ -248,7 +248,7 @@ One row of the ``report.to_frame()`` above, laid out vertically:
    baseline                  EASE
    candidate                 ELSA
    n_samples                 2500
-   n_clusters                2500
+   n_units                   2500
    n_nonzero                 2495
    tie_rate                  0.002000
    baseline_mean             0.486191
@@ -674,7 +674,7 @@ correction. Nominating one primary metric in advance and reporting the rest
 descriptively costs nothing and pre-empts the accusation that you tested until
 something worked.
 
-.. _stats-clusters:
+.. _stats-repeated-rows:
 
 When one user owns several rows
 -------------------------------
@@ -697,7 +697,7 @@ uncertainty. On GoodBooks, measured:
    :widths: 30 14 14 21 21
 
    * - metric
-     - ICC
+     - within-user correlation
      - design effect
      - interval, rows
      - interval, users
@@ -723,13 +723,22 @@ p-values too small the same way.
 **You do not have to do anything about this.** Comparison groups rows by
 ``sample_ids``: repeated identifiers mean one unit produced several rows, so it
 resamples whole users, assigns one sign per user in the randomization test, and
-runs the t-test on user means. ``n_clusters`` reports how many independent units
-there were. When identifiers are unique, ``n_clusters == n_samples`` and nothing
+runs the t-test on user means. ``n_units`` reports how many independent units
+there were. When identifiers are unique, ``n_units == n_samples`` and nothing
 changes.
 
 What this does require is that **your identifiers are real**. If you pass no
 ``sample_ids``, rows are numbered positionally, every row looks like its own
-user, and the clustering is invisible. Pass the identifiers you have.
+user, and the repetition is invisible. Pass the identifiers you have.
+
+.. note::
+
+   The statistics literature calls this *cluster sampling*, and the terms in the
+   table above — the intraclass correlation and the design effect — come from
+   it. This guide says "unit" rather than "cluster" because
+   :mod:`compresso.clustering` means something entirely unrelated: grouping
+   items into cluster graphs. The concept here is the sampling one, and the
+   references use the literature's word.
 
 What the methods do, formally
 -----------------------------
@@ -838,8 +847,8 @@ State all of these, every time:
    :math:`\min(k, |\mathcal{R}_u|)`, which is not what every paper means;
 #. the direction and magnitude of the difference, before any p-value;
 #. the confidence interval and its level;
-#. the sampling unit, with ``n_samples``, ``n_nonzero`` and — when rows are
-   clustered — ``n_clusters``;
+#. the sampling unit, with ``n_samples``, ``n_nonzero`` and — when one user
+   owns several rows — ``n_units``;
 #. the test, the number of resamples, and whether p-values were adjusted;
 #. that inference is conditional on the fitted run, plus separate seed
    variability;

@@ -94,7 +94,7 @@ _FRAME_COLUMNS = (
     "baseline",
     "candidate",
     "n_samples",
-    "n_clusters",
+    "n_units",
     "n_nonzero",
     "tie_rate",
     "baseline_mean",
@@ -129,7 +129,7 @@ class PairwiseComparison:
     baseline: str
     candidate: str
     n_samples: int
-    n_clusters: int
+    n_units: int
     n_nonzero: int
     baseline_mean: float
     candidate_mean: float
@@ -290,7 +290,7 @@ def _paired_values(
     baseline_name: str,
     candidate_name: str,
 ) -> tuple[np.ndarray, np.ndarray, tuple[np.ndarray, int] | None]:
-    """Return aligned per-user arrays and their cluster structure.
+    """Return aligned per-user arrays and how their rows group into units.
 
     Refuses anything that is not paired. The third element groups rows that
     share an identifier, or is ``None`` when every row is its own unit.
@@ -355,7 +355,7 @@ def _paired_values(
         )
     if not (np.isfinite(x).all() and np.isfinite(y).all()):
         raise ValueError(f"per-user values for {metric!r} contain non-finite entries")
-    return x, y, _cluster_codes(left)
+    return x, y, _unit_codes(left)
 
 
 def _effective_batch(requested: int, n: int) -> int:
@@ -400,7 +400,7 @@ def _randomization_means(
     return out
 
 
-def _cluster_codes(sample_ids: np.ndarray) -> tuple[np.ndarray, int] | None:
+def _unit_codes(sample_ids: np.ndarray) -> tuple[np.ndarray, int] | None:
     """Group rows by identifier, or ``None`` when every row is its own unit.
 
     Repeated identifiers mean one evaluation unit produced several rows. The
@@ -411,23 +411,28 @@ def _cluster_codes(sample_ids: np.ndarray) -> tuple[np.ndarray, int] | None:
     them as though they were understates the interval by the square root of the
     design effect -- on GoodBooks, an interval 27 to 44 percent too narrow.
 
-    Returning ``None`` for the unclustered case lets the ordinary row-level
-    paths run unchanged, so results for the common case are bit-for-bit what
-    they were before clustering was handled at all.
+    Returning ``None`` when every row is its own unit lets the ordinary
+    row-level paths run unchanged, so results for the common case are
+    bit-for-bit what they were before repeated rows were handled at all.
+
+    The statistics literature calls this cluster sampling, and the references
+    use that word. It is avoided here because :mod:`compresso.clustering` means
+    something entirely unrelated -- grouping items into cluster graphs -- and
+    one of the two had to give.
     """
     codes, inverse = np.unique(sample_ids, return_inverse=True)
-    n_clusters = int(codes.shape[0])
-    if n_clusters == sample_ids.shape[0]:
+    n_units = int(codes.shape[0])
+    if n_units == sample_ids.shape[0]:
         return None
-    return inverse.astype(np.int64, copy=False), n_clusters
+    return inverse.astype(np.int64, copy=False), n_units
 
 
-def _cluster_sums(d: np.ndarray, codes: np.ndarray, n_clusters: int) -> np.ndarray:
-    """Total paired difference per cluster."""
-    return np.bincount(codes, weights=d, minlength=n_clusters).astype(np.float64)
+def _unit_sums(d: np.ndarray, codes: np.ndarray, n_units: int) -> np.ndarray:
+    """Total paired difference per unit."""
+    return np.bincount(codes, weights=d, minlength=n_units).astype(np.float64)
 
 
-def _cluster_bootstrap_means(
+def _unit_bootstrap_means(
     sums: np.ndarray,
     counts: np.ndarray,
     *,
@@ -435,24 +440,24 @@ def _cluster_bootstrap_means(
     rng: np.random.Generator,
     resample_batch_size: int,
 ) -> np.ndarray:
-    """Mean of ``d`` over resamples of whole clusters, with replacement.
+    """Mean of ``d`` over resamples of whole units, with replacement.
 
-    A cluster enters or leaves a replicate as a unit, so only its total and its
-    size are needed: the replicate mean is the summed totals over the summed
-    sizes. Resampled datasets vary in row count, which is inherent to the
-    cluster bootstrap rather than an approximation.
+    A unit enters or leaves a replicate whole, so only its total and its size
+    are needed: the replicate mean is the summed totals over the summed sizes.
+    Resampled datasets vary in row count, which is inherent to resampling units
+    rather than an approximation.
     """
-    n_clusters = sums.shape[0]
+    n_units = sums.shape[0]
     out = np.empty(n_resamples, dtype=np.float64)
-    step = _effective_batch(resample_batch_size, n_clusters)
+    step = _effective_batch(resample_batch_size, n_units)
     for start in range(0, n_resamples, step):
         size = min(step, n_resamples - start)
-        picks = rng.integers(0, n_clusters, size=(size, n_clusters))
+        picks = rng.integers(0, n_units, size=(size, n_units))
         out[start : start + size] = sums[picks].sum(axis=1) / counts[picks].sum(axis=1)
     return out
 
 
-def _cluster_randomization_means(
+def _unit_randomization_means(
     sums: np.ndarray,
     n_rows: int,
     *,
@@ -460,19 +465,19 @@ def _cluster_randomization_means(
     rng: np.random.Generator,
     resample_batch_size: int,
 ) -> np.ndarray:
-    """Mean of ``d`` under sign assignments drawn per cluster.
+    """Mean of ``d`` under sign assignments drawn per unit.
 
     Exchangeability holds at the unit that was randomised. Flipping one of a
     user's five folds while leaving the others alone is not a relabelling the
-    null permits, so the sign applies to the whole cluster and the statistic is
-    a weighted sum of cluster totals over a fixed row count.
+    null permits, so the sign applies to the whole unit and the statistic is a
+    weighted sum of unit totals over a fixed row count.
     """
-    n_clusters = sums.shape[0]
+    n_units = sums.shape[0]
     out = np.empty(n_resamples, dtype=np.float64)
-    step = _effective_batch(resample_batch_size, n_clusters)
+    step = _effective_batch(resample_batch_size, n_units)
     for start in range(0, n_resamples, step):
         size = min(step, n_resamples - start)
-        signs = rng.integers(0, 2, size=(size, n_clusters), dtype=np.int8) * 2 - 1
+        signs = rng.integers(0, 2, size=(size, n_units), dtype=np.int8) * 2 - 1
         out[start : start + size] = (signs * sums).sum(axis=1) / n_rows
     return out
 
@@ -499,16 +504,16 @@ def _t_test_p(
     *,
     alternative: Alternative,
     metric: str,
-    clusters: tuple[np.ndarray, int] | None = None,
+    units: tuple[np.ndarray, int] | None = None,
 ) -> float:
     """Paired t-test, as a one-sample test on the paired differences.
 
-    Under clustering the test runs on the per-cluster means, since those are
-    the independent observations; testing all rows would count correlated folds
-    of one user as separate evidence and shrink the p-value for no reason. With
-    unequal cluster sizes that tests the mean of cluster means, which is not
-    quite the row mean reported as ``difference``. They coincide when clusters
-    are the same size, which is what the stacked-fold protocol produces.
+    When one unit owns several rows the test runs on the per-unit means, since
+    those are the independent observations; testing all rows would count
+    correlated folds of one user as separate evidence and shrink the p-value for
+    no reason. With unequal unit sizes that tests the mean of unit means, which
+    is not quite the row mean reported as ``difference``. They coincide when
+    units are the same size, which is what the stacked-fold protocol produces.
 
     One-sample on ``d`` rather than ``ttest_rel(y, x)``. The two are
     mathematically identical, but the bootstrap and the randomization test both
@@ -525,10 +530,10 @@ def _t_test_p(
     about the tie rate and the skew of the nonzero differences rather than about
     the resample count.
     """
-    if clusters is not None:
-        codes, n_clusters = clusters
-        counts = np.bincount(codes, minlength=n_clusters)
-        d = _cluster_sums(d, codes, n_clusters) / counts
+    if units is not None:
+        codes, n_units = units
+        counts = np.bincount(codes, minlength=n_units)
+        d = _unit_sums(d, codes, n_units) / counts
 
     if np.ptp(d) == 0:
         # Zero sample variance. The t statistic is 0/0 or x/0, and scipy
@@ -599,7 +604,7 @@ def _compare_arrays(
     test_rng: np.random.Generator,
     random_state: int | None,
     resample_batch_size: int,
-    clusters: tuple[np.ndarray, int] | None,
+    units: tuple[np.ndarray, int] | None,
 ) -> PairwiseComparison:
     """Compare two aligned per-user arrays. Raw p-value only; adjust later."""
     d = y - x
@@ -615,21 +620,21 @@ def _compare_arrays(
         else float(difference / abs(baseline_mean))
     )
 
-    if clusters is None:
-        n_clusters = n_samples
-        cluster_sums = None
-        cluster_counts = None
+    if units is None:
+        n_units = n_samples
+        unit_sums = None
+        unit_counts = None
         # Nothing groups the rows, so a resampling unit is a row.
         n_nonzero_units = n_nonzero
     else:
-        codes, n_clusters = clusters
-        cluster_sums = _cluster_sums(d, codes, n_clusters)
-        cluster_counts = np.bincount(codes, minlength=n_clusters).astype(np.float64)
-        # A cluster whose rows cancel to zero is inert under sign flipping, the
+        codes, n_units = units
+        unit_sums = _unit_sums(d, codes, n_units)
+        unit_counts = np.bincount(codes, minlength=n_units).astype(np.float64)
+        # A unit whose rows cancel to zero is inert under sign flipping, the
         # same way a tied row is.
-        n_nonzero_units = int(np.count_nonzero(cluster_sums))
+        n_nonzero_units = int(np.count_nonzero(unit_sums))
 
-    if cluster_sums is None:
+    if unit_sums is None:
         bootstrap_means = _bootstrap_means(
             d,
             n_resamples=n_resamples,
@@ -637,9 +642,9 @@ def _compare_arrays(
             resample_batch_size=resample_batch_size,
         )
     else:
-        bootstrap_means = _cluster_bootstrap_means(
-            cluster_sums,
-            cluster_counts,
+        bootstrap_means = _unit_bootstrap_means(
+            unit_sums,
+            unit_counts,
             n_resamples=n_resamples,
             rng=interval_rng,
             resample_batch_size=resample_batch_size,
@@ -660,11 +665,11 @@ def _compare_arrays(
         # call RNG-free.
         p_value = _t_test_p(
             d, difference, alternative=alternative, metric=metric,
-            clusters=clusters,
+            units=units,
         )
     else:
         if test_method == "randomization":
-            if cluster_sums is None:
+            if unit_sums is None:
                 null_statistics = _randomization_means(
                     d,
                     n_resamples=n_resamples,
@@ -672,8 +677,8 @@ def _compare_arrays(
                     resample_batch_size=resample_batch_size,
                 )
             else:
-                null_statistics = _cluster_randomization_means(
-                    cluster_sums,
+                null_statistics = _unit_randomization_means(
+                    unit_sums,
                     n_samples,
                     n_resamples=n_resamples,
                     rng=test_rng,
@@ -714,7 +719,7 @@ def _compare_arrays(
         baseline=baseline_name,
         candidate=candidate_name,
         n_samples=n_samples,
-        n_clusters=n_clusters,
+        n_units=n_units,
         n_nonzero=n_nonzero,
         baseline_mean=baseline_mean,
         candidate_mean=candidate_mean,
@@ -779,7 +784,7 @@ def compare_pair(
         test_method=test_method,
         resample_batch_size=resample_batch_size,
     )
-    x, y, clusters = _paired_values(
+    x, y, units = _paired_values(
         baseline,
         candidate,
         metric=metric,
@@ -806,7 +811,7 @@ def compare_pair(
         test_rng=test_rng,
         random_state=random_state,
         resample_batch_size=resample_batch_size,
-        clusters=clusters,
+        units=units,
     )
 
 
@@ -902,7 +907,7 @@ def compare_models(
                 baseline_name=baseline_name,
                 candidate_name=candidate_name,
             )
-            x, y, clusters = _paired_values(
+            x, y, units = _paired_values(
                 results[baseline_name],
                 results[candidate_name],
                 metric=metric,
@@ -924,7 +929,7 @@ def compare_models(
                     test_rng=test_rng,
                     random_state=random_state,
                     resample_batch_size=resample_batch_size,
-                    clusters=clusters,
+                    units=units,
                 )
             )
 
