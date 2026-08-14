@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
+import pytest
 from scipy.sparse import csr_matrix
 
 from compresso_recsys.builder import _build_args, _build_user_split
@@ -118,3 +119,85 @@ def test_missing_train_partition_still_loads_as_the_whole_catalog(tmp_path):
     assert loaded["train_item_indices"].tolist() == [0, 1]
     assert loaded["val_item_indices"].tolist() == []
     assert loaded["test_item_indices"].tolist() == []
+
+
+# --------------------------------------------------------------------------
+# eval_draws and eval_holdout_frac
+# --------------------------------------------------------------------------
+
+
+def _toy_matrix(rows=40, cols=25, density=0.4, seed=7):
+    import numpy as np
+    from scipy.sparse import csr_matrix
+
+    rng = np.random.default_rng(seed)
+    return csr_matrix((rng.random((rows, cols)) < density).astype("float32"))
+
+
+def test_eval_draws_stacks_one_row_per_user_per_draw():
+    from compresso_recsys.retrieval import _build_eval_draws
+
+    x = _toy_matrix()
+
+    for draws in (1, 3, 5, 7):
+        np.random.seed(42)
+        source, targets = _build_eval_draws(x, draws)
+        assert source.shape[0] == x.shape[0] * draws
+        assert targets.shape[0] == x.shape[0] * draws
+
+
+def test_eval_draws_are_independent_samples_not_a_partition():
+    """They overlap by design, so the draw count has no 1/frac ceiling."""
+    from compresso_recsys.retrieval import _build_eval_draws
+
+    x = _toy_matrix()
+    n = x.shape[0]
+    np.random.seed(42)
+    _, targets = _build_eval_draws(x, 5)
+
+    held = [set(targets.indices[targets.indptr[b * n] : targets.indptr[b * n + 1]].tolist())
+            for b in range(5)]
+    sizes = sum(len(h) for h in held)
+
+    assert len(set(map(frozenset, held))) > 1        # the draws differ
+    assert len(set().union(*held)) < sizes           # and they overlap
+
+
+def test_eval_holdout_frac_is_honoured():
+    """It used to be accepted and ignored, always holding out 20%."""
+    from compresso_recsys.retrieval import _sample_holdout_indices
+
+    row = csr_matrix(np.ones((1, 50), dtype=np.float32))
+
+    for frac, expected in ((0.1, 5), (0.2, 10), (0.5, 25), (0.8, 40)):
+        np.random.seed(0)
+        assert len(_sample_holdout_indices(row, frac)) == expected
+
+
+def test_a_user_always_contributes_at_least_one_target():
+    from compresso_recsys.retrieval import _sample_holdout_indices
+
+    row = csr_matrix(np.ones((1, 3), dtype=np.float32))
+
+    np.random.seed(0)
+    assert len(_sample_holdout_indices(row, 0.01)) == 1
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "message"),
+    [
+        ({"eval_draws": 0}, "eval_draws must be >= 1"),
+        ({"eval_draws": -1}, "eval_draws must be >= 1"),
+        ({"eval_holdout_frac": 0.0}, "strictly between 0 and 1"),
+        ({"eval_holdout_frac": 1.0}, "strictly between 0 and 1"),
+    ],
+)
+def test_invalid_draw_settings_are_rejected(kwargs, message):
+    from compresso_recsys.retrieval import build_eval_holdout
+
+    with pytest.raises(ValueError, match=message):
+        build_eval_holdout(
+            train_item_ids=pd.Index(["a", "b"]),
+            eval_interactions=pd.DataFrame({"user_id": ["u"], "item_id": ["a"]}),
+            **kwargs,
+        )

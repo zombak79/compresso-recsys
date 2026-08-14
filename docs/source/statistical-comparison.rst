@@ -90,17 +90,17 @@ Build the split
        data_dir="data",
        checkpoint_path="artifacts/goodbooks/comparison.zip",
        split_mode="user_split",
-       eval_fold=1,
+       eval_draws=1,
        seed=42,
    )
 
 Roughly 40 seconds, most of it downloading. A user split holds out whole users,
 so both models see the same 9,975 items and are evaluated on 2,500 unseen users.
 
-``eval_fold=1`` gives each held-out user a single source/target draw, so one row
-means one user. The default, ``eval_fold=0``, evaluates every user in five folds
-and stacks them, which is a different and equally valid protocol — but it gives
-each user several rows, and that changes how they must be resampled. See
+``eval_draws=1`` gives each held-out user a single fold-in/scored split, so one
+row means one user, which keeps this walkthrough simple. The default of 5 splits
+each user five times and stacks the rows — a more precise protocol, and the one
+the ELSA papers use, but it gives each user several rows. See
 :ref:`stats-repeated-rows`.
 
 Train both models
@@ -679,107 +679,36 @@ something worked.
 When one user owns several rows
 -------------------------------
 
-Everything above assumes one row per independent unit. One split protocol
-breaks that assumption, and it is worth understanding because it is a
-**default**.
+Everything above assumes one row per independent unit. Some evaluation
+protocols give a user more than one.
 
-``build_recsys_checkpoint(split_mode="user_split", eval_fold=0)`` evaluates every
-held-out user in five folds and stacks them, so 2,500 users become 12,500
-evaluation rows sharing 2,500 identifiers. The rows are real and different —
-each fold holds out a different part of the user's history — but they are not
-independent. Five folds of one reader tell you much less than five separate
-readers.
+``build_recsys_checkpoint(split_mode="user_split", eval_draws=5)`` splits each
+held-out user's history into fold-in and scored parts five separate times, so
+2,500 users produce 12,500 rows. That is deliberate and worth doing: averaging a
+user's score over several draws removes the noise of *which* items were held
+out, and on GoodBooks it gives intervals 35 to 42 percent narrower than a single
+draw. What it does not give is more independent observations. Five draws of one
+reader are still one reader.
 
-This is specific to ``user_split``. The other split modes build one row per
-user:
-
-.. list-table::
-   :header-rows: 1
-   :widths: 26 30 44
-
-   * - ``split_mode``
-     - rows per user
-     - how identifiers are built
-   * - ``user_split``, ``eval_fold=0``
-     - **five**
-     - the user list, tiled once per fold
-   * - ``user_split``, ``eval_fold=1``
-     - one
-     - the user list, once
-   * - ``item_split``
-     - one
-     - one entry per user group
-   * - ``leave_last_out``
-     - one
-     - one entry per user group
-   * - ``temporal``
-     - one
-     - the users present in that time stage
-
-.. warning::
-
-   ``eval_fold`` is a two-state switch, not a fold count. ``1`` means one fold;
-   **every other value means five**, which is the number the protocol stacks.
-   ``build_recsys_checkpoint`` accepts only ``0`` and ``1`` and raises otherwise,
-   but the lower-level
-   :func:`~compresso_recsys.retrieval.build_eval_holdout` does not check, so
-   ``eval_fold=5`` there yields five folds by falling through rather than by
-   being asked for.
-
-Rather than trusting that table, read ``n_units`` against ``n_samples``. It
-reports what the data actually contained, and stays correct whatever the
-protocol did — including if the table goes stale.
-
-Resampling those rows as though they were independent understates the
-uncertainty. On GoodBooks, measured:
-
-.. list-table::
-   :header-rows: 1
-   :widths: 30 14 14 21 21
-
-   * - metric
-     - within-user correlation
-     - design effect
-     - interval, rows
-     - interval, users
-   * - ``ndcg@100``
-     - 0.258
-     - 2.03
-     - 0.002265
-     - 0.003262
-   * - ``calibrated_recall@20``
-     - 0.168
-     - 1.67
-     - 0.002808
-     - 0.003571
-   * - ``mrr@20``
-     - 0.201
-     - 1.80
-     - 0.009365
-     - 0.012860
-
-Treating folds as users makes every interval **27% to 44% too narrow**, and the
-p-values too small the same way.
-
-**You do not have to do anything about this.** Comparison groups rows by
-``sample_ids``: repeated identifiers mean one unit produced several rows, so it
+**You do not have to do anything about it.** Comparison groups rows by
+``sample_ids``, so repeated identifiers mean one unit produced several rows: it
 resamples whole users, assigns one sign per user in the randomization test, and
 runs the t-test on user means. ``n_units`` reports how many independent units
-there were. When identifiers are unique, ``n_units == n_samples`` and nothing
-changes.
+there were, and equals ``n_samples`` when every row is its own.
 
-What this does require is that **your identifiers are real**. If you pass no
-``sample_ids``, rows are numbered positionally, every row looks like its own
-user, and the repetition is invisible. Pass the identifiers you have.
+Had those rows been resampled as independent, every interval would have come out
+27 to 44 percent too narrow, with p-values understated to match.
+
+The one thing this needs from you is **real identifiers**. Without
+``sample_ids`` the rows are numbered positionally, every row looks like its own
+user, and the repetition becomes invisible. Pass the identifiers you have, and
+read ``n_units`` against ``n_samples`` to see what the data actually contained.
 
 .. note::
 
-   The statistics literature calls this *cluster sampling*, and the terms in the
-   table above — the intraclass correlation and the design effect — come from
-   it. This guide says "unit" rather than "cluster" because
-   :mod:`compresso.clustering` means something entirely unrelated: grouping
-   items into cluster graphs. The concept here is the sampling one, and the
-   references use the literature's word.
+   The statistics literature calls this cluster sampling, and the references use
+   that word. This guide says "unit" because :mod:`compresso.clustering` means
+   something unrelated — grouping items into cluster graphs.
 
 What the methods do, formally
 -----------------------------
@@ -914,6 +843,16 @@ that idea, applied to the mean paired difference.
    Efron, B. (1979). Bootstrap Methods: Another Look at the Jackknife.
    *The Annals of Statistics*, 7(1), 1–26.
    `doi:10.1214/aos/1176344552 <https://doi.org/10.1214/aos/1176344552>`_
+
+**The evaluation protocol.** Held-out users are scored under strong
+generalization: part of each user's history is folded in to build their
+representation and the rest is scored against, in the 80/20 proportion Liang et
+al. describe. ``eval_holdout_frac`` is that scored share.
+
+   Liang, D., Krishnan, R. G., Hoffman, M. D., & Jebara, T. (2018). Variational
+   Autoencoders for Collaborative Filtering. *Proceedings of the 2018 World Wide
+   Web Conference (WWW '18)*, 689–698.
+   `doi:10.1145/3178876.3186150 <https://doi.org/10.1145/3178876.3186150>`_
 
 **The randomization test in retrieval evaluation.** Smucker, Allan and
 Carterette compared the randomization test, the bootstrap, the t-test, the

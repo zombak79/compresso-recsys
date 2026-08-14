@@ -104,6 +104,31 @@ appropriate when ELSA itself is central to the work.
      year={2026}
    }
 
+Evaluation Protocol
+-------------------
+
+Held-out users are evaluated under strong generalization: each user's history is
+split into a fold-in part the model sees and a held-out part it is scored
+against. ``eval_holdout_frac`` defaults to 0.2, matching the 80/20 split
+described by Liang et al. If you report numbers from ``user_split``, cite it.
+
+.. code-block:: bibtex
+
+   @inproceedings{liang2018variational,
+     title={Variational Autoencoders for Collaborative Filtering},
+     author={Liang, Dawen and Krishnan, Rahul G. and Hoffman, Matthew D. and
+             Jebara, Tony},
+     booktitle={Proceedings of the 2018 World Wide Web Conference},
+     series={WWW '18},
+     pages={689--698},
+     year={2018},
+     doi={10.1145/3178876.3186150}
+   }
+
+Stacking several independent draws per user — ``eval_draws``, defaulting to 5 —
+follows the ELSA line of work; cite the ELSA papers above when reporting under
+that protocol.
+
 Statistical Comparison
 ----------------------
 

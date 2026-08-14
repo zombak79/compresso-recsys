@@ -1123,7 +1123,7 @@ def test_two_sided_without_a_reference_still_compares_every_pair():
 def _stacked(values, folds: int = 5, *, jitter: float = 0.0, seed: int = 0):
     """Tile values the way the stacked-fold protocol tiles users.
 
-    ``eval_fold=0`` evaluates each user in several folds, so one user owns
+    ``eval_draws=5`` splits each user several times, so one user owns
     several correlated rows. ``jitter`` makes the folds differ, as real ones do.
     """
     rng = np.random.default_rng(seed)
