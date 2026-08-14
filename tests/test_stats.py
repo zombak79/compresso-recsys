@@ -1068,12 +1068,17 @@ def test_matching_fingerprints_pass_quietly():
         )
 
 
-def test_duplicate_sample_ids_are_refused():
-    """They would let the paired bootstrap treat one unit as two draws."""
+def test_repeated_sample_ids_are_allowed_by_evaluation():
+    """The stacked-fold protocol gives one user several rows; that is legitimate.
+
+    Whether those rows may be resampled as independent units is a question for
+    paired comparison, not for the result that holds them.
+    """
     values = np.random.default_rng(63).random(4)
 
-    with pytest.raises(ValueError, match="sample_ids must be unique"):
-        _result(values, sample_ids=np.array([0, 1, 1, 2]))
+    result = _result(values, sample_ids=np.array([0, 1, 1, 2]))
+
+    assert result.n_eval_users == 4
 
 
 def test_sample_ids_are_read_only():
@@ -1108,3 +1113,157 @@ def test_two_sided_without_a_reference_still_compares_every_pair():
     report = compare_models(models, metrics=["m1"], n_resamples=99)
 
     assert len(report.comparisons) == 1
+
+
+# --------------------------------------------------------------------------
+# clustered evaluation rows
+# --------------------------------------------------------------------------
+
+
+def _stacked(values, folds: int = 5, *, jitter: float = 0.0, seed: int = 0):
+    """Tile values the way the stacked-fold protocol tiles users.
+
+    ``eval_fold=0`` evaluates each user in several folds, so one user owns
+    several correlated rows. ``jitter`` makes the folds differ, as real ones do.
+    """
+    rng = np.random.default_rng(seed)
+    base = np.asarray(values, dtype=np.float64)
+    rows = np.concatenate([
+        base + (rng.normal(0.0, jitter, base.size) if jitter else 0.0)
+        for _ in range(folds)
+    ])
+    ids = np.tile(np.arange(base.size), folds)
+    return rows, ids
+
+
+def test_unclustered_ids_report_one_cluster_per_row():
+    comparison = compare_pair(
+        _result(np.random.default_rng(70).random(N)),
+        _result(np.random.default_rng(71).random(N)),
+        metric=METRIC, n_resamples=99,
+    )
+
+    assert comparison.n_clusters == comparison.n_samples == N
+
+
+def test_duplicating_every_row_does_not_narrow_the_interval():
+    """The property the whole cluster path exists to protect.
+
+    Five identical copies of a dataset carry no more information than one. Row
+    resampling would shrink the interval by about sqrt(5) anyway; resampling
+    whole users leaves it where it belongs.
+    """
+    rng = np.random.default_rng(72)
+    base = rng.random(200)
+    other = base + rng.normal(0.02, 0.1, 200)
+
+    single = compare_pair(
+        _result(base), _result(other), metric=METRIC,
+        n_resamples=2999, random_state=0,
+    )
+
+    rows_b, ids = _stacked(base)
+    rows_o, _ = _stacked(other)
+    stacked = compare_pair(
+        _result(rows_b, sample_ids=ids), _result(rows_o, sample_ids=ids),
+        metric=METRIC, n_resamples=2999, random_state=0,
+    )
+
+    assert stacked.n_samples == 1000
+    assert stacked.n_clusters == 200
+    assert stacked.difference == pytest.approx(single.difference, abs=1e-9)
+
+    single_width = single.ci_high - single.ci_low
+    stacked_width = stacked.ci_high - stacked.ci_low
+    assert stacked_width == pytest.approx(single_width, rel=0.12)
+
+
+def test_row_resampling_would_have_narrowed_it():
+    """Guards the test above against passing for the wrong reason."""
+    rng = np.random.default_rng(73)
+    base = rng.random(200)
+    other = base + rng.normal(0.02, 0.1, 200)
+    rows_b, ids = _stacked(base)
+    rows_o, _ = _stacked(other)
+
+    honest = compare_pair(
+        _result(rows_b, sample_ids=ids), _result(rows_o, sample_ids=ids),
+        metric=METRIC, n_resamples=2999, random_state=0,
+    )
+    # Same 1000 rows, but every row claiming to be its own user.
+    inflated = compare_pair(
+        _result(rows_b, sample_ids=np.arange(1000)),
+        _result(rows_o, sample_ids=np.arange(1000)),
+        metric=METRIC, n_resamples=2999, random_state=0,
+    )
+
+    honest_width = honest.ci_high - honest.ci_low
+    inflated_width = inflated.ci_high - inflated.ci_low
+    assert inflated_width < honest_width
+    assert honest_width / inflated_width == pytest.approx(np.sqrt(5), rel=0.2)
+
+
+def test_correlated_folds_widen_the_interval_over_row_resampling():
+    """Real folds differ, so the design effect is between one and the fold count."""
+    rng = np.random.default_rng(74)
+    base = rng.random(300)
+    other = base + rng.normal(0.02, 0.1, 300)
+    rows_b, ids = _stacked(base, jitter=0.05, seed=1)
+    rows_o, _ = _stacked(other, jitter=0.05, seed=2)
+
+    clustered = compare_pair(
+        _result(rows_b, sample_ids=ids), _result(rows_o, sample_ids=ids),
+        metric=METRIC, n_resamples=2999, random_state=0,
+    )
+    as_independent = compare_pair(
+        _result(rows_b, sample_ids=np.arange(rows_b.size)),
+        _result(rows_o, sample_ids=np.arange(rows_o.size)),
+        metric=METRIC, n_resamples=2999, random_state=0,
+    )
+
+    ratio = (clustered.ci_high - clustered.ci_low) / (
+        as_independent.ci_high - as_independent.ci_low
+    )
+    assert 1.0 < ratio < np.sqrt(5)
+
+
+def test_clustered_randomization_flips_whole_users():
+    """Sign assignments per row would give a far smaller p than the null allows."""
+    rng = np.random.default_rng(75)
+    base = rng.random(120)
+    other = base + rng.normal(0.01, 0.15, 120)
+    rows_b, ids = _stacked(base)
+    rows_o, _ = _stacked(other)
+
+    clustered = compare_pair(
+        _result(rows_b, sample_ids=ids), _result(rows_o, sample_ids=ids),
+        metric=METRIC, n_resamples=2999, random_state=0,
+    )
+    as_independent = compare_pair(
+        _result(rows_b, sample_ids=np.arange(600)),
+        _result(rows_o, sample_ids=np.arange(600)),
+        metric=METRIC, n_resamples=2999, random_state=0,
+    )
+
+    assert clustered.p_value > as_independent.p_value
+
+
+def test_clustered_t_test_uses_cluster_means():
+    from scipy.stats import ttest_1samp
+
+    rng = np.random.default_rng(76)
+    base = rng.random(150)
+    other = base + rng.normal(0.02, 0.1, 150)
+    rows_b, ids = _stacked(base, jitter=0.05, seed=3)
+    rows_o, _ = _stacked(other, jitter=0.05, seed=4)
+
+    comparison = compare_pair(
+        _result(rows_b, sample_ids=ids), _result(rows_o, sample_ids=ids),
+        metric=METRIC, n_resamples=99, test_method="t", random_state=0,
+    )
+
+    d = _stored(rows_o) - _stored(rows_b)
+    cluster_means = np.array([d[ids == u].mean() for u in np.unique(ids)])
+    assert comparison.p_value == pytest.approx(
+        float(ttest_1samp(cluster_means, 0.0).pvalue), rel=1e-9
+    )

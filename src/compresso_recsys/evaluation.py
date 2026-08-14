@@ -181,15 +181,12 @@ class EvaluationResult(Mapping[str, Any]):
                 f"sample_ids has {ids.shape[0]} values, "
                 f"expected n_eval_users={self.n_eval_users}"
             )
-        # Identifiers name the units a paired bootstrap resamples. Duplicates
-        # would let it treat two rows describing the same user as independent
-        # draws, understating the interval.
-        if ids.shape[0] and np.unique(ids).shape[0] != ids.shape[0]:
-            raise ValueError(
-                "sample_ids must be unique: they identify the units that paired "
-                "comparison resamples, and repeats would be treated as "
-                "independent observations"
-            )
+        # Repeated identifiers are legitimate here: the stacked-fold protocol
+        # in :func:`compresso_recsys.retrieval.build_eval_holdout` evaluates
+        # each user in several folds, so one user owns several rows. Evaluating
+        # them is fine; resampling them as independent units is not, which is a
+        # question for paired comparison rather than for this constructor.
+        #
         # As with the per-user values above: frozen so a later mutation cannot
         # silently invalidate the pairing this result was matched on.
         ids.setflags(write=False)
