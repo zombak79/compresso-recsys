@@ -171,6 +171,83 @@ paper and copy-ready BibTeX.
 .. autoclass:: compresso_recsys.models.EASE
    :members:
 
+ELSA
+----
+
+ELSA learns a low-rank matrix of normalized item embeddings with a shallow
+linear autoencoder objective. Unlike EASE, its model size grows linearly with
+the number of items, making it suitable for larger catalogs and GPU training.
+See :doc:`../citing` for citations covering standard ELSA, large-scale
+candidate sampling, and compressed ELSA.
+
+During training, ``max_output`` can limit each batch's output candidates. All
+items with positive interactions in the batch are always retained, and the
+remaining candidate budget is sampled without replacement from items absent
+from the whole batch. This makes ``max_output`` a soft upper bound when a
+batch contains more distinct positive items than the configured limit. Use
+``None`` to score the complete catalog during training.
+
+Compressed ELSA uses Compresso's lottery-ticket schedule to retain a fixed
+number of latent values per item. During mask search, each stable stage rewinds
+the item factors to their original initialization under the new mask and
+restarts the optimizer. After the final mask stabilizes, the factors are
+converted to a row-packed sparse parameter and only its values are trained for
+``ELSAConfig.epochs``. Learning-rate decay, when enabled, applies only to this
+final sparse fine-tuning phase.
+
+By default, a mask-search stage advances only after its mask change stays
+within ``change_threshold`` for ``stability_window`` updates. Set
+``max_epochs_per_stage`` to force a stage to accept its latest proposed mask
+after a fixed number of epochs. This bounds training time but may select a less
+stable ticket. Training checkpoints during this phase are not currently
+resumable, and ``torch.compile`` is not supported. When ``max_output`` limits
+the candidate set, mask search projects only those ``MaskedParam`` rows and
+sparse fine-tuning selects only those gradient-connected ``SRPParam`` rows.
+The default dense fine-tuning backend densifies that selection, while the COO
+backend keeps it sparse through differentiable sparse matrix multiplications.
+COO can reduce both memory and runtime for highly sparse tickets, while dense
+matrix multiplication can win as the retained ``k`` grows. The crossover is
+hardware- and workload-dependent. ``max_output=None`` scores the complete
+catalog during training.
+
+Sparse inference defaults to cached CSR full-catalog scoring and densifies only
+the selected source rows. The dense inference backend instead caches one full
+normalized factor matrix and can be faster for less sparse tickets. Configure
+the normal backend in ``ELSACompressionConfig`` or override it per
+``predict`` or ``predict_on_batch`` call without retraining.
+
+ContentRecommender
+------------------
+
+ContentRecommender is a cold-start baseline that learns nothing. A user profile
+is the sum of the feature vectors of the items they interacted with, and
+candidates are ranked by similarity to that profile, so items are recommendable
+as soon as they are registered on the catalog. ``fit`` takes item features
+alone; unlike TEASER there is no encoder for an interaction matrix to train.
+
+With its default configuration it reproduces the scoring in
+:func:`compresso_recsys.retrieval.evaluate_item_embeddings_with_holdout`
+exactly, which makes it the reference point for judging whether a learned
+cold-start model beats plain feature similarity on the same embeddings. That
+function is an ELSA-forward recommender fused with an evaluator rather than a
+neutral evaluator, so matching it needs L2-normalized item vectors, the
+self-subtraction and ReLU of ELSA-forward, and seen-item masking. ``normalize``
+and ``elsa_forward`` expose the first and the middle two; masking always
+follows ``exclude_seen``.
+
+``elsa_forward`` does not change the ranking while ``exclude_seen`` is set,
+because the self-subtraction only touches entries that masking then sets to
+``-inf``. It matters only when predicting with ``exclude_seen=False``.
+
+Every matrix product runs through torch, so ``device`` moves scoring onto a
+GPU; only the score matrix returns to the host.
+
+.. autoclass:: compresso_recsys.models.ContentRecommenderConfig
+   :members:
+
+.. autoclass:: compresso_recsys.models.ContentRecommender
+   :members:
+
 TEASER
 ------
 
@@ -310,51 +387,6 @@ See :doc:`../citing` for the original TEASER paper.
 
 .. autoclass:: compresso_recsys.models.TEASERGDTrainer
    :members:
-
-ELSA
-----
-
-ELSA learns a low-rank matrix of normalized item embeddings with a shallow
-linear autoencoder objective. Unlike EASE, its model size grows linearly with
-the number of items, making it suitable for larger catalogs and GPU training.
-See :doc:`../citing` for citations covering standard ELSA, large-scale
-candidate sampling, and compressed ELSA.
-
-During training, ``max_output`` can limit each batch's output candidates. All
-items with positive interactions in the batch are always retained, and the
-remaining candidate budget is sampled without replacement from items absent
-from the whole batch. This makes ``max_output`` a soft upper bound when a
-batch contains more distinct positive items than the configured limit. Use
-``None`` to score the complete catalog during training.
-
-Compressed ELSA uses Compresso's lottery-ticket schedule to retain a fixed
-number of latent values per item. During mask search, each stable stage rewinds
-the item factors to their original initialization under the new mask and
-restarts the optimizer. After the final mask stabilizes, the factors are
-converted to a row-packed sparse parameter and only its values are trained for
-``ELSAConfig.epochs``. Learning-rate decay, when enabled, applies only to this
-final sparse fine-tuning phase.
-
-By default, a mask-search stage advances only after its mask change stays
-within ``change_threshold`` for ``stability_window`` updates. Set
-``max_epochs_per_stage`` to force a stage to accept its latest proposed mask
-after a fixed number of epochs. This bounds training time but may select a less
-stable ticket. Training checkpoints during this phase are not currently
-resumable, and ``torch.compile`` is not supported. When ``max_output`` limits
-the candidate set, mask search projects only those ``MaskedParam`` rows and
-sparse fine-tuning selects only those gradient-connected ``SRPParam`` rows.
-The default dense fine-tuning backend densifies that selection, while the COO
-backend keeps it sparse through differentiable sparse matrix multiplications.
-COO can reduce both memory and runtime for highly sparse tickets, while dense
-matrix multiplication can win as the retained ``k`` grows. The crossover is
-hardware- and workload-dependent. ``max_output=None`` scores the complete
-catalog during training.
-
-Sparse inference defaults to cached CSR full-catalog scoring and densifies only
-the selected source rows. The dense inference backend instead caches one full
-normalized factor matrix and can be faster for less sparse tickets. Configure
-the normal backend in ``ELSACompressionConfig`` or override it per
-``predict`` or ``predict_on_batch`` call without retraining.
 
 Backend Performance
 ~~~~~~~~~~~~~~~~~~~
