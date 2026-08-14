@@ -398,7 +398,8 @@ class RankingEvaluator:
         valid: torch.Tensor,
     ) -> None:
         """Retain the evaluable rows of one metric's per-row values."""
-        kept = values[valid].detach().to(device="cpu", dtype=torch.float32)
+        # Host first, then cast: see the note in _MeanAtCutoffsMetric.update.
+        kept = values[valid].detach().cpu().to(torch.float32)
         array = kept.numpy()
         for column, key in enumerate(metric.result_keys):
             self._value_chunks.setdefault(key, []).append(

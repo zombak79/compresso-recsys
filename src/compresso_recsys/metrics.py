@@ -131,7 +131,11 @@ class _MeanAtCutoffsMetric(RankingMetric):
         values = self.batch_values(batch)
         valid = batch.target_counts > 0
         if bool(valid.any()):
-            self._sums += values[valid].detach().to(device="cpu", dtype=torch.float64).sum(dim=0)
+            # Move to the host before widening. A single .to(device=..., dtype=...)
+            # asks the source device for the cast, and MPS has no float64, so
+            # evaluating any model on an Apple GPU would fail here.
+            kept = values[valid].detach().cpu().to(torch.float64)
+            self._sums += kept.sum(dim=0)
             self._count += int(valid.sum().item())
         return values
 

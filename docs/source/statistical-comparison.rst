@@ -66,11 +66,165 @@ Two requirements, both enforced rather than assumed:
 
 For a single hypothesis, use :func:`~compresso_recsys.stats.compare_pair`.
 
+.. _stats-walkthrough:
+
+A complete worked example
+-------------------------
+
+Everything below runs end to end on a laptop in about three minutes, including
+the dataset download. The numbers in this guide come from this script, not from
+illustration.
+
+The question: on GoodBooks, does ELSA beat EASE?
+
+Build the split
+~~~~~~~~~~~~~~~
+
+.. code-block:: python
+
+   import compresso_recsys as cr
+
+   cr.build_recsys_checkpoint(
+       dataset="goodbooks",
+       data_dir="data",
+       checkpoint_path="artifacts/goodbooks/comparison.zip",
+       split_mode="user_split",
+       seed=42,
+   )
+
+Roughly 40 seconds, most of it downloading. A user split holds out whole users,
+so both models see the same 9,975 items and are evaluated on 12,500 unseen
+users.
+
+Train both models
+~~~~~~~~~~~~~~~~~
+
+.. code-block:: python
+
+   import torch
+   from compresso_recsys.models import EASE, EASEConfig, ELSAConfig, ELSATrainer
+
+   with cr.read_checkpoint("artifacts/goodbooks/comparison.zip") as root:
+       split = cr.load_recsys_split(root)
+
+   x_train = split["x_train"]        # (49865, 9975), 3.8M interactions
+   device = "cuda" if torch.cuda.is_available() else "cpu"
+
+   ease = EASE(EASEConfig(l2=700.0)).fit(x_train)
+
+   elsa = ELSATrainer(
+       ELSAConfig(latent_dim=3250, batch_size=2048, epochs=10,
+                  lr=0.05, device=device, seed=0)
+   ).fit(x_train)
+
+EASE takes about 12 seconds — it is a closed-form solve. ELSA takes about 100
+seconds for 10 epochs on a GPU.
+
+Evaluate both on identical users
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This is the step the comparison depends on. Both models must see the same
+source rows, the same targets and the same identifiers:
+
+.. code-block:: python
+
+   from compresso_recsys.evaluation import evaluate_recommender
+   from compresso_recsys.metrics import CalibratedRecall, NDCG, Recall
+
+   source = split["test_source_matrix"]
+   targets = split["test_target_matrix"]
+   user_ids = split["test_eval_user_ids"]
+   metrics = [CalibratedRecall([20, 50]), Recall([20, 50]), NDCG(100)]
+
+   results = {
+       name: evaluate_recommender(
+           model, source=source, targets=targets, metrics=metrics,
+           sample_ids=user_ids, batch_size=1024,
+       )
+       for name, model in (("EASE", ease), ("ELSA", elsa))
+   }
+
+   for name, result in results.items():
+       print(name, {k: round(v, 4) for k, v in result.metrics.items()})
+
+.. code-block:: text
+
+   EASE {'calibrated_recall@20': 0.3288, 'calibrated_recall@50': 0.4728,
+         'recall@20': 0.3191, 'recall@50': 0.4728, 'ndcg@100': 0.4837}
+   ELSA {'calibrated_recall@20': 0.3402, 'calibrated_recall@50': 0.4778,
+         'recall@20': 0.3304, 'recall@50': 0.4778, 'ndcg@100': 0.4887}
+
+ELSA is ahead everywhere. Whether that means anything is the next step — but
+first, one thing in that output is worth pausing on.
+
+.. note::
+
+   ``recall@20`` and ``calibrated_recall@20`` differ (0.3191 against 0.3288),
+   while ``recall@50`` and ``calibrated_recall@50`` are *identical* (0.4728).
+
+   Calibrated recall divides by :math:`\min(k, |\mathcal{R}_u|)` rather than
+   :math:`|\mathcal{R}_u|`, so the two coincide exactly when no user has more
+   targets than the cutoff. Here users hold between 2 and 35 targets: 17% exceed
+   20, and none exceed 50.
+
+   This is why the metric keys were separated. Quoting a
+   ``calibrated_recall@20`` of 0.3288 against a published Recall@20 would
+   overstate the result by 3%, and on a denser holdout the gap grows without
+   bound.
+
+Compare
+~~~~~~~
+
+.. code-block:: python
+
+   from compresso_recsys.stats import compare_models
+
+   report = compare_models(
+       results,
+       metrics=["ndcg@100", "calibrated_recall@20", "recall@20"],
+       reference="EASE",
+       n_resamples=9999,
+       random_state=0,
+   )
+   print(report.to_frame().to_string(index=False))
+
+.. code-block:: text
+
+   metric               n_effective  baseline_mean  candidate_mean  difference  relative  ci_low   ci_high  adj_p   direction
+   ndcg@100                   12480       0.483718        0.488702    0.004985     1.03%  0.003808 0.006139 0.0003  better
+   calibrated_recall@20        7126       0.328782        0.340230    0.011448     3.48%  0.010031 0.012853 0.0003  better
+   recall@20                   7126       0.319140        0.330426    0.011286     3.54%  0.010031 0.012652 0.0003  better
+
+Reading it
+~~~~~~~~~~
+
+**ELSA beats EASE, and the margin is small but solid.** Every interval sits well
+clear of zero, and every adjusted p-value is at the floor for 9,999 resamples.
+
+**The relative gains disagree, and that is informative.** nDCG@100 improves by
+1.0% while recall@20 improves by 3.5%. ELSA is noticeably better at putting a
+relevant book in the top 20; across the full top 100 the two models are much
+closer. A paper reporting only nDCG@100 would understate what changed.
+
+**Look at ``n_effective``.** For nDCG@100 the models differ for 12,480 of 12,500
+users — essentially everyone, because a metric reading 100 ranks deep notices
+almost any reordering. For recall@20 they differ for 7,126, so **43% of users
+score identically under both models**, usually retrieving the same number of
+relevant books in their top 20. The recall comparison rests on 7,126
+observations, not 12,500. It is still ample, but it is not what ``n_samples``
+advertises.
+
+**What this does not establish.** Both models were trained once. A 1% nDCG
+difference is well inside what a different random seed could move for ELSA,
+which is gradient-trained; EASE has no seed at all, being closed-form. To claim
+ELSA is the better *method* rather than that this ELSA beat this EASE, train
+several seeded runs and report their spread alongside these intervals.
+
 Reading the output
 ------------------
 
-A row of ``report.to_frame()``, from a real comparison of two sparse
-autoencoder configurations:
+A row of ``report.to_frame()``, from a comparison of two sparse autoencoder
+configurations:
 
 .. code-block:: text
 

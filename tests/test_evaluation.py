@@ -478,3 +478,47 @@ def test_evaluate_recommender_validates_model_and_matrices():
             metrics=[CalibratedRecall(1)],
             batch_size=0,
         )
+
+
+def _accelerator() -> str | None:
+    if torch.cuda.is_available():
+        return "cuda"
+    if torch.backends.mps.is_available():
+        return "mps"
+    return None
+
+
+@pytest.mark.skipif(_accelerator() is None, reason="needs a non-CPU device")
+def test_metrics_accumulate_from_accelerator_predictions():
+    """Widening to float64 must happen on the host.
+
+    A single .to(device="cpu", dtype=torch.float64) asks the source device for
+    the cast, and MPS has no float64, so evaluating any GPU-resident model used
+    to raise here rather than return a score.
+    """
+    device = _accelerator()
+    rows, items, k = 8, 40, 5
+    rng = np.random.default_rng(0)
+    cols = np.stack([rng.choice(items, k, replace=False) for _ in range(rows)])
+    predictions = SRPTensor(
+        cols=torch.from_numpy(cols).to(device),
+        vals=torch.arange(k, 0, -1).float().repeat(rows, 1).to(device),
+        shape=(rows, items),
+        validate=False,
+    )
+    targets = csr_matrix(
+        (np.ones(rows, dtype=np.float32), (np.arange(rows), cols[:, 0])),
+        shape=(rows, items),
+    )
+
+    result = evaluate_ranked_predictions(
+        predictions=predictions,
+        targets=targets,
+        metrics=[CalibratedRecall(k), NDCG(k)],
+        validate_predictions=False,
+    )
+
+    # Every row's first prediction is a target, so both metrics are perfect.
+    assert result[f"calibrated_recall@{k}"] == pytest.approx(1.0)
+    assert result[f"ndcg@{k}"] == pytest.approx(1.0)
+    assert result.per_user[f"ndcg@{k}"].dtype == np.float32
