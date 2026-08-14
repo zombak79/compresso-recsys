@@ -237,9 +237,9 @@ nothing about whether it survives retraining ELSA with a different seed. EASE ha
 no seed at all, being closed-form, so only one side of the comparison can move.
 
 To claim ELSA is the better *method* rather than that this ELSA beat this EASE,
-that has to be measured rather than assumed. :ref:`stats-seeds` does exactly
-that, on these models: five seeds, and the gap turns out to be about ten times
-the spread they produce.
+that has to be measured rather than assumed. :ref:`Retraining under five seeds
+<stats-seeds>` does exactly that on these models, and the gap turns out to be
+about ten times the spread they produce.
 
 Reading the output
 ------------------
@@ -528,7 +528,7 @@ removes one avoidable source of confusion, not all of them.
 
 .. _stats-seeds:
 
-This conditions on one training run
+One trained model is not the method
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Everything so far resamples **users**, so the interval answers one question:
@@ -912,10 +912,9 @@ State all of these, every time:
 #. the sampling unit, with ``n_samples``, ``n_nonzero`` and — when one user
    owns several rows — ``n_units``;
 #. the test, the number of resamples, and whether p-values were adjusted;
-#. the seed spread for any stochastic model, beside the interval and named as a
-   different quantity — see :ref:`stats-seeds`;
-#. that inference is conditional on the fitted run, plus separate seed
-   variability;
+#. that the interval describes one trained model, and — for any stochastic
+   model — the spread across seeds beside it, named as the separate quantity it
+   is (:ref:`how to measure it <stats-seeds>`);
 #. which metric was primary, declared in advance.
 
 Avoid "the models are significantly different" without at least the first five.
