@@ -52,7 +52,7 @@ def _multi(**columns) -> EvaluationResult:
 
 
 def _quiet(fn, *args, **kwargs):
-    """Call ignoring the small-n_effective warning, which some fixtures trigger."""
+    """Call ignoring the small-n_nonzero warning, which some fixtures trigger."""
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", RuntimeWarning)
         return fn(*args, **kwargs)
@@ -75,7 +75,7 @@ def test_identical_models_are_inconclusive():
     assert comparison.p_value == 1.0
     assert comparison.direction == "inconclusive"
     assert not comparison.significant
-    assert comparison.n_effective == 0
+    assert comparison.n_nonzero == 0
 
 
 def test_constant_difference_is_exact_and_degenerate():
@@ -91,7 +91,7 @@ def test_constant_difference_is_exact_and_degenerate():
     # The smallest value the Monte Carlo p can take at B resamples.
     assert comparison.p_value == pytest.approx(1 / 1000)
     assert comparison.direction == "better"
-    assert comparison.n_effective == N
+    assert comparison.n_nonzero == N
 
 
 def test_difference_is_candidate_minus_baseline():
@@ -154,7 +154,7 @@ def test_different_random_states_move_only_the_estimates():
 
     # The observed effect is not resampled, so it cannot move.
     assert first.difference == second.difference
-    assert first.n_effective == second.n_effective
+    assert first.n_nonzero == second.n_nonzero
     assert (first.ci_low, first.ci_high) != (second.ci_low, second.ci_high)
 
 
@@ -267,7 +267,7 @@ def test_relative_difference_scales_by_the_baseline():
 # --------------------------------------------------------------------------
 
 
-def test_n_effective_counts_only_untied_users():
+def test_n_nonzero_counts_only_untied_users():
     base = np.full(N, 0.4)
     other = base.copy()
     other[:17] += 0.3  # everyone else is an exact tie
@@ -277,16 +277,75 @@ def test_n_effective_counts_only_untied_users():
     )
 
     assert comparison.n_samples == N
-    assert comparison.n_effective == 17
+    assert comparison.n_nonzero == 17
+    assert comparison.tie_rate == pytest.approx(1 - 17 / N)
 
 
-def test_small_effective_sample_warns():
+def test_tie_rate_spans_both_extremes():
+    base = np.full(N, 0.4)
+
+    all_tied = _quiet(
+        compare_pair, _result(base), _result(base), metric=METRIC, n_resamples=99
+    )
+    none_tied = compare_pair(
+        _result(base), _result(base + 0.1), metric=METRIC, n_resamples=99
+    )
+
+    assert all_tied.tie_rate == 1.0
+    assert none_tied.tie_rate == 0.0
+
+
+def test_the_estimate_uses_every_sample_not_just_the_untied_ones():
+    """Two datasets sharing an n_nonzero can describe entirely different systems.
+
+    This is why n_nonzero is not the sample size: the mean difference divides by
+    n_samples, so padding with ties shrinks the effect rather than leaving it be.
+    """
+    dense = np.full(30, 1.0)
+    padded = np.concatenate([dense, np.zeros(9_970)])
+
+    small = compare_pair(
+        _result(np.zeros(30)), _result(dense), metric=METRIC, n_resamples=99
+    )
+    large = _quiet(
+        compare_pair,
+        _result(np.zeros(10_000)),
+        _result(padded),
+        metric=METRIC,
+        n_resamples=99,
+    )
+
+    assert small.n_nonzero == large.n_nonzero == 30
+    assert small.difference == pytest.approx(1.0, abs=1e-6)
+    assert large.difference == pytest.approx(0.003, abs=1e-6)
+
+
+def test_small_untied_count_warns_about_discreteness_not_sample_size():
     base = np.full(N, 0.4)
     other = base.copy()
     other[:5] += 0.3
 
-    with pytest.warns(RuntimeWarning, match="nonzero paired difference"):
+    with pytest.warns(RuntimeWarning, match="highly discrete") as caught:
         compare_pair(_result(base), _result(other), metric=METRIC, n_resamples=299)
+
+    # The estimate is not what is degraded, and the message must not imply it is.
+    assert f"still uses all {N} samples" in str(caught[0].message)
+
+
+def test_all_tied_warns_that_the_answer_is_exact_rather_than_degraded():
+    """Zero untied users is a different situation from a handful of them."""
+    base = np.random.default_rng(31).random(N)
+
+    with pytest.warns(RuntimeWarning, match="scored all") as caught:
+        comparison = compare_pair(
+            _result(base), _result(base), metric=METRIC, n_resamples=299
+        )
+
+    message = str(caught[0].message)
+    assert "exact, not estimated" in message
+    assert "highly discrete" not in message
+    assert (comparison.difference, comparison.ci_low, comparison.ci_high) == (0.0, 0.0, 0.0)
+    assert comparison.p_value == 1.0
 
 
 def test_large_effective_sample_does_not_warn():
@@ -588,7 +647,9 @@ def test_to_frame_has_one_row_per_hypothesis_in_a_fixed_order():
 
     assert len(frame) == len(report)
     assert list(frame.columns) == list(_FRAME_COLUMNS)
-    assert "n_effective" in frame.columns
+    # All three counts are reported, so a reader can see how much of the sample
+    # was untied rather than inferring it.
+    assert {"n_samples", "n_nonzero", "tie_rate"} <= set(frame.columns)
     # Metric-major, then model order from the input mapping.
     assert list(frame["metric"]) == ["ndcg@20"] * 2 + ["recall@20"] * 2
 
@@ -738,7 +799,7 @@ def test_reversing_a_pair_mirrors_the_comparison_exactly():
     assert backward.difference == -forward.difference
     assert backward.p_value == forward.p_value
     assert backward.n_samples == forward.n_samples
-    assert backward.n_effective == forward.n_effective
+    assert backward.n_nonzero == forward.n_nonzero
     assert backward.bootstrap_standard_error == forward.bootstrap_standard_error
 
     # Not exact: np.quantile interpolates as ``a + frac * (b - a)`` between

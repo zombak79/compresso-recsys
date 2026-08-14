@@ -21,9 +21,16 @@ Two procedures, each doing the job it is best at:
   information-retrieval evaluation literature.
 
 Ranking differences are dominated by exact ties: for most users both models
-return the same items and ``d_u`` is zero. Those users carry no information, so
-every comparison reports ``n_effective`` alongside ``n_samples``, and the
-resolution of both procedures is governed by the former.
+return the same items and ``d_u`` is zero. Every comparison therefore reports
+``n_nonzero`` and ``tie_rate`` alongside ``n_samples``.
+
+Tied users are not spare. They carry no *sign* information — flipping the sign
+of a zero changes nothing, so ``n_nonzero`` alone governs the combinatorial
+support of the randomization test. But they are part of the empirical
+population, and the mean difference and the paired bootstrap interval are
+computed over all ``n_samples`` of them. Thirty users who all differ by +1 and
+ten thousand users of whom thirty differ by +1 share an ``n_nonzero`` and
+describe entirely different systems.
 
 Inference here is conditional on the fitted models. It answers whether an
 advantage is stable across resampled users, not whether it survives retraining
@@ -32,8 +39,8 @@ with a different seed. Report seed variation separately.
 
 from __future__ import annotations
 
-import warnings
 import hashlib
+import warnings
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Literal
@@ -61,9 +68,11 @@ TestMethod = Literal["randomization", "bootstrap"]
 #: allocate gigabytes once ``n`` reaches the millions.
 MAX_CHUNK_ELEMENTS = 8_000_000
 
-#: Below this many non-tied users, percentile interval coverage degrades and the
-#: comparison warns.
-MIN_EFFECTIVE_SAMPLES = 30
+#: Below this many untied users the empirical difference distribution is too
+#: discrete for a percentile interval to be read literally, and the comparison
+#: warns. This bounds the *shape* of the resampled distribution, not the amount
+#: of data behind the estimate, which is always ``n_samples``.
+MIN_NONZERO_SAMPLES = 30
 
 _ZERO_TOLERANCE = 1e-12
 
@@ -72,7 +81,8 @@ _FRAME_COLUMNS = (
     "baseline",
     "candidate",
     "n_samples",
-    "n_effective",
+    "n_nonzero",
+    "tie_rate",
     "baseline_mean",
     "candidate_mean",
     "difference",
@@ -105,7 +115,7 @@ class PairwiseComparison:
     baseline: str
     candidate: str
     n_samples: int
-    n_effective: int
+    n_nonzero: int
     baseline_mean: float
     candidate_mean: float
     difference: float
@@ -122,6 +132,20 @@ class PairwiseComparison:
     interval_method: str
     n_resamples: int
     random_state: int | None
+
+    @property
+    def tie_rate(self) -> float:
+        """Fraction of evaluated users the two models scored identically.
+
+        High tie rates are normal for ranking metrics at small cutoffs and are
+        not a defect. They say the two models agree for that share of the
+        population, which is itself a finding, and they are why ``n_nonzero``
+        is reported: it bounds how discrete the randomization test's null
+        distribution can be, while the estimate still rests on ``n_samples``.
+        """
+        if self.n_samples == 0:
+            return 0.0
+        return 1.0 - self.n_nonzero / self.n_samples
 
     @property
     def direction(self) -> str:
@@ -405,7 +429,7 @@ def _compare_arrays(
     """Compare two aligned per-user arrays. Raw p-value only; adjust later."""
     d = y - x
     n_samples = int(d.shape[0])
-    n_effective = int(np.count_nonzero(d))
+    n_nonzero = int(np.count_nonzero(d))
     baseline_mean = float(x.mean(dtype=np.float64))
     candidate_mean = float(y.mean(dtype=np.float64))
     difference = float(d.mean(dtype=np.float64))
@@ -445,11 +469,24 @@ def _compare_arrays(
 
     p_value = _monte_carlo_p(null_statistics, difference, alternative=alternative)
 
-    if n_effective < MIN_EFFECTIVE_SAMPLES:
+    if n_nonzero == 0:
+        # Not the low-count case. The two models scored every user identically,
+        # so difference 0, interval [0, 0] and p 1 are exactly right rather
+        # than degraded, and saying "few observations" would misdescribe them.
         warnings.warn(
-            f"{metric!r}: only {n_effective} of {n_samples} samples have a nonzero "
-            f"paired difference, so the interval rests on few observations and "
-            f"percentile coverage may be poor. Treat the interval as indicative.",
+            f"{metric!r}: the two models scored all {n_samples} samples "
+            f"identically, so there is nothing to resample. The difference, "
+            f"interval and p-value are exact, not estimated.",
+            RuntimeWarning,
+            stacklevel=3,
+        )
+    elif n_nonzero < MIN_NONZERO_SAMPLES:
+        warnings.warn(
+            f"{metric!r}: only {n_nonzero} of {n_samples} samples have a nonzero "
+            f"paired difference, so the empirical difference distribution is "
+            f"highly discrete and the percentile interval lands on few distinct "
+            f"values. Interpret it cautiously. The estimate itself still uses "
+            f"all {n_samples} samples.",
             RuntimeWarning,
             stacklevel=3,
         )
@@ -459,7 +496,7 @@ def _compare_arrays(
         baseline=baseline_name,
         candidate=candidate_name,
         n_samples=n_samples,
-        n_effective=n_effective,
+        n_nonzero=n_nonzero,
         baseline_mean=baseline_mean,
         candidate_mean=candidate_mean,
         difference=difference,
