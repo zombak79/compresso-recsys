@@ -86,6 +86,7 @@ def test_submodule_public_apis_are_intentional():
             "AmazonReviews2023",
         },
         evaluation: {
+            "EvaluationResult",
             "RankingEvaluator",
             "evaluate_ranked_predictions",
             "evaluate_recommender",
