@@ -42,7 +42,7 @@ Default Metrics
 When metrics are not supplied to prediction or embedding evaluation, the
 defaults remain:
 
-* ``CalibratedRecall``, reported as ``recall@K``. It divides hits by
+* ``CalibratedRecall``, reported as ``calibrated_recall@K``. It divides hits by
   ``min(K, number_of_targets)``.
 * ``NDCG``, reported as ``ndcg@K`` with binary relevance.
 
@@ -52,9 +52,11 @@ Optional Metrics
 The following metrics are available only when explicitly included in the
 ``metrics`` argument:
 
-* ``Recall``, reported as ``standard_recall@K``. It divides hits by the total
-  number of target items. The distinct key avoids confusing it with the
-  existing calibrated ``recall@K``.
+* ``Recall``, reported as ``recall@K``. It divides hits by the total number of
+  target items, which is the usual definition and the one to compare against
+  published numbers. It cannot exceed ``K / number_of_targets``, so users with
+  many targets cap below one; ``calibrated_recall@K`` truncates the denominator
+  instead and is greater than or equal to it for every user.
 * ``Precision``, reported as ``precision@K``. It divides hits by ``K``.
 * ``HitRate``, reported as ``hit_rate@K``. It is one when at least one target
   occurs in the top ``K``, otherwise zero.

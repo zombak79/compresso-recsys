@@ -529,7 +529,7 @@ def test_streaming_evaluation(interactions, item_features):
         batch_size=2,
     )
 
-    assert set(result) == {"recall@2", "ndcg@3", "n_eval_users"}
+    assert set(result) == {"calibrated_recall@2", "ndcg@3", "n_eval_users"}
     assert result["n_eval_users"] == 5
 
 

@@ -55,12 +55,16 @@ def test_calibrated_recall_supports_multiple_cutoffs_and_ignores_empty_targets()
 
     metric.update(_ranking_batch())
 
-    assert metric.result_keys == ("recall@1", "recall@2", "recall@4")
+    assert metric.result_keys == (
+        "calibrated_recall@1",
+        "calibrated_recall@2",
+        "calibrated_recall@4",
+    )
     assert metric.compute() == pytest.approx(
         {
-            "recall@1": 0.5,
-            "recall@2": 0.25,
-            "recall@4": 1.0,
+            "calibrated_recall@1": 0.5,
+            "calibrated_recall@2": 0.25,
+            "calibrated_recall@4": 1.0,
         }
     )
 
@@ -89,9 +93,9 @@ def test_ndcg_supports_multiple_cutoffs():
         (
             Recall([1, 2, 4]),
             {
-                "standard_recall@1": 0.25,
-                "standard_recall@2": 0.25,
-                "standard_recall@4": 1.0,
+                "recall@1": 0.25,
+                "recall@2": 0.25,
+                "recall@4": 1.0,
             },
         ),
         (
@@ -144,7 +148,7 @@ def test_metric_state_streams_and_resets():
     assert metric.compute() == once
 
     metric.reset()
-    assert metric.compute() == {"recall@4": 0.0}
+    assert metric.compute() == {"calibrated_recall@4": 0.0}
 
 
 @pytest.mark.parametrize("cutoffs", [0, [], [1, -1]])

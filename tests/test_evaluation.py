@@ -69,9 +69,9 @@ def test_evaluate_ranked_predictions_matches_expected_metrics(backend, batch_siz
     idcg_two = 1.0 + 1.0 / math.log2(3)
     assert result == pytest.approx(
         {
-            "recall@1": 0.5,
-            "recall@2": 0.25,
-            "recall@4": 1.0,
+            "calibrated_recall@1": 0.5,
+            "calibrated_recall@2": 0.25,
+            "calibrated_recall@4": 1.0,
             "ndcg@1": 0.5,
             "ndcg@2": (1.0 / idcg_two) / 2.0,
             "ndcg@4": (((1.0 + 0.5) / idcg_two) + 0.5) / 2.0,
@@ -87,7 +87,7 @@ def test_default_metrics_use_prediction_width():
         targets=_targets(),
     )
 
-    assert set(result) == {"recall@4", "ndcg@4", "n_eval_users"}
+    assert set(result) == {"calibrated_recall@4", "ndcg@4", "n_eval_users"}
 
 
 def test_optional_metrics_are_used_only_when_requested():
@@ -105,7 +105,7 @@ def test_optional_metrics_are_used_only_when_requested():
 
     assert result == pytest.approx(
         {
-            "standard_recall@4": 1.0,
+            "recall@4": 1.0,
             "precision@4": 0.375,
             "hit_rate@4": 1.0,
             "mrr@4": 2.0 / 3.0,
@@ -145,7 +145,7 @@ def test_csr_targets_are_canonicalized_as_binary_membership():
         metrics=[CalibratedRecall(4)],
     )
 
-    assert result == pytest.approx({"recall@4": 1.0, "n_eval_users": 1.0})
+    assert result == pytest.approx({"calibrated_recall@4": 1.0, "n_eval_users": 1.0})
 
 
 def test_empty_prediction_and_target_rows_return_zero_metrics():
@@ -158,7 +158,7 @@ def test_empty_prediction_and_target_rows_return_zero_metrics():
 
     result = evaluate_ranked_predictions(predictions=predictions, targets=targets)
 
-    assert result == {"recall@2": 0.0, "ndcg@2": 0.0, "n_eval_users": 0.0}
+    assert result == {"calibrated_recall@2": 0.0, "ndcg@2": 0.0, "n_eval_users": 0.0}
 
 
 def test_empty_predictions_still_must_cover_metric_cutoff():
@@ -268,7 +268,7 @@ def test_validation_can_be_disabled_for_trusted_predictions():
         validate_predictions=False,
     )
 
-    assert result["recall@4"] == 1.0
+    assert result["calibrated_recall@4"] == 1.0
 
 
 def test_vectorized_metrics_match_python_reference_on_random_rows():
@@ -310,7 +310,7 @@ def test_vectorized_metrics_match_python_reference_on_random_rows():
             recalls.append(hits.sum() / min(cutoff, len(target_rows[row])))
             ideal_length = min(cutoff, len(target_rows[row]))
             ndcgs.append(discounts[hits].sum() / discounts[:ideal_length].sum())
-        expected[f"recall@{cutoff}"] = float(np.mean(recalls))
+        expected[f"calibrated_recall@{cutoff}"] = float(np.mean(recalls))
         expected[f"ndcg@{cutoff}"] = float(np.mean(ndcgs))
     expected["n_eval_users"] = float(len(valid_rows))
 
@@ -388,8 +388,8 @@ def test_evaluate_recommender_streams_batches_and_derives_required_k():
     assert model.calls == [(2, 4), (2, 4), (1, 4)]
     assert result == pytest.approx(
         {
-            "recall@1": 0.2,
-            "recall@4": 0.8,
+            "calibrated_recall@1": 0.2,
+            "calibrated_recall@4": 0.8,
             "ndcg@4": (
                 1.0
                 + 1.0 / np.log2(3)
@@ -429,7 +429,7 @@ def test_evaluate_recommender_allows_distinct_source_and_candidate_spaces():
         metrics=[CalibratedRecall(2)],
     )
 
-    assert result == {"recall@2": pytest.approx(2 / 3), "n_eval_users": 3.0}
+    assert result == {"calibrated_recall@2": pytest.approx(2 / 3), "n_eval_users": 3.0}
 
 
 def test_evaluate_recommender_handles_empty_input_without_calling_model():
@@ -443,7 +443,7 @@ def test_evaluate_recommender_handles_empty_input_without_calling_model():
     )
 
     assert model.calls == []
-    assert result == {"recall@2": 0.0, "n_eval_users": 0.0}
+    assert result == {"calibrated_recall@2": 0.0, "n_eval_users": 0.0}
 
 
 def test_evaluate_recommender_validates_model_and_matrices():

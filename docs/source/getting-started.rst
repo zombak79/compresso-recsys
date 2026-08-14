@@ -122,13 +122,13 @@ Split Modes
 Retrieval Metrics
 -----------------
 
-Evaluation functions return ``recall@K`` and ``ndcg@K`` for the single ``K``
+Evaluation functions return ``calibrated_recall@K`` and ``ndcg@K`` for the single ``K``
 requested. Examples commonly call them for ``K = 20, 50, 100`` and store the
 six common metrics:
 
-* ``recall@20``
+* ``calibrated_recall@20``
 * ``ndcg@20``
-* ``recall@50``
+* ``calibrated_recall@50``
 * ``ndcg@50``
-* ``recall@100``
+* ``calibrated_recall@100``
 * ``ndcg@100``

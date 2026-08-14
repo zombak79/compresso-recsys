@@ -95,8 +95,8 @@ def test_content_recommender_matches_evaluate_item_embeddings_with_holdout():
         batch_size=32,
     )
 
-    assert result["recall@20"] == pytest.approx(reference["recall@20"], abs=1e-9)
-    assert result["recall@50"] == pytest.approx(reference["recall@50"], abs=1e-9)
+    for key in ("calibrated_recall@20", "calibrated_recall@50"):
+        assert result[key] == pytest.approx(reference[key], abs=1e-9)
     assert result["ndcg@50"] == pytest.approx(reference["ndcg@50"], abs=1e-9)
 
 
@@ -137,7 +137,7 @@ def test_content_recommender_elsa_forward_is_inert_when_excluding_seen():
             metrics=[CalibratedRecall(20)],
             batch_size=32,
         )
-        scores[elsa_forward] = result["recall@20"]
+        scores[elsa_forward] = result["calibrated_recall@20"]
 
     assert scores[True] == pytest.approx(scores[False], abs=1e-12)
 
@@ -155,7 +155,7 @@ def test_content_recommender_normalization_changes_the_ranking():
             targets=targets,
             metrics=[CalibratedRecall(20)],
             batch_size=32,
-        )["recall@20"]
+        )["calibrated_recall@20"]
 
     assert scores[True] != pytest.approx(scores[False], abs=1e-6)
 
@@ -262,7 +262,7 @@ def test_content_recommender_on_accelerator_matches_cpu():
             targets=targets,
             metrics=[CalibratedRecall(20)],
             batch_size=32,
-        )["recall@20"]
+        )["calibrated_recall@20"]
 
     assert results["cpu"] == pytest.approx(results[_accelerator()], abs=1e-6)
 
