@@ -565,11 +565,14 @@ already moved across users.
            by_seed[key].append(comparison.difference)
            user_se[key].append(comparison.bootstrap_standard_error)
 
+   print(f"{'metric':<22}{'mean':>10}{'SD (users)':>13}"
+         f"{'SD (retraining)':>18}{'ratio':>8}{'widens by':>12}")
    for key in reported:
        seed_sd = float(np.std(by_seed[key], ddof=1))
-       se = float(np.mean(user_se[key]))
-       print(f"{key:<22}{np.mean(by_seed[key]):.6f}  {se:.6f}  {seed_sd:.6f}"
-             f"  {seed_sd / se:.2f}  {np.hypot(se, seed_sd) / se - 1:.1%}")
+       users_sd = float(np.mean(user_se[key]))
+       print(f"{key:<22}{np.mean(by_seed[key]):>10.6f}{users_sd:>13.6f}"
+             f"{seed_sd:>18.6f}{seed_sd / users_sd:>8.2f}"
+             f"{np.hypot(users_sd, seed_sd) / users_sd - 1:>12.1%}")
 
 Only ELSA is retrained — EASE is closed-form and has no seed — so this measures
 one model's training variance, not a symmetric wobble in both. Its five
@@ -578,17 +581,18 @@ the loop prints:
 
 .. code-block:: text
 
-   metric                    mean   user SE   seed SD   ratio   widens by
-   ndcg@100              0.005916  0.001279  0.000598    0.47       10.4%
-   calibrated_recall@20  0.010760  0.001575  0.000481    0.31        4.6%
-   recall@20             0.010609  0.001560  0.000450    0.29        4.1%
-   mrr@20                0.025512  0.005311  0.001344    0.25        3.2%
+   metric                      mean   SD (users)   SD (retraining)   ratio   widens by
+   ndcg@100                0.005916     0.001279          0.000598    0.47       10.4%
+   calibrated_recall@20    0.010760     0.001575          0.000481    0.31        4.6%
+   recall@20               0.010609     0.001560          0.000450    0.29        4.1%
+   mrr@20                  0.025512     0.005311          0.001344    0.25        3.2%
 
-**user SE** is ``bootstrap_standard_error``: how much the difference moves when
-you resample users. **seed SD** is the standard deviation of the difference
-across the five runs: how much it moves when you retrain. Both describe the same
-quantity moving, so putting one over the other gives a **ratio** you can read
-directly:
+Both columns are standard deviations of the **same number** — the measured
+difference — under two different things varying. ``bootstrap_standard_error``
+goes by the conventional name *standard error* because it is the spread of an
+estimator rather than of raw observations, but so is the retraining column. That
+is what makes their **ratio** meaningful rather than a comparison of unlike
+things:
 
 * **Well below 1** — user sampling is the larger unknown, and the interval is
   most of the uncertainty. Here it runs 0.25 to 0.47, so retraining matters but
@@ -606,9 +610,13 @@ reverse the sign?** Across four metrics and five seeds, all twenty differences
 favour ELSA. That either holds or it does not, and it is a stronger statement
 than any interval.
 
-One limit: five runs give a standard deviation with roughly 35% relative error,
-enough to show *clearly smaller* or *clearly larger* but not to separate 0.9
-from 1.1. If yours lands near 1, run more seeds rather than reporting it.
+Two limits. Five runs give a standard deviation with roughly 35% relative
+error, enough to show *clearly smaller* or *clearly larger* but not to separate
+0.9 from 1.1 — if yours lands near 1, run more seeds rather than reporting it.
+And the retraining column is the spread of **one more run**, which is what you
+want when reporting or shipping a single model; if you average several runs and
+report the average instead, its uncertainty is smaller by the square root of how
+many you trained.
 
 Choosing the settings
 ---------------------
