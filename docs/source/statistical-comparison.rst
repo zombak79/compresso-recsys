@@ -679,15 +679,46 @@ something worked.
 When one user owns several rows
 -------------------------------
 
-Everything above assumes one row per independent unit. The default split
-protocol breaks that assumption, and it is worth understanding because it is
-the **default**.
+Everything above assumes one row per independent unit. One split protocol
+breaks that assumption, and it is worth understanding because it is a
+**default**.
 
-``build_recsys_checkpoint(..., eval_fold=0)`` evaluates every held-out user in
-five folds and stacks them, so 2,500 users become 12,500 evaluation rows sharing
-2,500 identifiers. The rows are real and different — each fold holds out a
-different part of the user's history — but they are not independent. Five folds
-of one reader tell you much less than five separate readers.
+``build_recsys_checkpoint(split_mode="user_split", eval_fold=0)`` evaluates every
+held-out user in five folds and stacks them, so 2,500 users become 12,500
+evaluation rows sharing 2,500 identifiers. The rows are real and different —
+each fold holds out a different part of the user's history — but they are not
+independent. Five folds of one reader tell you much less than five separate
+readers.
+
+This is specific to ``user_split``. The other split modes build one row per
+user:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 26 30 44
+
+   * - ``split_mode``
+     - rows per user
+     - how identifiers are built
+   * - ``user_split``, ``eval_fold=0``
+     - **five**
+     - the user list, tiled once per fold
+   * - ``user_split``, ``eval_fold=1``
+     - one
+     - the user list
+   * - ``item_split``
+     - one
+     - one entry per user group
+   * - ``leave_last_out``
+     - one
+     - one entry per user group
+   * - ``temporal``
+     - one
+     - the users present in that time stage
+
+Rather than trusting that table, read ``n_units`` against ``n_samples``. It
+reports what the data actually contained, and stays correct if a split protocol
+changes.
 
 Resampling those rows as though they were independent understates the
 uncertainty. On GoodBooks, measured:
