@@ -1,0 +1,606 @@
+"""Paired statistical comparison of recommender evaluations.
+
+Two models evaluated on the same users can be compared far more precisely than
+their aggregate means suggest, because most of the variation between users is
+shared. Everything here works on the paired per-user difference
+
+.. math::
+
+    d_u = m_u^{(b)} - m_u^{(a)},
+
+and never resamples the two models independently.
+
+Two procedures, each doing the job it is best at:
+
+* **Effect size** — a paired bootstrap over users gives a confidence interval
+  for the mean difference. This is the primary output; report it.
+* **Hypothesis test** — a paired sign-flip randomization test gives the
+  p-value. Under the null that the two models are interchangeable for each
+  user, the sign of every paired difference is arbitrary, so the test is exact
+  up to Monte Carlo error and assumes no distribution. It is the default in the
+  information-retrieval evaluation literature.
+
+Ranking differences are dominated by exact ties: for most users both models
+return the same items and ``d_u`` is zero. Those users carry no information, so
+every comparison reports ``n_effective`` alongside ``n_samples``, and the
+resolution of both procedures is governed by the former.
+
+Inference here is conditional on the fitted models. It answers whether an
+advantage is stable across resampled users, not whether it survives retraining
+with a different seed. Report seed variation separately.
+"""
+
+from __future__ import annotations
+
+import warnings
+from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any, Literal
+
+import numpy as np
+
+from compresso_recsys.evaluation import EvaluationResult
+
+if TYPE_CHECKING:  # pragma: no cover - import cycle only matters for typing
+    import pandas as pd
+
+__all__ = [
+    "ComparisonReport",
+    "PairwiseComparison",
+    "compare_models",
+    "compare_pair",
+]
+
+Alternative = Literal["two-sided", "greater", "less"]
+Correction = Literal["holm", "bonferroni"] | None
+TestMethod = Literal["randomization", "bootstrap"]
+
+#: Chunks of random draws are bounded by element count rather than by replicate
+#: count, because a chunk is ``batch * n`` wide. Bounding replicates alone would
+#: allocate gigabytes once ``n`` reaches the millions.
+MAX_CHUNK_ELEMENTS = 8_000_000
+
+#: Below this many non-tied users, percentile interval coverage degrades and the
+#: comparison warns.
+MIN_EFFECTIVE_SAMPLES = 30
+
+_ZERO_TOLERANCE = 1e-12
+
+_FRAME_COLUMNS = (
+    "metric",
+    "baseline",
+    "candidate",
+    "n_samples",
+    "n_effective",
+    "baseline_mean",
+    "candidate_mean",
+    "difference",
+    "relative_difference",
+    "ci_low",
+    "ci_high",
+    "confidence_level",
+    "bootstrap_standard_error",
+    "p_value",
+    "adjusted_p_value",
+    "significant",
+    "direction",
+    "alternative",
+    "test_method",
+    "interval_method",
+    "n_resamples",
+    "random_state",
+)
+
+
+@dataclass(frozen=True)
+class PairwiseComparison:
+    """One model-versus-model hypothesis for one metric.
+
+    ``difference`` is always ``candidate - baseline``, so positive values favour
+    the candidate.
+    """
+
+    metric: str
+    baseline: str
+    candidate: str
+    n_samples: int
+    n_effective: int
+    baseline_mean: float
+    candidate_mean: float
+    difference: float
+    relative_difference: float | None
+    bootstrap_standard_error: float
+    ci_low: float
+    ci_high: float
+    confidence_level: float
+    p_value: float
+    adjusted_p_value: float
+    significant: bool
+    alternative: Alternative
+    test_method: TestMethod
+    interval_method: str
+    n_resamples: int
+    random_state: int | None
+
+    @property
+    def direction(self) -> str:
+        """``'better'``, ``'worse'`` or ``'inconclusive'``."""
+        if not self.significant:
+            return "inconclusive"
+        return "better" if self.difference > 0 else "worse"
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return this comparison as a flat dictionary, including ``direction``."""
+        return {column: getattr(self, column) for column in _FRAME_COLUMNS}
+
+
+@dataclass(frozen=True)
+class ComparisonReport:
+    """Every hypothesis produced by one :func:`compare_models` call.
+
+    The multiple-testing correction applies across the whole report, so a
+    report is the unit of analysis rather than any single comparison in it.
+    """
+
+    comparisons: tuple[PairwiseComparison, ...]
+    metrics: tuple[str, ...]
+    model_names: tuple[str, ...]
+    reference: str | None
+    correction: Correction
+    confidence_level: float
+    alternative: Alternative
+    test_method: TestMethod
+    n_resamples: int
+    random_state: int | None
+
+    def __len__(self) -> int:
+        return len(self.comparisons)
+
+    def __iter__(self):
+        return iter(self.comparisons)
+
+    def to_frame(self) -> "pd.DataFrame":
+        """Return one row per hypothesis with a fixed column order."""
+        import pandas as pd
+
+        return pd.DataFrame(
+            [comparison.to_dict() for comparison in self.comparisons],
+            columns=list(_FRAME_COLUMNS),
+        )
+
+
+def _validate_common(
+    *,
+    confidence_level: float,
+    n_resamples: int,
+    alternative: str,
+    test_method: str,
+    resample_batch_size: int,
+) -> None:
+    if not 0.0 < confidence_level < 1.0:
+        raise ValueError("confidence_level must be strictly between 0 and 1")
+    if n_resamples < 1:
+        raise ValueError("n_resamples must be >= 1")
+    if alternative not in {"two-sided", "greater", "less"}:
+        raise ValueError(f"unknown alternative: {alternative!r}")
+    if test_method not in {"randomization", "bootstrap"}:
+        raise ValueError(f"unknown test_method: {test_method!r}")
+    if resample_batch_size < 1:
+        raise ValueError("resample_batch_size must be >= 1")
+
+
+def _paired_values(
+    baseline: EvaluationResult,
+    candidate: EvaluationResult,
+    *,
+    metric: str,
+    baseline_name: str,
+    candidate_name: str,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Return aligned per-user arrays, refusing anything that is not paired."""
+    for name, result in ((baseline_name, baseline), (candidate_name, candidate)):
+        if not isinstance(result, EvaluationResult):
+            raise TypeError(f"{name} must be an EvaluationResult")
+        if result.per_user is None:
+            raise ValueError(
+                f"{name} was evaluated with collect_per_user=False, so it holds no "
+                "per-user values; paired comparison needs them"
+            )
+        if metric not in result.per_user:
+            available = ", ".join(sorted(result.per_user))
+            raise KeyError(f"{name} has no metric {metric!r}; available: {available}")
+
+    left, right = baseline.sample_ids, candidate.sample_ids
+    assert left is not None and right is not None  # implied by per_user
+    if left.shape[0] != right.shape[0] or not np.array_equal(left, right):
+        raise ValueError(
+            f"{baseline_name} and {candidate_name} were not evaluated on the same "
+            "samples in the same order. Paired analysis compares each evaluation "
+            "unit against itself, so sample_ids must match exactly, including "
+            "order. Re-evaluate both models on identical rows rather than "
+            "reordering or intersecting after the fact."
+        )
+
+    x = np.asarray(baseline.per_user[metric], dtype=np.float64)
+    y = np.asarray(candidate.per_user[metric], dtype=np.float64)
+    if x.shape != y.shape:
+        raise ValueError(
+            f"per-user arrays for {metric!r} differ in length: "
+            f"{x.shape[0]} vs {y.shape[0]}"
+        )
+    if x.shape[0] < 2:
+        raise ValueError(
+            f"paired comparison needs at least 2 evaluable samples, got {x.shape[0]}"
+        )
+    if not (np.isfinite(x).all() and np.isfinite(y).all()):
+        raise ValueError(f"per-user values for {metric!r} contain non-finite entries")
+    return x, y
+
+
+def _effective_batch(requested: int, n: int) -> int:
+    """Bound a chunk by total elements, not by replicate count."""
+    return max(1, min(int(requested), MAX_CHUNK_ELEMENTS // max(int(n), 1)))
+
+
+def _bootstrap_means(
+    d: np.ndarray,
+    *,
+    n_resamples: int,
+    rng: np.random.Generator,
+    resample_batch_size: int,
+) -> np.ndarray:
+    """Mean of ``d`` over ``n_resamples`` resamples of its rows, with replacement."""
+    n = d.shape[0]
+    out = np.empty(n_resamples, dtype=np.float64)
+    step = _effective_batch(resample_batch_size, n)
+    for start in range(0, n_resamples, step):
+        size = min(step, n_resamples - start)
+        indices = rng.integers(0, n, size=(size, n))
+        out[start : start + size] = d[indices].mean(axis=1)
+    return out
+
+
+def _randomization_means(
+    d: np.ndarray,
+    *,
+    n_resamples: int,
+    rng: np.random.Generator,
+    resample_batch_size: int,
+) -> np.ndarray:
+    """Mean of ``d`` under ``n_resamples`` uniform sign assignments."""
+    n = d.shape[0]
+    out = np.empty(n_resamples, dtype=np.float64)
+    step = _effective_batch(resample_batch_size, n)
+    for start in range(0, n_resamples, step):
+        size = min(step, n_resamples - start)
+        # int8 signs cost an eighth of float64 and give identical products.
+        signs = rng.integers(0, 2, size=(size, n), dtype=np.int8) * 2 - 1
+        out[start : start + size] = (signs * d).mean(axis=1)
+    return out
+
+
+def _monte_carlo_p(
+    null_statistics: np.ndarray,
+    observed: float,
+    *,
+    alternative: Alternative,
+) -> float:
+    """Finite-sample Monte Carlo p-value, never zero and never above one."""
+    if alternative == "two-sided":
+        extreme = np.abs(null_statistics) >= abs(observed)
+    elif alternative == "greater":
+        extreme = null_statistics >= observed
+    else:
+        extreme = null_statistics <= observed
+    return float((1 + int(extreme.sum())) / (null_statistics.shape[0] + 1))
+
+
+def _interval(
+    bootstrap_means: np.ndarray,
+    *,
+    confidence_level: float,
+    alternative: Alternative,
+) -> tuple[float, float]:
+    """Percentile interval oriented to match the alternative.
+
+    A one-sided test beside a two-sided interval can report a significant
+    result next to an interval containing zero, so the orientation follows.
+    """
+    alpha = 1.0 - confidence_level
+    if alternative == "two-sided":
+        low, high = np.quantile(bootstrap_means, [alpha / 2, 1 - alpha / 2])
+        return float(low), float(high)
+    if alternative == "greater":
+        return float(np.quantile(bootstrap_means, alpha)), float("inf")
+    return float("-inf"), float(np.quantile(bootstrap_means, 1 - alpha))
+
+
+def _adjust(p_values: np.ndarray, correction: Correction) -> np.ndarray:
+    """Family-wise adjustment across every hypothesis in one report."""
+    if correction is None:
+        return p_values.copy()
+    n_hypotheses = p_values.shape[0]
+    if correction == "bonferroni":
+        return np.minimum(1.0, n_hypotheses * p_values)
+    if correction != "holm":
+        raise ValueError(f"unknown correction: {correction!r}")
+    order = np.argsort(p_values, kind="stable")
+    scaled = (n_hypotheses - np.arange(n_hypotheses)) * p_values[order]
+    adjusted_sorted = np.minimum(1.0, np.maximum.accumulate(scaled))
+    adjusted = np.empty_like(adjusted_sorted)
+    adjusted[order] = adjusted_sorted
+    return adjusted
+
+
+def _compare_arrays(
+    x: np.ndarray,
+    y: np.ndarray,
+    *,
+    metric: str,
+    baseline_name: str,
+    candidate_name: str,
+    confidence_level: float,
+    n_resamples: int,
+    alternative: Alternative,
+    test_method: TestMethod,
+    rng: np.random.Generator,
+    random_state: int | None,
+    resample_batch_size: int,
+) -> PairwiseComparison:
+    """Compare two aligned per-user arrays. Raw p-value only; adjust later."""
+    d = y - x
+    n_samples = int(d.shape[0])
+    n_effective = int(np.count_nonzero(d))
+    baseline_mean = float(x.mean(dtype=np.float64))
+    candidate_mean = float(y.mean(dtype=np.float64))
+    difference = float(d.mean(dtype=np.float64))
+
+    relative_difference = (
+        None
+        if abs(baseline_mean) <= _ZERO_TOLERANCE
+        else float(difference / abs(baseline_mean))
+    )
+
+    bootstrap_means = _bootstrap_means(
+        d,
+        n_resamples=n_resamples,
+        rng=rng,
+        resample_batch_size=resample_batch_size,
+    )
+    ci_low, ci_high = _interval(
+        bootstrap_means,
+        confidence_level=confidence_level,
+        alternative=alternative,
+    )
+    standard_error = (
+        float(bootstrap_means.std(ddof=1)) if n_resamples > 1 else float("nan")
+    )
+
+    if test_method == "randomization":
+        null_statistics = _randomization_means(
+            d,
+            n_resamples=n_resamples,
+            rng=rng,
+            resample_batch_size=resample_batch_size,
+        )
+    else:
+        # Resampling the centered differences is an exact shift of the ordinary
+        # bootstrap, so the replicates above already contain the null statistic.
+        null_statistics = bootstrap_means - difference
+
+    p_value = _monte_carlo_p(null_statistics, difference, alternative=alternative)
+
+    if n_effective < MIN_EFFECTIVE_SAMPLES:
+        warnings.warn(
+            f"{metric!r}: only {n_effective} of {n_samples} samples have a nonzero "
+            f"paired difference, so the interval rests on few observations and "
+            f"percentile coverage may be poor. Treat the interval as indicative.",
+            RuntimeWarning,
+            stacklevel=3,
+        )
+
+    return PairwiseComparison(
+        metric=metric,
+        baseline=baseline_name,
+        candidate=candidate_name,
+        n_samples=n_samples,
+        n_effective=n_effective,
+        baseline_mean=baseline_mean,
+        candidate_mean=candidate_mean,
+        difference=difference,
+        relative_difference=relative_difference,
+        bootstrap_standard_error=standard_error,
+        ci_low=ci_low,
+        ci_high=ci_high,
+        confidence_level=float(confidence_level),
+        p_value=p_value,
+        adjusted_p_value=p_value,
+        significant=p_value <= 1.0 - confidence_level,
+        alternative=alternative,
+        test_method=test_method,
+        interval_method="percentile",
+        n_resamples=int(n_resamples),
+        random_state=random_state,
+    )
+
+
+def _with_adjusted(
+    comparison: PairwiseComparison,
+    adjusted: float,
+    alpha: float,
+) -> PairwiseComparison:
+    from dataclasses import replace
+
+    return replace(
+        comparison,
+        adjusted_p_value=float(adjusted),
+        # Monte Carlo p-values are discrete multiples of 1/(B+1), so equality
+        # with alpha is attainable and the convention rejects there.
+        significant=bool(adjusted <= alpha),
+    )
+
+
+def compare_pair(
+    baseline: EvaluationResult,
+    candidate: EvaluationResult,
+    *,
+    metric: str,
+    baseline_name: str = "baseline",
+    candidate_name: str = "candidate",
+    confidence_level: float = 0.95,
+    n_resamples: int = 10_000,
+    alternative: Alternative = "two-sided",
+    test_method: TestMethod = "randomization",
+    random_state: int | None = 0,
+    resample_batch_size: int = 64,
+) -> PairwiseComparison:
+    """Compare one candidate against one baseline on one metric.
+
+    The difference is ``candidate - baseline``, so positive values favour the
+    candidate. No multiplicity correction is applied: a single comparison is a
+    single hypothesis, and ``adjusted_p_value`` equals ``p_value``. Use
+    :func:`compare_models` when testing more than one hypothesis together.
+    """
+    _validate_common(
+        confidence_level=confidence_level,
+        n_resamples=n_resamples,
+        alternative=alternative,
+        test_method=test_method,
+        resample_batch_size=resample_batch_size,
+    )
+    x, y = _paired_values(
+        baseline,
+        candidate,
+        metric=metric,
+        baseline_name=baseline_name,
+        candidate_name=candidate_name,
+    )
+    return _compare_arrays(
+        x,
+        y,
+        metric=metric,
+        baseline_name=baseline_name,
+        candidate_name=candidate_name,
+        confidence_level=confidence_level,
+        n_resamples=n_resamples,
+        alternative=alternative,
+        test_method=test_method,
+        rng=np.random.default_rng(random_state),
+        random_state=random_state,
+        resample_batch_size=resample_batch_size,
+    )
+
+
+def compare_models(
+    results: Mapping[str, EvaluationResult],
+    *,
+    metrics: str | Sequence[str],
+    reference: str | None = None,
+    confidence_level: float = 0.95,
+    n_resamples: int = 10_000,
+    alternative: Alternative = "two-sided",
+    correction: Correction = "holm",
+    test_method: TestMethod = "randomization",
+    random_state: int | None = 0,
+    resample_batch_size: int = 64,
+) -> ComparisonReport:
+    """Compare several models across one or more metrics in a single family.
+
+    With ``reference`` set, every other model is compared against it. Without
+    it, every unordered pair is compared in mapping insertion order, with the
+    earlier model as baseline.
+
+    The correction spans every pair and metric produced by the call, so calling
+    this once with three metrics is not the same as calling it three times: the
+    family is what the call generates.
+
+    Holm is the default because these hypotheses are dependent. They share
+    resampling draws and overlapping users, and Holm controls the family-wise
+    error rate under arbitrary dependence. Procedures that assume independence
+    or positive dependence are not offered for that reason.
+    """
+    _validate_common(
+        confidence_level=confidence_level,
+        n_resamples=n_resamples,
+        alternative=alternative,
+        test_method=test_method,
+        resample_batch_size=resample_batch_size,
+    )
+    if correction not in {"holm", "bonferroni", None}:
+        raise ValueError(f"unknown correction: {correction!r}")
+
+    names = list(results)
+    if len(names) != len(set(names)):
+        raise ValueError("model names must be unique")
+    if len(names) < 2:
+        raise ValueError("compare_models needs at least two models")
+    if reference is not None and reference not in results:
+        raise ValueError(f"reference {reference!r} is not among the models")
+
+    metric_names = [metrics] if isinstance(metrics, str) else list(metrics)
+    if not metric_names:
+        raise ValueError("metrics must contain at least one metric name")
+    if len(metric_names) != len(set(metric_names)):
+        raise ValueError("metrics must be unique")
+
+    if reference is None:
+        pairs = [
+            (names[i], names[j])
+            for i in range(len(names))
+            for j in range(i + 1, len(names))
+        ]
+    else:
+        pairs = [(reference, name) for name in names if name != reference]
+
+    # One generator for the whole call, so every hypothesis in the report draws
+    # from the same stream and the report is internally coherent.
+    rng = np.random.default_rng(random_state)
+    comparisons: list[PairwiseComparison] = []
+    for metric in metric_names:
+        for baseline_name, candidate_name in pairs:
+            x, y = _paired_values(
+                results[baseline_name],
+                results[candidate_name],
+                metric=metric,
+                baseline_name=baseline_name,
+                candidate_name=candidate_name,
+            )
+            comparisons.append(
+                _compare_arrays(
+                    x,
+                    y,
+                    metric=metric,
+                    baseline_name=baseline_name,
+                    candidate_name=candidate_name,
+                    confidence_level=confidence_level,
+                    n_resamples=n_resamples,
+                    alternative=alternative,
+                    test_method=test_method,
+                    rng=rng,
+                    random_state=random_state,
+                    resample_batch_size=resample_batch_size,
+                )
+            )
+
+    alpha = 1.0 - confidence_level
+    adjusted = _adjust(
+        np.array([c.p_value for c in comparisons], dtype=np.float64),
+        correction,
+    )
+    comparisons = [
+        _with_adjusted(comparison, value, alpha)
+        for comparison, value in zip(comparisons, adjusted)
+    ]
+
+    return ComparisonReport(
+        comparisons=tuple(comparisons),
+        metrics=tuple(metric_names),
+        model_names=tuple(names),
+        reference=reference,
+        correction=correction,
+        confidence_level=float(confidence_level),
+        alternative=alternative,
+        test_method=test_method,
+        n_resamples=int(n_resamples),
+        random_state=random_state,
+    )
