@@ -626,3 +626,30 @@ def test_report_is_iterable_and_sized():
 
     assert isinstance(report, ComparisonReport)
     assert len(report) == len(list(report)) == 3
+
+
+def test_interval_does_not_depend_on_the_test_method():
+    """The randomization test consumes draws the bootstrap test does not.
+
+    Sharing one stream made every hypothesis after the first report a different
+    interval for identical data, purely because test_method changed.
+    """
+    rng = np.random.default_rng(30)
+    base = rng.random(N)
+    models = {
+        "A": _multi(**{"m1": base, "m2": rng.random(N)}),
+        "B": _multi(
+            **{"m1": base + rng.normal(0.01, 0.1, N), "m2": rng.random(N)}
+        ),
+    }
+    kwargs = {"metrics": ["m1", "m2"], "reference": "A", "n_resamples": 499,
+              "random_state": 4}
+
+    randomized = compare_models(models, test_method="randomization", **kwargs)
+    bootstrapped = compare_models(models, test_method="bootstrap", **kwargs)
+
+    for left, right in zip(randomized, bootstrapped):
+        assert left.metric == right.metric
+        assert left.ci_low == right.ci_low
+        assert left.ci_high == right.ci_high
+        assert left.bootstrap_standard_error == right.bootstrap_standard_error

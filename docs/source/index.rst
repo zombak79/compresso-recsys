@@ -22,6 +22,7 @@ is imported as ``compresso_recsys``.
    :caption: User Guide
 
    examples
+   statistical-comparison
    citing
    cli-reference
 

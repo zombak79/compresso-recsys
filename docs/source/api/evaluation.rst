@@ -18,6 +18,63 @@ means and from ``n_eval_users``.
 Prediction validation is enabled by default for both evaluation entry points.
 It checks item bounds, duplicate recommendations, NaN scores, and score order.
 
+Evaluation Results
+------------------
+
+Both entry points return an
+:class:`~compresso_recsys.evaluation.EvaluationResult` rather than a plain
+dictionary. It behaves as a mapping over the aggregate metrics plus
+``n_eval_users``, so ``result["ndcg@20"]``, iteration and ``dict(result)``
+continue to work, and :meth:`~compresso_recsys.evaluation.EvaluationResult.to_dict`
+is available where an actual ``dict`` is required.
+
+Beyond the aggregates it carries the **per-user value behind every metric**,
+together with the ``sample_ids`` that identify the rows those values came from:
+
+.. code-block:: python
+
+   result = evaluate_recommender(
+       model, source=source, targets=targets,
+       metrics=[NDCG(20)], sample_ids=user_ids,
+   )
+
+   result["ndcg@20"]            # aggregate, as before
+   result.per_user["ndcg@20"]   # one float32 per evaluable row
+   result.sample_ids            # aligned identifiers
+   result.n_eval_users          # rows with at least one target
+   result.n_rows                # rows supplied
+
+Those per-user values are what make paired statistical comparison possible; see
+:doc:`../statistical-comparison`. Retaining them costs roughly
+``4 * n_users * n_metrics`` bytes, small beside model parameters, so collection
+is enabled by default. Pass ``collect_per_user=False`` for deployment-style
+monitoring that only needs aggregates, at the cost of being unable to compare
+the result against another.
+
+Identifiers default to global input row indices. Supply ``sample_ids`` when the
+rows have stable identities of their own, so that comparison across evaluations
+fails loudly rather than silently pairing different users.
+
+.. autoclass:: compresso_recsys.evaluation.EvaluationResult
+   :members:
+
+Custom Metrics
+--------------
+
+:meth:`compresso_recsys.metrics.RankingMetric.update` returns the per-row values
+it computed, with shape ``(rows, len(result_keys))``, rather than only folding
+them into a running sum. Without that the evaluator would have to compute every
+metric twice to retain per-user observations.
+
+Third-party metric implementations must therefore return their values. When
+collection is enabled the evaluator validates the returned tensor: two
+dimensions, one row per prediction row, one column per result key,
+floating-point dtype, and finite values for rows with targets.
+
+Values must be produced for every row, including rows with no targets. Those
+rows are excluded from the aggregate but must still occupy a position so that
+values stay aligned with ``sample_ids`` before filtering.
+
 .. autofunction:: compresso_recsys.evaluation.evaluate_recommender
 
 ``evaluate_recommender`` requires matching source and target row counts, but

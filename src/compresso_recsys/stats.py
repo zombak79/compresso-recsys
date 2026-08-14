@@ -169,6 +169,22 @@ class ComparisonReport:
         )
 
 
+def _streams(
+    random_state: int | None,
+) -> tuple[np.random.Generator, np.random.Generator]:
+    """Independent generators for the interval and for the test.
+
+    Drawing both from one stream would make the confidence interval depend on
+    ``test_method``: the randomization test consumes draws that the bootstrap
+    test does not, so every hypothesis after the first would see a different
+    stream position and report a slightly different interval for identical
+    data. Splitting the seed keeps the interval a function of ``random_state``
+    alone.
+    """
+    first, second = np.random.SeedSequence(random_state).spawn(2)
+    return np.random.default_rng(first), np.random.default_rng(second)
+
+
 def _validate_common(
     *,
     confidence_level: float,
@@ -343,7 +359,8 @@ def _compare_arrays(
     n_resamples: int,
     alternative: Alternative,
     test_method: TestMethod,
-    rng: np.random.Generator,
+    interval_rng: np.random.Generator,
+    test_rng: np.random.Generator,
     random_state: int | None,
     resample_batch_size: int,
 ) -> PairwiseComparison:
@@ -364,7 +381,7 @@ def _compare_arrays(
     bootstrap_means = _bootstrap_means(
         d,
         n_resamples=n_resamples,
-        rng=rng,
+        rng=interval_rng,
         resample_batch_size=resample_batch_size,
     )
     ci_low, ci_high = _interval(
@@ -380,7 +397,7 @@ def _compare_arrays(
         null_statistics = _randomization_means(
             d,
             n_resamples=n_resamples,
-            rng=rng,
+            rng=test_rng,
             resample_batch_size=resample_batch_size,
         )
     else:
@@ -448,7 +465,7 @@ def compare_pair(
     baseline_name: str = "baseline",
     candidate_name: str = "candidate",
     confidence_level: float = 0.95,
-    n_resamples: int = 10_000,
+    n_resamples: int = 9_999,
     alternative: Alternative = "two-sided",
     test_method: TestMethod = "randomization",
     random_state: int | None = 0,
@@ -475,6 +492,7 @@ def compare_pair(
         baseline_name=baseline_name,
         candidate_name=candidate_name,
     )
+    interval_rng, test_rng = _streams(random_state)
     return _compare_arrays(
         x,
         y,
@@ -485,7 +503,8 @@ def compare_pair(
         n_resamples=n_resamples,
         alternative=alternative,
         test_method=test_method,
-        rng=np.random.default_rng(random_state),
+        interval_rng=interval_rng,
+        test_rng=test_rng,
         random_state=random_state,
         resample_batch_size=resample_batch_size,
     )
@@ -497,7 +516,7 @@ def compare_models(
     metrics: str | Sequence[str],
     reference: str | None = None,
     confidence_level: float = 0.95,
-    n_resamples: int = 10_000,
+    n_resamples: int = 9_999,
     alternative: Alternative = "two-sided",
     correction: Correction = "holm",
     test_method: TestMethod = "randomization",
@@ -552,9 +571,10 @@ def compare_models(
     else:
         pairs = [(reference, name) for name in names if name != reference]
 
-    # One generator for the whole call, so every hypothesis in the report draws
-    # from the same stream and the report is internally coherent.
-    rng = np.random.default_rng(random_state)
+    # Two independent streams for the whole call. Every hypothesis draws from
+    # the same pair, so the report is internally coherent, and the interval
+    # cannot shift when test_method changes.
+    interval_rng, test_rng = _streams(random_state)
     comparisons: list[PairwiseComparison] = []
     for metric in metric_names:
         for baseline_name, candidate_name in pairs:
@@ -576,7 +596,8 @@ def compare_models(
                     n_resamples=n_resamples,
                     alternative=alternative,
                     test_method=test_method,
-                    rng=rng,
+                    interval_rng=interval_rng,
+                    test_rng=test_rng,
                     random_state=random_state,
                     resample_batch_size=resample_batch_size,
                 )
