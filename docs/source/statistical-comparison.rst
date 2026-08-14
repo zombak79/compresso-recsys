@@ -539,25 +539,42 @@ ship, you want the advantage to be a property of the method rather than of one
 lucky run.
 
 Measure it: retrain under matched seeds, evaluate each on identical users and
-targets, and collect the differences.
+targets, and collect both how the difference moves across seeds and how much it
+already moved across users.
 
 .. code-block:: python
 
-   differences = []
+   import numpy as np
+
+   reported = ["ndcg@100", "calibrated_recall@20", "recall@20", "mrr@20"]
+   by_seed = {key: [] for key in reported}
+   user_se = {key: [] for key in reported}
+
    for seed in range(5):
        config = ELSAConfig(latent_dim=3250, batch_size=2048, epochs=10,
                            lr=0.05, device=device, seed=seed)
-       result = evaluate_recommender(
+       elsa_result = evaluate_recommender(
            ELSATrainer(config).fit(x_train),
            source=source, targets=targets, metrics=metrics, sample_ids=user_ids,
        )
-       differences.append(
-           compare_pair(ease_result, result, metric="ndcg@100").difference
-       )
+       for key in reported:
+           comparison = compare_pair(
+               ease_result, elsa_result, metric=key,
+               baseline_name="EASE", candidate_name="ELSA",
+           )
+           by_seed[key].append(comparison.difference)
+           user_se[key].append(comparison.bootstrap_standard_error)
+
+   for key in reported:
+       seed_sd = float(np.std(by_seed[key], ddof=1))
+       se = float(np.mean(user_se[key]))
+       print(f"{key:<22}{np.mean(by_seed[key]):.6f}  {se:.6f}  {seed_sd:.6f}"
+             f"  {seed_sd / se:.2f}  {np.hypot(se, seed_sd) / se - 1:.1%}")
 
 Only ELSA is retrained — EASE is closed-form and has no seed — so this measures
 one model's training variance, not a symmetric wobble in both. Its five
-nDCG@100 differences come out 0.0054, 0.0057, 0.0069, 0.0060 and 0.0056:
+nDCG@100 differences come out 0.0054, 0.0057, 0.0069, 0.0060 and 0.0056, and
+the loop prints:
 
 .. code-block:: text
 
