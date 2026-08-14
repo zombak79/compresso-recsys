@@ -20,6 +20,14 @@ Two procedures, each doing the job it is best at:
   up to Monte Carlo error and assumes no distribution. It is the default in the
   information-retrieval evaluation literature.
 
+``test_method="t"`` runs a paired t-test instead, as a one-sample test on the
+same differences. Smucker, Allan and Carterette found the two agree closely on
+retrieval data, so it is available as a familiar cross-check and for the
+occasions when a p-value below the ``1 / (n_resamples + 1)`` floor is wanted.
+The randomization test remains the default: it is exact under exchangeability
+where the t-test is asymptotic, and it stays valid where a heavily tied,
+skewed difference distribution strains the normal approximation.
+
 Ranking differences are dominated by exact ties: for most users both models
 return the same items and ``d_u`` is zero. Every comparison therefore reports
 ``n_nonzero`` and ``tie_rate`` alongside ``n_samples``.
@@ -46,6 +54,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Literal
 
 import numpy as np
+from scipy.stats import ttest_1samp
 
 from compresso_recsys.evaluation import EvaluationResult
 
@@ -61,7 +70,7 @@ __all__ = [
 
 Alternative = Literal["two-sided", "greater", "less"]
 Correction = Literal["holm", "bonferroni"] | None
-TestMethod = Literal["randomization", "bootstrap"]
+TestMethod = Literal["randomization", "bootstrap", "t"]
 
 #: Chunks of random draws are bounded by element count rather than by replicate
 #: count, because a chunk is ``batch * n`` wide. Bounding replicates alone would
@@ -261,7 +270,7 @@ def _validate_common(
         raise ValueError("n_resamples must be >= 1")
     if alternative not in {"two-sided", "greater", "less"}:
         raise ValueError(f"unknown alternative: {alternative!r}")
-    if test_method not in {"randomization", "bootstrap"}:
+    if test_method not in {"randomization", "bootstrap", "t"}:
         raise ValueError(f"unknown test_method: {test_method!r}")
     if resample_batch_size < 1:
         raise ValueError("resample_batch_size must be >= 1")
@@ -373,6 +382,47 @@ def _monte_carlo_p(
     return float((1 + int(extreme.sum())) / (null_statistics.shape[0] + 1))
 
 
+def _t_test_p(
+    d: np.ndarray,
+    difference: float,
+    *,
+    alternative: Alternative,
+    metric: str,
+) -> float:
+    """Paired t-test, as a one-sample test on the paired differences.
+
+    One-sample on ``d`` rather than ``ttest_rel(y, x)``. The two are
+    mathematically identical, but the bootstrap and the randomization test both
+    consume the ``d`` computed in :func:`_compare_arrays`, and letting this
+    derive its own would mean any precision divergence surfaced as the three
+    methods disagreeing about statistics rather than about floating point.
+
+    Unlike the resampled tests this has no Monte Carlo floor, so it can report
+    p-values far below ``1 / (n_resamples + 1)``. Treat those with the caution
+    any far-tail normal approximation deserves: the Berry-Esseen bound on the
+    error of the approximation is governed by the number of *untied* pairs, and
+    is loose. Agreement with the randomization test is reassuring; disagreement
+    means one of the two approximations is strained, and which one is a question
+    about the tie rate and the skew of the nonzero differences rather than about
+    the resample count.
+    """
+    if np.ptp(d) == 0:
+        # Zero sample variance. The t statistic is 0/0 or x/0, and scipy
+        # returns nan or exactly zero; neither is a p-value.
+        if difference == 0.0:
+            return 1.0
+        warnings.warn(
+            f"{metric!r}: every paired difference is identical, so the t "
+            f"statistic is undefined and its p-value is an artefact of zero "
+            f"sample variance rather than evidence. Prefer "
+            f"test_method='randomization' here.",
+            RuntimeWarning,
+            stacklevel=4,
+        )
+        return 0.0
+    return float(ttest_1samp(d, 0.0, alternative=alternative).pvalue)
+
+
 def _interval(
     bootstrap_means: np.ndarray,
     *,
@@ -455,19 +505,29 @@ def _compare_arrays(
         float(bootstrap_means.std(ddof=1)) if n_resamples > 1 else float("nan")
     )
 
-    if test_method == "randomization":
-        null_statistics = _randomization_means(
-            d,
-            n_resamples=n_resamples,
-            rng=test_rng,
-            resample_batch_size=resample_batch_size,
+    if test_method == "t":
+        # Deterministic: test_rng is deliberately left unconsumed. Seeds are
+        # derived per hypothesis, so that cannot shift any other comparison.
+        # The interval above is still resampled, so this does not make the
+        # call RNG-free.
+        p_value = _t_test_p(
+            d, difference, alternative=alternative, metric=metric
         )
     else:
-        # Resampling the centered differences is an exact shift of the ordinary
-        # bootstrap, so the replicates above already contain the null statistic.
-        null_statistics = bootstrap_means - difference
+        if test_method == "randomization":
+            null_statistics = _randomization_means(
+                d,
+                n_resamples=n_resamples,
+                rng=test_rng,
+                resample_batch_size=resample_batch_size,
+            )
+        else:
+            # Resampling the centered differences is an exact shift of the
+            # ordinary bootstrap, so the replicates above already contain the
+            # null statistic.
+            null_statistics = bootstrap_means - difference
 
-    p_value = _monte_carlo_p(null_statistics, difference, alternative=alternative)
+        p_value = _monte_carlo_p(null_statistics, difference, alternative=alternative)
 
     if n_nonzero == 0:
         # Not the low-count case. The two models scored every user identically,

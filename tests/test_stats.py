@@ -865,3 +865,140 @@ def test_compare_pair_matches_compare_models_for_the_same_hypothesis():
     )
 
     assert _raw(paired) == _raw(from_report)
+
+
+# --------------------------------------------------------------------------
+# paired t-test
+# --------------------------------------------------------------------------
+
+
+def test_t_test_agrees_closely_with_the_randomization_test():
+    """The literature's finding, as an executable claim."""
+    rng = np.random.default_rng(50)
+    base = rng.random(N)
+    other = base + rng.normal(0.02, 0.1, N)
+    kwargs = {"metric": METRIC, "n_resamples": 9_999, "random_state": 4}
+
+    randomized = compare_pair(_result(base), _result(other), test_method="randomization", **kwargs)
+    t_tested = compare_pair(_result(base), _result(other), test_method="t", **kwargs)
+
+    assert t_tested.p_value == pytest.approx(randomized.p_value, abs=0.01)
+
+
+def _stored(values):
+    """Round-trip through the float32 storage and float64 upcast stats sees."""
+    return np.asarray(values, dtype=np.float32).astype(np.float64)
+
+
+def test_t_test_matches_scipy_on_the_same_differences():
+    """It must be a one-sample test on d, not an independently derived one."""
+    from scipy.stats import ttest_1samp
+
+    rng = np.random.default_rng(51)
+    base = rng.random(N)
+    other = base + rng.normal(0.02, 0.1, N)
+
+    comparison = compare_pair(
+        _result(base), _result(other), metric=METRIC, n_resamples=99,
+        test_method="t", random_state=4,
+    )
+
+    expected = ttest_1samp(_stored(other) - _stored(base), 0.0)
+    assert comparison.p_value == float(expected.pvalue)
+
+
+def test_t_test_still_reports_a_bootstrapped_interval():
+    """Choosing it makes the p-value deterministic, not the whole comparison."""
+    rng = np.random.default_rng(52)
+    base = rng.random(N)
+    other = base + rng.normal(0.02, 0.1, N)
+    kwargs = {"metric": METRIC, "n_resamples": 499, "test_method": "t"}
+
+    first = compare_pair(_result(base), _result(other), random_state=1, **kwargs)
+    second = compare_pair(_result(base), _result(other), random_state=2, **kwargs)
+
+    # Deterministic p-value...
+    assert first.p_value == second.p_value
+    # ...beside an interval that still moved with the seed.
+    assert (first.ci_low, first.ci_high) != (second.ci_low, second.ci_high)
+    assert first.interval_method == "percentile"
+
+
+def test_t_test_has_no_monte_carlo_floor():
+    """The whole reason to offer it beside a resampled test."""
+    rng = np.random.default_rng(53)
+    base = rng.random(N)
+    other = base + rng.normal(0.15, 0.1, N)
+    kwargs = {"metric": METRIC, "n_resamples": 999, "random_state": 4}
+
+    randomized = compare_pair(_result(base), _result(other), test_method="randomization", **kwargs)
+    t_tested = compare_pair(_result(base), _result(other), test_method="t", **kwargs)
+
+    assert randomized.p_value == pytest.approx(1 / 1000)
+    assert t_tested.p_value < 1e-6
+
+
+def test_t_test_leaves_other_hypotheses_untouched():
+    """It consumes no test draws, which per-hypothesis seeding makes harmless."""
+    models = _two_models()
+    kwargs = {"metrics": ["m1", "m2"], "reference": "EASE", "n_resamples": 499,
+              "random_state": 4}
+
+    randomized = compare_models(models, test_method="randomization", **kwargs)
+    mixed = compare_models(models, test_method="t", **kwargs)
+
+    for left, right in zip(randomized, mixed):
+        assert left.metric == right.metric
+        assert (left.ci_low, left.ci_high) == (right.ci_low, right.ci_high)
+
+
+@pytest.mark.parametrize("alternative", ["two-sided", "greater", "less"])
+def test_t_test_honours_the_alternative(alternative):
+    from scipy.stats import ttest_1samp
+
+    rng = np.random.default_rng(54)
+    base = rng.random(N)
+    other = base + rng.normal(0.02, 0.1, N)
+
+    comparison = compare_pair(
+        _result(base), _result(other), metric=METRIC, n_resamples=99,
+        test_method="t", alternative=alternative, random_state=4,
+    )
+
+    expected = ttest_1samp(
+        _stored(other) - _stored(base), 0.0, alternative=alternative
+    )
+    assert comparison.p_value == float(expected.pvalue)
+
+
+def test_t_test_on_identical_models_reports_one_rather_than_nan():
+    """scipy returns nan for 0/0; a p-value of nan is not a result."""
+    values = np.random.default_rng(55).random(N)
+    same = _result(values)
+
+    comparison = _quiet(
+        compare_pair, same, same, metric=METRIC, n_resamples=99, test_method="t"
+    )
+
+    assert comparison.p_value == 1.0
+
+
+def test_t_test_on_a_constant_difference_warns_that_it_is_undefined():
+    """scipy returns exactly 0.0 from zero variance; that is an artefact.
+
+    The values are chosen to survive the float32 round-trip exactly, so every
+    paired difference really is identical rather than merely close.
+    """
+    with pytest.warns(RuntimeWarning, match="undefined"):
+        comparison = compare_pair(
+            _result(np.zeros(N)), _result(np.full(N, 0.5)), metric=METRIC,
+            n_resamples=99, test_method="t",
+        )
+
+    assert comparison.p_value == 0.0
+    # The randomization test is defined here and reports its floor instead.
+    randomized = compare_pair(
+        _result(np.zeros(N)), _result(np.full(N, 0.5)), metric=METRIC,
+        n_resamples=99, test_method="randomization",
+    )
+    assert randomized.p_value == pytest.approx(1 / 100)
