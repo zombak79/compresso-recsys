@@ -12,7 +12,8 @@ needed rather than up front.
 Why the aggregates are not enough
 ---------------------------------
 
-Suppose two models score nDCG@100 of 0.2542 and 0.2538. Is the first better?
+Suppose EASE scores nDCG@100 of 0.4837 on GoodBooks and ELSA scores 0.4887.
+Is ELSA better?
 
 The honest answer is that you cannot tell from those two numbers. They are
 averages over tens of thousands of users, and averages hide how much the two
@@ -39,19 +40,19 @@ Evaluate every model on identical users and targets, then compare:
 
    metrics = [CalibratedRecall([20, 50]), NDCG(100)]
 
+   ease_result = evaluate_recommender(
+       ease, source=test_source, targets=test_targets,
+       metrics=metrics, sample_ids=test_user_ids,
+   )
    elsa_result = evaluate_recommender(
        elsa, source=test_source, targets=test_targets,
        metrics=metrics, sample_ids=test_user_ids,
    )
-   cselsa_result = evaluate_recommender(
-       cselsa, source=test_source, targets=test_targets,
-       metrics=metrics, sample_ids=test_user_ids,
-   )
 
    report = compare_models(
-       {"ELSA": elsa_result, "CSELSA": cselsa_result},
+       {"EASE": ease_result, "ELSA": elsa_result},
        metrics=["ndcg@100", "calibrated_recall@20"],
-       reference="ELSA",
+       reference="EASE",
    )
    print(report.to_frame().to_string(index=False))
 
@@ -129,12 +130,12 @@ source rows, the same targets and the same identifiers:
 .. code-block:: python
 
    from compresso_recsys.evaluation import evaluate_recommender
-   from compresso_recsys.metrics import CalibratedRecall, NDCG, Recall
+   from compresso_recsys.metrics import MRR, CalibratedRecall, NDCG, Recall
 
    source = split["test_source_matrix"]
    targets = split["test_target_matrix"]
    user_ids = split["test_eval_user_ids"]
-   metrics = [CalibratedRecall([20, 50]), Recall([20, 50]), NDCG(100)]
+   metrics = [CalibratedRecall([20, 50]), Recall([20, 50]), NDCG(100), MRR(20)]
 
    results = {
        name: evaluate_recommender(
@@ -150,9 +151,11 @@ source rows, the same targets and the same identifiers:
 .. code-block:: text
 
    EASE {'calibrated_recall@20': 0.3288, 'calibrated_recall@50': 0.4728,
-         'recall@20': 0.3191, 'recall@50': 0.4728, 'ndcg@100': 0.4837}
+         'recall@20': 0.3191, 'recall@50': 0.4728,
+         'ndcg@100': 0.4837, 'mrr@20': 0.6842}
    ELSA {'calibrated_recall@20': 0.3402, 'calibrated_recall@50': 0.4778,
-         'recall@20': 0.3304, 'recall@50': 0.4778, 'ndcg@100': 0.4887}
+         'recall@20': 0.3304, 'recall@50': 0.4778,
+         'ndcg@100': 0.4887, 'mrr@20': 0.7043}
 
 ELSA is ahead everywhere. Whether that means anything is the next step — but
 first, one thing in that output is worth pausing on.
@@ -181,7 +184,7 @@ Compare
 
    report = compare_models(
        results,
-       metrics=["ndcg@100", "calibrated_recall@20", "recall@20"],
+       metrics=["ndcg@100", "calibrated_recall@20", "recall@20", "mrr@20"],
        reference="EASE",
        n_resamples=9999,
        random_state=0,
@@ -190,10 +193,11 @@ Compare
 
 .. code-block:: text
 
-   metric               n_effective  baseline_mean  candidate_mean  difference  relative  ci_low   ci_high  adj_p   direction
-   ndcg@100                   12480       0.483718        0.488702    0.004985     1.03%  0.003808 0.006139 0.0003  better
-   calibrated_recall@20        7126       0.328782        0.340230    0.011448     3.48%  0.010031 0.012853 0.0003  better
-   recall@20                   7126       0.319140        0.330426    0.011286     3.54%  0.010031 0.012652 0.0003  better
+   metric                n_effective  baseline_mean  candidate_mean  difference  relative    ci_low   ci_high  adj_p   direction
+   ndcg@100                    12480       0.483718        0.488702    0.004985     1.03%  0.003808  0.006139  0.0004  better
+   calibrated_recall@20         7126       0.328782        0.340230    0.011448     3.48%  0.010031  0.012853  0.0004  better
+   recall@20                    7126       0.319140        0.330426    0.011286     3.54%  0.009921  0.012652  0.0004  better
+   mrr@20                       5227       0.684200        0.704307    0.020107     2.94%  0.015345  0.024781  0.0004  better
 
 Reading it
 ~~~~~~~~~~
@@ -202,17 +206,17 @@ Reading it
 clear of zero, and every adjusted p-value is at the floor for 9,999 resamples.
 
 **The relative gains disagree, and that is informative.** nDCG@100 improves by
-1.0% while recall@20 improves by 3.5%. ELSA is noticeably better at putting a
-relevant book in the top 20; across the full top 100 the two models are much
-closer. A paper reporting only nDCG@100 would understate what changed.
+1.0%, recall@20 by 3.5%, MRR@20 by 2.9%. ELSA is noticeably better near the top
+of the list; across the full hundred ranks the two are much closer. A paper
+reporting only nDCG@100 would understate what changed, and one reporting only
+recall@20 would overstate it.
 
-**Look at ``n_effective``.** For nDCG@100 the models differ for 12,480 of 12,500
-users — essentially everyone, because a metric reading 100 ranks deep notices
-almost any reordering. For recall@20 they differ for 7,126, so **43% of users
-score identically under both models**, usually retrieving the same number of
-relevant books in their top 20. The recall comparison rests on 7,126
-observations, not 12,500. It is still ample, but it is not what ``n_samples``
-advertises.
+**Look at ``n_effective``.** For nDCG@100 the models differ for 12,480 of the
+12,500 users — essentially everyone, because a metric reading 100 ranks deep
+notices almost any reordering. For recall@20 they differ for 7,126, and for
+MRR@20 only 5,227. So **58% of users get an identical MRR from both models**,
+because their first relevant book lands at the same rank either way. That
+comparison rests on 5,227 observations, not 12,500.
 
 **What this does not establish.** Both models were trained once. A 1% nDCG
 difference is well inside what a different random seed could move for ELSA,
@@ -223,24 +227,23 @@ several seeded runs and report their spread alongside these intervals.
 Reading the output
 ------------------
 
-A row of ``report.to_frame()``, from a comparison of two sparse autoencoder
-configurations:
+One row of the ``report.to_frame()`` above, laid out vertically:
 
 .. code-block:: text
 
    metric                    ndcg@100
-   baseline                  SAE_f2048_k8
-   candidate                 SAE_f4096_k8
-   n_samples                 50000
-   n_effective               48843
-   baseline_mean             0.243466
-   candidate_mean            0.254167
-   difference                0.010701
-   relative_difference       0.043952
-   ci_low                    0.010162
-   ci_high                   0.011225
+   baseline                  EASE
+   candidate                 ELSA
+   n_samples                 12500
+   n_effective               12480
+   baseline_mean             0.483718
+   candidate_mean            0.488702
+   difference                0.004985
+   relative_difference       0.010305
+   ci_low                    0.003808
+   ci_high                   0.006139
    confidence_level          0.95
-   bootstrap_standard_error  0.000272
+   bootstrap_standard_error  0.000589
    p_value                   0.0001
    adjusted_p_value          0.0004
    significant               True
@@ -255,8 +258,8 @@ The effect
 ~~~~~~~~~~
 
 ``difference`` is always **candidate minus baseline**, so positive favours the
-candidate. Here the candidate gained 0.0107 nDCG@100, which
-``relative_difference`` expresses as 4.4% of the baseline.
+candidate. Here ELSA gained 0.0050 nDCG@100 over EASE, which
+``relative_difference`` expresses as 1.0% of the baseline.
 
 This is the number to lead with. It is computed directly from the data, so it
 does not depend on any of the resampling settings.
@@ -265,20 +268,20 @@ How precisely you know it
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ``ci_low`` and ``ci_high`` give a range of plausible values for the true
-difference — here 0.0102 to 0.0112 at ``confidence_level`` 0.95.
+difference — here 0.0038 to 0.0061 at ``confidence_level`` 0.95.
 
-That range comes from a **bootstrap**. Take your 50,000 users and draw 50,000
+That range comes from a **bootstrap**. Take your 12,500 users and draw 12,500
 of them *with replacement* — meaning the same user can be drawn more than once.
 
-That last phrase is doing all the work. Drawing 50,000 from 50,000 sounds like
+That last phrase is doing all the work. Drawing 12,500 from 12,500 sounds like
 it must return the same set, and it would if each user could be drawn only once.
 With replacement, a typical draw looks like this:
 
 .. code-block:: text
 
-   31,630 distinct users (63.3%)
-   18,370 never picked
-   13,223 picked two or more times, one as often as seven
+    7,907 distinct users (63.3%)
+    4,593 never picked
+    3,252 picked two or more times, one as often as seven
 
 So every draw is a different dataset — a plausible alternative version of your
 evaluation, in which some users happened to be over-represented and about a
@@ -299,14 +302,24 @@ How many users the comparison rests on
 actually *differed* between the two models.
 
 That distinction matters more in recommendation than almost anywhere else,
-because ranking metrics produce enormous numbers of exact ties. In the run
-above, ``ndcg@100`` differed for 98% of users, but ``calibrated_recall@20``
-differed for only 44% — for the other 56%, both models retrieved the same
-number of relevant items in the top 20, usually zero. Those users contribute
+because ranking metrics produce enormous numbers of exact ties. Across the
+EASE-versus-ELSA comparison, from the same 12,500 users:
+
+.. code-block:: text
+
+   ndcg@100               12,480 of 12,500  (100%)
+   calibrated_recall@20    7,126 of 12,500   (57%)
+   recall@20               7,126 of 12,500   (57%)
+   mrr@20                  5,227 of 12,500   (42%)
+
+A metric reading 100 ranks deep notices almost any reordering, so nearly every
+user counts. MRR@20 depends only on where the *first* relevant book lands, so
+for 58% of users it lands in the same place under both models and they tell you
 nothing.
 
-So a comparison with ``n_samples`` of 50,000 and ``n_effective`` of 300 is a
-comparison resting on 300 observations. Report both.
+The MRR comparison rests on 5,227 observations, not 12,500. Report both
+numbers, because ``n_samples`` alone will overstate your evidence by more than
+a factor of two.
 
 Whether it could be chance
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -364,9 +377,10 @@ p-values have a floor
 With ``n_resamples`` set to ``B``, the smallest achievable p-value is
 ``1 / (B + 1)``. At the default 9,999 that is 0.0001.
 
-So ``p_value`` of 0.0001 does **not** mean one in ten thousand. It means *not
-one* of 9,999 random rearrangements matched your result — the true p is below
-this run's resolution. Write ``p < 10^-4``, not ``p = 0.0001``.
+So the ``p_value`` of 0.0001 in the worked example does **not** mean one in ten
+thousand. It means *not one* of 9,999 random sign assignments matched what ELSA
+achieved — the true p is below this run's resolution. Write ``p < 10^-4``, not
+``p = 0.0001``.
 
 The floor also interacts with the correction. With ``J`` hypotheses the
 smallest reachable adjusted p is ``J / (B + 1)``. At ``B = 100`` and six
@@ -394,17 +408,27 @@ harder to pass.
 The family is *everything one* :func:`~compresso_recsys.stats.compare_models`
 *call produces* — every pair, every metric.
 
-This creates a disagreement that looks like a bug and is not:
+This creates a disagreement that looks like a bug and is not. Run the same
+EASE-versus-ELSA comparison on the first 400 test users instead of all 12,500,
+and four metrics land here at once:
 
 .. code-block:: text
 
-   ndcg@100:  ci = [-0.000753, -0.000018]   excludes zero
-              adjusted_p_value = 0.0990      not significant
+   metric                difference    ci_low   ci_high  p_value  adjusted_p  significant
+   ndcg@100                0.006569  0.000586  0.012794   0.0307      0.0784        False
+   calibrated_recall@20    0.009656  0.001624  0.017774   0.0196      0.0784        False
+   recall@20               0.009425  0.001566  0.017467   0.0208      0.0784        False
+   mrr@20                  0.027745  0.002900  0.052719   0.0313      0.0784        False
+
+Every interval excludes zero. Not one is significant.
 
 Both are correct. **Intervals are never adjusted** — each describes one
-comparison on its own. **p-values are adjusted.** Here the raw p was 0.0495,
-just under the threshold, and correcting for four hypotheses pushed it to
-0.0990.
+comparison on its own, and on its own each of these would clear 0.05.
+**p-values are adjusted.** Testing four of them together multiplies the
+smallest by four, and 0.0196 becomes 0.0784.
+
+The same models on all 12,500 users are significant on every metric. Nothing
+about the models changed; the evidence did.
 
 Never describe these intervals as simultaneous or family-wise. They are not.
 
@@ -449,7 +473,7 @@ never touches ``difference``, ``baseline_mean``, ``candidate_mean`` or
 ``n_effective``, which are computed from the data. So you can iterate cheaply
 and pay for precision once.
 
-At 50,000 users and four hypotheses:
+At the worked example's scale — 12,500 users, one model pair, four metrics:
 
 .. list-table::
    :header-rows: 1
@@ -459,12 +483,12 @@ At 50,000 users and four hypotheses:
      - bootstrap
      - p resolution
    * - 999
-     - 0.7 s
-     - 0.5 s
+     - 0.2 s
+     - 0.1 s
      - 0.001
    * - 9999
-     - 7.1 s
-     - 4.7 s
+     - 1.7 s
+     - 1.1 s
      - 0.0001
 
 Cost is linear in ``B``, in users, and in the number of hypotheses. Use 999
@@ -605,10 +629,10 @@ Result sentence
 
 .. code-block:: text
 
-   SAE_f4096_k8 improved nDCG@100 over SAE_f2048_k8 by 0.0107
-   (95% paired-bootstrap CI [0.0102, 0.0112], +4.4% relative;
+   ELSA improved nDCG@100 over EASE by 0.0050
+   (95% paired-bootstrap CI [0.0038, 0.0061], +1.0% relative;
    paired randomization test, B = 9,999, Holm-adjusted p < 10^-3;
-   n = 50,000 users, 48,843 with a nonzero difference).
+   n = 12,500 users, 12,480 with a nonzero difference).
 
 Checklist
 ~~~~~~~~~
