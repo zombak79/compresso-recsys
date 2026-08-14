@@ -605,6 +605,21 @@ The two sources are roughly independent, so combining them in quadrature gives
 the **widens by** column: allowing for retraining stretches the interval by 3 to
 10%, most for nDCG@100 where seed noise is nearly half the user noise.
 
+**If both models are stochastic**, train five of each and pair them by seed:
+``A`` seed 0 against ``B`` seed 0, and so on. Five paired differences, and their
+standard deviation is the retraining column exactly as above.
+
+Do not compare all twenty-five combinations. It costs five times the evaluation
+and buys almost nothing: every ``A`` appears in five of those differences, so
+they are far from independent, and the information was in the ten training runs
+rather than the pairings. Pairing by seed index is arbitrary when the two models
+draw independent randomness, but harmless — the variance of the difference is
+the sum either way. It is better than harmless when the seed also fixes
+something shared, such as batch order, since the pairing then cancels that noise
+instead of adding it. If you would rather not pair at all, estimate each model's
+training spread from its own five runs and add them in quadrature; the two
+approaches estimate the same quantity.
+
 There is also a blunter check needing no statistics at all — **did any seed
 reverse the sign?** Across four metrics and five seeds, all twenty differences
 favour ELSA. That either holds or it does not, and it is a stronger statement
