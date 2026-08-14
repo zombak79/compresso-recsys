@@ -23,9 +23,9 @@ Amazon checkpoints use compact rating-only interactions plus item metadata:
    0core_rating_only_<category>
    raw_meta_<category>
 
-For temporal checkpoints, Amazon uses McAuley's predefined timestamp split with
-history. This is the preferred split when avoiding future-to-past leakage
-matters:
+Temporal checkpoints are built from the timestamped rating data. They use
+equal-width train, validation, and test target windows with expanding source
+histories:
 
 .. code-block:: text
 
@@ -64,10 +64,15 @@ training.
 Temporal Checkpoint
 ~~~~~~~~~~~~~~~~~~~
 
-``temporal`` uses the Amazon Reviews 2023 predefined timestamp split when
-``--dataset amazon2023`` is selected. Targets are kept cold with respect to the
-Amazon training split, so this checkpoint is intended for metadata/SBERT-style
-cold-item evaluation.
+``temporal`` uses three equal target windows ending at the latest interaction.
+The default period is 339 days, following the scale of the official Amazon
+Reviews 2023 absolute-timestamp validation interval. Each split ranks a mixed
+catalog of previously available warm items and newly supported cold items.
+
+For period ``w`` and latest timestamp ``T``, the target windows are
+``[T-3w, T-2w)``, ``[T-2w, T-w)``, and ``[T-w, T]``. Their corresponding
+sources contain every eligible interaction before the start of that target
+window.
 
 .. code-block:: bash
 
@@ -76,6 +81,7 @@ cold-item evaluation.
      --amazon_category Toys_and_Games \
      --checkpoint_path artifacts/amazon_toys/temporal_exp001.zip \
      --split_mode temporal \
+     --temporal_period_hours 8136 \
      --metadata_text_fields title,features,description,categories \
      --min_entity_text_words 30 \
      --min_user_support 20 \
@@ -108,8 +114,26 @@ test:
    data/test_target_matrix.npz
 
 ``source`` is the profile/input side and ``target`` is what retrieval metrics
-try to recover. The older ``data/train_matrix.npz`` file is still written as an
-alias for ``train_source_matrix.npz``.
+try to recover. The older ``data/train_matrix.npz`` file stores ``x_train``;
+for temporal checkpoints this is the train source/target union.
+
+Every checkpoint also stores:
+
+.. code-block:: text
+
+   data/train_item_ids.npy
+   data/val_item_ids.npy
+   data/test_item_ids.npy
+
+Each array defines the columns of both matrices in that split. Temporal item
+spaces are cumulative, so source and target shapes match within a split while
+the number and order of columns may differ between splits.
+
+For temporal checkpoints, ``train_item_indices`` maps the training catalog into
+the global ``item_ids`` array, while ``val_item_indices`` and
+``test_item_indices`` identify items newly admitted in those stages. The
+stage-specific ``*_item_ids`` arrays, not these index subsets, define matrix
+columns.
 
 Depending on the split mode, the checkpoint also stores partition ids:
 
@@ -127,8 +151,8 @@ Depending on the split mode, the checkpoint also stores partition ids:
    chronological per user, but not globally future-blind.
 
 ``temporal``
-   Stores source/target matrices from a global timestamp split. For Amazon
-   Reviews 2023, this uses McAuley's predefined temporal split.
+   Stores equal-width tail windows with expanding histories and cumulative
+   mixed warm/cold item catalogs.
 
 Validation/test source-target rows also have aligned ``val_eval_user_ids.npy``
 and ``test_eval_user_ids.npy`` when user identifiers are available.
@@ -151,6 +175,13 @@ For cold-item splits:
 
 If a user has only cold targets but no warm source items, the builder cannot
 construct a profile, and the user is dropped.
+
+Temporal support filtering is iterative. A row must satisfy
+``min_source_items``, ``min_target_items``, and ``min_user_support`` over the
+boolean source/target union. Newly introduced items need
+``item_min_support`` distinct retained users. Items admitted in an earlier
+window remain warm candidates in later catalogs even when they are uncommon in
+that later evaluation population.
 
 Full ``compresso-recsys-build-checkpoint`` parameter table:
 
@@ -216,11 +247,9 @@ Full ``compresso-recsys-build-checkpoint`` parameter table:
    * - ``--item_test_frac``
      - ``0.10``
      - Fraction of items held out as cold test items for ``item_split``.
-   * - ``--temporal_test_frac``
-     - ``0.10``
-     - For local temporal split, latest global fraction of interactions used as
-       target side. For Amazon ``temporal``, McAuley's predefined timestamp
-       split is used instead.
+   * - ``--temporal_period_hours``
+     - ``8136``
+     - Width of each temporal target window in hours. ``8136`` is 339 days.
    * - ``--min_source_items``
      - ``1``
      - Minimum number of source/profile items an eval user must have. For

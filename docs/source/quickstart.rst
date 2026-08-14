@@ -82,9 +82,14 @@ evaluation target. Prefer ``temporal`` when you need a future-blind split:
      --amazon_category Toys_and_Games \
      --checkpoint_path artifacts/amazon_toys/temporal_exp001.zip \
      --split_mode temporal \
+     --temporal_period_hours 8136 \
      --metadata_text_fields title,features,description,categories \
      --min_entity_text_words 30 \
      --annotation_source none
+
+The temporal catalog expands between stages. Use ``train_item_ids``,
+``val_item_ids``, or ``test_item_ids`` as the column IDs for the corresponding
+source/target pair.
 
 The full checkpoint-level metric set used in examples is ``recall@20``,
 ``ndcg@20``, ``recall@50``, ``ndcg@50``, ``recall@100``, and ``ndcg@100``.

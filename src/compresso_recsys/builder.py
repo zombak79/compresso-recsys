@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import random
+import warnings
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -16,8 +17,10 @@ from compresso_recsys.retrieval import (
     build_eval_holdout,
     build_item_cold_holdout,
     build_leave_last_out_holdout,
-    build_temporal_holdout,
 )
+
+
+DEFAULT_TEMPORAL_PERIOD_HOURS = 339 * 24
 
 
 @dataclass(frozen=True)
@@ -90,6 +93,15 @@ class _CheckpointProgress:
         self.current = True
         self.bar.set_description_str(message)
 
+    def detail(self, message: str) -> None:
+        """Update the active step label without advancing the progress bar."""
+        if not self.enabled:
+            return
+        if self.bar is None:
+            print(f"[compresso-recsys] {message}", flush=True)
+            return
+        self.bar.set_description_str(message)
+
 
 def parse_args():
     p = argparse.ArgumentParser()
@@ -114,7 +126,13 @@ def parse_args():
     p.add_argument("--test_items", type=int, default=None, help="Number of cold test items for item_split.")
     p.add_argument("--item_val_frac", type=float, default=0.05, help="Cold validation item fraction for item_split.")
     p.add_argument("--item_test_frac", type=float, default=0.10, help="Cold test item fraction for item_split.")
-    p.add_argument("--temporal_test_frac", type=float, default=0.10, help="Global latest-interaction fraction for temporal split.")
+    p.add_argument("--temporal_test_frac", type=float, default=None, help=argparse.SUPPRESS)
+    p.add_argument(
+        "--temporal_period_hours",
+        type=float,
+        default=DEFAULT_TEMPORAL_PERIOD_HOURS,
+        help="Width in hours of each train/validation/test temporal target window.",
+    )
     p.add_argument("--min_source_items", type=int, default=1)
     p.add_argument("--min_target_items", type=int, default=1)
     p.add_argument(
@@ -175,7 +193,8 @@ def _build_args(
     test_items: int | None = None,
     item_val_frac: float = 0.05,
     item_test_frac: float = 0.10,
-    temporal_test_frac: float = 0.10,
+    temporal_test_frac: float | None = None,
+    temporal_period_hours: float = DEFAULT_TEMPORAL_PERIOD_HOURS,
     min_source_items: int = 1,
     min_target_items: int = 1,
     amazon_category: str = "Toys_and_Games",
@@ -195,6 +214,19 @@ def _build_args(
         raise ValueError(f"Unsupported split_mode: {split_mode!r}")
     if annotation_source not in {"genres", "ml20m_tags", "goodbooks_tags", "none"}:
         raise ValueError(f"Unsupported annotation_source: {annotation_source!r}")
+    if (
+        isinstance(temporal_period_hours, bool)
+        or not np.isfinite(temporal_period_hours)
+        or temporal_period_hours <= 0
+    ):
+        raise ValueError("temporal_period_hours must be finite and > 0")
+    if temporal_test_frac is not None:
+        warnings.warn(
+            "temporal_test_frac is deprecated and ignored; use "
+            "temporal_period_hours instead",
+            DeprecationWarning,
+            stacklevel=2,
+        )
     return argparse.Namespace(
         dataset=dataset,
         data_dir=data_dir,
@@ -213,6 +245,7 @@ def _build_args(
         item_val_frac=item_val_frac,
         item_test_frac=item_test_frac,
         temporal_test_frac=temporal_test_frac,
+        temporal_period_hours=float(temporal_period_hours),
         min_source_items=min_source_items,
         min_target_items=min_target_items,
         amazon_category=amazon_category,
@@ -480,14 +513,19 @@ def _build_user_split(args, ds, proc_df):
         random_state=args.seed,
         eval_fold=args.eval_fold,
     )
+    catalog_item_ids = test_holdout["item_ids"]
     return {
-        "item_ids": test_holdout["item_ids"],
+        "item_ids": catalog_item_ids,
         "x_train": x_train,
         "train_source_matrix": x_train,
         "train_target_matrix": x_train,
         "val_holdout": val_holdout,
         "test_holdout": test_holdout,
-        "train_item_indices": None,
+        # Every item is present while training and no later phase introduces new
+        # ones, so training spans the catalog and validation/test add nothing.
+        # Written out explicitly instead of left as None so that every split mode
+        # stores all three partitions and none of them has to be inferred.
+        "train_item_indices": np.arange(len(catalog_item_ids), dtype=np.int64),
         "val_item_indices": np.array([], dtype=np.int64),
         "test_item_indices": np.array([], dtype=np.int64),
         "train_user_ids": np.asarray(train_user_index).astype(str),
@@ -592,145 +630,415 @@ def _build_leave_last_out_split(args, proc_df):
     }
 
 
-def _build_temporal_split(args, proc_df):
-    item_ids = np.array(sorted(proc_df["item_id"].astype(str).unique()))
-    holdout = build_temporal_holdout(
-        item_ids=item_ids,
-        interactions=proc_df,
-        test_frac=args.temporal_test_frac,
+def _timestamps_in_seconds(values: pd.Series) -> np.ndarray:
+    timestamps = pd.to_numeric(values, errors="coerce").to_numpy(dtype=np.float64)
+    finite = np.isfinite(timestamps)
+    if not bool(finite.any()):
+        raise ValueError("temporal split requires non-empty timestamp values")
+    magnitude = float(np.max(np.abs(timestamps[finite])))
+    if magnitude >= 1e17:
+        timestamps /= 1e9
+    elif magnitude >= 1e14:
+        timestamps /= 1e6
+    elif magnitude >= 1e11:
+        timestamps /= 1e3
+    return timestamps
+
+
+def _matrix_from_temporal_codes(
+    *,
+    event_mask: np.ndarray,
+    global_user_codes: np.ndarray,
+    global_item_codes: np.ndarray,
+    values: np.ndarray,
+    user_lookup: np.ndarray,
+    item_lookup: np.ndarray,
+    shape: tuple[int, int],
+) -> csr_matrix:
+    if not bool(event_mask.any()) or shape[0] == 0 or shape[1] == 0:
+        return csr_matrix(shape, dtype=np.float32)
+
+    rows = user_lookup[global_user_codes[event_mask]]
+    cols = item_lookup[global_item_codes[event_mask]]
+    valid = (rows >= 0) & (cols >= 0)
+    matrix = csr_matrix(
+        (values[event_mask][valid], (rows[valid], cols[valid])),
+        shape=shape,
+        dtype=np.float32,
+    )
+    matrix.sum_duplicates()
+    matrix.eliminate_zeros()
+    matrix.sort_indices()
+    return matrix
+
+
+def _temporal_user_upper_bound(
+    *,
+    source_mask: np.ndarray,
+    target_mask: np.ndarray,
+    global_user_codes: np.ndarray,
+    n_users: int,
+    min_user_support: int,
+    min_source_items: int,
+    min_target_items: int,
+) -> tuple[np.ndarray, int]:
+    """Reject users that cannot meet support before allocating tall CSRs.
+
+    Event counts are an upper bound on distinct nonzero item counts. Keeping a
+    user here does not guarantee eligibility, but rejecting one is always safe;
+    the exact fixed-point filter still runs on the resulting sparse matrices.
+    """
+    source_counts = np.bincount(
+        global_user_codes[source_mask], minlength=n_users
+    )
+    target_counts = np.bincount(
+        global_user_codes[target_mask], minlength=n_users
+    )
+    keep = source_counts >= min_source_items
+    keep &= target_counts >= min_target_items
+    source_counts += target_counts
+    initial_users = int(np.count_nonzero(source_counts > 0))
+    keep &= source_counts >= min_user_support
+    return np.flatnonzero(keep).astype(np.int64, copy=False), initial_users
+
+
+def _csr_row_indices(matrix: csr_matrix) -> list[np.ndarray]:
+    """Per-row column indices as read-only views into ``matrix.indices``.
+
+    The split returned by the builders keeps ``matrix`` alongside this list, so
+    copying every row would duplicate the whole index buffer while the original
+    stays alive: 80 MB of the 200 MB these lists cost at a million users with
+    twenty interactions each. Slices share that buffer instead.
+
+    The views are marked read-only because they alias the matrix, and writing
+    through one would silently corrupt the other. Consumers do not need to
+    write: both ``_indices_to_csr`` and ``_as_obj_array`` convert to int64,
+    and the retrieval helpers concatenate, each producing fresh writable arrays.
+    """
+    indices = matrix.indices
+    indptr = matrix.indptr
+    rows: list[np.ndarray] = []
+    for row in range(matrix.shape[0]):
+        view = indices[indptr[row] : indptr[row + 1]]
+        view.flags.writeable = False
+        rows.append(view)
+    return rows
+
+
+def _filter_temporal_pair(
+    source: csr_matrix,
+    target: csr_matrix,
+    *,
+    user_ids: np.ndarray,
+    item_ids: np.ndarray,
+    inherited_items: int,
+    min_user_support: int,
+    item_min_support: int,
+    min_source_items: int,
+    min_target_items: int,
+    stage: str,
+) -> tuple[csr_matrix, csr_matrix, np.ndarray, np.ndarray, dict[str, int]]:
+    if source.shape != target.shape:
+        raise ValueError(f"{stage} source and target shapes must match")
+    if source.shape != (len(user_ids), len(item_ids)):
+        raise ValueError(f"{stage} matrix shape does not match its IDs")
+
+    initial_users = int(source.shape[0])
+    initial_items = int(source.shape[1])
+    initial_new_items = initial_items - int(inherited_items)
+    initial_source_interactions = int(source.nnz)
+    initial_target_interactions = int(target.nnz)
+    iterations = 0
+    while True:
+        iterations += 1
+        combined = source.maximum(target)
+        row_keep = (
+            (source.getnnz(axis=1) >= min_source_items)
+            & (target.getnnz(axis=1) >= min_target_items)
+            & (combined.getnnz(axis=1) >= min_user_support)
+        )
+        if not bool(row_keep.any()):
+            raise ValueError(
+                f"{stage} temporal window has no users after support filtering"
+            )
+        rows_changed = not bool(row_keep.all())
+        if rows_changed:
+            source = source[row_keep].tocsr()
+            target = target[row_keep].tocsr()
+            user_ids = user_ids[row_keep]
+            combined = source.maximum(target)
+
+        item_support = np.asarray(combined.getnnz(axis=0)).ravel()
+        column_keep = np.ones(source.shape[1], dtype=bool)
+        column_keep[inherited_items:] = (
+            item_support[inherited_items:] >= item_min_support
+        )
+        columns_changed = not bool(column_keep.all())
+        if columns_changed:
+            source = source[:, column_keep].tocsr()
+            target = target[:, column_keep].tocsr()
+            item_ids = item_ids[column_keep]
+
+        if not rows_changed and not columns_changed:
+            break
+
+    stats = {
+        "initial_users": initial_users,
+        "users": int(source.shape[0]),
+        "initial_items": initial_items,
+        "items": int(source.shape[1]),
+        "inherited_items": int(inherited_items),
+        "initial_new_items": int(initial_new_items),
+        "new_items": int(source.shape[1] - inherited_items),
+        "initial_source_interactions": initial_source_interactions,
+        "initial_target_interactions": initial_target_interactions,
+        "source_interactions": int(source.nnz),
+        "target_interactions": int(target.nnz),
+        "support_iterations": int(iterations),
+    }
+    return source, target, user_ids, item_ids, stats
+
+
+def _build_temporal_stage(
+    *,
+    source_mask: np.ndarray,
+    target_mask: np.ndarray,
+    global_user_codes: np.ndarray,
+    global_item_codes: np.ndarray,
+    global_user_ids: np.ndarray,
+    global_item_ids: np.ndarray,
+    values: np.ndarray,
+    inherited_item_codes: np.ndarray,
+    args,
+    stage: str,
+) -> dict[str, object]:
+    observed_item_codes = np.unique(
+        global_item_codes[source_mask | target_mask]
+    )
+    inherited_item_codes = np.asarray(inherited_item_codes, dtype=np.int64)
+    new_item_codes = np.setdiff1d(
+        observed_item_codes,
+        inherited_item_codes,
+        assume_unique=True,
+    )
+    item_codes = np.concatenate((inherited_item_codes, new_item_codes))
+
+    user_codes, initial_users = _temporal_user_upper_bound(
+        source_mask=source_mask,
+        target_mask=target_mask,
+        global_user_codes=global_user_codes,
+        n_users=len(global_user_ids),
+        min_user_support=args.min_user_support,
         min_source_items=args.min_source_items,
         min_target_items=args.min_target_items,
     )
-    target_items = sorted({int(i) for row in holdout["target_indices"] for i in row.tolist()})
-    target_idx = np.asarray(target_items, dtype=np.int64)
-    train_idx = np.setdiff1d(np.arange(len(item_ids), dtype=np.int64), target_idx, assume_unique=False)
-    train_items = set(item_ids[train_idx].tolist())
-    train_df = proc_df[proc_df["item_id"].astype(str).isin(train_items)].copy()
-    x_train, train_user_ids = _to_sparse_matrix_for_items_with_users(train_df, item_ids)
+    if len(user_codes) == 0:
+        raise ValueError(
+            f"{stage} temporal window has no users after support filtering"
+        )
+
+    user_lookup = np.full(len(global_user_ids), -1, dtype=np.int64)
+    user_lookup[user_codes] = np.arange(len(user_codes), dtype=np.int64)
+    eligible_users = np.zeros(len(global_user_ids), dtype=bool)
+    eligible_users[user_codes] = True
+    matrix_source_mask = source_mask & eligible_users[global_user_codes]
+    matrix_target_mask = target_mask & eligible_users[global_user_codes]
+    item_lookup = np.full(len(global_item_ids), -1, dtype=np.int64)
+    item_lookup[item_codes] = np.arange(len(item_codes), dtype=np.int64)
+    shape = (len(user_codes), len(item_codes))
+    source = _matrix_from_temporal_codes(
+        event_mask=matrix_source_mask,
+        global_user_codes=global_user_codes,
+        global_item_codes=global_item_codes,
+        values=values,
+        user_lookup=user_lookup,
+        item_lookup=item_lookup,
+        shape=shape,
+    )
+    target = _matrix_from_temporal_codes(
+        event_mask=matrix_target_mask,
+        global_user_codes=global_user_codes,
+        global_item_codes=global_item_codes,
+        values=values,
+        user_lookup=user_lookup,
+        item_lookup=item_lookup,
+        shape=shape,
+    )
+    user_ids = global_user_ids[user_codes]
+    item_ids = global_item_ids[item_codes]
+    source, target, user_ids, item_ids, stats = _filter_temporal_pair(
+        source,
+        target,
+        user_ids=user_ids,
+        item_ids=item_ids,
+        inherited_items=len(inherited_item_codes),
+        min_user_support=args.min_user_support,
+        item_min_support=args.item_min_support,
+        min_source_items=args.min_source_items,
+        min_target_items=args.min_target_items,
+        stage=stage,
+    )
+    stats["initial_users"] = initial_users
+    stats["prefiltered_users"] = int(len(user_codes))
+    retained_item_codes = pd.Index(global_item_ids).get_indexer(item_ids)
     return {
+        "source": source,
+        "target": target,
+        "user_ids": user_ids,
         "item_ids": item_ids,
+        "item_codes": retained_item_codes.astype(np.int64, copy=False),
+        "stats": stats,
+    }
+
+
+def _build_temporal_split(args, proc_df, progress: _CheckpointProgress | None = None):
+    if "timestamp" not in proc_df.columns:
+        raise ValueError("temporal split requires a timestamp column")
+    timestamps = _timestamps_in_seconds(proc_df["timestamp"])
+    finite = np.isfinite(timestamps)
+    if not bool(finite.any()):
+        raise ValueError("temporal split requires non-empty timestamp values")
+    timestamps = timestamps[finite]
+    values = proc_df.loc[finite, "value"].to_numpy(dtype=np.float32)
+    global_user_codes, global_user_ids = pd.factorize(
+        proc_df.loc[finite, "user_id"], sort=True
+    )
+    global_item_codes, global_item_ids = pd.factorize(
+        proc_df.loc[finite, "item_id"], sort=True
+    )
+    global_user_codes = global_user_codes.astype(np.int64, copy=False)
+    global_item_codes = global_item_codes.astype(np.int64, copy=False)
+    global_user_ids = np.asarray(global_user_ids, dtype=object)
+    global_item_ids = np.asarray(global_item_ids, dtype=object)
+
+    period_seconds = float(args.temporal_period_hours) * 60.0 * 60.0
+    timestamp_min = float(timestamps.min())
+    timestamp_max = float(timestamps.max())
+    train_target_start = timestamp_max - 3.0 * period_seconds
+    validation_target_start = timestamp_max - 2.0 * period_seconds
+    test_target_start = timestamp_max - period_seconds
+    if train_target_start <= timestamp_min:
+        span_hours = (timestamp_max - timestamp_min) / 3600.0
+        raise ValueError(
+            "temporal_period_hours requires three target windows shorter than "
+            f"the available {span_hours:.3f}-hour timestamp span"
+        )
+
+    if progress is not None:
+        progress.detail("Building temporal split: train")
+    train_stage = _build_temporal_stage(
+        source_mask=timestamps < train_target_start,
+        target_mask=(timestamps >= train_target_start)
+        & (timestamps < validation_target_start),
+        global_user_codes=global_user_codes,
+        global_item_codes=global_item_codes,
+        global_user_ids=global_user_ids,
+        global_item_ids=global_item_ids,
+        values=values,
+        inherited_item_codes=np.asarray([], dtype=np.int64),
+        args=args,
+        stage="train",
+    )
+    if progress is not None:
+        progress.detail("Building temporal split: validation")
+    val_stage = _build_temporal_stage(
+        source_mask=timestamps < validation_target_start,
+        target_mask=(timestamps >= validation_target_start)
+        & (timestamps < test_target_start),
+        global_user_codes=global_user_codes,
+        global_item_codes=global_item_codes,
+        global_user_ids=global_user_ids,
+        global_item_ids=global_item_ids,
+        values=values,
+        inherited_item_codes=train_stage["item_codes"],
+        args=args,
+        stage="validation",
+    )
+    if progress is not None:
+        progress.detail("Building temporal split: test")
+    test_stage = _build_temporal_stage(
+        source_mask=timestamps < test_target_start,
+        target_mask=timestamps >= test_target_start,
+        global_user_codes=global_user_codes,
+        global_item_codes=global_item_codes,
+        global_user_ids=global_user_ids,
+        global_item_ids=global_item_ids,
+        values=values,
+        inherited_item_codes=val_stage["item_codes"],
+        args=args,
+        stage="test",
+    )
+
+    train_item_ids = np.asarray(train_stage["item_ids"]).astype(str)
+    val_item_ids = np.asarray(val_stage["item_ids"]).astype(str)
+    test_item_ids = np.asarray(test_stage["item_ids"]).astype(str)
+    train_source = train_stage["source"]
+    train_target = train_stage["target"]
+    val_source = val_stage["source"]
+    val_target = val_stage["target"]
+    test_source = test_stage["source"]
+    test_target = test_stage["target"]
+    x_train = train_source.maximum(train_target).tocsr()
+
+    train_count = len(train_item_ids)
+    val_count = len(val_item_ids)
+    test_count = len(test_item_ids)
+    return {
+        "item_ids": test_item_ids,
+        "train_item_ids": train_item_ids,
+        "val_item_ids": val_item_ids,
+        "test_item_ids": test_item_ids,
         "x_train": x_train,
-        "train_source_matrix": x_train,
-        "train_target_matrix": x_train,
-        "val_holdout": holdout,
-        "test_holdout": holdout,
-        "train_item_indices": train_idx,
-        "val_item_indices": target_idx,
-        "test_item_indices": target_idx,
-        "train_user_ids": train_user_ids,
-        "val_user_ids": None,
-        "test_user_ids": None,
+        "train_source_matrix": train_source,
+        "train_target_matrix": train_target,
+        "val_source_matrix": val_source,
+        "val_target_matrix": val_target,
+        "test_source_matrix": test_source,
+        "test_target_matrix": test_target,
+        "val_holdout": {
+            "source_indices": _csr_row_indices(val_source),
+            "target_indices": _csr_row_indices(val_target),
+            "user_ids": val_stage["user_ids"],
+        },
+        "test_holdout": {
+            "source_indices": _csr_row_indices(test_source),
+            "target_indices": _csr_row_indices(test_target),
+            "user_ids": test_stage["user_ids"],
+        },
+        "train_item_indices": np.arange(train_count, dtype=np.int64),
+        "val_item_indices": np.arange(train_count, val_count, dtype=np.int64),
+        "test_item_indices": np.arange(val_count, test_count, dtype=np.int64),
+        "train_user_ids": train_stage["user_ids"],
+        "val_user_ids": val_stage["user_ids"],
+        "test_user_ids": test_stage["user_ids"],
         "extra_metadata": {
             "has_user_partitions": False,
             "has_item_partitions": False,
+            "has_stage_item_spaces": True,
             "is_temporal": True,
             "is_future_blind": True,
-            "leakage_note": "Temporal split uses global timestamp cutoffs so training interactions precede evaluation targets.",
-            "temporal_test_frac": args.temporal_test_frac,
-            "timestamp_cutoff": holdout.get("timestamp_cutoff"),
-            "cold_target_items": int(len(target_idx)),
+            "leakage_note": (
+                "Temporal targets follow expanding histories. Item support may "
+                "use a complete target window only to define benchmark eligibility."
+            ),
+            "temporal_period_hours": float(args.temporal_period_hours),
+            "timestamp_unit": "unix_seconds",
+            "timestamp_min": timestamp_min,
+            "timestamp_max": timestamp_max,
+            "train_target_start": train_target_start,
+            "validation_target_start": validation_target_start,
+            "test_target_start": test_target_start,
+            "train_stage": train_stage["stats"],
+            "validation_stage": val_stage["stats"],
+            "test_stage": test_stage["stats"],
+            "val_cold_items": int(val_count - train_count),
+            "test_new_items": int(test_count - val_count),
+            "test_model_cold_items": int(test_count - train_count),
         },
     }
 
 
-def _normalize_amazon_split_df(df: pd.DataFrame, args, *, valid_items: set[str]) -> pd.DataFrame:
-    out = df.rename(columns={"parent_asin": "item_id", "rating": "value"}).copy()
-    out["user_id"] = out["user_id"].astype(str)
-    out["item_id"] = out["item_id"].astype(str)
-    out["value"] = pd.to_numeric(out["value"], errors="coerce")
-    out["timestamp"] = pd.to_numeric(out["timestamp"], errors="coerce")
-    out = out.dropna(subset=["user_id", "item_id", "value"])
-    out = out[out["item_id"].isin(valid_items)].copy()
-    if args.min_value_to_keep is not None:
-        out = out[out["value"] >= float(args.min_value_to_keep)].copy()
-    if args.set_all_values_to is not None:
-        out["value"] = float(args.set_all_values_to)
-    return out
-
-
-def _history_to_indices(raw_history, item_to_idx: dict[str, int]) -> np.ndarray:
-    if raw_history is None or (isinstance(raw_history, float) and pd.isna(raw_history)):
-        return np.array([], dtype=np.int64)
-    if isinstance(raw_history, str):
-        items = raw_history.split()
-    elif isinstance(raw_history, (list, tuple)):
-        items = [str(x) for x in raw_history]
-    else:
-        items = str(raw_history).split()
-    indices = sorted({item_to_idx[item] for item in items if item in item_to_idx})
-    return np.asarray(indices, dtype=np.int64)
-
-
-def _build_amazon_predefined_temporal_split(args, ds: AmazonReviews2023, proc_df: pd.DataFrame):
-    raw_splits = ds.load_timestamp_splits_with_history()
-    valid_items = set(proc_df["item_id"].astype(str))
-    train_df = _normalize_amazon_split_df(raw_splits["train"], args, valid_items=valid_items)
-    valid_df = _normalize_amazon_split_df(raw_splits["valid"], args, valid_items=valid_items)
-    test_df = _normalize_amazon_split_df(raw_splits["test"], args, valid_items=valid_items)
-
-    item_ids = np.array(sorted(valid_items))
-    item_to_idx = {item_id: idx for idx, item_id in enumerate(item_ids)}
-    train_items = set(train_df["item_id"].astype(str).unique())
-    train_idx = np.asarray([item_to_idx[item] for item in sorted(train_items) if item in item_to_idx], dtype=np.int64)
-
-    x_train, train_user_ids = _to_sparse_matrix_for_items_with_users(train_df, item_ids)
-
-    def _holdout(df: pd.DataFrame) -> dict[str, object]:
-        source_indices: list[np.ndarray] = []
-        target_indices: list[np.ndarray] = []
-        user_ids: list[str] = []
-        target_item_idx: set[int] = set()
-        for _, row in df.iterrows():
-            target_item = str(row["item_id"])
-            target_idx = item_to_idx.get(target_item)
-            if target_idx is None or target_item in train_items:
-                continue
-            src = _history_to_indices(row.get("history", ""), item_to_idx)
-            src = np.asarray([idx for idx in src.tolist() if item_ids[idx] in train_items], dtype=np.int64)
-            if len(src) >= args.min_source_items:
-                source_indices.append(src)
-                target_indices.append(np.asarray([target_idx], dtype=np.int64))
-                user_ids.append(str(row["user_id"]))
-                target_item_idx.add(target_idx)
-        return {
-            "item_ids": item_ids,
-            "source_indices": source_indices,
-            "target_indices": target_indices,
-            "user_ids": np.asarray(user_ids, dtype=str),
-            "target_item_indices": np.asarray(sorted(target_item_idx), dtype=np.int64),
-        }
-
-    val_holdout = _holdout(valid_df)
-    test_holdout = _holdout(test_df)
-    val_idx = val_holdout.pop("target_item_indices")
-    test_idx = test_holdout.pop("target_item_indices")
-    return {
-        "item_ids": item_ids,
-        "x_train": x_train,
-        "train_source_matrix": x_train,
-        "train_target_matrix": x_train,
-        "val_holdout": val_holdout,
-        "test_holdout": test_holdout,
-        "train_item_indices": np.sort(train_idx),
-        "val_item_indices": val_idx,
-        "test_item_indices": test_idx,
-        "train_user_ids": train_user_ids,
-        "val_user_ids": None,
-        "test_user_ids": None,
-        "extra_metadata": {
-            "has_user_partitions": False,
-            "has_item_partitions": False,
-            "is_temporal": True,
-            "is_future_blind": True,
-            "leakage_note": "Amazon predefined temporal split uses McAuley's timestamp split with histories.",
-            "amazon_predefined_split": "0core_timestamp_w_his",
-            "val_items": int(len(val_idx)),
-            "test_items": int(len(test_idx)),
-        },
-    }
-
-
-def _build_split_payload(args, ds, proc_df):
+def _build_split_payload(args, ds, proc_df, progress: _CheckpointProgress | None = None):
     if args.split_mode == "user_split":
         return _build_user_split(args, ds, proc_df)
     if args.split_mode == "item_split":
@@ -738,9 +1046,7 @@ def _build_split_payload(args, ds, proc_df):
     if args.split_mode == "leave_last_out":
         return _build_leave_last_out_split(args, proc_df)
     if args.split_mode == "temporal":
-        if isinstance(ds, AmazonReviews2023):
-            return _build_amazon_predefined_temporal_split(args, ds, proc_df)
-        return _build_temporal_split(args, proc_df)
+        return _build_temporal_split(args, proc_df, progress=progress)
     raise ValueError(f"Unsupported split_mode: {args.split_mode}")
 
 
@@ -755,16 +1061,17 @@ def _build_recsys_checkpoint_from_args(args) -> Path:
         raw_df = ds.get_interactions()
 
         progress.step("Preprocessing interactions")
+        temporal = args.split_mode == "temporal"
         proc_df = ds.preprocess_interactions_for_recsys(
             raw_df,
             min_value_to_keep=args.min_value_to_keep,
-            user_min_support=args.min_user_support,
-            item_min_support=args.item_min_support,
+            user_min_support=1 if temporal else args.min_user_support,
+            item_min_support=1 if temporal else args.item_min_support,
             set_all_values_to=args.set_all_values_to,
         )
 
         progress.step(f"Building {args.split_mode} split")
-        split_payload = _build_split_payload(args, ds, proc_df)
+        split_payload = _build_split_payload(args, ds, proc_df, progress=progress)
         item_ids = split_payload["item_ids"]
         val_holdout = split_payload["val_holdout"]
         test_holdout = split_payload["test_holdout"]
@@ -787,12 +1094,19 @@ def _build_recsys_checkpoint_from_args(args) -> Path:
                 root,
                 item_ids=item_ids,
                 x_train=split_payload["x_train"],
+                train_item_ids=split_payload.get("train_item_ids"),
+                val_item_ids=split_payload.get("val_item_ids"),
+                test_item_ids=split_payload.get("test_item_ids"),
                 val_source_indices=val_holdout["source_indices"],
                 val_target_indices=val_holdout["target_indices"],
                 test_source_indices=test_holdout["source_indices"],
                 test_target_indices=test_holdout["target_indices"],
                 train_source_matrix=split_payload.get("train_source_matrix"),
                 train_target_matrix=split_payload.get("train_target_matrix"),
+                val_source_matrix=split_payload.get("val_source_matrix"),
+                val_target_matrix=split_payload.get("val_target_matrix"),
+                test_source_matrix=split_payload.get("test_source_matrix"),
+                test_target_matrix=split_payload.get("test_target_matrix"),
                 train_user_ids=split_payload.get("train_user_ids"),
                 val_user_ids=split_payload.get("val_user_ids"),
                 test_user_ids=split_payload.get("test_user_ids"),
@@ -832,6 +1146,9 @@ def _build_recsys_checkpoint_from_args(args) -> Path:
                         "val_target_matrix": "data/val_target_matrix.npz",
                         "test_source_matrix": "data/test_source_matrix.npz",
                         "test_target_matrix": "data/test_target_matrix.npz",
+                        "train_item_ids": "data/train_item_ids.npy",
+                        "val_item_ids": "data/val_item_ids.npy",
+                        "test_item_ids": "data/test_item_ids.npy",
                         "train_user_ids": "data/train_user_ids.npy",
                         "val_user_ids": "data/val_user_ids.npy",
                         "test_user_ids": "data/test_user_ids.npy",
@@ -877,7 +1194,8 @@ def build_recsys_checkpoint(
     test_items: int | None = None,
     item_val_frac: float = 0.05,
     item_test_frac: float = 0.10,
-    temporal_test_frac: float = 0.10,
+    temporal_test_frac: float | None = None,
+    temporal_period_hours: float = DEFAULT_TEMPORAL_PERIOD_HOURS,
     min_source_items: int = 1,
     min_target_items: int = 1,
     amazon_category: str = "Toys_and_Games",
@@ -907,6 +1225,7 @@ def build_recsys_checkpoint(
         item_val_frac=item_val_frac,
         item_test_frac=item_test_frac,
         temporal_test_frac=temporal_test_frac,
+        temporal_period_hours=temporal_period_hours,
         min_source_items=min_source_items,
         min_target_items=min_target_items,
         amazon_category=amazon_category,

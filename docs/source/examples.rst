@@ -84,6 +84,36 @@ The same configuration can be executed from the command line:
      --min_target_items 1 \
      --annotation_source none
 
+Amazon temporal checkpoint with three five-day target windows:
+
+.. code-block:: python
+
+   checkpoint_path = cr.build_recsys_checkpoint(
+       dataset="amazon2023",
+       amazon_category="Pet_Supplies",
+       checkpoint_path="artifacts/pets-temporal.zip",
+       split_mode="temporal",
+       temporal_period_hours=24 * 5,
+       metadata_text_fields=["title", "features", "description", "categories"],
+       min_entity_text_words=20,
+       min_user_support=10,
+       item_min_support=10,
+       min_value_to_keep=1.0,
+       annotation_source="none",
+   )
+
+Temporal source and target matrices share columns within each stage. Catalogs
+expand between stages, so always use the matching item-ID array:
+
+.. code-block:: python
+
+   with cr.read_checkpoint(checkpoint_path) as root:
+       split = cr.load_recsys_split(root)
+
+   assert split["val_source_matrix"].shape == split["val_target_matrix"].shape
+   assert split["val_source_matrix"].shape[1] == len(split["val_item_ids"])
+   assert split["test_source_matrix"].shape[1] == len(split["test_item_ids"])
+
 Checkpoint Read/Write
 ---------------------
 
@@ -182,6 +212,191 @@ Additional metrics can be opted into without changing the defaults:
 
 For a model that already produced one complete :class:`compresso.SRPTensor`,
 use :func:`compresso_recsys.evaluation.evaluate_ranked_predictions` instead.
+
+Train TEASER for Cold Items
+---------------------------
+
+TEASER consumes the checkpoint's item-feature matrix directly. With an
+``item_split`` checkpoint, fit only encoder rows for warm items while retaining
+all item features in the fixed decoder:
+
+.. code-block:: python
+
+   from compresso_recsys.evaluation import evaluate_recommender
+   from compresso_recsys.metrics import CalibratedRecall, NDCG
+   from compresso_recsys.models import TEASER, TEASERConfig
+
+   model = TEASER(
+       TEASERConfig(
+           l2_coefficients=0.05,
+           l2_encoder=0.05,
+           rho=0.05,
+           max_iterations=10,
+       )
+   )
+   model.fit(
+       split["x_train"],
+       item_features=split["entity_tag_matrix"],
+       train_item_indices=split["train_item_indices"],
+       item_ids=split["item_ids"],
+       metadata=split["entity_metadata"],
+       feature_names=split["tag_names"],
+       show_progress=True,
+   )
+
+   result = evaluate_recommender(
+       model,
+       source=split["test_source_matrix"],
+       targets=split["test_target_matrix"],
+       metrics=[
+           CalibratedRecall([20, 50]),
+           NDCG(100),
+       ],
+       batch_size=1024,
+       show_progress=True,
+   )
+
+``item_features`` may instead be a dense NumPy or PyTorch embedding matrix, a
+SciPy CSR matrix, or an :class:`compresso.SRPTensor`. Its rows must follow
+``split["item_ids"]``. Interactions must be binary implicit feedback. The
+original ADMM solver is intended as a reproducible baseline and can require
+substantial memory for large warm-item catalogs.
+
+Train TEASER with Gradient Descent
+----------------------------------
+
+Use TEASERGD when the ADMM solver's dense warm-item Gram matrix is too costly.
+The production catalog API is the same, while training supports ELSA-style
+output candidate sampling:
+
+.. code-block:: python
+
+   from compresso_recsys.models import TEASERGDConfig, TEASERGDTrainer
+
+   model = TEASERGDTrainer(
+       TEASERGDConfig(
+           device="cuda",
+           batch_size=1024,
+           max_output=10_000,
+           epochs=10,
+           lr=1e-3,
+           decay=True,
+           loss="normalized_mse",
+           use_relu=False,
+           encoder_init="features",
+           normalize_encoder=True,
+           diagonal_scale=1.0,
+           l2_encoder=0.0,
+           coefficient_regularization_samples=4096,
+       )
+   )
+   model.fit(
+       split["x_train"],
+       item_features=item_embeddings,
+       train_item_indices=split["train_item_indices"],
+       item_ids=split["item_ids"],
+       metadata=split["entity_metadata"],
+       feature_space_id="Qwen/Qwen3-Embedding-0.6B",
+   )
+
+   result = evaluate_recommender(
+       model,
+       source=split["test_source_matrix"],
+       targets=split["test_target_matrix"],
+       metrics=[CalibratedRecall([20, 50]), NDCG(100)],
+       batch_size=1024,
+       show_progress=True,
+   )
+
+``max_output=None`` trains against every warm item. With a finite value, every
+positive item represented in the current user batch is retained and sampled
+negatives fill the remaining output budget. The source-prefix rule is what
+makes exact diagonal removal possible in the sampled output. TEASER loss mode
+importance-weights sampled negative errors. Use ``loss="normalized_mse"`` for
+the ELSA-style row-normalized objective instead. Set ``diagonal_scale=0.0`` to
+disable self-coefficient subtraction or use a value between zero and one for a
+partial correction; ``1.0`` preserves standard TEASER behavior.
+
+Serve New TEASER Candidates
+---------------------------
+
+Stable item IDs separate the fixed source vocabulary from the mutable output
+catalog for both TEASER solvers. Fit a production-style model only on warm source items, then publish
+the complete initial candidate catalog. ``feature_space_id`` is an optional
+caller-provided label used to reject explicitly incompatible updates:
+
+.. code-block:: python
+
+   train_items = split["train_item_indices"]
+
+   model.fit(
+       interactions=split["x_train"][:, train_items],
+       item_features=item_embeddings[train_items],
+       item_ids=split["item_ids"][train_items],
+       metadata=split["entity_metadata"].iloc[train_items].reset_index(drop=True),
+       feature_space_id="Qwen/Qwen3-Embedding-0.6B@revision",
+   )
+
+   model.build_candidates(
+       item_ids=split["item_ids"],
+       item_features=item_embeddings,
+       metadata=split["entity_metadata"],
+       feature_space_id="Qwen/Qwen3-Embedding-0.6B@revision",
+   )
+
+Checkpoint source matrices still use the complete checkpoint item space. Align
+one to the fitted warm source vocabulary before prediction or evaluation:
+
+.. code-block:: python
+
+   result = evaluate_recommender(
+       model,
+       source=model.align_source(
+           split["test_source_matrix"],
+           item_ids=split["item_ids"],
+       ),
+       targets=split["test_target_matrix"],
+       metrics=[
+           CalibratedRecall([20, 50]),
+           NDCG(100),
+       ],
+       batch_size=1024,
+       show_progress=True,
+   )
+
+Register new decoder-only candidates without retraining:
+
+.. code-block:: python
+
+   catalog = model.update_candidates(
+       item_ids=new_item_ids,
+       item_features=new_item_embeddings,
+       metadata=new_metadata,
+       on_conflict="error",
+       feature_space_id="Qwen/Qwen3-Embedding-0.6B@revision",
+   )
+
+Use :meth:`~compresso_recsys.models.TEASER.build_candidates` when publishing a
+complete catalog snapshot is simpler than incremental changes. Both operations
+validate everything before atomically swapping the catalog.
+
+Prediction can score the complete catalog or a request-specific allowlist. An
+allowlist contains registered IDs; it does not rebuild or copy the catalog:
+
+.. code-block:: python
+
+   catalog = model.candidates
+   predictions = model.predict(
+       model.align_source(source, item_ids=source_item_ids),
+       k=100,
+       candidate_ids=eligible_item_ids,
+   )
+   recommended_item_ids = catalog.ids_for(predictions.cols)
+
+The prediction columns remain global rows in ``catalog`` rather than positions
+inside ``eligible_item_ids``. Resolve them against the same catalog snapshot.
+New items cannot be present in ``source`` until a retrained encoder gives them
+source rows.
 
 Train and Evaluate ELSA
 -----------------------

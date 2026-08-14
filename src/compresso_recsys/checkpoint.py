@@ -149,6 +149,9 @@ def save_recsys_split(
     *,
     item_ids: np.ndarray,
     x_train: csr_matrix,
+    train_item_ids: np.ndarray | list[str] | None = None,
+    val_item_ids: np.ndarray | list[str] | None = None,
+    test_item_ids: np.ndarray | list[str] | None = None,
     val_source_indices: list[np.ndarray],
     val_target_indices: list[np.ndarray],
     test_source_indices: list[np.ndarray],
@@ -172,34 +175,87 @@ def save_recsys_split(
     entity_metadata: pd.DataFrame | None = None,
     metadata: dict[str, Any] | None = None,
 ) -> None:
+    """Write the split stage of a checkpoint.
+
+    Item partitions
+    ---------------
+    ``train_item_indices``, ``val_item_indices`` and ``test_item_indices`` are
+    positions into ``item_ids`` naming the items **that phase introduces**, not
+    the items it may score. They partition the catalog by first appearance:
+
+    - ``user_split``: training spans every item and the later phases introduce
+      none, so the train partition is the full range and val/test are empty.
+    - ``item_split``: three disjoint partitions, the val/test ones being the
+      cold items held out of training.
+    - ``leave_last_out``: train holds the items that never appear as a target,
+      val/test hold the target items.
+    - ``temporal``: each phase introduces the items first seen in its window,
+      so the partitions are consecutive ranges of the growing catalog.
+
+    An empty partition therefore means "this phase introduces no new items",
+    which is not the same as "this phase has no candidates". The candidate space
+    of a phase is ``{phase}_item_ids``, which defaults to ``item_ids`` when not
+    given. Callers that select feature or metadata rows for a phase should index
+    with that phase's ``*_item_ids`` (or the union of partitions up to it),
+    because mirroring ``train_item_indices`` into a later phase silently yields
+    an empty selection for splits that hold no items out.
+
+    Passing ``None`` for a partition omits its file, and
+    :func:`load_recsys_split` then falls back to the whole catalog for train and
+    to an empty array for val/test. Prefer writing all three explicitly.
+    """
     root = Path(root)
     data_dir = root / SPLIT_DIR
     if data_dir.exists():
         shutil.rmtree(data_dir)
     data_dir.mkdir(parents=True, exist_ok=True)
     n_items = len(item_ids)
+    train_item_ids = np.asarray(
+        item_ids if train_item_ids is None else train_item_ids
+    ).astype(str)
+    val_item_ids = np.asarray(
+        item_ids if val_item_ids is None else val_item_ids
+    ).astype(str)
+    test_item_ids = np.asarray(
+        item_ids if test_item_ids is None else test_item_ids
+    ).astype(str)
     train_source_matrix = x_train if train_source_matrix is None else train_source_matrix
     train_target_matrix = train_source_matrix if train_target_matrix is None else train_target_matrix
     val_source_matrix = (
-        _indices_to_csr(val_source_indices, n_cols=n_items)
+        _indices_to_csr(val_source_indices, n_cols=len(val_item_ids))
         if val_source_matrix is None
         else val_source_matrix
     )
     val_target_matrix = (
-        _indices_to_csr(val_target_indices, n_cols=n_items)
+        _indices_to_csr(val_target_indices, n_cols=len(val_item_ids))
         if val_target_matrix is None
         else val_target_matrix
     )
     test_source_matrix = (
-        _indices_to_csr(test_source_indices, n_cols=n_items)
+        _indices_to_csr(test_source_indices, n_cols=len(test_item_ids))
         if test_source_matrix is None
         else test_source_matrix
     )
     test_target_matrix = (
-        _indices_to_csr(test_target_indices, n_cols=n_items)
+        _indices_to_csr(test_target_indices, n_cols=len(test_item_ids))
         if test_target_matrix is None
         else test_target_matrix
     )
+
+    pairs = (
+        ("train", train_source_matrix, train_target_matrix, train_item_ids),
+        ("validation", val_source_matrix, val_target_matrix, val_item_ids),
+        ("test", test_source_matrix, test_target_matrix, test_item_ids),
+    )
+    for name, source, target, ids in pairs:
+        if source.shape != target.shape:
+            raise ValueError(f"{name} source and target matrix shapes must match")
+        if source.shape[1] != len(ids):
+            raise ValueError(
+                f"{name} matrix columns must match {name} item IDs length"
+            )
+    if x_train.shape != train_source_matrix.shape:
+        raise ValueError("x_train shape must match train source matrix shape")
 
     save_npz(data_dir / "train_source_matrix.npz", train_source_matrix.tocsr())
     save_npz(data_dir / "train_target_matrix.npz", train_target_matrix.tocsr())
@@ -207,8 +263,12 @@ def save_recsys_split(
     save_npz(data_dir / "val_target_matrix.npz", val_target_matrix.tocsr())
     save_npz(data_dir / "test_source_matrix.npz", test_source_matrix.tocsr())
     save_npz(data_dir / "test_target_matrix.npz", test_target_matrix.tocsr())
-    # Backward-compatible alias used by existing training scripts.
-    save_npz(data_dir / "train_matrix.npz", train_source_matrix.tocsr())
+    # Backward-compatible training matrix; temporal checkpoints store the
+    # source/target union here while retaining each side separately above.
+    save_npz(data_dir / "train_matrix.npz", x_train.tocsr())
+    np.save(data_dir / "train_item_ids.npy", train_item_ids)
+    np.save(data_dir / "val_item_ids.npy", val_item_ids)
+    np.save(data_dir / "test_item_ids.npy", test_item_ids)
     np.savez_compressed(
         data_dir / "split.npz",
         item_ids=np.asarray(item_ids).astype(str),
@@ -249,6 +309,17 @@ def save_recsys_split(
 
 
 def load_recsys_split(root: str | Path) -> dict[str, Any]:
+    """Read the split stage of a checkpoint.
+
+    See :func:`save_recsys_split` for what ``*_item_indices`` mean: they are the
+    items each phase *introduces*, so they are empty for phases that hold no
+    items out, while ``*_item_ids`` give the candidate space and default to
+    ``item_ids``.
+
+    For checkpoints written before every partition was stored explicitly, a
+    missing ``train_item_indices.npy`` loads as the full catalog range and
+    missing val/test files load as empty arrays.
+    """
     root = Path(root)
     split = np.load(root / SPLIT_DIR / "split.npz", allow_pickle=True)
     tags_path = root / SPLIT_DIR / "entity_tags.npz"
@@ -262,6 +333,9 @@ def load_recsys_split(root: str | Path) -> dict[str, Any]:
     test_user_ids_path = root / SPLIT_DIR / "test_user_ids.npy"
     val_eval_user_ids_path = root / SPLIT_DIR / "val_eval_user_ids.npy"
     test_eval_user_ids_path = root / SPLIT_DIR / "test_eval_user_ids.npy"
+    train_item_ids_path = root / SPLIT_DIR / "train_item_ids.npy"
+    val_item_ids_path = root / SPLIT_DIR / "val_item_ids.npy"
+    test_item_ids_path = root / SPLIT_DIR / "test_item_ids.npy"
     train_source_matrix_path = root / SPLIT_DIR / "train_source_matrix.npz"
     train_target_matrix_path = root / SPLIT_DIR / "train_target_matrix.npz"
     val_source_matrix_path = root / SPLIT_DIR / "val_source_matrix.npz"
@@ -270,15 +344,38 @@ def load_recsys_split(root: str | Path) -> dict[str, Any]:
     test_target_matrix_path = root / SPLIT_DIR / "test_target_matrix.npz"
     train_matrix_path = root / SPLIT_DIR / "train_matrix.npz"
     item_ids = split["item_ids"]
-    x_train = (
+    train_item_ids = (
+        np.load(train_item_ids_path, allow_pickle=False).astype(str)
+        if train_item_ids_path.exists()
+        else item_ids
+    )
+    val_item_ids = (
+        np.load(val_item_ids_path, allow_pickle=False).astype(str)
+        if val_item_ids_path.exists()
+        else item_ids
+    )
+    test_item_ids = (
+        np.load(test_item_ids_path, allow_pickle=False).astype(str)
+        if test_item_ids_path.exists()
+        else item_ids
+    )
+    train_source_matrix = (
         load_npz(train_source_matrix_path).tocsr()
         if train_source_matrix_path.exists()
         else load_npz(train_matrix_path).tocsr()
     )
+    x_train = (
+        load_npz(train_matrix_path).tocsr()
+        if train_matrix_path.exists()
+        else train_source_matrix
+    )
     return {
         "item_ids": item_ids,
+        "train_item_ids": train_item_ids,
+        "val_item_ids": val_item_ids,
+        "test_item_ids": test_item_ids,
         "x_train": x_train,
-        "train_source_matrix": x_train,
+        "train_source_matrix": train_source_matrix,
         "train_target_matrix": (
             load_npz(train_target_matrix_path).tocsr()
             if train_target_matrix_path.exists()
@@ -287,22 +384,22 @@ def load_recsys_split(root: str | Path) -> dict[str, Any]:
         "val_source_matrix": (
             load_npz(val_source_matrix_path).tocsr()
             if val_source_matrix_path.exists()
-            else _indices_to_csr(_read_obj_array(split["val_source_indices"]), n_cols=len(item_ids))
+            else _indices_to_csr(_read_obj_array(split["val_source_indices"]), n_cols=len(val_item_ids))
         ),
         "val_target_matrix": (
             load_npz(val_target_matrix_path).tocsr()
             if val_target_matrix_path.exists()
-            else _indices_to_csr(_read_obj_array(split["val_target_indices"]), n_cols=len(item_ids))
+            else _indices_to_csr(_read_obj_array(split["val_target_indices"]), n_cols=len(val_item_ids))
         ),
         "test_source_matrix": (
             load_npz(test_source_matrix_path).tocsr()
             if test_source_matrix_path.exists()
-            else _indices_to_csr(_read_obj_array(split["test_source_indices"]), n_cols=len(item_ids))
+            else _indices_to_csr(_read_obj_array(split["test_source_indices"]), n_cols=len(test_item_ids))
         ),
         "test_target_matrix": (
             load_npz(test_target_matrix_path).tocsr()
             if test_target_matrix_path.exists()
-            else _indices_to_csr(_read_obj_array(split["test_target_indices"]), n_cols=len(item_ids))
+            else _indices_to_csr(_read_obj_array(split["test_target_indices"]), n_cols=len(test_item_ids))
         ),
         "val_source_indices": _read_obj_array(split["val_source_indices"]),
         "val_target_indices": _read_obj_array(split["val_target_indices"]),

@@ -74,10 +74,15 @@ compresso-recsys-build-checkpoint \
   --amazon_category Toys_and_Games \
   --checkpoint_path artifacts/amazon_toys/temporal_exp001.zip \
   --split_mode temporal \
+  --temporal_period_hours 8136 \
   --metadata_text_fields title,features,description,categories \
   --min_entity_text_words 30 \
   --annotation_source none
 ```
+
+Temporal checkpoints use expanding histories and cumulative mixed warm/cold
+catalogs. Their train, validation, and test matrices are aligned by the
+corresponding `train_item_ids`, `val_item_ids`, and `test_item_ids` arrays.
 
 ## What Is Included
 
@@ -87,8 +92,9 @@ compresso-recsys-build-checkpoint \
   embeddings, metrics, and Compresso cluster-graph stages.
 - Calibrated Recall and nDCG defaults, with optional standard Recall,
   Precision, Hit Rate, MRR, and MAP at configurable cutoffs.
-- Batched EASE, dense ELSA, and lottery-ticket compressed ELSA models with
-  streaming evaluation.
+- Batched EASE, ADMM and gradient-trained TEASER cold-start models, a
+  content-similarity cold-start baseline, dense ELSA, and lottery-ticket
+  compressed ELSA with streaming evaluation.
 - A checkpoint-building console command:
   `compresso-recsys-build-checkpoint`.
 
@@ -103,8 +109,8 @@ https://zombak79.github.io/compresso-recsys/
 The full CLI parameter table, checkpoint split schema, and supported Amazon
 Reviews 2023 categories are maintained in the
 [Checkpoint CLI Reference](https://zombak79.github.io/compresso-recsys/cli-reference.html).
-Academic references and copy-ready BibTeX for EASE, ELSA, large-scale ELSA,
-and compressed ELSA are available in the
+Academic references and copy-ready BibTeX for EASE, TEASER, ELSA,
+large-scale ELSA, and compressed ELSA are available in the
 [citation guide](https://zombak79.github.io/compresso-recsys/citing.html).
 
 Build the docs locally:

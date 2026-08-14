@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import math
 import warnings
 from dataclasses import dataclass
 from typing import Literal
@@ -8,10 +7,17 @@ from typing import Literal
 import numpy as np
 import torch
 import torch.nn.functional as F
-from scipy.sparse import csr_matrix, isspmatrix_csr
+from scipy.sparse import csr_matrix
 from torch import nn
 
 from compresso import MaskedParam, SRPParam, SRPTensor, SparsityController
+from compresso_recsys.models._batching import (
+    InteractionBatchSampler,
+    dense_training_target,
+    normalized_mse,
+)
+from compresso_recsys.models._validation import canonical_csr
+from compresso_recsys.models.base import BaseCollaborativeRecommender
 
 __all__ = [
     "CompressedELSA",
@@ -27,40 +33,8 @@ SparseFinetuneBackend = Literal["dense", "coo"]
 SparseInferenceBackend = Literal["csr", "dense"]
 
 
-def _canonical_csr(matrix: csr_matrix, *, name: str) -> csr_matrix:
-    if not isspmatrix_csr(matrix):
-        raise TypeError(f"{name} must be a scipy.sparse.csr_matrix")
-    needs_copy = not matrix.has_canonical_format or bool(np.any(matrix.data == 0))
-    out = matrix.copy() if needs_copy else matrix
-    if needs_copy:
-        out.sum_duplicates()
-        out.eliminate_zeros()
-        out.sort_indices()
-    if not np.all(np.isfinite(out.data)):
-        raise ValueError(f"{name} values must be finite")
-    return out
-
-
-def _normalized_mse(predictions: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
-    predictions = F.normalize(predictions, dim=-1)
-    targets = F.normalize(targets, dim=-1)
-    return (predictions - targets).square().sum(dim=-1).mean()
-
-
-def _dense_training_target(
-    x: torch.Tensor,
-    *,
-    sources: torch.Tensor,
-    candidates: torch.Tensor | None,
-    input_dim: int,
-) -> torch.Tensor:
-    if candidates is None:
-        target = x.new_zeros((x.shape[0], input_dim))
-        target[:, sources] = x
-        return target
-    if candidates.numel() < x.shape[1]:
-        raise ValueError("the candidate prefix must contain every source item")
-    return F.pad(x, (0, candidates.numel() - x.shape[1]))
+_dense_training_target = dense_training_target
+_normalized_mse = normalized_mse
 
 
 def _normalize_srp(factors: SRPTensor) -> SRPTensor:
@@ -113,16 +87,12 @@ def _score_candidates(
     use_relu: bool,
 ) -> torch.Tensor:
     if candidates is None:
-        source_embeddings = (
-            embeddings if sources is None else embeddings[sources]
-        )
+        source_embeddings = embeddings if sources is None else embeddings[sources]
         candidate_embeddings = embeddings
     else:
         candidate_embeddings = embeddings[candidates]
         if x.shape[1] > candidate_embeddings.shape[0]:
-            raise ValueError(
-                "the candidate prefix must contain every source item"
-            )
+            raise ValueError("the candidate prefix must contain every source item")
         source_embeddings = candidate_embeddings[: x.shape[1]]
     scores = (x @ source_embeddings) @ candidate_embeddings.T
     if x_out is not None:
@@ -130,131 +100,15 @@ def _score_candidates(
     return F.relu(scores) if use_relu else scores
 
 
-class _ELSAInteractionDataset:
-    """Batched sparse interactions with optional output candidate sampling."""
-
-    def __init__(
-        self,
-        interactions: csr_matrix,
-        *,
-        device: torch.device,
-        batch_size: int,
-        shuffle: bool,
-        max_output: int | None,
-        seed: int,
-    ) -> None:
-        self.interactions = interactions
-        self.device = device
-        self.batch_size = int(batch_size)
-        self.shuffle = bool(shuffle)
-        self.max_output = max_output
-        self.user_indices = np.arange(interactions.shape[0], dtype=np.int64)
-        self.item_indices = np.arange(interactions.shape[1], dtype=np.int64)
-        self.rng = np.random.default_rng(seed)
-        if self.shuffle:
-            self.on_epoch_end()
-
-    def __len__(self) -> int:
-        return math.ceil(self.interactions.shape[0] / self.batch_size)
+class _ELSAInteractionDataset(InteractionBatchSampler):
+    """Backward-compatible alias for the shared interaction batch sampler."""
 
     def __getitem__(
         self,
         batch_index: int,
-    ) -> tuple[
-        torch.Tensor,
-        torch.Tensor,
-        torch.Tensor | None,
-    ]:
-        start = int(batch_index) * self.batch_size
-        end = min(start + self.batch_size, self.interactions.shape[0])
-        if start < 0 or start >= self.interactions.shape[0]:
-            raise IndexError(batch_index)
-
-        matrix = self.interactions[self.user_indices[start:end]]
-        source_columns = np.flatnonzero(
-            np.asarray(matrix.getnnz(axis=0)).ravel()
-        ).astype(np.int64, copy=False)
-        if self.max_output is None:
-            candidate_columns = None
-        else:
-            negative_mask = np.ones(matrix.shape[1], dtype=bool)
-            negative_mask[source_columns] = False
-            negative_pool = self.item_indices[negative_mask]
-            n_negatives = min(
-                len(negative_pool),
-                max(0, int(self.max_output) - len(source_columns)),
-            )
-            if n_negatives == len(negative_pool):
-                negative_columns = negative_pool
-            elif n_negatives > 0:
-                negative_columns = self.rng.choice(
-                    negative_pool,
-                    size=n_negatives,
-                    replace=False,
-                    shuffle=False,
-                )
-            else:
-                negative_columns = np.empty(0, dtype=np.int64)
-            candidate_columns = np.concatenate(
-                (source_columns, negative_columns)
-            )
-
-        row_indices = np.repeat(
-            np.arange(matrix.shape[0], dtype=np.int64),
-            np.diff(matrix.indptr),
-        )
-        source_lookup = np.empty(matrix.shape[1], dtype=np.int64)
-        source_lookup[source_columns] = np.arange(
-            len(source_columns),
-            dtype=np.int64,
-        )
-        source_local_columns = source_lookup[matrix.indices]
-        values = matrix.data.astype(np.float32, copy=False)
-        x = self._sparse_tensor(
-            row_indices,
-            source_local_columns,
-            values,
-            shape=(matrix.shape[0], len(source_columns)),
-        )
-        if candidate_columns is None:
-            sources = torch.from_numpy(source_columns).to(self.device)
-            candidates = None
-        else:
-            candidates = torch.from_numpy(candidate_columns).to(self.device)
-            sources = candidates[: len(source_columns)]
-        return (
-            x,
-            sources,
-            candidates,
-        )
-
-    def _sparse_tensor(
-        self,
-        rows: np.ndarray,
-        columns: np.ndarray,
-        values: np.ndarray,
-        *,
-        shape: tuple[int, int],
-    ) -> torch.Tensor:
-        indices = torch.from_numpy(np.vstack((rows, columns)))
-        with warnings.catch_warnings():
-            warnings.filterwarnings(
-                "ignore",
-                message="Sparse invariant checks are implicitly disabled.*",
-                category=UserWarning,
-            )
-            tensor = torch.sparse_coo_tensor(
-                indices,
-                torch.from_numpy(values),
-                shape,
-                is_coalesced=True,
-                check_invariants=False,
-            )
-            return tensor.to(self.device)
-
-    def on_epoch_end(self) -> None:
-        if self.shuffle:
-            self.rng.shuffle(self.user_indices)
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor | None]:
+        batch = super().__getitem__(batch_index)
+        return batch.x, batch.sources, batch.candidates
 
 
 @dataclass(frozen=True)
@@ -311,23 +165,16 @@ class ELSACompressionConfig:
             raise ValueError("change_threshold must be finite and >= 0")
         if self.mask_update_interval < 1:
             raise ValueError("mask_update_interval must be >= 1")
-        if (
-            self.max_epochs_per_stage is not None
-            and self.max_epochs_per_stage < 1
-        ):
+        if self.max_epochs_per_stage is not None and self.max_epochs_per_stage < 1:
             raise ValueError("max_epochs_per_stage must be >= 1 or None")
         if self.score_mode not in {"abs", "raw", "relu"}:
             raise ValueError("score_mode must be 'abs', 'raw', or 'relu'")
         if not np.isfinite(self.ste_alpha) or not 0 <= self.ste_alpha <= 1:
             raise ValueError("ste_alpha must be finite and in [0, 1]")
         if self.sparse_finetune_backend not in {"dense", "coo"}:
-            raise ValueError(
-                "sparse_finetune_backend must be 'dense' or 'coo'"
-            )
+            raise ValueError("sparse_finetune_backend must be 'dense' or 'coo'")
         if self.sparse_inference_backend not in {"csr", "dense"}:
-            raise ValueError(
-                "sparse_inference_backend must be 'csr' or 'dense'"
-            )
+            raise ValueError("sparse_inference_backend must be 'csr' or 'dense'")
 
 
 @dataclass(frozen=True)
@@ -539,9 +386,7 @@ class CompressedELSA(nn.Module):
         if self.sparse_A is not None:
             return
         if self.masked_A is None or not self.masked_A.schedule_done:
-            raise RuntimeError(
-                "mask search must complete before conversion to SRP"
-            )
+            raise RuntimeError("mask search must complete before conversion to SRP")
 
         sparse_A = self.masked_A.to_srp_param()
         self.sparse_A = sparse_A
@@ -556,14 +401,10 @@ class CompressedELSA(nn.Module):
     ) -> None:
         """Cache normalized factors for the selected inference backend."""
         resolved_backend = (
-            self.compression.sparse_inference_backend
-            if backend is None
-            else backend
+            self.compression.sparse_inference_backend if backend is None else backend
         )
         if resolved_backend not in {"csr", "dense"}:
-            raise ValueError(
-                "sparse inference backend must be 'csr' or 'dense'"
-            )
+            raise ValueError("sparse inference backend must be 'csr' or 'dense'")
         if self._inference_srp is None:
             self._inference_srp = self.normalized_item_srp().detach()
         if resolved_backend == "csr" and self._inference_csr is None:
@@ -619,9 +460,7 @@ class CompressedELSA(nn.Module):
         if candidates is not None:
             candidate_embeddings = self.normalized_item_embeddings(candidates)
             if x.shape[1] > candidate_embeddings.shape[0]:
-                raise ValueError(
-                    "the candidate prefix must contain every source item"
-                )
+                raise ValueError("the candidate prefix must contain every source item")
             source_embeddings = candidate_embeddings[: x.shape[1]]
             scores = (x @ source_embeddings) @ candidate_embeddings.T
             if x_out is not None:
@@ -646,9 +485,7 @@ class CompressedELSA(nn.Module):
     ) -> torch.Tensor:
         """Score the full catalog with cached sparse or dense factors."""
         resolved_backend = (
-            self.compression.sparse_inference_backend
-            if backend is None
-            else backend
+            self.compression.sparse_inference_backend if backend is None else backend
         )
         self.prepare_inference(resolved_backend)
         assert self._inference_srp is not None
@@ -669,7 +506,7 @@ class CompressedELSA(nn.Module):
         return F.relu(scores) if self.use_relu else scores
 
 
-class ELSATrainer:
+class ELSATrainer(BaseCollaborativeRecommender):
     """Fit and run ELSA with sparse interaction matrices."""
 
     def __init__(self, config: ELSAConfig | None = None) -> None:
@@ -692,6 +529,11 @@ class ELSATrainer:
     def is_fitted(self) -> bool:
         """Whether :meth:`fit` has completed at least once."""
         return self._is_fitted
+
+    @property
+    def n_items(self) -> int | None:
+        """Number of fitted item columns, or ``None`` before building."""
+        return self.input_dim
 
     def build(self, input_dim: int) -> ELSATrainer:
         """Initialize the ELSA model and optimizer."""
@@ -737,9 +579,7 @@ class ELSATrainer:
         if self.elsa is None:
             raise RuntimeError("trainer must be built before creating optimizer")
         optimizer_class = (
-            torch.optim.AdamW
-            if self.cfg.optimizer == "AdamW"
-            else torch.optim.NAdam
+            torch.optim.AdamW if self.cfg.optimizer == "AdamW" else torch.optim.NAdam
         )
         self.optimizer = optimizer_class(
             self.elsa.parameters(),
@@ -755,6 +595,16 @@ class ELSATrainer:
         except Exception:  # pragma: no cover - optional dependency fallback
             return iterable
         return tqdm(iterable, total=total, desc=desc)
+
+    def _progress_bar(self, *, total: int, desc: str):
+        """A bar to drive by hand, or ``None`` when progress is unavailable."""
+        if not self.cfg.show_progress:
+            return None
+        try:
+            from tqdm.auto import tqdm
+        except Exception:  # pragma: no cover - optional dependency fallback
+            return None
+        return tqdm(total=total, desc=desc)
 
     def _set_lr(self, learning_rate: float) -> None:
         if self.optimizer is None:
@@ -793,11 +643,14 @@ class ELSATrainer:
             x_out=y,
         )
         loss = _normalized_mse(predictions, y)
-        cosine_loss = 1.0 - F.cosine_similarity(
-            predictions,
-            y,
-            dim=-1,
-        ).mean()
+        cosine_loss = (
+            1.0
+            - F.cosine_similarity(
+                predictions,
+                y,
+                dim=-1,
+            ).mean()
+        )
         loss.backward()
         self.optimizer.step()
         self._last_controller_info = (
@@ -815,29 +668,32 @@ class ELSATrainer:
         dataset: _ELSAInteractionDataset,
         *,
         desc: str,
+        bar=None,
     ) -> tuple[dict[str, float], bool]:
+        """Run one epoch, reporting into a caller-owned bar when given.
+
+        The bar belongs to the caller so that one bar is rewound and relabelled
+        per epoch, rather than a finished bar being left behind for each.
+        """
         sums: dict[str, float] = {}
         n_batches = 0
         rewind_triggered = False
-        batch_iter = self._progress(
-            range(len(dataset)),
-            total=len(dataset),
-            desc=desc,
-        )
-        for batch_index in batch_iter:
+        if bar is not None:
+            bar.reset(total=len(dataset))
+            bar.set_description(desc)
+        for batch_index in range(len(dataset)):
             stats = self.train_step(*dataset[batch_index])
             for key, value in stats.items():
                 sums[key] = sums.get(key, 0.0) + float(value.cpu().item())
             n_batches += 1
+            if bar is not None:
+                bar.update(1)
             if bool(self._last_controller_info.get("rewind_triggered", False)):
                 rewind_triggered = True
                 break
         dataset.on_epoch_end()
         return (
-            {
-                key: value / max(1, n_batches)
-                for key, value in sums.items()
-            },
+            {key: value / max(1, n_batches) for key, value in sums.items()},
             rewind_triggered,
         )
 
@@ -863,26 +719,34 @@ class ELSATrainer:
             total=self.cfg.epochs,
             desc="ELSA fit" if phase is None else "ELSA sparse fine-tune",
         )
-        for epoch in epoch_iter:
-            record: dict[str, float | str] = self._run_epoch(
-                dataset,
-                desc=f"ELSA epoch {epoch}",
-            )[0]
-            record["epoch"] = float(epoch)
-            record["lr"] = self._current_lr()
-            if phase is not None:
-                record["phase"] = phase
-            self.history.append(record)
-            if hasattr(epoch_iter, "set_postfix"):
-                epoch_iter.set_postfix(
-                    {
-                        "loss": f"{record['loss']:.4f}",
-                        "cosine": f"{record['cosine_loss']:.4f}",
-                        "lr": f"{record['lr']:.2E}",
-                    }
-                )
-            if scheduler is not None:
-                scheduler.step()
+        batch_bar = self._progress_bar(total=len(dataset), desc="ELSA epoch 1")
+        try:
+            for epoch in epoch_iter:
+                record: dict[str, float | str] = self._run_epoch(
+                    dataset,
+                    desc=f"ELSA epoch {epoch}",
+                    bar=batch_bar,
+                )[0]
+                record["epoch"] = float(epoch)
+                record["lr"] = self._current_lr()
+                if phase is not None:
+                    record["phase"] = phase
+                self.history.append(record)
+                if hasattr(epoch_iter, "set_postfix"):
+                    epoch_iter.set_postfix(
+                        {
+                            "loss": f"{record['loss']:.4f}",
+                            "cosine": f"{record['cosine_loss']:.4f}",
+                            "lr": f"{record['lr']:.2E}",
+                        }
+                    )
+                if scheduler is not None:
+                    scheduler.step()
+        finally:
+            if batch_bar is not None:
+                batch_bar.close()
+            if hasattr(epoch_iter, "close"):
+                epoch_iter.close()
 
     def _fit_compressed_mask_search(
         self,
@@ -892,70 +756,78 @@ class ELSATrainer:
             raise RuntimeError("compressed ELSA model was not built")
         search_epoch = 0
         stage_epoch = 0
-        while True:
-            masked_A = self.elsa.masked_A
-            if masked_A is None:  # pragma: no cover - defensive invariant
-                raise RuntimeError("mask-search parameter is unavailable")
-            search_epoch += 1
-            stage_epoch += 1
-            stage_idx = int(masked_A.stage_idx)
-            k_current = int(masked_A.k_current)
-            record: dict[str, float | str] = self._run_epoch(
-                dataset,
-                desc=(
-                    f"ELSA mask stage {stage_idx + 1} "
-                    f"epoch {stage_epoch}"
-                ),
-            )[0]
-            rewind_triggered = bool(
-                self._last_controller_info.get("rewind_triggered", False)
-            )
-            transition = "stable" if rewind_triggered else "none"
-            max_stage_epochs = (
-                self.cfg.compression.max_epochs_per_stage
-                if self.cfg.compression is not None
-                else None
-            )
-            if (
-                not rewind_triggered
-                and max_stage_epochs is not None
-                and stage_epoch >= max_stage_epochs
-            ):
-                # Temporary compatibility path until Compresso exposes a
-                # public forced-stage transition on SparsityController.
-                masked_A.stage_completed = True
-                rewind_stats = masked_A.rewind()
-                print(
-                    "[ELSATrainer] Forced rewind "
-                    f"(max_epochs_per_stage={max_stage_epochs}): "
-                    f"{rewind_stats}"
+        # Mask search runs an unbounded number of epochs, so one reused bar
+        # matters even more here than during fixed-epoch training.
+        batch_bar = self._progress_bar(
+            total=len(dataset),
+            desc="ELSA mask stage 1 epoch 1",
+        )
+        try:
+            while True:
+                masked_A = self.elsa.masked_A
+                if masked_A is None:  # pragma: no cover - defensive invariant
+                    raise RuntimeError("mask-search parameter is unavailable")
+                search_epoch += 1
+                stage_epoch += 1
+                stage_idx = int(masked_A.stage_idx)
+                k_current = int(masked_A.k_current)
+                record: dict[str, float | str] = self._run_epoch(
+                    dataset,
+                    desc=(f"ELSA mask stage {stage_idx + 1} " f"epoch {stage_epoch}"),
+                    bar=batch_bar,
+                )[0]
+                rewind_triggered = bool(
+                    self._last_controller_info.get("rewind_triggered", False)
                 )
-                if self.sparsity_controller is not None:
-                    self.sparsity_controller.num_restarts += 1
-                rewind_triggered = True
-                transition = "forced"
-            record.update(
-                {
-                    "epoch": float(search_epoch),
-                    "stage_epoch": float(stage_epoch),
-                    "stage": float(stage_idx),
-                    "k": float(k_current),
-                    "mask_change": float(masked_A.last_change),
-                    "lr": self._current_lr(),
-                    "phase": "mask_search",
-                    "transition": transition,
-                }
-            )
-            self.history.append(record)
-            if not rewind_triggered:
-                continue
+                transition = "stable" if rewind_triggered else "none"
+                max_stage_epochs = (
+                    self.cfg.compression.max_epochs_per_stage
+                    if self.cfg.compression is not None
+                    else None
+                )
+                if (
+                    not rewind_triggered
+                    and max_stage_epochs is not None
+                    and stage_epoch >= max_stage_epochs
+                ):
+                    # Temporary compatibility path until Compresso exposes a
+                    # public forced-stage transition on SparsityController.
+                    masked_A.stage_completed = True
+                    rewind_stats = masked_A.rewind()
+                    print(
+                        "[ELSATrainer] Forced rewind "
+                        f"(max_epochs_per_stage={max_stage_epochs}): "
+                        f"{rewind_stats}"
+                    )
+                    if self.sparsity_controller is not None:
+                        self.sparsity_controller.num_restarts += 1
+                    rewind_triggered = True
+                    transition = "forced"
+                record.update(
+                    {
+                        "epoch": float(search_epoch),
+                        "stage_epoch": float(stage_epoch),
+                        "stage": float(stage_idx),
+                        "k": float(k_current),
+                        "mask_change": float(masked_A.last_change),
+                        "lr": self._current_lr(),
+                        "phase": "mask_search",
+                        "transition": transition,
+                    }
+                )
+                self.history.append(record)
+                if not rewind_triggered:
+                    continue
 
-            schedule_done = bool(masked_A.schedule_done)
-            self._reset_optimizer()
-            self._set_lr(float(self.cfg.lr))
-            stage_epoch = 0
-            if schedule_done:
-                break
+                schedule_done = bool(masked_A.schedule_done)
+                self._reset_optimizer()
+                self._set_lr(float(self.cfg.lr))
+                stage_epoch = 0
+                if schedule_done:
+                    break
+        finally:
+            if batch_bar is not None:
+                batch_bar.close()
 
         self.elsa.convert_to_srp()
         self.sparsity_controller = None
@@ -965,11 +837,9 @@ class ELSATrainer:
 
     def fit(self, interactions: csr_matrix) -> ELSATrainer:
         """Fit dense ELSA or search and fine-tune a compressed ELSA ticket."""
-        interactions = _canonical_csr(interactions, name="interactions")
+        interactions = canonical_csr(interactions, name="interactions")
         if interactions.shape[0] < 1 or interactions.shape[1] < 1:
-            raise ValueError(
-                "interactions must contain at least one user and one item"
-            )
+            raise ValueError("interactions must contain at least one user and one item")
         self.build(interactions.shape[1])
         dataset = _ELSAInteractionDataset(
             interactions,
@@ -999,7 +869,7 @@ class ELSATrainer:
     def _prepare_source(self, source: csr_matrix) -> csr_matrix:
         if not self.is_fitted or self.elsa is None or self.input_dim is None:
             raise RuntimeError("ELSATrainer must be fitted before prediction")
-        source = _canonical_csr(source, name="source")
+        source = canonical_csr(source, name="source")
         if source.shape[1] != self.input_dim:
             raise ValueError(
                 f"source has {source.shape[1]} items; expected {self.input_dim}"
@@ -1023,9 +893,8 @@ class ELSATrainer:
         """
         source = self._prepare_source(source)
         assert self.elsa is not None and self.input_dim is not None
-        if (
-            sparse_inference_backend is not None
-            and not isinstance(self.elsa, CompressedELSA)
+        if sparse_inference_backend is not None and not isinstance(
+            self.elsa, CompressedELSA
         ):
             raise ValueError(
                 "sparse_inference_backend is only available for compressed ELSA"
@@ -1101,9 +970,7 @@ class ELSATrainer:
         if not 1 <= int(k) <= source.shape[1]:
             raise ValueError(f"k must be in [1, {source.shape[1]}], got {k}")
         progress_enabled = (
-            self.cfg.show_progress
-            if show_progress is None
-            else bool(show_progress)
+            self.cfg.show_progress if show_progress is None else bool(show_progress)
         )
 
         columns: list[torch.Tensor] = []

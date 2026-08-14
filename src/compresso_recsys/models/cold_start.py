@@ -1,0 +1,1237 @@
+from __future__ import annotations
+
+from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
+from threading import RLock
+from types import MappingProxyType
+from typing import Hashable, Literal, Mapping, Protocol, Sequence, runtime_checkable
+
+import numpy as np
+import pandas as pd
+import torch
+from scipy.sparse import csr_matrix, hstack, issparse, isspmatrix_csr, vstack
+
+from compresso import SRPTensor
+from compresso_recsys.models._validation import canonical_csr
+from compresso_recsys.models.base import Recommender
+
+__all__ = [
+    "BaseColdStartRecommender",
+    "CandidateCatalog",
+    "ColdStartRecommender",
+    "ItemVocabulary",
+    "WarmCatalogAdapter",
+]
+
+ItemFeatures = csr_matrix | SRPTensor | np.ndarray | torch.Tensor
+CandidateConflict = Literal["error", "replace", "ignore"]
+
+
+def canonical_item_ids(
+    item_ids: Sequence[Hashable] | np.ndarray,
+    *,
+    expected_rows: int | None = None,
+    expected_rows_name: str = "item_features",
+    expected_rows_unit: str = "rows",
+    name: str = "item_ids",
+) -> np.ndarray:
+    if isinstance(item_ids, (str, bytes)):
+        raise TypeError(f"{name} must be a one-dimensional sequence of item IDs")
+    try:
+        values = list(item_ids)
+    except TypeError as error:
+        raise TypeError(
+            f"{name} must be a one-dimensional sequence of item IDs"
+        ) from error
+    ids = np.empty(len(values), dtype=object)
+    ids[:] = values
+    if expected_rows is not None and ids.size != expected_rows:
+        raise ValueError(
+            f"{name} has {ids.size} entries, but {expected_rows_name} has "
+            f"{expected_rows} {expected_rows_unit}"
+        )
+    if ids.size < 1:
+        raise ValueError(f"{name} must contain at least one item")
+
+    seen: dict[Hashable, int] = {}
+    for position, item_id in enumerate(ids.tolist()):
+        try:
+            hash(item_id)
+        except TypeError as error:
+            raise TypeError(
+                f"{name} entry at position {position} is not hashable"
+            ) from error
+        try:
+            missing = bool(pd.isna(item_id))
+        except (TypeError, ValueError):
+            missing = False
+        if item_id is None or missing:
+            raise ValueError(f"{name} must not contain missing IDs")
+        if item_id in seen:
+            raise ValueError(f"{name} must not contain duplicate IDs: {item_id!r}")
+        seen[item_id] = position
+
+    ids.setflags(write=False)
+    return ids
+
+
+def canonical_metadata(
+    metadata: pd.DataFrame | None,
+    *,
+    item_ids: np.ndarray,
+) -> pd.DataFrame | None:
+    if metadata is None:
+        return None
+    if not isinstance(metadata, pd.DataFrame):
+        raise TypeError("metadata must be a pandas.DataFrame or None")
+    if len(metadata) != item_ids.size:
+        raise ValueError(
+            f"metadata has {len(metadata)} rows, but item_ids has "
+            f"{item_ids.size} entries"
+        )
+    out = metadata.reset_index(drop=True).copy(deep=True)
+    if "item_id" in out.columns:
+        metadata_ids = canonical_item_ids(
+            out["item_id"].tolist(),
+            expected_rows=item_ids.size,
+            name="metadata['item_id']",
+        )
+        if not np.array_equal(metadata_ids, item_ids):
+            raise ValueError("metadata['item_id'] must match item_ids in row order")
+    return out
+
+
+def canonical_feature_space_id(feature_space_id: str | None) -> str | None:
+    if feature_space_id is None:
+        return None
+    if not isinstance(feature_space_id, str) or not feature_space_id.strip():
+        raise ValueError("feature_space_id must be a non-empty string or None")
+    return feature_space_id
+
+
+def _torch_sparse_to_csr(features: torch.Tensor) -> csr_matrix:
+    coo = features.detach().cpu().to_sparse_coo().coalesce()
+    indices = coo.indices().numpy()
+    values = coo.values().numpy()
+    return csr_matrix(
+        (values, (indices[0], indices[1])),
+        shape=tuple(features.shape),
+    )
+
+
+def canonical_item_features(
+    features: ItemFeatures,
+    *,
+    dtype: np.dtype,
+) -> csr_matrix | np.ndarray:
+    if isinstance(features, SRPTensor):
+        if features.dim() != 2:
+            raise ValueError("item_features must be two-dimensional")
+        if torch.is_complex(features.vals):
+            raise TypeError("item_features must contain real numeric values")
+        torch_dtype = torch.float32 if dtype == np.dtype("float32") else torch.float64
+        features = features.to(device="cpu", dtype=torch_dtype).to_scipy_csr()
+    elif isinstance(features, torch.Tensor):
+        if features.ndim != 2:
+            raise ValueError("item_features must be two-dimensional")
+        if torch.is_complex(features):
+            raise TypeError("item_features must contain real numeric values")
+        torch_dtype = torch.float32 if dtype == np.dtype("float32") else torch.float64
+        features = features.detach().to(device="cpu", dtype=torch_dtype)
+        if features.layout == torch.strided:
+            features = features.numpy()
+        else:
+            features = _torch_sparse_to_csr(features)
+
+    if isspmatrix_csr(features):
+        out = canonical_csr(features, name="item_features")
+        if out.ndim != 2:
+            raise ValueError("item_features must be two-dimensional")
+        if out.shape[0] < 1 or out.shape[1] < 1:
+            raise ValueError(
+                "item_features must contain at least one item and one feature"
+            )
+        if np.iscomplexobj(out.data):
+            raise TypeError("item_features must contain real numeric values")
+        return out.astype(dtype, copy=False)
+
+    if not isinstance(features, np.ndarray):
+        raise TypeError(
+            "item_features must be a scipy.sparse.csr_matrix, "
+            "compresso.SRPTensor, numpy.ndarray, or torch.Tensor"
+        )
+    if features.ndim != 2:
+        raise ValueError("item_features must be two-dimensional")
+    if features.shape[0] < 1 or features.shape[1] < 1:
+        raise ValueError("item_features must contain at least one item and one feature")
+    if not np.issubdtype(features.dtype, np.number):
+        raise TypeError("item_features must contain numeric values")
+    if np.iscomplexobj(features):
+        raise TypeError("item_features must contain real numeric values")
+    if not np.all(np.isfinite(features)):
+        raise ValueError("item_features values must be finite")
+    return np.asarray(features, dtype=dtype, order="C")
+
+
+def append_column(
+    matrix: csr_matrix | np.ndarray,
+    column: np.ndarray,
+) -> csr_matrix | np.ndarray:
+    if isspmatrix_csr(matrix):
+        return hstack((matrix, csr_matrix(column[:, None])), format="csr")
+    return np.concatenate((matrix, column[:, None]), axis=1)
+
+
+def take_features(
+    features: csr_matrix | np.ndarray,
+    rows: np.ndarray,
+) -> csr_matrix | np.ndarray:
+    selected = features[rows]
+    return selected.tocsr() if issparse(selected) else np.asarray(selected)
+
+
+def _freeze_features(features: csr_matrix | np.ndarray) -> csr_matrix | np.ndarray:
+    out = features.copy()
+    if isspmatrix_csr(out):
+        out.data.setflags(write=False)
+        out.indices.setflags(write=False)
+        out.indptr.setflags(write=False)
+    else:
+        out.setflags(write=False)
+    return out
+
+
+def _stack_features(
+    top: csr_matrix | np.ndarray,
+    bottom: csr_matrix | np.ndarray,
+) -> csr_matrix | np.ndarray:
+    if isspmatrix_csr(top) or isspmatrix_csr(bottom):
+        return vstack((csr_matrix(top), csr_matrix(bottom)), format="csr")
+    return np.concatenate((top, bottom), axis=0)
+
+
+def _replace_feature_rows(
+    features: csr_matrix | np.ndarray,
+    rows: np.ndarray,
+    replacements: csr_matrix | np.ndarray,
+) -> csr_matrix | np.ndarray:
+    if rows.size == 0:
+        return features
+    if isinstance(features, np.ndarray) and isinstance(replacements, np.ndarray):
+        out = features.copy()
+        out[rows] = replacements
+        return out
+    out = csr_matrix(features).tolil(copy=True)
+    out[rows] = csr_matrix(replacements)
+    return out.tocsr()
+
+
+@dataclass(frozen=True)
+class ItemVocabulary:
+    """Immutable stable-ID vocabulary for sparse matrix columns."""
+
+    item_ids: np.ndarray
+    id_to_row: Mapping[Hashable, int]
+
+    @classmethod
+    def from_ids(
+        cls,
+        item_ids: Sequence[Hashable] | np.ndarray,
+        *,
+        name: str = "item_ids",
+    ) -> ItemVocabulary:
+        ids = canonical_item_ids(item_ids, name=name)
+        frozen_ids = ids.copy()
+        frozen_ids.setflags(write=False)
+        return cls(
+            item_ids=frozen_ids,
+            id_to_row=MappingProxyType(
+                {item_id: row for row, item_id in enumerate(frozen_ids.tolist())}
+            ),
+        )
+
+    @property
+    def n_items(self) -> int:
+        """Number of item IDs in the vocabulary."""
+        return int(self.item_ids.size)
+
+    def align_csr(
+        self,
+        matrix: csr_matrix,
+        *,
+        item_ids: Sequence[Hashable] | np.ndarray,
+        name: str = "source",
+    ) -> csr_matrix:
+        """Select and reorder sparse columns to match this vocabulary."""
+        if not isspmatrix_csr(matrix):
+            raise TypeError(f"{name} must be a scipy.sparse.csr_matrix")
+        if item_ids is self.item_ids and matrix.shape[1] == self.n_items:
+            return matrix
+        external_ids = canonical_item_ids(
+            item_ids,
+            expected_rows=matrix.shape[1],
+            expected_rows_name=name,
+            expected_rows_unit="columns",
+        )
+        if np.array_equal(external_ids, self.item_ids):
+            return matrix
+        external_to_column = {
+            item_id: column for column, item_id in enumerate(external_ids.tolist())
+        }
+        missing = [
+            item_id
+            for item_id in self.item_ids.tolist()
+            if item_id not in external_to_column
+        ]
+        if missing:
+            raise ValueError(
+                f"{name} item_ids is missing fitted source item ID: {missing[0]!r}"
+            )
+        columns = np.fromiter(
+            (external_to_column[item_id] for item_id in self.item_ids.tolist()),
+            dtype=np.int64,
+            count=self.n_items,
+        )
+        return matrix[:, columns].tocsr()
+
+
+class WarmCatalogAdapter:
+    """Expose a fixed-catalog recommender in a larger identified catalog.
+
+    The wrapped model continues to consume and rank only its training items.
+    :meth:`align_source` selects those columns from an interaction matrix over
+    the expanded catalog, while :meth:`predict_on_batch` remaps the resulting
+    ranked columns back into that catalog. Cold candidates remain valid target
+    items but can never be emitted by the wrapped model.
+
+    Parameters
+    ----------
+    model:
+        Fitted recommender whose prediction columns follow ``train_item_ids``.
+    train_item_ids:
+        Item IDs in the exact column order used to fit ``model``.
+    catalog_item_ids:
+        Expanded source and target catalog. It must contain every training ID.
+    """
+
+    def __init__(
+        self,
+        model: Recommender,
+        train_item_ids: Sequence[Hashable] | np.ndarray,
+        catalog_item_ids: Sequence[Hashable] | np.ndarray,
+    ) -> None:
+        if not isinstance(model, Recommender):
+            raise TypeError("model must implement predict_on_batch(source, *, k)")
+        train_vocabulary = ItemVocabulary.from_ids(
+            train_item_ids,
+            name="train_item_ids",
+        )
+        catalog_vocabulary = ItemVocabulary.from_ids(
+            catalog_item_ids,
+            name="catalog_item_ids",
+        )
+        missing = [
+            item_id
+            for item_id in train_vocabulary.item_ids.tolist()
+            if item_id not in catalog_vocabulary.id_to_row
+        ]
+        if missing:
+            raise ValueError(
+                "catalog_item_ids is missing training item ID: "
+                f"{missing[0]!r}"
+            )
+
+        train_to_catalog = np.fromiter(
+            (
+                catalog_vocabulary.id_to_row[item_id]
+                for item_id in train_vocabulary.item_ids.tolist()
+            ),
+            dtype=np.int64,
+            count=train_vocabulary.n_items,
+        )
+        train_to_catalog.setflags(write=False)
+
+        self.model = model
+        self.train_item_ids = train_vocabulary.item_ids
+        self.catalog_item_ids = catalog_vocabulary.item_ids
+        self.train_to_catalog = train_to_catalog
+        self.catalog_size = catalog_vocabulary.n_items
+        self._identity_alignment = np.array_equal(
+            self.train_item_ids,
+            self.catalog_item_ids,
+        )
+        self._mapping_lock = RLock()
+        self._mapping_by_device: dict[torch.device, torch.Tensor] = {}
+
+    def align_source(self, source: csr_matrix) -> csr_matrix:
+        """Select training-item columns from an expanded-catalog CSR matrix."""
+        source = canonical_csr(source, name="source")
+        if source.shape[1] != self.catalog_size:
+            raise ValueError(
+                f"source has {source.shape[1]} items, but catalog_item_ids has "
+                f"{self.catalog_size} entries"
+            )
+        if self._identity_alignment:
+            return source
+        return source[:, self.train_to_catalog].tocsr()
+
+    def _mapping_on(self, device: torch.device) -> torch.Tensor:
+        with self._mapping_lock:
+            mapping = self._mapping_by_device.get(device)
+            if mapping is None:
+                mapping = torch.tensor(
+                    self.train_to_catalog,
+                    dtype=torch.long,
+                    device=device,
+                )
+                self._mapping_by_device[device] = mapping
+            return mapping
+
+    def predict_on_batch(
+        self,
+        source: csr_matrix,
+        *,
+        k: int,
+        exclude_seen: bool = True,
+    ) -> SRPTensor:
+        """Predict warm items and express their columns in the full catalog."""
+        source = canonical_csr(source, name="source")
+        if source.shape[1] != len(self.train_item_ids):
+            raise ValueError(
+                f"source has {source.shape[1]} items, but train_item_ids has "
+                f"{len(self.train_item_ids)} entries; call align_source() first"
+            )
+        predictions = self.model.predict_on_batch(
+            source,
+            k=k,
+            exclude_seen=exclude_seen,
+        )
+        if not isinstance(predictions, SRPTensor):
+            raise TypeError("model.predict_on_batch() must return an SRPTensor")
+        if predictions.rows != source.shape[0]:
+            raise ValueError(
+                "model prediction rows must match the source rows"
+            )
+        if predictions.cols_total != len(self.train_item_ids):
+            raise ValueError(
+                "model prediction items must match train_item_ids: expected "
+                f"{len(self.train_item_ids)}, got {predictions.cols_total}"
+            )
+
+        mapping = self._mapping_on(predictions.cols.device)
+        return SRPTensor(
+            cols=mapping[predictions.cols],
+            vals=predictions.vals,
+            shape=(predictions.rows, self.catalog_size),
+            validate=False,
+        )
+
+
+@dataclass(frozen=True, init=False)
+class CandidateCatalog:
+    """Immutable snapshot of a feature-based candidate catalog."""
+
+    item_ids: np.ndarray
+    item_features: csr_matrix | np.ndarray
+    _metadata: pd.DataFrame | None = field(repr=False)
+    feature_space_id: str | None
+    version: int
+    id_to_row: Mapping[Hashable, int]
+
+    def __init__(
+        self,
+        *,
+        item_ids: np.ndarray,
+        item_features: csr_matrix | np.ndarray,
+        metadata: pd.DataFrame | None,
+        feature_space_id: str | None,
+        version: int,
+        id_to_row: Mapping[Hashable, int],
+    ) -> None:
+        object.__setattr__(self, "item_ids", item_ids)
+        object.__setattr__(self, "item_features", item_features)
+        object.__setattr__(self, "_metadata", metadata)
+        object.__setattr__(self, "feature_space_id", feature_space_id)
+        object.__setattr__(self, "version", version)
+        object.__setattr__(self, "id_to_row", id_to_row)
+
+    @property
+    def n_items(self) -> int:
+        """Number of candidates in this snapshot."""
+        return int(self.item_ids.size)
+
+    @property
+    def metadata(self) -> pd.DataFrame | None:
+        """Return a defensive copy of metadata aligned with candidate rows."""
+        return None if self._metadata is None else self._metadata.copy(deep=True)
+
+    def rows_for(self, item_ids: Sequence[Hashable]) -> np.ndarray:
+        """Resolve stable item IDs to candidate rows in request order."""
+        ids = canonical_item_ids(item_ids, name="candidate_ids")
+        rows = np.empty(ids.size, dtype=np.int64)
+        for position, item_id in enumerate(ids.tolist()):
+            try:
+                rows[position] = self.id_to_row[item_id]
+            except KeyError as error:
+                raise KeyError(f"unknown candidate item ID: {item_id!r}") from error
+        return rows
+
+    def ids_for(self, rows: np.ndarray | torch.Tensor) -> np.ndarray:
+        """Resolve candidate row indices to stable item IDs."""
+        if isinstance(rows, torch.Tensor):
+            rows = rows.detach().cpu().numpy()
+        row_array = np.asarray(rows)
+        if not np.issubdtype(row_array.dtype, np.integer):
+            raise TypeError("candidate rows must contain integers")
+        if row_array.size and (
+            int(row_array.min()) < 0 or int(row_array.max()) >= self.n_items
+        ):
+            raise IndexError("candidate row is out of bounds")
+        return self.item_ids[row_array]
+
+
+@dataclass(frozen=True)
+class CandidateSelection:
+    catalog: CandidateCatalog
+    rows: np.ndarray
+    features: csr_matrix | np.ndarray
+    source_to_candidate: np.ndarray
+    candidate_to_local: np.ndarray
+
+
+def _make_catalog(
+    *,
+    item_ids: np.ndarray,
+    item_features: csr_matrix | np.ndarray,
+    metadata: pd.DataFrame | None,
+    feature_space_id: str | None,
+    version: int,
+) -> CandidateCatalog:
+    vocabulary = ItemVocabulary.from_ids(item_ids)
+    return CandidateCatalog(
+        item_ids=vocabulary.item_ids,
+        item_features=_freeze_features(item_features),
+        metadata=None if metadata is None else metadata.copy(deep=True),
+        feature_space_id=feature_space_id,
+        version=int(version),
+        id_to_row=vocabulary.id_to_row,
+    )
+
+
+@runtime_checkable
+class ColdStartRecommender(Recommender, Protocol):
+    """Recommender with distinct identified source and candidate spaces."""
+
+    source_vocabulary_: ItemVocabulary | None
+
+    @property
+    def candidates(self) -> CandidateCatalog: ...
+
+    def align_source(
+        self,
+        source: csr_matrix,
+        *,
+        item_ids: Sequence[Hashable] | np.ndarray,
+    ) -> csr_matrix: ...
+
+    def build_candidates(
+        self,
+        *,
+        item_ids: Sequence[Hashable] | np.ndarray,
+        item_features: ItemFeatures,
+        metadata: pd.DataFrame | None = None,
+        feature_space_id: str | None = None,
+    ) -> CandidateCatalog: ...
+
+    def update_candidates(
+        self,
+        *,
+        item_ids: Sequence[Hashable] | np.ndarray,
+        item_features: ItemFeatures,
+        metadata: pd.DataFrame | None = None,
+        on_conflict: CandidateConflict = "error",
+        feature_space_id: str | None = None,
+    ) -> CandidateCatalog: ...
+
+    def remove_candidates(
+        self,
+        item_ids: Sequence[Hashable] | np.ndarray,
+        *,
+        missing: Literal["error", "ignore"] = "error",
+    ) -> CandidateCatalog: ...
+
+
+class BaseColdStartRecommender(ABC):
+    """Reusable base for feature-driven cold-start recommenders.
+
+    Subclasses implement :meth:`fit`, :attr:`is_fitted`, and
+    :meth:`predict_on_batch`. The base owns the fitted source vocabulary and
+    provides atomic candidate catalog replacement, updates, removal, stable-ID
+    source alignment, metadata handling, and feature-space validation.
+
+    Subclass constructors must call ``super().__init__()``. During fitting,
+    call :meth:`_install_feature_catalog` after learning the source encoder to
+    publish the initial candidate catalog.
+    """
+
+    def __init__(self) -> None:
+        self._init_feature_catalog_state()
+
+    @property
+    @abstractmethod
+    def is_fitted(self) -> bool:
+        """Whether the model is ready for prediction."""
+
+    @abstractmethod
+    def fit(
+        self,
+        interactions: csr_matrix,
+        item_features: ItemFeatures,
+        **kwargs,
+    ) -> BaseColdStartRecommender:
+        """Fit a source encoder and publish the initial candidate catalog."""
+
+    @abstractmethod
+    def predict_on_batch(
+        self,
+        source: csr_matrix,
+        *,
+        k: int,
+        exclude_seen: bool = True,
+        candidate_ids: Sequence[Hashable] | np.ndarray | None = None,
+    ) -> SRPTensor:
+        """Return ranked predictions against the current candidate catalog."""
+
+    def _prepare_source(self, source: csr_matrix) -> csr_matrix:
+        """Validate source columns against the fitted source vocabulary."""
+        if not self.is_fitted or self.source_vocabulary_ is None:
+            raise RuntimeError(
+                f"{type(self).__name__} must be fitted before prediction"
+            )
+        source = canonical_csr(source, name="source")
+        if source.shape[1] != self.source_vocabulary_.n_items:
+            raise ValueError(
+                f"source has {source.shape[1]} items, but "
+                f"{type(self).__name__} was fitted with "
+                f"{self.source_vocabulary_.n_items} source items"
+            )
+        return source
+
+    def predict(
+        self,
+        source: csr_matrix,
+        *,
+        k: int = 100,
+        batch_size: int = 1024,
+        exclude_seen: bool = True,
+        candidate_ids: Sequence[Hashable] | np.ndarray | None = None,
+        show_progress: bool = False,
+    ) -> SRPTensor:
+        """Predict all source rows by repeatedly calling ``predict_on_batch``."""
+        source = self._prepare_source(source)
+        if batch_size < 1:
+            raise ValueError("batch_size must be >= 1")
+        catalog = self.candidates
+        selected_items = (
+            catalog.n_items
+            if candidate_ids is None
+            else catalog.rows_for(candidate_ids).size
+        )
+        if not 1 <= int(k) <= selected_items:
+            raise ValueError(f"k must be in [1, {selected_items}], got {k}")
+
+        columns: list[torch.Tensor] = []
+        values: list[torch.Tensor] = []
+        starts = range(0, source.shape[0], batch_size)
+        if show_progress:
+            try:
+                from tqdm.auto import tqdm
+
+                starts = tqdm(
+                    starts,
+                    desc=f"{type(self).__name__} predict@{k}",
+                )
+            except Exception:  # pragma: no cover - optional display helper
+                pass
+        for start in starts:
+            result = self.predict_on_batch(
+                source[start : start + batch_size],
+                k=k,
+                exclude_seen=exclude_seen,
+                candidate_ids=candidate_ids,
+            )
+            if result.cols_total != catalog.n_items:
+                raise ValueError(
+                    "predict_on_batch() item count must match the candidate catalog"
+                )
+            columns.append(result.cols)
+            values.append(result.vals)
+
+        if not columns:
+            return self.predict_on_batch(
+                source,
+                k=k,
+                exclude_seen=exclude_seen,
+                candidate_ids=candidate_ids,
+            )
+        return SRPTensor(
+            cols=torch.vstack(columns),
+            vals=torch.vstack(values),
+            shape=(source.shape[0], catalog.n_items),
+            validate=False,
+        )
+
+    def _init_feature_catalog_state(self) -> None:
+        self._catalog_lock = RLock()
+        self._candidates: CandidateCatalog | None = None
+        self.source_vocabulary_: ItemVocabulary | None = None
+        self.source_item_ids_: np.ndarray | None = None
+        self.source_id_to_row_: Mapping[Hashable, int] | None = None
+        self.source_popularity_: np.ndarray | None = None
+        self.feature_space_id_: str | None = None
+        self.n_input_features_: int | None = None
+        self._feature_catalog_dtype: np.dtype | None = None
+        self._feature_catalog_include_popularity = False
+
+    @property
+    def candidates(self) -> CandidateCatalog:
+        """Current immutable candidate-catalog snapshot."""
+        catalog = self._candidates
+        if catalog is None:
+            raise RuntimeError("model must be fitted before accessing candidates")
+        return catalog
+
+    @property
+    def n_candidates_(self) -> int | None:
+        """Number of current candidates, or ``None`` before fitting."""
+        return None if self._candidates is None else self._candidates.n_items
+
+    def _install_feature_catalog(
+        self,
+        *,
+        source_item_ids: np.ndarray,
+        source_popularity: np.ndarray,
+        n_input_features: int,
+        candidate_features: csr_matrix | np.ndarray,
+        metadata: pd.DataFrame | None,
+        feature_space_id: str | None,
+        dtype: np.dtype,
+        include_popularity: bool,
+    ) -> CandidateCatalog:
+        """Atomically replace the complete candidate catalog."""
+        vocabulary = ItemVocabulary.from_ids(source_item_ids)
+        popularity = np.asarray(source_popularity, dtype=dtype).copy()
+        popularity.setflags(write=False)
+        catalog = _make_catalog(
+            item_ids=vocabulary.item_ids,
+            item_features=candidate_features,
+            metadata=metadata,
+            feature_space_id=feature_space_id,
+            version=1,
+        )
+        self.source_vocabulary_ = vocabulary
+        self.source_item_ids_ = vocabulary.item_ids
+        self.source_id_to_row_ = vocabulary.id_to_row
+        self.source_popularity_ = popularity
+        self.feature_space_id_ = feature_space_id
+        self.n_input_features_ = int(n_input_features)
+        self._feature_catalog_dtype = np.dtype(dtype)
+        self._feature_catalog_include_popularity = bool(include_popularity)
+        with self._catalog_lock:
+            self._candidates = catalog
+            self._on_catalog_published(catalog)
+        return catalog
+
+    def _on_catalog_published(self, catalog: CandidateCatalog) -> None:
+        pass
+
+    def _prepare_catalog_features(
+        self,
+        item_ids: np.ndarray,
+        item_features: ItemFeatures,
+    ) -> csr_matrix | np.ndarray:
+        if (
+            self.n_input_features_ is None
+            or self.source_id_to_row_ is None
+            or self.source_popularity_ is None
+            or self._feature_catalog_dtype is None
+        ):
+            raise RuntimeError("model must be fitted before changing candidates")
+        features = canonical_item_features(
+            item_features,
+            dtype=self._feature_catalog_dtype,
+        )
+        if features.shape[0] != item_ids.size:
+            raise ValueError(
+                f"item_features has {features.shape[0]} rows, but item_ids "
+                f"has {item_ids.size} entries"
+            )
+        if features.shape[1] != self.n_input_features_:
+            raise ValueError(
+                f"item_features has {features.shape[1]} columns, but the model "
+                f"was fitted with {self.n_input_features_} input features"
+            )
+        if self._feature_catalog_include_popularity:
+            popularity = np.zeros(item_ids.size, dtype=self._feature_catalog_dtype)
+            for row, item_id in enumerate(item_ids.tolist()):
+                source_row = self.source_id_to_row_.get(item_id)
+                if source_row is not None:
+                    popularity[row] = self.source_popularity_[source_row]
+            features = append_column(features, popularity)
+        return features
+
+    def _resolve_catalog_feature_space_id(
+        self,
+        feature_space_id: str | None,
+    ) -> str | None:
+        resolved = canonical_feature_space_id(feature_space_id)
+        if resolved is None:
+            return self.feature_space_id_
+        if resolved != self.feature_space_id_:
+            raise ValueError(
+                "feature_space_id must match the feature space used to fit the "
+                "model; set feature_space_id during fit to enable this check"
+            )
+        return resolved
+
+    def build_candidates(
+        self,
+        *,
+        item_ids: Sequence[Hashable] | np.ndarray,
+        item_features: ItemFeatures,
+        metadata: pd.DataFrame | None = None,
+        feature_space_id: str | None = None,
+    ) -> CandidateCatalog:
+        """Add or update candidates and atomically publish a new snapshot."""
+        ids = canonical_item_ids(item_ids)
+        candidate_metadata = canonical_metadata(metadata, item_ids=ids)
+        features = self._prepare_catalog_features(ids, item_features)
+        resolved_space = self._resolve_catalog_feature_space_id(feature_space_id)
+        with self._catalog_lock:
+            current = self.candidates
+            catalog = _make_catalog(
+                item_ids=ids,
+                item_features=features,
+                metadata=candidate_metadata,
+                feature_space_id=resolved_space,
+                version=current.version + 1,
+            )
+            self._candidates = catalog
+            self._on_catalog_published(catalog)
+        return catalog
+
+    def update_candidates(
+        self,
+        *,
+        item_ids: Sequence[Hashable] | np.ndarray,
+        item_features: ItemFeatures,
+        metadata: pd.DataFrame | None = None,
+        on_conflict: CandidateConflict = "error",
+        feature_space_id: str | None = None,
+    ) -> CandidateCatalog:
+        """Remove registered candidates and publish a new snapshot."""
+        if on_conflict not in {"error", "replace", "ignore"}:
+            raise ValueError("on_conflict must be 'error', 'replace', or 'ignore'")
+        ids = canonical_item_ids(item_ids)
+        incoming_metadata = canonical_metadata(metadata, item_ids=ids)
+        incoming_features = self._prepare_catalog_features(ids, item_features)
+        resolved_space = self._resolve_catalog_feature_space_id(feature_space_id)
+        with self._catalog_lock:
+            current = self.candidates
+            conflicts = np.array(
+                [item_id in current.id_to_row for item_id in ids.tolist()],
+                dtype=bool,
+            )
+            if on_conflict == "error" and bool(conflicts.any()):
+                first = ids[int(np.flatnonzero(conflicts)[0])]
+                raise ValueError(f"candidate item ID already exists: {first!r}")
+            replace_input_rows = (
+                np.flatnonzero(conflicts)
+                if on_conflict == "replace"
+                else np.empty(0, dtype=np.int64)
+            )
+            replace_catalog_rows = np.asarray(
+                [current.id_to_row[ids[row]] for row in replace_input_rows],
+                dtype=np.int64,
+            )
+            additions = np.flatnonzero(~conflicts)
+            if replace_input_rows.size == 0 and additions.size == 0:
+                return current
+            features = _replace_feature_rows(
+                current.item_features,
+                replace_catalog_rows,
+                take_features(incoming_features, replace_input_rows),
+            )
+            if additions.size:
+                features = _stack_features(
+                    features,
+                    take_features(incoming_features, additions),
+                )
+                combined_ids = np.concatenate((current.item_ids, ids[additions]))
+            else:
+                combined_ids = current.item_ids.copy()
+            combined_metadata = self._updated_metadata(
+                current=current,
+                incoming=incoming_metadata,
+                replace_input_rows=replace_input_rows,
+                replace_catalog_rows=replace_catalog_rows,
+                addition_input_rows=additions,
+            )
+            catalog = _make_catalog(
+                item_ids=combined_ids,
+                item_features=features,
+                metadata=combined_metadata,
+                feature_space_id=resolved_space,
+                version=current.version + 1,
+            )
+            self._candidates = catalog
+            self._on_catalog_published(catalog)
+        return catalog
+
+    @staticmethod
+    def _updated_metadata(
+        *,
+        current: CandidateCatalog,
+        incoming: pd.DataFrame | None,
+        replace_input_rows: np.ndarray,
+        replace_catalog_rows: np.ndarray,
+        addition_input_rows: np.ndarray,
+    ) -> pd.DataFrame | None:
+        if current.metadata is None and incoming is None:
+            return None
+        old = (
+            current.metadata.copy(deep=True)
+            if current.metadata is not None
+            else pd.DataFrame(index=range(current.n_items))
+        )
+        new = incoming if incoming is not None else pd.DataFrame()
+        columns = old.columns.union(new.columns, sort=False)
+        result = old.reindex(columns=columns)
+        # A column only the incoming frame carries is missing for every
+        # pre-existing item, so it holds NA and has to accept whatever the
+        # incoming values are. Reindexing alone would default it to float64,
+        # which then rejects non-numeric incoming values.
+        introduced = [column for column in columns if column not in old.columns]
+        if introduced:
+            result[introduced] = result[introduced].astype(object)
+        if addition_input_rows.size:
+            # Extend the index rather than concatenating an all-NA frame.
+            # Concat resolves result dtypes while excluding all-NA columns,
+            # which pandas warns about and will stop doing, and which silently
+            # widened float and datetime metadata to object on newer pandas.
+            result = result.reset_index(drop=True)
+            start = len(result)
+            result = result.reindex(range(start + int(addition_input_rows.size)))
+            if incoming is not None:
+                block = incoming.iloc[addition_input_rows]
+                for column in incoming.columns:
+                    # Per column, so each one promotes on its own terms.
+                    result.iloc[start:, result.columns.get_loc(column)] = block[
+                        column
+                    ].to_numpy()
+        if incoming is not None and replace_input_rows.size:
+            result.loc[replace_catalog_rows, incoming.columns] = incoming.iloc[
+                replace_input_rows
+            ].to_numpy()
+        return result.reset_index(drop=True)
+
+    def remove_candidates(
+        self,
+        item_ids: Sequence[Hashable] | np.ndarray,
+        *,
+        missing: Literal["error", "ignore"] = "error",
+    ) -> CandidateCatalog:
+        if missing not in {"error", "ignore"}:
+            raise ValueError("missing must be 'error' or 'ignore'")
+        ids = canonical_item_ids(item_ids)
+        with self._catalog_lock:
+            current = self.candidates
+            unknown = [
+                item_id for item_id in ids.tolist() if item_id not in current.id_to_row
+            ]
+            if unknown and missing == "error":
+                raise KeyError(f"unknown candidate item ID: {unknown[0]!r}")
+            removed = {
+                item_id for item_id in ids.tolist() if item_id in current.id_to_row
+            }
+            if not removed:
+                return current
+            keep = np.asarray(
+                [item_id not in removed for item_id in current.item_ids.tolist()],
+                dtype=bool,
+            )
+            if not bool(keep.any()):
+                raise ValueError("candidate catalog must contain at least one item")
+            rows = np.flatnonzero(keep)
+            metadata = (
+                None
+                if current.metadata is None
+                else current.metadata.iloc[rows].reset_index(drop=True)
+            )
+            catalog = _make_catalog(
+                item_ids=current.item_ids[rows],
+                item_features=take_features(current.item_features, rows),
+                metadata=metadata,
+                feature_space_id=current.feature_space_id,
+                version=current.version + 1,
+            )
+            self._candidates = catalog
+            self._on_catalog_published(catalog)
+        return catalog
+
+    def align_source(
+        self,
+        source: csr_matrix,
+        *,
+        item_ids: Sequence[Hashable] | np.ndarray,
+    ) -> csr_matrix:
+        """Align external sparse columns to the fitted source vocabulary."""
+        if self.source_vocabulary_ is None:
+            raise RuntimeError("model must be fitted before aligning source data")
+        return self.source_vocabulary_.align_csr(source, item_ids=item_ids)
+
+    def _resolve_candidate_selection(
+        self,
+        candidate_ids: Sequence[Hashable] | np.ndarray | None,
+    ) -> CandidateSelection:
+        catalog = self.candidates
+        rows = (
+            np.arange(catalog.n_items, dtype=np.int64)
+            if candidate_ids is None
+            else np.sort(catalog.rows_for(candidate_ids))
+        )
+        features = (
+            catalog.item_features
+            if rows.size == catalog.n_items
+            else take_features(catalog.item_features, rows)
+        )
+        assert self.source_item_ids_ is not None
+        source_to_candidate = np.fromiter(
+            (
+                catalog.id_to_row.get(item_id, -1)
+                for item_id in self.source_item_ids_.tolist()
+            ),
+            dtype=np.int64,
+            count=self.source_item_ids_.size,
+        )
+        candidate_to_local = np.full(catalog.n_items, -1, dtype=np.int64)
+        candidate_to_local[rows] = np.arange(rows.size, dtype=np.int64)
+        return CandidateSelection(
+            catalog=catalog,
+            rows=rows,
+            features=features,
+            source_to_candidate=source_to_candidate,
+            candidate_to_local=candidate_to_local,
+        )
+
+
+class _LinearFeatureRecommenderMixin(BaseColdStartRecommender):
+    """Shared prediction path for linear fixed-feature cold-start models."""
+
+    _model_name = "model"
+
+    def _on_catalog_published(self, catalog: CandidateCatalog) -> None:
+        self.decoder_features_ = catalog.item_features
+
+    def _prepare_source(self, source: csr_matrix) -> csr_matrix:
+        if (
+            not self.is_fitted
+            or self.n_items_ is None
+            or self.train_item_indices_ is None
+            or self.train_item_mask_ is None
+        ):
+            raise RuntimeError(
+                f"{self._model_name} must be fitted before prediction"
+            )
+        source = canonical_csr(source, name="source")
+        if source.shape[1] != self.n_items_:
+            raise ValueError(
+                f"source has {source.shape[1]} items, but {self._model_name} "
+                f"was fitted with {self.n_items_} items"
+            )
+        if source.data.size and not np.all(source.data == 1):
+            raise ValueError("source must contain binary implicit values equal to 1")
+
+        cold_positions = np.flatnonzero(~self.train_item_mask_[source.indices])
+        if cold_positions.size:
+            cold_item = int(source.indices[cold_positions[0]])
+            raise ValueError(
+                f"source contains item {cold_item}, which has no fitted encoder row"
+            )
+        return source
+
+    def user_profiles(self, source: csr_matrix) -> np.ndarray:
+        """Transform binary source histories into item-feature profiles."""
+        source = self._prepare_source(source)
+        return self._profiles_from_prepared_source(source)
+
+    def _profiles_from_prepared_source(self, source: csr_matrix) -> np.ndarray:
+        assert self.encoder_ is not None
+        assert self.train_item_indices_ is not None
+        return np.asarray(
+            source[:, self.train_item_indices_] @ self.encoder_,
+            dtype=self.dtype,
+        )
+
+    def _score_profiles(
+        self,
+        profiles: np.ndarray,
+        *,
+        candidate_features: csr_matrix | np.ndarray,
+    ) -> np.ndarray:
+        if isspmatrix_csr(candidate_features):
+            scores = (candidate_features @ profiles.T).T
+        else:
+            scores = profiles @ candidate_features.T
+        return np.asarray(scores, dtype=self.dtype)
+
+    def _predict_prepared_batch(
+        self,
+        source: csr_matrix,
+        *,
+        k: int,
+        exclude_seen: bool,
+        catalog: CandidateCatalog,
+        candidate_rows: np.ndarray,
+        candidate_features: csr_matrix | np.ndarray,
+        source_to_candidate_rows: np.ndarray,
+        candidate_to_local: np.ndarray,
+    ) -> SRPTensor:
+        if not 1 <= int(k) <= candidate_rows.size:
+            raise ValueError(f"k must be in [1, {candidate_rows.size}], got {k}")
+
+        seen_counts = np.diff(source.indptr)
+        source_rows = np.repeat(
+            np.arange(source.shape[0], dtype=np.int64),
+            seen_counts,
+        )
+        seen_candidate_rows = source_to_candidate_rows[source.indices]
+        registered = seen_candidate_rows >= 0
+        seen_local_rows = np.full(seen_candidate_rows.shape, -1, dtype=np.int64)
+        seen_local_rows[registered] = candidate_to_local[
+            seen_candidate_rows[registered]
+        ]
+        selected_seen = seen_local_rows >= 0
+
+        if exclude_seen:
+            selected_seen_counts = np.bincount(
+                source_rows[selected_seen],
+                minlength=source.shape[0],
+            )
+            available_counts = candidate_rows.size - selected_seen_counts
+            if available_counts.size and np.any(available_counts < k):
+                row = int(np.flatnonzero(available_counts < k)[0])
+                raise ValueError(
+                    f"source row {row} has only {available_counts[row]} unseen "
+                    f"items among the selected candidates, fewer than k={k}"
+                )
+
+        if source.shape[0] == 0:
+            value_dtype = torch.from_numpy(np.empty(0, dtype=self.dtype)).dtype
+            return SRPTensor(
+                cols=torch.empty((0, k), dtype=torch.long),
+                vals=torch.empty((0, k), dtype=value_dtype),
+                shape=(0, catalog.n_items),
+            )
+
+        scores = self._score_profiles(
+            self._profiles_from_prepared_source(source),
+            candidate_features=candidate_features,
+        )
+        if exclude_seen and bool(selected_seen.any()):
+            scores[source_rows[selected_seen], seen_local_rows[selected_seen]] = -np.inf
+        local_predictions = SRPTensor.from_dense(
+            torch.from_numpy(scores),
+            k=int(k),
+            score_mode="raw",
+        )
+        global_columns = torch.from_numpy(candidate_rows).to(
+            local_predictions.cols.device
+        )[local_predictions.cols]
+        return SRPTensor(
+            cols=global_columns,
+            vals=local_predictions.vals,
+            shape=(source.shape[0], catalog.n_items),
+        )
+
+    def predict_on_batch(
+        self,
+        source: csr_matrix,
+        *,
+        k: int,
+        exclude_seen: bool = True,
+        candidate_ids: Sequence[Hashable] | np.ndarray | None = None,
+    ) -> SRPTensor:
+        """Predict ranked top-``k`` items for one source batch."""
+        source = self._prepare_source(source)
+        selection = self._resolve_candidate_selection(candidate_ids)
+        return self._predict_prepared_batch(
+            source,
+            k=k,
+            exclude_seen=exclude_seen,
+            catalog=selection.catalog,
+            candidate_rows=selection.rows,
+            candidate_features=selection.features,
+            source_to_candidate_rows=selection.source_to_candidate,
+            candidate_to_local=selection.candidate_to_local,
+        )
+
+    def predict(
+        self,
+        source: csr_matrix,
+        *,
+        k: int = 100,
+        batch_size: int = 1024,
+        exclude_seen: bool = True,
+        candidate_ids: Sequence[Hashable] | np.ndarray | None = None,
+        show_progress: bool = False,
+    ) -> SRPTensor:
+        """Predict ranked top-``k`` items for all source rows in batches."""
+        source = self._prepare_source(source)
+        if batch_size < 1:
+            raise ValueError("batch_size must be >= 1")
+        selection = self._resolve_candidate_selection(candidate_ids)
+        if not 1 <= int(k) <= selection.rows.size:
+            raise ValueError(f"k must be in [1, {selection.rows.size}], got {k}")
+
+        columns: list[torch.Tensor] = []
+        values: list[torch.Tensor] = []
+        starts = range(0, source.shape[0], batch_size)
+        if show_progress:
+            try:
+                from tqdm.auto import tqdm
+
+                starts = tqdm(starts, desc=f"{self._model_name} predict@{k}")
+            except Exception:  # pragma: no cover - optional display helper
+                pass
+        for start in starts:
+            end = min(start + batch_size, source.shape[0])
+            predictions = self._predict_prepared_batch(
+                source[start:end],
+                k=k,
+                exclude_seen=exclude_seen,
+                catalog=selection.catalog,
+                candidate_rows=selection.rows,
+                candidate_features=selection.features,
+                source_to_candidate_rows=selection.source_to_candidate,
+                candidate_to_local=selection.candidate_to_local,
+            )
+            columns.append(predictions.cols)
+            values.append(predictions.vals)
+
+        if not columns:
+            return self._predict_prepared_batch(
+                source,
+                k=k,
+                exclude_seen=exclude_seen,
+                catalog=selection.catalog,
+                candidate_rows=selection.rows,
+                candidate_features=selection.features,
+                source_to_candidate_rows=selection.source_to_candidate,
+                candidate_to_local=selection.candidate_to_local,
+            )
+        return SRPTensor(
+            cols=torch.vstack(columns),
+            vals=torch.vstack(values),
+            shape=(source.shape[0], selection.catalog.n_items),
+        )

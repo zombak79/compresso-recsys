@@ -20,6 +20,11 @@ It checks item bounds, duplicate recommendations, NaN scores, and score order.
 
 .. autofunction:: compresso_recsys.evaluation.evaluate_recommender
 
+``evaluate_recommender`` requires matching source and target row counts, but
+their column counts may differ. This supports a fixed history vocabulary with a
+separately managed candidate catalog. Every prediction batch must use the same
+column space as its corresponding target matrix.
+
 .. autofunction:: compresso_recsys.evaluation.evaluate_ranked_predictions
 
 .. autoclass:: compresso_recsys.evaluation.RankingEvaluator

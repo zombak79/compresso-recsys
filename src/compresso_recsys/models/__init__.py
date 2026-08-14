@@ -1,6 +1,19 @@
 """Collaborative-filtering models."""
 
-from .base import Recommender
+from .base import BaseCollaborativeRecommender, Recommender
+from .batching import (
+    InteractionBatch,
+    InteractionBatchSampler,
+    dense_training_target,
+)
+from .cold_start import (
+    BaseColdStartRecommender,
+    CandidateCatalog,
+    ColdStartRecommender,
+    ItemVocabulary,
+    WarmCatalogAdapter,
+)
+from .content import ContentRecommender, ContentRecommenderConfig
 from .ease import EASE, EASEConfig
 from .elsa import (
     CompressedELSA,
@@ -9,9 +22,17 @@ from .elsa import (
     ELSAConfig,
     ELSATrainer,
 )
+from .teaser import TEASER, TEASERConfig
+from .teaser_gd import TEASERGD, TEASERGDConfig, TEASERGDTrainer
 
 __all__ = [
+    "BaseColdStartRecommender",
+    "BaseCollaborativeRecommender",
     "CompressedELSA",
+    "CandidateCatalog",
+    "ColdStartRecommender",
+    "ContentRecommender",
+    "ContentRecommenderConfig",
     "EASE",
     "EASEConfig",
     "ELSA",
@@ -19,4 +40,14 @@ __all__ = [
     "ELSAConfig",
     "ELSATrainer",
     "Recommender",
+    "ItemVocabulary",
+    "InteractionBatch",
+    "InteractionBatchSampler",
+    "dense_training_target",
+    "TEASER",
+    "TEASERConfig",
+    "TEASERGD",
+    "TEASERGDConfig",
+    "TEASERGDTrainer",
+    "WarmCatalogAdapter",
 ]

@@ -5,9 +5,11 @@ from typing import Literal
 
 import numpy as np
 import torch
-from scipy.sparse import csr_matrix, isspmatrix_csr
+from scipy.sparse import csr_matrix
 
 from compresso import SRPTensor
+from compresso_recsys.models._validation import canonical_csr
+from compresso_recsys.models.base import BaseCollaborativeRecommender
 
 __all__ = ["EASE", "EASEConfig"]
 
@@ -22,20 +24,6 @@ def _progress(iterable, *, enabled: bool, desc: str):
     except Exception:  # pragma: no cover - optional display helper
         return iterable
     return tqdm(iterable, desc=desc)
-
-
-def _canonical_csr(matrix: csr_matrix, *, name: str) -> csr_matrix:
-    if not isspmatrix_csr(matrix):
-        raise TypeError(f"{name} must be a scipy.sparse.csr_matrix")
-    needs_copy = not matrix.has_canonical_format or bool(np.any(matrix.data == 0))
-    out = matrix.copy() if needs_copy else matrix
-    if needs_copy:
-        out.sum_duplicates()
-        out.eliminate_zeros()
-        out.sort_indices()
-    if not np.all(np.isfinite(out.data)):
-        raise ValueError(f"{name} values must be finite")
-    return out
 
 
 @dataclass(frozen=True)
@@ -62,7 +50,7 @@ class EASEConfig:
             raise ValueError("dtype must be 'float32' or 'float64'")
 
 
-class EASE:
+class EASE(BaseCollaborativeRecommender):
     """Embarrassingly Shallow Autoencoder recommender.
 
     EASE learns a closed-form item-to-item coefficient matrix from a sparse
@@ -82,13 +70,18 @@ class EASE:
         return self.coefficients_ is not None
 
     @property
+    def n_items(self) -> int | None:
+        """Number of fitted item columns, or ``None`` before fitting."""
+        return self.n_items_
+
+    @property
     def dtype(self) -> np.dtype:
         """NumPy dtype used by the model."""
         return np.dtype(self.cfg.dtype)
 
     def fit(self, interactions: csr_matrix) -> EASE:
         """Fit EASE from a CSR user-item interaction matrix."""
-        interactions = _canonical_csr(interactions, name="interactions")
+        interactions = canonical_csr(interactions, name="interactions")
         if interactions.shape[0] < 1 or interactions.shape[1] < 1:
             raise ValueError("interactions must contain at least one user and one item")
 
@@ -112,7 +105,7 @@ class EASE:
     def _prepare_source(self, source: csr_matrix) -> csr_matrix:
         if not self.is_fitted or self.n_items_ is None:
             raise RuntimeError("EASE must be fitted before prediction")
-        source = _canonical_csr(source, name="source")
+        source = canonical_csr(source, name="source")
         if source.shape[1] != self.n_items_:
             raise ValueError(
                 f"source has {source.shape[1]} items, but EASE was fitted with "
