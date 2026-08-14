@@ -84,7 +84,7 @@ def test_content_recommender_matches_evaluate_item_embeddings_with_holdout():
             score_batch_size=64,
         )
         reference.update(
-            {name: value for name, value in metrics.items() if name != "n_eval_users"}
+            {name: value for name, value in metrics.items() if name != "n_scored_rows"}
         )
 
     result = evaluate_recommender(

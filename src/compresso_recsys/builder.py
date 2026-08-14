@@ -1048,6 +1048,18 @@ def _build_temporal_split(args, proc_df, progress: _CheckpointProgress | None = 
     }
 
 
+def _distinct_eval_users(holdout) -> int | None:
+    """How many distinct users a holdout evaluates, or ``None`` if unrecorded.
+
+    Not the same as its row count. ``eval_draws`` above 1 gives each user one
+    row per draw and tiles the identifiers to match.
+    """
+    user_ids = holdout.get("user_ids")
+    if user_ids is None:
+        return None
+    return int(np.unique(np.asarray(user_ids)).shape[0])
+
+
 def _build_split_payload(args, ds, proc_df, progress: _CheckpointProgress | None = None):
     if args.split_mode == "user_split":
         return _build_user_split(args, ds, proc_df)
@@ -1148,8 +1160,14 @@ def _build_recsys_checkpoint_from_args(args) -> Path:
                     "n_train_users": int(len(split_payload["train_user_ids"])) if split_payload.get("train_user_ids") is not None else None,
                     "n_val_users": int(len(split_payload["val_user_ids"])) if split_payload.get("val_user_ids") is not None else None,
                     "n_test_users": int(len(split_payload["test_user_ids"])) if split_payload.get("test_user_ids") is not None else None,
-                    "n_val_eval_users": int(len(val_holdout["source_indices"])),
-                    "n_test_eval_users": int(len(test_holdout["source_indices"])),
+                    # Rows and users differ once a protocol draws a user more
+                    # than once: at eval_draws=5 the row count is five times the
+                    # user count, and recording only the former under a name
+                    # saying "users" overstated the evaluation by that factor.
+                    "n_val_eval_rows": int(len(val_holdout["source_indices"])),
+                    "n_test_eval_rows": int(len(test_holdout["source_indices"])),
+                    "n_val_eval_users": _distinct_eval_users(val_holdout),
+                    "n_test_eval_users": _distinct_eval_users(test_holdout),
                     "split_files": {
                         "train_source_matrix": "data/train_source_matrix.npz",
                         "train_target_matrix": "data/train_target_matrix.npz",

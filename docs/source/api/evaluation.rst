@@ -13,7 +13,13 @@ matter.
 The evaluator creates one boolean hit tensor of shape ``(batch_size, K)`` and
 shares it across all configured metrics. It does not densify model scores or
 the complete target matrix. Rows without target items are excluded from metric
-means and from ``n_eval_users``.
+means and from ``n_scored_rows``.
+
+``n_scored_rows`` counts rows, not users. They differ whenever a protocol gives
+one user several rows -- ``eval_draws`` above 1 -- and ``n_units`` reports the
+distinct identifiers behind them. Paired comparison resamples units rather than
+rows, so it is ``n_units`` that bounds how much independent evidence an
+evaluation carries.
 
 Prediction validation is enabled by default for both evaluation entry points.
 It checks item bounds, duplicate recommendations, NaN scores, and score order.
@@ -24,7 +30,7 @@ Evaluation Results
 Both entry points return an
 :class:`~compresso_recsys.evaluation.EvaluationResult` rather than a plain
 dictionary. It behaves as a mapping over the aggregate metrics plus
-``n_eval_users``, so ``result["ndcg@20"]``, iteration and ``dict(result)``
+``n_scored_rows``, so ``result["ndcg@20"]``, iteration and ``dict(result)``
 continue to work, and :meth:`~compresso_recsys.evaluation.EvaluationResult.to_dict`
 is available where an actual ``dict`` is required.
 
@@ -41,8 +47,9 @@ together with the ``sample_ids`` that identify the rows those values came from:
    result["ndcg@20"]            # aggregate, as before
    result.per_user["ndcg@20"]   # one float32 per evaluable row
    result.sample_ids            # aligned identifiers
-   result.n_eval_users          # rows with at least one target
    result.n_rows                # rows supplied
+   result.n_scored_rows         # rows with at least one target
+   result.n_units               # distinct identifiers among those rows
 
 Those per-user values are what make paired statistical comparison possible; see
 :doc:`../statistical-comparison`. Retaining them costs roughly

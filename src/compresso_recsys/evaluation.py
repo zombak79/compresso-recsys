@@ -95,7 +95,7 @@ class _TargetFingerprint:
 class EvaluationResult(Mapping[str, Any]):
     """Aggregate metrics plus the per-user observations behind them.
 
-    The mapping view carries the aggregates and ``n_eval_users``, so existing
+    The mapping view carries the aggregates and ``n_scored_rows``, so existing
     code that treats an evaluation as a dictionary keeps working::
 
         result["ndcg@20"]
@@ -114,7 +114,7 @@ class EvaluationResult(Mapping[str, Any]):
     per_user: dict[str, np.ndarray] | None
     sample_ids: np.ndarray | None
     n_rows: int
-    n_eval_users: int
+    n_scored_rows: int
     required_k: int
     metadata: dict[str, Any] = field(default_factory=dict)
     # ``None`` means debug collection was off; an empty tuple means it was on
@@ -132,13 +132,13 @@ class EvaluationResult(Mapping[str, Any]):
             if not np.isfinite(value):
                 raise ValueError(f"aggregate metric {key!r} is not finite: {value!r}")
         self.n_rows = int(self.n_rows)
-        self.n_eval_users = int(self.n_eval_users)
+        self.n_scored_rows = int(self.n_scored_rows)
         self.required_k = int(self.required_k)
         if self.n_rows < 0:
             raise ValueError("n_rows must be >= 0")
-        if not 0 <= self.n_eval_users <= self.n_rows:
+        if not 0 <= self.n_scored_rows <= self.n_rows:
             raise ValueError(
-                f"n_eval_users ({self.n_eval_users}) must be in [0, n_rows={self.n_rows}]"
+                f"n_scored_rows ({self.n_scored_rows}) must be in [0, n_rows={self.n_rows}]"
             )
         if self.required_k < 1:
             raise ValueError("required_k must be >= 1")
@@ -160,10 +160,10 @@ class EvaluationResult(Mapping[str, Any]):
             array = _owned(np.ascontiguousarray(values, dtype=np.float32), values)
             if array.ndim != 1:
                 raise ValueError(f"per_user[{key!r}] must be one-dimensional")
-            if array.shape[0] != self.n_eval_users:
+            if array.shape[0] != self.n_scored_rows:
                 raise ValueError(
                     f"per_user[{key!r}] has {array.shape[0]} values, "
-                    f"expected n_eval_users={self.n_eval_users}"
+                    f"expected n_scored_rows={self.n_scored_rows}"
                 )
             if not np.isfinite(array).all():
                 raise ValueError(f"per_user[{key!r}] contains non-finite values")
@@ -176,10 +176,10 @@ class EvaluationResult(Mapping[str, Any]):
         ids = _owned(np.asarray(self.sample_ids), self.sample_ids)
         if ids.ndim != 1:
             raise ValueError("sample_ids must be one-dimensional")
-        if ids.shape[0] != self.n_eval_users:
+        if ids.shape[0] != self.n_scored_rows:
             raise ValueError(
                 f"sample_ids has {ids.shape[0]} values, "
-                f"expected n_eval_users={self.n_eval_users}"
+                f"expected n_scored_rows={self.n_scored_rows}"
             )
         # Repeated identifiers are legitimate here: the stacked-fold protocol
         # in :func:`compresso_recsys.retrieval.build_eval_holdout` evaluates
@@ -194,7 +194,8 @@ class EvaluationResult(Mapping[str, Any]):
 
     def _mapping_view(self) -> dict[str, Any]:
         view: dict[str, Any] = dict(self.metrics)
-        view["n_eval_users"] = self.n_eval_users
+        view["n_scored_rows"] = self.n_scored_rows
+        view["n_units"] = self.n_units
         if self.debug_rows is not None:
             view["debug"] = list(self.debug_rows)
         return view
@@ -212,9 +213,26 @@ class EvaluationResult(Mapping[str, Any]):
         collected = "none" if self.per_user is None else f"{len(self.per_user)} keys"
         return (
             f"EvaluationResult(metrics={self.metrics!r}, "
-            f"n_eval_users={self.n_eval_users}, n_rows={self.n_rows}, "
+            f"n_scored_rows={self.n_scored_rows}, n_rows={self.n_rows}, "
             f"required_k={self.required_k}, per_user={collected})"
         )
+
+    @property
+    def n_units(self) -> int:
+        """Independent evaluation units behind the scored rows.
+
+        Distinct ``sample_ids``, which is smaller than ``n_scored_rows`` when a
+        protocol gives one user several rows -- ``eval_draws`` above 1, say. It
+        matches :attr:`compresso_recsys.stats.PairwiseComparison.n_units`, the
+        count paired comparison actually resamples.
+
+        Without identifiers there is nothing to group by, and every row is its
+        own unit, which is also what comparison assumes when it numbers rows
+        positionally.
+        """
+        if self.sample_ids is None:
+            return self.n_scored_rows
+        return int(np.unique(self.sample_ids).shape[0])
 
     @property
     def has_per_user(self) -> bool:
@@ -428,7 +446,7 @@ class RankingEvaluator:
     def reset(self) -> None:
         for metric in self.metrics:
             metric.reset()
-        self._n_eval_users = 0
+        self._n_scored_rows = 0
         self._rows_seen = 0
         self._debug_rows: list[dict[str, Any]] = []
         self._value_chunks: dict[str, list[np.ndarray]] = {}
@@ -602,7 +620,7 @@ class RankingEvaluator:
             self._id_chunks.append(batch_ids[valid.detach().cpu().numpy()])
 
         self._collect_debug(batch)
-        self._n_eval_users += int(valid.sum().item())
+        self._n_scored_rows += int(valid.sum().item())
         self._rows_seen += rows
 
     def compute(self) -> EvaluationResult:
@@ -632,7 +650,7 @@ class RankingEvaluator:
             per_user=per_user,
             sample_ids=sample_ids,
             n_rows=self._rows_seen,
-            n_eval_users=self._n_eval_users,
+            n_scored_rows=self._n_scored_rows,
             required_k=self.required_k,
             metadata=dict(self.metadata),
             debug_rows=tuple(self._debug_rows) if self.debug else None,

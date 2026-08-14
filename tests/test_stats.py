@@ -40,7 +40,7 @@ def _result(
         per_user={metric: array} if collect else None,
         sample_ids=ids if collect else None,
         n_rows=int(array.size),
-        n_eval_users=int(array.size),
+        n_scored_rows=int(array.size),
         required_k=20,
         target_fingerprint=fingerprint,
     )
@@ -54,7 +54,7 @@ def _multi(**columns) -> EvaluationResult:
         per_user=arrays,
         sample_ids=np.arange(size),
         n_rows=size,
-        n_eval_users=size,
+        n_scored_rows=size,
         required_k=20,
         target_fingerprint=TARGETS,
     )
@@ -1078,7 +1078,7 @@ def test_repeated_sample_ids_are_allowed_by_evaluation():
 
     result = _result(values, sample_ids=np.array([0, 1, 1, 2]))
 
-    assert result.n_eval_users == 4
+    assert result.n_scored_rows == 4
 
 
 def test_sample_ids_are_read_only():
