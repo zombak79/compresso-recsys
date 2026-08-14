@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Getting Started &mdash; Compresso Recsys 0.1.1 documentation</title>
+  <title>Getting Started &mdash; Compresso Recsys 0.1.2 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=a58bc63e"></script>
+      <script src="_static/documentation_options.js?v=92734c54"></script>
       <script src="_static/doctools.js?v=fd6eb6e6"></script>
       <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/js/theme.js"></script>
@@ -73,12 +73,16 @@
 <li class="toctree-l2"><a class="reference internal" href="examples.html#checkpoint-read-write">Checkpoint Read/Write</a></li>
 <li class="toctree-l2"><a class="reference internal" href="examples.html#evaluate-embeddings-from-python">Evaluate Embeddings From Python</a></li>
 <li class="toctree-l2"><a class="reference internal" href="examples.html#evaluate-model-predictions">Evaluate Model Predictions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#train-teaser-for-cold-items">Train TEASER for Cold Items</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#train-teaser-with-gradient-descent">Train TEASER with Gradient Descent</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#serve-new-teaser-candidates">Serve New TEASER Candidates</a></li>
 <li class="toctree-l2"><a class="reference internal" href="examples.html#train-and-evaluate-elsa">Train and Evaluate ELSA</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="citing.html">Citing Compresso Recsys</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="citing.html#compresso">Compresso</a></li>
 <li class="toctree-l2"><a class="reference internal" href="citing.html#ease">EASE</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#teaser">TEASER</a></li>
 <li class="toctree-l2"><a class="reference internal" href="citing.html#elsa">ELSA</a></li>
 <li class="toctree-l2"><a class="reference internal" href="citing.html#elsa-with-sampled-output-candidates">ELSA with sampled output candidates</a></li>
 <li class="toctree-l2"><a class="reference internal" href="citing.html#compressed-elsa">Compressed ELSA</a></li>
@@ -130,12 +134,27 @@
 <li class="toctree-l2"><a class="reference internal" href="api/checkpoint.html">Checkpoint API</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="api/checkpoint.html#checkpoint-contexts">Checkpoint Contexts</a></li>
 <li class="toctree-l3"><a class="reference internal" href="api/checkpoint.html#manifest-and-json-helpers">Manifest and JSON Helpers</a></li>
-<li class="toctree-l3"><a class="reference internal" href="api/checkpoint.html#split-and-cluster-stages">Split and Cluster Stages</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/checkpoint.html#split-and-cluster-stages">Split and Cluster Stages</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/checkpoint.html#item-partitions">Item partitions</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="api/models.html">Models API</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="api/models.html#recommender-contract">Recommender Contract</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.Recommender"><code class="docutils literal notranslate"><span class="pre">Recommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.ColdStartRecommender"><code class="docutils literal notranslate"><span class="pre">ColdStartRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.ItemVocabulary"><code class="docutils literal notranslate"><span class="pre">ItemVocabulary</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#implementing-new-models">Implementing New Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.BaseCollaborativeRecommender"><code class="docutils literal notranslate"><span class="pre">BaseCollaborativeRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.BaseColdStartRecommender"><code class="docutils literal notranslate"><span class="pre">BaseColdStartRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#training-interaction-batches">Training Interaction Batches</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#transductive-models-in-expanding-catalogs">Transductive Models in Expanding Catalogs</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.WarmCatalogAdapter"><code class="docutils literal notranslate"><span class="pre">WarmCatalogAdapter</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="api/models.html#ease">EASE</a><ul>
@@ -143,7 +162,22 @@
 <li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.EASE"><code class="docutils literal notranslate"><span class="pre">EASE</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="api/models.html#elsa">ELSA</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#elsa">ELSA</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#contentrecommender">ContentRecommender</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.ContentRecommenderConfig"><code class="docutils literal notranslate"><span class="pre">ContentRecommenderConfig</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.ContentRecommender"><code class="docutils literal notranslate"><span class="pre">ContentRecommender</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#teaser">TEASER</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.TEASERConfig"><code class="docutils literal notranslate"><span class="pre">TEASERConfig</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.TEASER"><code class="docutils literal notranslate"><span class="pre">TEASER</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.CandidateCatalog"><code class="docutils literal notranslate"><span class="pre">CandidateCatalog</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#teasergd">TEASERGD</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.TEASERGDConfig"><code class="docutils literal notranslate"><span class="pre">TEASERGDConfig</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.TEASERGD"><code class="docutils literal notranslate"><span class="pre">TEASERGD</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.TEASERGDTrainer"><code class="docutils literal notranslate"><span class="pre">TEASERGDTrainer</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/models.html#backend-performance">Backend Performance</a></li>
 </ul>
 </li>
@@ -263,7 +297,10 @@ metrics, or cluster graphs to the same checkpoint.</p>
 <h2>What Goes Into a Checkpoint<a class="headerlink" href="#what-goes-into-a-checkpoint" title="Link to this heading"></a></h2>
 <p>The dataset builder writes one portable ZIP file. The core split contains:</p>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">item_ids</span></code>: item-id order used by every embedding matrix</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">item_ids</span></code>: global catalog order used by metadata and embedding stages</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">train_item_ids</span></code>, <code class="docutils literal notranslate"><span class="pre">val_item_ids</span></code>, and <code class="docutils literal notranslate"><span class="pre">test_item_ids</span></code>: column order for
+each split’s source and target matrices; these equal <code class="docutils literal notranslate"><span class="pre">item_ids</span></code> for legacy
+single-catalog splits</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">train_source_matrix</span></code> / <code class="docutils literal notranslate"><span class="pre">train_target_matrix</span></code>:
 sparse matrices defining the training input and target</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">val_source_matrix</span></code> / <code class="docutils literal notranslate"><span class="pre">val_target_matrix</span></code> and
@@ -278,9 +315,10 @@ user ids are meaningful for the split</p></li>
 the protocol partitions items, especially for cold-item experiments</p></li>
 <li><p>optional <code class="docutils literal notranslate"><span class="pre">entity_metadata</span></code>, <code class="docutils literal notranslate"><span class="pre">entity_tag_matrix</span></code>, and <code class="docutils literal notranslate"><span class="pre">tag_names</span></code></p></li>
 </ul>
-<p>For compatibility with older scripts, <code class="docutils literal notranslate"><span class="pre">x_train</span></code> loaded by
-<a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.load_recsys_split" title="compresso_recsys.load_recsys_split"><code class="xref py py-func docutils literal notranslate"><span class="pre">compresso_recsys.load_recsys_split()</span></code></a> is an alias for
-<code class="docutils literal notranslate"><span class="pre">train_source_matrix</span></code>.</p>
+<p>For ordinary reconstruction splits, <code class="docutils literal notranslate"><span class="pre">x_train</span></code> loaded by
+<a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.load_recsys_split" title="compresso_recsys.load_recsys_split"><code class="xref py py-func docutils literal notranslate"><span class="pre">compresso_recsys.load_recsys_split()</span></code></a> equals <code class="docutils literal notranslate"><span class="pre">train_source_matrix</span></code>. For
+<code class="docutils literal notranslate"><span class="pre">temporal</span></code>, it is the boolean union of the train source and target, so models
+that consume one interaction matrix can use every training-period event.</p>
 <p>Additional experiment stages can append their own directories to the same
 checkpoint. Each stage can save embeddings, sparse representations, model
 files, and metrics.</p>
@@ -302,9 +340,12 @@ interactions as source. This requires timestamps and respects order within
 each user, but it is not globally future-blind: interactions from other
 users may occur after a given user’s held-out target.</p>
 </dd>
-<dt><code class="docutils literal notranslate"><span class="pre">temporal</span></code></dt><dd><p>Uses a global timestamp split. For Amazon Reviews 2023, this uses the
-predefined <code class="docutils literal notranslate"><span class="pre">0core_timestamp_w_his</span></code> split with item histories. This is the
-recommended split mode when future-to-past leakage must be avoided.</p>
+<dt><code class="docutils literal notranslate"><span class="pre">temporal</span></code></dt><dd><p>Builds three equal target windows at the end of the timestamp range. The
+default window is 339 days and can be changed with
+<code class="docutils literal notranslate"><span class="pre">temporal_period_hours</span></code>. Histories expand through time, and each split has
+a cumulative catalog containing warm items plus newly supported cold items.
+Source and target share a column order within a split, but train,
+validation, and test may have different widths.</p>
 </dd>
 </dl>
 </section>

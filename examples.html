@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Examples &mdash; Compresso Recsys 0.1.1 documentation</title>
+  <title>Examples &mdash; Compresso Recsys 0.1.2 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=a58bc63e"></script>
+      <script src="_static/documentation_options.js?v=92734c54"></script>
       <script src="_static/doctools.js?v=fd6eb6e6"></script>
       <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/js/theme.js"></script>
@@ -73,12 +73,16 @@
 <li class="toctree-l2"><a class="reference internal" href="#checkpoint-read-write">Checkpoint Read/Write</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#evaluate-embeddings-from-python">Evaluate Embeddings From Python</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#evaluate-model-predictions">Evaluate Model Predictions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#train-teaser-for-cold-items">Train TEASER for Cold Items</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#train-teaser-with-gradient-descent">Train TEASER with Gradient Descent</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#serve-new-teaser-candidates">Serve New TEASER Candidates</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#train-and-evaluate-elsa">Train and Evaluate ELSA</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="citing.html">Citing Compresso Recsys</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="citing.html#compresso">Compresso</a></li>
 <li class="toctree-l2"><a class="reference internal" href="citing.html#ease">EASE</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#teaser">TEASER</a></li>
 <li class="toctree-l2"><a class="reference internal" href="citing.html#elsa">ELSA</a></li>
 <li class="toctree-l2"><a class="reference internal" href="citing.html#elsa-with-sampled-output-candidates">ELSA with sampled output candidates</a></li>
 <li class="toctree-l2"><a class="reference internal" href="citing.html#compressed-elsa">Compressed ELSA</a></li>
@@ -130,12 +134,27 @@
 <li class="toctree-l2"><a class="reference internal" href="api/checkpoint.html">Checkpoint API</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="api/checkpoint.html#checkpoint-contexts">Checkpoint Contexts</a></li>
 <li class="toctree-l3"><a class="reference internal" href="api/checkpoint.html#manifest-and-json-helpers">Manifest and JSON Helpers</a></li>
-<li class="toctree-l3"><a class="reference internal" href="api/checkpoint.html#split-and-cluster-stages">Split and Cluster Stages</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/checkpoint.html#split-and-cluster-stages">Split and Cluster Stages</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/checkpoint.html#item-partitions">Item partitions</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="api/models.html">Models API</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="api/models.html#recommender-contract">Recommender Contract</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.Recommender"><code class="docutils literal notranslate"><span class="pre">Recommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.ColdStartRecommender"><code class="docutils literal notranslate"><span class="pre">ColdStartRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.ItemVocabulary"><code class="docutils literal notranslate"><span class="pre">ItemVocabulary</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#implementing-new-models">Implementing New Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.BaseCollaborativeRecommender"><code class="docutils literal notranslate"><span class="pre">BaseCollaborativeRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.BaseColdStartRecommender"><code class="docutils literal notranslate"><span class="pre">BaseColdStartRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#training-interaction-batches">Training Interaction Batches</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#transductive-models-in-expanding-catalogs">Transductive Models in Expanding Catalogs</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.WarmCatalogAdapter"><code class="docutils literal notranslate"><span class="pre">WarmCatalogAdapter</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="api/models.html#ease">EASE</a><ul>
@@ -143,7 +162,22 @@
 <li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.EASE"><code class="docutils literal notranslate"><span class="pre">EASE</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="api/models.html#elsa">ELSA</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#elsa">ELSA</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#contentrecommender">ContentRecommender</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.ContentRecommenderConfig"><code class="docutils literal notranslate"><span class="pre">ContentRecommenderConfig</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.ContentRecommender"><code class="docutils literal notranslate"><span class="pre">ContentRecommender</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#teaser">TEASER</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.TEASERConfig"><code class="docutils literal notranslate"><span class="pre">TEASERConfig</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.TEASER"><code class="docutils literal notranslate"><span class="pre">TEASER</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.CandidateCatalog"><code class="docutils literal notranslate"><span class="pre">CandidateCatalog</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#teasergd">TEASERGD</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.TEASERGDConfig"><code class="docutils literal notranslate"><span class="pre">TEASERGDConfig</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.TEASERGD"><code class="docutils literal notranslate"><span class="pre">TEASERGD</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.TEASERGDTrainer"><code class="docutils literal notranslate"><span class="pre">TEASERGDTrainer</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/models.html#backend-performance">Backend Performance</a></li>
 </ul>
 </li>
@@ -280,6 +314,32 @@
 <span class="w">  </span>--annotation_source<span class="w"> </span>none
 </pre></div>
 </div>
+<p>Amazon temporal checkpoint with three five-day target windows:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">checkpoint_path</span> <span class="o">=</span> <span class="n">cr</span><span class="o">.</span><span class="n">build_recsys_checkpoint</span><span class="p">(</span>
+    <span class="n">dataset</span><span class="o">=</span><span class="s2">&quot;amazon2023&quot;</span><span class="p">,</span>
+    <span class="n">amazon_category</span><span class="o">=</span><span class="s2">&quot;Pet_Supplies&quot;</span><span class="p">,</span>
+    <span class="n">checkpoint_path</span><span class="o">=</span><span class="s2">&quot;artifacts/pets-temporal.zip&quot;</span><span class="p">,</span>
+    <span class="n">split_mode</span><span class="o">=</span><span class="s2">&quot;temporal&quot;</span><span class="p">,</span>
+    <span class="n">temporal_period_hours</span><span class="o">=</span><span class="mi">24</span> <span class="o">*</span> <span class="mi">5</span><span class="p">,</span>
+    <span class="n">metadata_text_fields</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;title&quot;</span><span class="p">,</span> <span class="s2">&quot;features&quot;</span><span class="p">,</span> <span class="s2">&quot;description&quot;</span><span class="p">,</span> <span class="s2">&quot;categories&quot;</span><span class="p">],</span>
+    <span class="n">min_entity_text_words</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+    <span class="n">min_user_support</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+    <span class="n">item_min_support</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+    <span class="n">min_value_to_keep</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+    <span class="n">annotation_source</span><span class="o">=</span><span class="s2">&quot;none&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Temporal source and target matrices share columns within each stage. Catalogs
+expand between stages, so always use the matching item-ID array:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">cr</span><span class="o">.</span><span class="n">read_checkpoint</span><span class="p">(</span><span class="n">checkpoint_path</span><span class="p">)</span> <span class="k">as</span> <span class="n">root</span><span class="p">:</span>
+    <span class="n">split</span> <span class="o">=</span> <span class="n">cr</span><span class="o">.</span><span class="n">load_recsys_split</span><span class="p">(</span><span class="n">root</span><span class="p">)</span>
+
+<span class="k">assert</span> <span class="n">split</span><span class="p">[</span><span class="s2">&quot;val_source_matrix&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">split</span><span class="p">[</span><span class="s2">&quot;val_target_matrix&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span>
+<span class="k">assert</span> <span class="n">split</span><span class="p">[</span><span class="s2">&quot;val_source_matrix&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">split</span><span class="p">[</span><span class="s2">&quot;val_item_ids&quot;</span><span class="p">])</span>
+<span class="k">assert</span> <span class="n">split</span><span class="p">[</span><span class="s2">&quot;test_source_matrix&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">split</span><span class="p">[</span><span class="s2">&quot;test_item_ids&quot;</span><span class="p">])</span>
+</pre></div>
+</div>
 </section>
 <section id="checkpoint-read-write">
 <h2>Checkpoint Read/Write<a class="headerlink" href="#checkpoint-read-write" title="Link to this heading"></a></h2>
@@ -371,6 +431,175 @@ memory bounded during evaluation:</p>
 </div>
 <p>For a model that already produced one complete <code class="xref py py-class docutils literal notranslate"><span class="pre">compresso.SRPTensor</span></code>,
 use <a class="reference internal" href="api/evaluation.html#compresso_recsys.evaluation.evaluate_ranked_predictions" title="compresso_recsys.evaluation.evaluate_ranked_predictions"><code class="xref py py-func docutils literal notranslate"><span class="pre">compresso_recsys.evaluation.evaluate_ranked_predictions()</span></code></a> instead.</p>
+</section>
+<section id="train-teaser-for-cold-items">
+<h2>Train TEASER for Cold Items<a class="headerlink" href="#train-teaser-for-cold-items" title="Link to this heading"></a></h2>
+<p>TEASER consumes the checkpoint’s item-feature matrix directly. With an
+<code class="docutils literal notranslate"><span class="pre">item_split</span></code> checkpoint, fit only encoder rows for warm items while retaining
+all item features in the fixed decoder:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.evaluation</span><span class="w"> </span><span class="kn">import</span> <span class="n">evaluate_recommender</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">CalibratedRecall</span><span class="p">,</span> <span class="n">NDCG</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">TEASER</span><span class="p">,</span> <span class="n">TEASERConfig</span>
+
+<span class="n">model</span> <span class="o">=</span> <span class="n">TEASER</span><span class="p">(</span>
+    <span class="n">TEASERConfig</span><span class="p">(</span>
+        <span class="n">l2_coefficients</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span>
+        <span class="n">l2_encoder</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span>
+        <span class="n">rho</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span>
+        <span class="n">max_iterations</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+    <span class="p">)</span>
+<span class="p">)</span>
+<span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span>
+    <span class="n">split</span><span class="p">[</span><span class="s2">&quot;x_train&quot;</span><span class="p">],</span>
+    <span class="n">item_features</span><span class="o">=</span><span class="n">split</span><span class="p">[</span><span class="s2">&quot;entity_tag_matrix&quot;</span><span class="p">],</span>
+    <span class="n">train_item_indices</span><span class="o">=</span><span class="n">split</span><span class="p">[</span><span class="s2">&quot;train_item_indices&quot;</span><span class="p">],</span>
+    <span class="n">item_ids</span><span class="o">=</span><span class="n">split</span><span class="p">[</span><span class="s2">&quot;item_ids&quot;</span><span class="p">],</span>
+    <span class="n">metadata</span><span class="o">=</span><span class="n">split</span><span class="p">[</span><span class="s2">&quot;entity_metadata&quot;</span><span class="p">],</span>
+    <span class="n">feature_names</span><span class="o">=</span><span class="n">split</span><span class="p">[</span><span class="s2">&quot;tag_names&quot;</span><span class="p">],</span>
+    <span class="n">show_progress</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">result</span> <span class="o">=</span> <span class="n">evaluate_recommender</span><span class="p">(</span>
+    <span class="n">model</span><span class="p">,</span>
+    <span class="n">source</span><span class="o">=</span><span class="n">split</span><span class="p">[</span><span class="s2">&quot;test_source_matrix&quot;</span><span class="p">],</span>
+    <span class="n">targets</span><span class="o">=</span><span class="n">split</span><span class="p">[</span><span class="s2">&quot;test_target_matrix&quot;</span><span class="p">],</span>
+    <span class="n">metrics</span><span class="o">=</span><span class="p">[</span>
+        <span class="n">CalibratedRecall</span><span class="p">([</span><span class="mi">20</span><span class="p">,</span> <span class="mi">50</span><span class="p">]),</span>
+        <span class="n">NDCG</span><span class="p">(</span><span class="mi">100</span><span class="p">),</span>
+    <span class="p">],</span>
+    <span class="n">batch_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span>
+    <span class="n">show_progress</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">item_features</span></code> may instead be a dense NumPy or PyTorch embedding matrix, a
+SciPy CSR matrix, or an <code class="xref py py-class docutils literal notranslate"><span class="pre">compresso.SRPTensor</span></code>. Its rows must follow
+<code class="docutils literal notranslate"><span class="pre">split[&quot;item_ids&quot;]</span></code>. Interactions must be binary implicit feedback. The
+original ADMM solver is intended as a reproducible baseline and can require
+substantial memory for large warm-item catalogs.</p>
+</section>
+<section id="train-teaser-with-gradient-descent">
+<h2>Train TEASER with Gradient Descent<a class="headerlink" href="#train-teaser-with-gradient-descent" title="Link to this heading"></a></h2>
+<p>Use TEASERGD when the ADMM solver’s dense warm-item Gram matrix is too costly.
+The production catalog API is the same, while training supports ELSA-style
+output candidate sampling:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">TEASERGDConfig</span><span class="p">,</span> <span class="n">TEASERGDTrainer</span>
+
+<span class="n">model</span> <span class="o">=</span> <span class="n">TEASERGDTrainer</span><span class="p">(</span>
+    <span class="n">TEASERGDConfig</span><span class="p">(</span>
+        <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cuda&quot;</span><span class="p">,</span>
+        <span class="n">batch_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span>
+        <span class="n">max_output</span><span class="o">=</span><span class="mi">10_000</span><span class="p">,</span>
+        <span class="n">epochs</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+        <span class="n">lr</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">,</span>
+        <span class="n">decay</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">loss</span><span class="o">=</span><span class="s2">&quot;normalized_mse&quot;</span><span class="p">,</span>
+        <span class="n">use_relu</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">encoder_init</span><span class="o">=</span><span class="s2">&quot;features&quot;</span><span class="p">,</span>
+        <span class="n">normalize_encoder</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">diagonal_scale</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">l2_encoder</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">coefficient_regularization_samples</span><span class="o">=</span><span class="mi">4096</span><span class="p">,</span>
+    <span class="p">)</span>
+<span class="p">)</span>
+<span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span>
+    <span class="n">split</span><span class="p">[</span><span class="s2">&quot;x_train&quot;</span><span class="p">],</span>
+    <span class="n">item_features</span><span class="o">=</span><span class="n">item_embeddings</span><span class="p">,</span>
+    <span class="n">train_item_indices</span><span class="o">=</span><span class="n">split</span><span class="p">[</span><span class="s2">&quot;train_item_indices&quot;</span><span class="p">],</span>
+    <span class="n">item_ids</span><span class="o">=</span><span class="n">split</span><span class="p">[</span><span class="s2">&quot;item_ids&quot;</span><span class="p">],</span>
+    <span class="n">metadata</span><span class="o">=</span><span class="n">split</span><span class="p">[</span><span class="s2">&quot;entity_metadata&quot;</span><span class="p">],</span>
+    <span class="n">feature_space_id</span><span class="o">=</span><span class="s2">&quot;Qwen/Qwen3-Embedding-0.6B&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">result</span> <span class="o">=</span> <span class="n">evaluate_recommender</span><span class="p">(</span>
+    <span class="n">model</span><span class="p">,</span>
+    <span class="n">source</span><span class="o">=</span><span class="n">split</span><span class="p">[</span><span class="s2">&quot;test_source_matrix&quot;</span><span class="p">],</span>
+    <span class="n">targets</span><span class="o">=</span><span class="n">split</span><span class="p">[</span><span class="s2">&quot;test_target_matrix&quot;</span><span class="p">],</span>
+    <span class="n">metrics</span><span class="o">=</span><span class="p">[</span><span class="n">CalibratedRecall</span><span class="p">([</span><span class="mi">20</span><span class="p">,</span> <span class="mi">50</span><span class="p">]),</span> <span class="n">NDCG</span><span class="p">(</span><span class="mi">100</span><span class="p">)],</span>
+    <span class="n">batch_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span>
+    <span class="n">show_progress</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">max_output=None</span></code> trains against every warm item. With a finite value, every
+positive item represented in the current user batch is retained and sampled
+negatives fill the remaining output budget. The source-prefix rule is what
+makes exact diagonal removal possible in the sampled output. TEASER loss mode
+importance-weights sampled negative errors. Use <code class="docutils literal notranslate"><span class="pre">loss=&quot;normalized_mse&quot;</span></code> for
+the ELSA-style row-normalized objective instead. Set <code class="docutils literal notranslate"><span class="pre">diagonal_scale=0.0</span></code> to
+disable self-coefficient subtraction or use a value between zero and one for a
+partial correction; <code class="docutils literal notranslate"><span class="pre">1.0</span></code> preserves standard TEASER behavior.</p>
+</section>
+<section id="serve-new-teaser-candidates">
+<h2>Serve New TEASER Candidates<a class="headerlink" href="#serve-new-teaser-candidates" title="Link to this heading"></a></h2>
+<p>Stable item IDs separate the fixed source vocabulary from the mutable output
+catalog for both TEASER solvers. Fit a production-style model only on warm source items, then publish
+the complete initial candidate catalog. <code class="docutils literal notranslate"><span class="pre">feature_space_id</span></code> is an optional
+caller-provided label used to reject explicitly incompatible updates:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">train_items</span> <span class="o">=</span> <span class="n">split</span><span class="p">[</span><span class="s2">&quot;train_item_indices&quot;</span><span class="p">]</span>
+
+<span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span>
+    <span class="n">interactions</span><span class="o">=</span><span class="n">split</span><span class="p">[</span><span class="s2">&quot;x_train&quot;</span><span class="p">][:,</span> <span class="n">train_items</span><span class="p">],</span>
+    <span class="n">item_features</span><span class="o">=</span><span class="n">item_embeddings</span><span class="p">[</span><span class="n">train_items</span><span class="p">],</span>
+    <span class="n">item_ids</span><span class="o">=</span><span class="n">split</span><span class="p">[</span><span class="s2">&quot;item_ids&quot;</span><span class="p">][</span><span class="n">train_items</span><span class="p">],</span>
+    <span class="n">metadata</span><span class="o">=</span><span class="n">split</span><span class="p">[</span><span class="s2">&quot;entity_metadata&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">train_items</span><span class="p">]</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+    <span class="n">feature_space_id</span><span class="o">=</span><span class="s2">&quot;Qwen/Qwen3-Embedding-0.6B@revision&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">model</span><span class="o">.</span><span class="n">build_candidates</span><span class="p">(</span>
+    <span class="n">item_ids</span><span class="o">=</span><span class="n">split</span><span class="p">[</span><span class="s2">&quot;item_ids&quot;</span><span class="p">],</span>
+    <span class="n">item_features</span><span class="o">=</span><span class="n">item_embeddings</span><span class="p">,</span>
+    <span class="n">metadata</span><span class="o">=</span><span class="n">split</span><span class="p">[</span><span class="s2">&quot;entity_metadata&quot;</span><span class="p">],</span>
+    <span class="n">feature_space_id</span><span class="o">=</span><span class="s2">&quot;Qwen/Qwen3-Embedding-0.6B@revision&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Checkpoint source matrices still use the complete checkpoint item space. Align
+one to the fitted warm source vocabulary before prediction or evaluation:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">result</span> <span class="o">=</span> <span class="n">evaluate_recommender</span><span class="p">(</span>
+    <span class="n">model</span><span class="p">,</span>
+    <span class="n">source</span><span class="o">=</span><span class="n">model</span><span class="o">.</span><span class="n">align_source</span><span class="p">(</span>
+        <span class="n">split</span><span class="p">[</span><span class="s2">&quot;test_source_matrix&quot;</span><span class="p">],</span>
+        <span class="n">item_ids</span><span class="o">=</span><span class="n">split</span><span class="p">[</span><span class="s2">&quot;item_ids&quot;</span><span class="p">],</span>
+    <span class="p">),</span>
+    <span class="n">targets</span><span class="o">=</span><span class="n">split</span><span class="p">[</span><span class="s2">&quot;test_target_matrix&quot;</span><span class="p">],</span>
+    <span class="n">metrics</span><span class="o">=</span><span class="p">[</span>
+        <span class="n">CalibratedRecall</span><span class="p">([</span><span class="mi">20</span><span class="p">,</span> <span class="mi">50</span><span class="p">]),</span>
+        <span class="n">NDCG</span><span class="p">(</span><span class="mi">100</span><span class="p">),</span>
+    <span class="p">],</span>
+    <span class="n">batch_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span>
+    <span class="n">show_progress</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Register new decoder-only candidates without retraining:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">catalog</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">update_candidates</span><span class="p">(</span>
+    <span class="n">item_ids</span><span class="o">=</span><span class="n">new_item_ids</span><span class="p">,</span>
+    <span class="n">item_features</span><span class="o">=</span><span class="n">new_item_embeddings</span><span class="p">,</span>
+    <span class="n">metadata</span><span class="o">=</span><span class="n">new_metadata</span><span class="p">,</span>
+    <span class="n">on_conflict</span><span class="o">=</span><span class="s2">&quot;error&quot;</span><span class="p">,</span>
+    <span class="n">feature_space_id</span><span class="o">=</span><span class="s2">&quot;Qwen/Qwen3-Embedding-0.6B@revision&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Use <a class="reference internal" href="api/models.html#compresso_recsys.models.TEASER.build_candidates" title="compresso_recsys.models.TEASER.build_candidates"><code class="xref py py-meth docutils literal notranslate"><span class="pre">build_candidates()</span></code></a> when publishing a
+complete catalog snapshot is simpler than incremental changes. Both operations
+validate everything before atomically swapping the catalog.</p>
+<p>Prediction can score the complete catalog or a request-specific allowlist. An
+allowlist contains registered IDs; it does not rebuild or copy the catalog:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">catalog</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">candidates</span>
+<span class="n">predictions</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">align_source</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">item_ids</span><span class="o">=</span><span class="n">source_item_ids</span><span class="p">),</span>
+    <span class="n">k</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+    <span class="n">candidate_ids</span><span class="o">=</span><span class="n">eligible_item_ids</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">recommended_item_ids</span> <span class="o">=</span> <span class="n">catalog</span><span class="o">.</span><span class="n">ids_for</span><span class="p">(</span><span class="n">predictions</span><span class="o">.</span><span class="n">cols</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The prediction columns remain global rows in <code class="docutils literal notranslate"><span class="pre">catalog</span></code> rather than positions
+inside <code class="docutils literal notranslate"><span class="pre">eligible_item_ids</span></code>. Resolve them against the same catalog snapshot.
+New items cannot be present in <code class="docutils literal notranslate"><span class="pre">source</span></code> until a retrained encoder gives them
+source rows.</p>
 </section>
 <section id="train-and-evaluate-elsa">
 <h2>Train and Evaluate ELSA<a class="headerlink" href="#train-and-evaluate-elsa" title="Link to this heading"></a></h2>

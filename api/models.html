@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Models API &mdash; Compresso Recsys 0.1.1 documentation</title>
+  <title>Models API &mdash; Compresso Recsys 0.1.2 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
 
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=a58bc63e"></script>
+      <script src="../_static/documentation_options.js?v=92734c54"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/js/theme.js"></script>
@@ -73,12 +73,16 @@
 <li class="toctree-l2"><a class="reference internal" href="../examples.html#checkpoint-read-write">Checkpoint Read/Write</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../examples.html#evaluate-embeddings-from-python">Evaluate Embeddings From Python</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../examples.html#evaluate-model-predictions">Evaluate Model Predictions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples.html#train-teaser-for-cold-items">Train TEASER for Cold Items</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples.html#train-teaser-with-gradient-descent">Train TEASER with Gradient Descent</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples.html#serve-new-teaser-candidates">Serve New TEASER Candidates</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../examples.html#train-and-evaluate-elsa">Train and Evaluate ELSA</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../citing.html">Citing Compresso Recsys</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../citing.html#compresso">Compresso</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../citing.html#ease">EASE</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../citing.html#teaser">TEASER</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../citing.html#elsa">ELSA</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../citing.html#elsa-with-sampled-output-candidates">ELSA with sampled output candidates</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../citing.html#compressed-elsa">Compressed ELSA</a></li>
@@ -130,12 +134,27 @@
 <li class="toctree-l2"><a class="reference internal" href="checkpoint.html">Checkpoint API</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="checkpoint.html#checkpoint-contexts">Checkpoint Contexts</a></li>
 <li class="toctree-l3"><a class="reference internal" href="checkpoint.html#manifest-and-json-helpers">Manifest and JSON Helpers</a></li>
-<li class="toctree-l3"><a class="reference internal" href="checkpoint.html#split-and-cluster-stages">Split and Cluster Stages</a></li>
+<li class="toctree-l3"><a class="reference internal" href="checkpoint.html#split-and-cluster-stages">Split and Cluster Stages</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="checkpoint.html#item-partitions">Item partitions</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Models API</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#recommender-contract">Recommender Contract</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#compresso_recsys.models.Recommender"><code class="docutils literal notranslate"><span class="pre">Recommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#compresso_recsys.models.ColdStartRecommender"><code class="docutils literal notranslate"><span class="pre">ColdStartRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#compresso_recsys.models.ItemVocabulary"><code class="docutils literal notranslate"><span class="pre">ItemVocabulary</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#implementing-new-models">Implementing New Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#compresso_recsys.models.BaseCollaborativeRecommender"><code class="docutils literal notranslate"><span class="pre">BaseCollaborativeRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#compresso_recsys.models.BaseColdStartRecommender"><code class="docutils literal notranslate"><span class="pre">BaseColdStartRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#training-interaction-batches">Training Interaction Batches</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#transductive-models-in-expanding-catalogs">Transductive Models in Expanding Catalogs</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#compresso_recsys.models.WarmCatalogAdapter"><code class="docutils literal notranslate"><span class="pre">WarmCatalogAdapter</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#ease">EASE</a><ul>
@@ -143,7 +162,22 @@
 <li class="toctree-l4"><a class="reference internal" href="#compresso_recsys.models.EASE"><code class="docutils literal notranslate"><span class="pre">EASE</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#elsa">ELSA</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#elsa">ELSA</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#contentrecommender">ContentRecommender</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#compresso_recsys.models.ContentRecommenderConfig"><code class="docutils literal notranslate"><span class="pre">ContentRecommenderConfig</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#compresso_recsys.models.ContentRecommender"><code class="docutils literal notranslate"><span class="pre">ContentRecommender</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#teaser">TEASER</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#compresso_recsys.models.TEASERConfig"><code class="docutils literal notranslate"><span class="pre">TEASERConfig</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#compresso_recsys.models.TEASER"><code class="docutils literal notranslate"><span class="pre">TEASER</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#compresso_recsys.models.CandidateCatalog"><code class="docutils literal notranslate"><span class="pre">CandidateCatalog</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#teasergd">TEASERGD</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#compresso_recsys.models.TEASERGDConfig"><code class="docutils literal notranslate"><span class="pre">TEASERGDConfig</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#compresso_recsys.models.TEASERGD"><code class="docutils literal notranslate"><span class="pre">TEASERGD</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#compresso_recsys.models.TEASERGDTrainer"><code class="docutils literal notranslate"><span class="pre">TEASERGDTrainer</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#backend-performance">Backend Performance</a></li>
 </ul>
 </li>
@@ -242,6 +276,538 @@ previously interacted items.</p>
 
 </dd></dl>
 
+<p>Feature-based cold-start models additionally implement
+<a class="reference internal" href="#compresso_recsys.models.ColdStartRecommender" title="compresso_recsys.models.ColdStartRecommender"><code class="xref py py-class docutils literal notranslate"><span class="pre">compresso_recsys.models.ColdStartRecommender</span></code></a>. Its source vocabulary
+is fixed by training, while its identified candidate catalog can be rebuilt or
+updated independently.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="compresso_recsys.models.ColdStartRecommender">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">compresso_recsys.models.</span></span><span class="sig-name descname"><span class="pre">ColdStartRecommender</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/cold_start.html#ColdStartRecommender"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.ColdStartRecommender" title="Link to this definition"></a></dt>
+<dd><p>Recommender with distinct identified source and candidate spaces.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="compresso_recsys.models.ItemVocabulary">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">compresso_recsys.models.</span></span><span class="sig-name descname"><span class="pre">ItemVocabulary</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">item_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">id_to_row</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/cold_start.html#ItemVocabulary"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.ItemVocabulary" title="Link to this definition"></a></dt>
+<dd><p>Immutable stable-ID vocabulary for sparse matrix columns.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>item_ids</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>id_to_row</strong> (<em>Mapping</em><em>[</em><em>Hashable</em><em>, </em><em>int</em><em>]</em>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="compresso_recsys.models.ItemVocabulary.n_items">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">n_items</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><a class="headerlink" href="#compresso_recsys.models.ItemVocabulary.n_items" title="Link to this definition"></a></dt>
+<dd><p>Number of item IDs in the vocabulary.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.ItemVocabulary.align_csr">
+<span class="sig-name descname"><span class="pre">align_csr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">matrix</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">item_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'source'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/cold_start.html#ItemVocabulary.align_csr"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.ItemVocabulary.align_csr" title="Link to this definition"></a></dt>
+<dd><p>Select and reorder sparse columns to match this vocabulary.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">csr_matrix</span></code></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>matrix</strong> (<em>csr_matrix</em>)</p></li>
+<li><p><strong>item_ids</strong> (<em>Sequence</em><em>[</em><em>Hashable</em><em>] </em><em>| </em><em>ndarray</em>)</p></li>
+<li><p><strong>name</strong> (<em>str</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="implementing-new-models">
+<h2>Implementing New Models<a class="headerlink" href="#implementing-new-models" title="Link to this heading"></a></h2>
+<p>The protocols above are sufficient when a model only needs to work with the
+evaluation API. Model authors who want Compresso RecSys validation, batched
+prediction, and catalog management can instead inherit one of the abstract
+bases.</p>
+<p>Use <a class="reference internal" href="#compresso_recsys.models.BaseCollaborativeRecommender" title="compresso_recsys.models.BaseCollaborativeRecommender"><code class="xref py py-class docutils literal notranslate"><span class="pre">compresso_recsys.models.BaseCollaborativeRecommender</span></code></a> for a model
+whose fitted source and candidate catalog has one fixed positional item space.
+Implement <code class="docutils literal notranslate"><span class="pre">fit</span></code>, <code class="docutils literal notranslate"><span class="pre">is_fitted</span></code>, <code class="docutils literal notranslate"><span class="pre">n_items</span></code>, and <code class="docutils literal notranslate"><span class="pre">predict_on_batch</span></code>. Call
+the inherited <code class="docutils literal notranslate"><span class="pre">_prepare_source</span></code> at the start of <code class="docutils literal notranslate"><span class="pre">predict_on_batch</span></code>; the
+base then supplies <code class="docutils literal notranslate"><span class="pre">predict</span></code> with bounded batching and optional progress.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="compresso_recsys.models.BaseCollaborativeRecommender">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">compresso_recsys.models.</span></span><span class="sig-name descname"><span class="pre">BaseCollaborativeRecommender</span></span><a class="reference internal" href="../_modules/compresso_recsys/models/base.html#BaseCollaborativeRecommender"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.BaseCollaborativeRecommender" title="Link to this definition"></a></dt>
+<dd><p>Reusable base for fixed-catalog collaborative recommenders.</p>
+<p>Implementors provide <a class="reference internal" href="#compresso_recsys.models.BaseCollaborativeRecommender.fit" title="compresso_recsys.models.BaseCollaborativeRecommender.fit"><code class="xref py py-meth docutils literal notranslate"><span class="pre">fit()</span></code></a>, <a class="reference internal" href="#compresso_recsys.models.BaseCollaborativeRecommender.is_fitted" title="compresso_recsys.models.BaseCollaborativeRecommender.is_fitted"><code class="xref py py-attr docutils literal notranslate"><span class="pre">is_fitted</span></code></a>, <a class="reference internal" href="#compresso_recsys.models.BaseCollaborativeRecommender.n_items" title="compresso_recsys.models.BaseCollaborativeRecommender.n_items"><code class="xref py py-attr docutils literal notranslate"><span class="pre">n_items</span></code></a>, and
+<a class="reference internal" href="#compresso_recsys.models.BaseCollaborativeRecommender.predict_on_batch" title="compresso_recsys.models.BaseCollaborativeRecommender.predict_on_batch"><code class="xref py py-meth docutils literal notranslate"><span class="pre">predict_on_batch()</span></code></a>. The base validates source matrices and supplies a
+memory-bounded <a class="reference internal" href="#compresso_recsys.models.BaseCollaborativeRecommender.predict" title="compresso_recsys.models.BaseCollaborativeRecommender.predict"><code class="xref py py-meth docutils literal notranslate"><span class="pre">predict()</span></code></a> implementation that concatenates ranked
+batches without materializing a complete score matrix.</p>
+<dl class="py property">
+<dt class="sig sig-object py" id="compresso_recsys.models.BaseCollaborativeRecommender.is_fitted">
+<span class="property"><span class="k"><span class="pre">abstract</span></span><span class="w"> </span><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">is_fitted</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><a class="headerlink" href="#compresso_recsys.models.BaseCollaborativeRecommender.is_fitted" title="Link to this definition"></a></dt>
+<dd><p>Whether the model is ready for prediction.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="compresso_recsys.models.BaseCollaborativeRecommender.n_items">
+<span class="property"><span class="k"><span class="pre">abstract</span></span><span class="w"> </span><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">n_items</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#compresso_recsys.models.BaseCollaborativeRecommender.n_items" title="Link to this definition"></a></dt>
+<dd><p>Number of fitted item columns, or <code class="docutils literal notranslate"><span class="pre">None</span></code> before fitting.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.BaseCollaborativeRecommender.fit">
+<span class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">interactions</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/base.html#BaseCollaborativeRecommender.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.BaseCollaborativeRecommender.fit" title="Link to this definition"></a></dt>
+<dd><p>Fit the model from a user-item CSR interaction matrix.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#compresso_recsys.models.BaseCollaborativeRecommender" title="compresso_recsys.models.base.BaseCollaborativeRecommender"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseCollaborativeRecommender</span></code></a></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>interactions</strong> (<em>csr_matrix</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.BaseCollaborativeRecommender.predict_on_batch">
+<span class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">predict_on_batch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exclude_seen</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/base.html#BaseCollaborativeRecommender.predict_on_batch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.BaseCollaborativeRecommender.predict_on_batch" title="Link to this definition"></a></dt>
+<dd><p>Return ranked predictions for one source batch.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">SRPTensor</span></code></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>source</strong> (<em>csr_matrix</em>)</p></li>
+<li><p><strong>k</strong> (<em>int</em>)</p></li>
+<li><p><strong>exclude_seen</strong> (<em>bool</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.BaseCollaborativeRecommender._prepare_source">
+<span class="sig-name descname"><span class="pre">_prepare_source</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/base.html#BaseCollaborativeRecommender._prepare_source"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.BaseCollaborativeRecommender._prepare_source" title="Link to this definition"></a></dt>
+<dd><p>Validate a source matrix against the fitted item catalog.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">csr_matrix</span></code></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>source</strong> (<em>csr_matrix</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.BaseCollaborativeRecommender.predict">
+<span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1024</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exclude_seen</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_progress</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/base.html#BaseCollaborativeRecommender.predict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.BaseCollaborativeRecommender.predict" title="Link to this definition"></a></dt>
+<dd><p>Predict all source rows by repeatedly calling <code class="docutils literal notranslate"><span class="pre">predict_on_batch</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">SRPTensor</span></code></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>source</strong> (<em>csr_matrix</em>)</p></li>
+<li><p><strong>k</strong> (<em>int</em>)</p></li>
+<li><p><strong>batch_size</strong> (<em>int</em>)</p></li>
+<li><p><strong>exclude_seen</strong> (<em>bool</em>)</p></li>
+<li><p><strong>show_progress</strong> (<em>bool</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<p>Use <a class="reference internal" href="#compresso_recsys.models.BaseColdStartRecommender" title="compresso_recsys.models.BaseColdStartRecommender"><code class="xref py py-class docutils literal notranslate"><span class="pre">compresso_recsys.models.BaseColdStartRecommender</span></code></a> when source items
+are fixed by fitting but identified candidates can be rebuilt or updated from
+features. Subclass constructors must call <code class="docutils literal notranslate"><span class="pre">super().__init__()</span></code>. After fitting
+the source encoder, call <code class="docutils literal notranslate"><span class="pre">_install_feature_catalog</span></code> once with the fitted
+source IDs and initial candidate features. The inherited catalog methods then
+validate later features against that feature space and preserve stable IDs.
+<code class="docutils literal notranslate"><span class="pre">predict_on_batch</span></code> can call <code class="docutils literal notranslate"><span class="pre">_resolve_candidate_selection</span></code> to resolve an
+optional candidate allowlist while keeping returned <code class="xref py py-class docutils literal notranslate"><span class="pre">compresso.SRPTensor</span></code>
+columns in the complete catalog space.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="compresso_recsys.models.BaseColdStartRecommender">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">compresso_recsys.models.</span></span><span class="sig-name descname"><span class="pre">BaseColdStartRecommender</span></span><a class="reference internal" href="../_modules/compresso_recsys/models/cold_start.html#BaseColdStartRecommender"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.BaseColdStartRecommender" title="Link to this definition"></a></dt>
+<dd><p>Reusable base for feature-driven cold-start recommenders.</p>
+<p>Subclasses implement <a class="reference internal" href="#compresso_recsys.models.BaseColdStartRecommender.fit" title="compresso_recsys.models.BaseColdStartRecommender.fit"><code class="xref py py-meth docutils literal notranslate"><span class="pre">fit()</span></code></a>, <a class="reference internal" href="#compresso_recsys.models.BaseColdStartRecommender.is_fitted" title="compresso_recsys.models.BaseColdStartRecommender.is_fitted"><code class="xref py py-attr docutils literal notranslate"><span class="pre">is_fitted</span></code></a>, and
+<a class="reference internal" href="#compresso_recsys.models.BaseColdStartRecommender.predict_on_batch" title="compresso_recsys.models.BaseColdStartRecommender.predict_on_batch"><code class="xref py py-meth docutils literal notranslate"><span class="pre">predict_on_batch()</span></code></a>. The base owns the fitted source vocabulary and
+provides atomic candidate catalog replacement, updates, removal, stable-ID
+source alignment, metadata handling, and feature-space validation.</p>
+<p>Subclass constructors must call <code class="docutils literal notranslate"><span class="pre">super().__init__()</span></code>. During fitting,
+call <a class="reference internal" href="#compresso_recsys.models.BaseColdStartRecommender._install_feature_catalog" title="compresso_recsys.models.BaseColdStartRecommender._install_feature_catalog"><code class="xref py py-meth docutils literal notranslate"><span class="pre">_install_feature_catalog()</span></code></a> after learning the source encoder to
+publish the initial candidate catalog.</p>
+<dl class="field-list simple">
+</dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="compresso_recsys.models.BaseColdStartRecommender.is_fitted">
+<span class="property"><span class="k"><span class="pre">abstract</span></span><span class="w"> </span><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">is_fitted</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><a class="headerlink" href="#compresso_recsys.models.BaseColdStartRecommender.is_fitted" title="Link to this definition"></a></dt>
+<dd><p>Whether the model is ready for prediction.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.BaseColdStartRecommender.fit">
+<span class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">interactions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">item_features</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/cold_start.html#BaseColdStartRecommender.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.BaseColdStartRecommender.fit" title="Link to this definition"></a></dt>
+<dd><p>Fit a source encoder and publish the initial candidate catalog.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#compresso_recsys.models.BaseColdStartRecommender" title="compresso_recsys.models.cold_start.BaseColdStartRecommender"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseColdStartRecommender</span></code></a></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>interactions</strong> (<em>csr_matrix</em>)</p></li>
+<li><p><strong>item_features</strong> (<em>csr_matrix</em><em> | </em><em>SRPTensor</em><em> | </em><em>ndarray</em><em> | </em><em>Tensor</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.BaseColdStartRecommender.predict_on_batch">
+<span class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">predict_on_batch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exclude_seen</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">candidate_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/cold_start.html#BaseColdStartRecommender.predict_on_batch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.BaseColdStartRecommender.predict_on_batch" title="Link to this definition"></a></dt>
+<dd><p>Return ranked predictions against the current candidate catalog.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">SRPTensor</span></code></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>source</strong> (<em>csr_matrix</em>)</p></li>
+<li><p><strong>k</strong> (<em>int</em>)</p></li>
+<li><p><strong>exclude_seen</strong> (<em>bool</em>)</p></li>
+<li><p><strong>candidate_ids</strong> (<em>Sequence</em><em>[</em><em>Hashable</em><em>] </em><em>| </em><em>ndarray</em><em> | </em><em>None</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.BaseColdStartRecommender._prepare_source">
+<span class="sig-name descname"><span class="pre">_prepare_source</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/cold_start.html#BaseColdStartRecommender._prepare_source"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.BaseColdStartRecommender._prepare_source" title="Link to this definition"></a></dt>
+<dd><p>Validate source columns against the fitted source vocabulary.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">csr_matrix</span></code></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>source</strong> (<em>csr_matrix</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.BaseColdStartRecommender.predict">
+<span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1024</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exclude_seen</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">candidate_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_progress</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/cold_start.html#BaseColdStartRecommender.predict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.BaseColdStartRecommender.predict" title="Link to this definition"></a></dt>
+<dd><p>Predict all source rows by repeatedly calling <code class="docutils literal notranslate"><span class="pre">predict_on_batch</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">SRPTensor</span></code></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>source</strong> (<em>csr_matrix</em>)</p></li>
+<li><p><strong>k</strong> (<em>int</em>)</p></li>
+<li><p><strong>batch_size</strong> (<em>int</em>)</p></li>
+<li><p><strong>exclude_seen</strong> (<em>bool</em>)</p></li>
+<li><p><strong>candidate_ids</strong> (<em>Sequence</em><em>[</em><em>Hashable</em><em>] </em><em>| </em><em>ndarray</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>show_progress</strong> (<em>bool</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="compresso_recsys.models.BaseColdStartRecommender.candidates">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">candidates</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#compresso_recsys.models.CandidateCatalog" title="compresso_recsys.models.cold_start.CandidateCatalog"><span class="pre">CandidateCatalog</span></a></span><a class="headerlink" href="#compresso_recsys.models.BaseColdStartRecommender.candidates" title="Link to this definition"></a></dt>
+<dd><p>Current immutable candidate-catalog snapshot.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="compresso_recsys.models.BaseColdStartRecommender.n_candidates_">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">n_candidates_</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#compresso_recsys.models.BaseColdStartRecommender.n_candidates_" title="Link to this definition"></a></dt>
+<dd><p>Number of current candidates, or <code class="docutils literal notranslate"><span class="pre">None</span></code> before fitting.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.BaseColdStartRecommender._install_feature_catalog">
+<span class="sig-name descname"><span class="pre">_install_feature_catalog</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">source_item_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source_popularity</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_input_features</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">candidate_features</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_space_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_popularity</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/cold_start.html#BaseColdStartRecommender._install_feature_catalog"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.BaseColdStartRecommender._install_feature_catalog" title="Link to this definition"></a></dt>
+<dd><p>Atomically replace the complete candidate catalog.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#compresso_recsys.models.CandidateCatalog" title="compresso_recsys.models.cold_start.CandidateCatalog"><code class="xref py py-class docutils literal notranslate"><span class="pre">CandidateCatalog</span></code></a></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>source_item_ids</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>source_popularity</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>n_input_features</strong> (<em>int</em>)</p></li>
+<li><p><strong>candidate_features</strong> (<em>csr_matrix</em><em> | </em><em>ndarray</em>)</p></li>
+<li><p><strong>metadata</strong> (<em>DataFrame</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>feature_space_id</strong> (<em>str</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>dtype</strong> (<em>dtype</em>)</p></li>
+<li><p><strong>include_popularity</strong> (<em>bool</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.BaseColdStartRecommender.build_candidates">
+<span class="sig-name descname"><span class="pre">build_candidates</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">item_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">item_features</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_space_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/cold_start.html#BaseColdStartRecommender.build_candidates"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.BaseColdStartRecommender.build_candidates" title="Link to this definition"></a></dt>
+<dd><p>Add or update candidates and atomically publish a new snapshot.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#compresso_recsys.models.CandidateCatalog" title="compresso_recsys.models.cold_start.CandidateCatalog"><code class="xref py py-class docutils literal notranslate"><span class="pre">CandidateCatalog</span></code></a></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>item_ids</strong> (<em>Sequence</em><em>[</em><em>Hashable</em><em>] </em><em>| </em><em>ndarray</em>)</p></li>
+<li><p><strong>item_features</strong> (<em>csr_matrix</em><em> | </em><em>SRPTensor</em><em> | </em><em>ndarray</em><em> | </em><em>Tensor</em>)</p></li>
+<li><p><strong>metadata</strong> (<em>DataFrame</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>feature_space_id</strong> (<em>str</em><em> | </em><em>None</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.BaseColdStartRecommender.update_candidates">
+<span class="sig-name descname"><span class="pre">update_candidates</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">item_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">item_features</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">on_conflict</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'error'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_space_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/cold_start.html#BaseColdStartRecommender.update_candidates"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.BaseColdStartRecommender.update_candidates" title="Link to this definition"></a></dt>
+<dd><p>Remove registered candidates and publish a new snapshot.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#compresso_recsys.models.CandidateCatalog" title="compresso_recsys.models.cold_start.CandidateCatalog"><code class="xref py py-class docutils literal notranslate"><span class="pre">CandidateCatalog</span></code></a></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>item_ids</strong> (<em>Sequence</em><em>[</em><em>Hashable</em><em>] </em><em>| </em><em>ndarray</em>)</p></li>
+<li><p><strong>item_features</strong> (<em>csr_matrix</em><em> | </em><em>SRPTensor</em><em> | </em><em>ndarray</em><em> | </em><em>Tensor</em>)</p></li>
+<li><p><strong>metadata</strong> (<em>DataFrame</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>on_conflict</strong> (<em>Literal</em><em>[</em><em>'error'</em><em>, </em><em>'replace'</em><em>, </em><em>'ignore'</em><em>]</em>)</p></li>
+<li><p><strong>feature_space_id</strong> (<em>str</em><em> | </em><em>None</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.BaseColdStartRecommender.align_source">
+<span class="sig-name descname"><span class="pre">align_source</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">item_ids</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/cold_start.html#BaseColdStartRecommender.align_source"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.BaseColdStartRecommender.align_source" title="Link to this definition"></a></dt>
+<dd><p>Align external sparse columns to the fitted source vocabulary.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">csr_matrix</span></code></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>source</strong> (<em>csr_matrix</em>)</p></li>
+<li><p><strong>item_ids</strong> (<em>Sequence</em><em>[</em><em>Hashable</em><em>] </em><em>| </em><em>ndarray</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<section id="training-interaction-batches">
+<h3>Training Interaction Batches<a class="headerlink" href="#training-interaction-batches" title="Link to this heading"></a></h3>
+<p><a class="reference internal" href="#compresso_recsys.models.InteractionBatchSampler" title="compresso_recsys.models.InteractionBatchSampler"><code class="xref py py-class docutils literal notranslate"><span class="pre">compresso_recsys.models.InteractionBatchSampler</span></code></a> provides the compact
+source-prefix batching used by ELSA and TEASERGD. It keeps the interaction
+matrix sparse until the training step chooses to densify the selected active
+columns. <code class="docutils literal notranslate"><span class="pre">batch.x</span></code> uses local compact columns; <code class="docutils literal notranslate"><span class="pre">batch.sources</span></code> maps those
+columns to global fitted item rows.</p>
+<p>When <code class="docutils literal notranslate"><span class="pre">max_output</span></code> is an integer, <code class="docutils literal notranslate"><span class="pre">batch.candidates</span></code> begins with exactly
+<code class="docutils literal notranslate"><span class="pre">batch.sources</span></code> and appends items absent from the whole batch. It is a soft
+limit because active sources are never dropped. With <code class="docutils literal notranslate"><span class="pre">max_output=None</span></code>,
+<code class="docutils literal notranslate"><span class="pre">batch.candidates</span></code> is <code class="docutils literal notranslate"><span class="pre">None</span></code> and the model should score its complete output
+catalog. Call <code class="docutils literal notranslate"><span class="pre">on_epoch_end()</span></code> after each epoch to advance shuffling and
+negative sampling reproducibly.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.models</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">InteractionBatchSampler</span><span class="p">,</span>
+    <span class="n">dense_training_target</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">sampler</span> <span class="o">=</span> <span class="n">InteractionBatchSampler</span><span class="p">(</span>
+    <span class="n">interactions</span><span class="p">,</span>
+    <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cuda&quot;</span><span class="p">,</span>
+    <span class="n">batch_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span>
+    <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">max_output</span><span class="o">=</span><span class="mi">5000</span><span class="p">,</span>
+    <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="k">for</span> <span class="n">batch_index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">sampler</span><span class="p">)):</span>
+    <span class="n">batch</span> <span class="o">=</span> <span class="n">sampler</span><span class="p">[</span><span class="n">batch_index</span><span class="p">]</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">batch</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">to_dense</span><span class="p">()</span>
+    <span class="n">targets</span> <span class="o">=</span> <span class="n">dense_training_target</span><span class="p">(</span>
+        <span class="n">x</span><span class="p">,</span>
+        <span class="n">sources</span><span class="o">=</span><span class="n">batch</span><span class="o">.</span><span class="n">sources</span><span class="p">,</span>
+        <span class="n">candidates</span><span class="o">=</span><span class="n">batch</span><span class="o">.</span><span class="n">candidates</span><span class="p">,</span>
+        <span class="n">input_dim</span><span class="o">=</span><span class="n">interactions</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+    <span class="p">)</span>
+    <span class="n">predictions</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span>
+        <span class="n">x</span><span class="p">,</span>
+        <span class="n">sources</span><span class="o">=</span><span class="n">batch</span><span class="o">.</span><span class="n">sources</span><span class="p">,</span>
+        <span class="n">candidates</span><span class="o">=</span><span class="n">batch</span><span class="o">.</span><span class="n">candidates</span><span class="p">,</span>
+    <span class="p">)</span>
+
+<span class="n">sampler</span><span class="o">.</span><span class="n">on_epoch_end</span><span class="p">()</span>
+</pre></div>
+</div>
+<dl class="py class">
+<dt class="sig sig-object py" id="compresso_recsys.models.InteractionBatch">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">compresso_recsys.models.</span></span><span class="sig-name descname"><span class="pre">InteractionBatch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sources</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">candidates</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/_batching.html#InteractionBatch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.InteractionBatch" title="Link to this definition"></a></dt>
+<dd><p>Compact interaction batch with source-prefix output candidates.</p>
+<p><code class="docutils literal notranslate"><span class="pre">x</span></code> is a sparse COO tensor whose columns correspond positionally to the
+global item rows in <code class="docutils literal notranslate"><span class="pre">sources</span></code>. <code class="docutils literal notranslate"><span class="pre">candidates</span></code> is either <code class="docutils literal notranslate"><span class="pre">None</span></code> for the
+full output catalog or a global-row tensor beginning with <code class="docutils literal notranslate"><span class="pre">sources</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>Tensor</em>)</p></li>
+<li><p><strong>sources</strong> (<em>Tensor</em>)</p></li>
+<li><p><strong>candidates</strong> (<em>Tensor</em><em> | </em><em>None</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="compresso_recsys.models.InteractionBatchSampler">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">compresso_recsys.models.</span></span><span class="sig-name descname"><span class="pre">InteractionBatchSampler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">interactions</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shuffle</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_output</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/_batching.html#InteractionBatchSampler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.InteractionBatchSampler" title="Link to this definition"></a></dt>
+<dd><p>Batched sparse interactions with optional output candidate sampling.</p>
+<p>Every batch packs the union of its active source items into <code class="docutils literal notranslate"><span class="pre">batch.x</span></code>.
+<code class="docutils literal notranslate"><span class="pre">batch.sources</span></code> maps those local columns back to global item rows. When
+<code class="docutils literal notranslate"><span class="pre">max_output</span></code> is set, <code class="docutils literal notranslate"><span class="pre">batch.candidates</span></code> starts with that exact source
+prefix and appends sampled items absent from the complete batch. The limit
+is therefore soft when a batch already contains more active source items.
+<code class="docutils literal notranslate"><span class="pre">None</span></code> leaves output selection to the model and denotes the full catalog.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>interactions</strong> (<em>csr_matrix</em>)</p></li>
+<li><p><strong>device</strong> (<em>torch.device</em><em> | </em><em>str</em>)</p></li>
+<li><p><strong>batch_size</strong> (<em>int</em>)</p></li>
+<li><p><strong>shuffle</strong> (<em>bool</em>)</p></li>
+<li><p><strong>max_output</strong> (<em>int</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>seed</strong> (<em>int</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="compresso_recsys.models.dense_training_target">
+<span class="sig-prename descclassname"><span class="pre">compresso_recsys.models.</span></span><span class="sig-name descname"><span class="pre">dense_training_target</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">sources</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">candidates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_dim</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/_batching.html#dense_training_target"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.dense_training_target" title="Link to this definition"></a></dt>
+<dd><p>Expand compact source interactions into the selected output space.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>x</strong> (<em>Tensor</em>)</p></li>
+<li><p><strong>sources</strong> (<em>Tensor</em>)</p></li>
+<li><p><strong>candidates</strong> (<em>Tensor</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>input_dim</strong> (<em>int</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+</section>
+<section id="transductive-models-in-expanding-catalogs">
+<h2>Transductive Models in Expanding Catalogs<a class="headerlink" href="#transductive-models-in-expanding-catalogs" title="Link to this heading"></a></h2>
+<p><a class="reference internal" href="#compresso_recsys.models.WarmCatalogAdapter" title="compresso_recsys.models.WarmCatalogAdapter"><code class="xref py py-class docutils literal notranslate"><span class="pre">compresso_recsys.models.WarmCatalogAdapter</span></code></a> evaluates a fixed-catalog
+model such as EASE or ELSA against a larger validation or test catalog. It
+selects the fitted warm columns from the stage source matrix and remaps warm
+prediction indices into the expanded target space. Cold targets remain part of
+the metric calculation, but the wrapped transductive model cannot recommend
+them. This makes the result directly comparable with a cold-start model on the
+same users and targets while preserving the transductive model’s limitation.</p>
+<p>The item IDs supplied to the adapter define both column orders, so evaluation
+does not depend on warm items occupying a catalog prefix:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.evaluation</span><span class="w"> </span><span class="kn">import</span> <span class="n">evaluate_recommender</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">WarmCatalogAdapter</span>
+
+<span class="n">adapted_elsa</span> <span class="o">=</span> <span class="n">WarmCatalogAdapter</span><span class="p">(</span>
+    <span class="n">elsa</span><span class="p">,</span>
+    <span class="n">train_item_ids</span><span class="o">=</span><span class="n">split</span><span class="p">[</span><span class="s2">&quot;train_item_ids&quot;</span><span class="p">],</span>
+    <span class="n">catalog_item_ids</span><span class="o">=</span><span class="n">split</span><span class="p">[</span><span class="s2">&quot;test_item_ids&quot;</span><span class="p">],</span>
+<span class="p">)</span>
+
+<span class="n">result</span> <span class="o">=</span> <span class="n">evaluate_recommender</span><span class="p">(</span>
+    <span class="n">adapted_elsa</span><span class="p">,</span>
+    <span class="n">source</span><span class="o">=</span><span class="n">adapted_elsa</span><span class="o">.</span><span class="n">align_source</span><span class="p">(</span><span class="n">split</span><span class="p">[</span><span class="s2">&quot;test_source_matrix&quot;</span><span class="p">]),</span>
+    <span class="n">targets</span><span class="o">=</span><span class="n">split</span><span class="p">[</span><span class="s2">&quot;test_target_matrix&quot;</span><span class="p">],</span>
+    <span class="n">metrics</span><span class="o">=</span><span class="n">metrics</span><span class="p">,</span>
+    <span class="n">batch_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>The input to <a class="reference internal" href="#compresso_recsys.models.WarmCatalogAdapter.align_source" title="compresso_recsys.models.WarmCatalogAdapter.align_source"><code class="xref py py-meth docutils literal notranslate"><span class="pre">align_source()</span></code></a>
+must use the exact column order declared by <code class="docutils literal notranslate"><span class="pre">catalog_item_ids</span></code>. Construct a
+separate adapter for validation when its catalog differs from the test catalog.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="compresso_recsys.models.WarmCatalogAdapter">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">compresso_recsys.models.</span></span><span class="sig-name descname"><span class="pre">WarmCatalogAdapter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_item_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">catalog_item_ids</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/cold_start.html#WarmCatalogAdapter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.WarmCatalogAdapter" title="Link to this definition"></a></dt>
+<dd><p>Expose a fixed-catalog recommender in a larger identified catalog.</p>
+<p>The wrapped model continues to consume and rank only its training items.
+<a class="reference internal" href="#compresso_recsys.models.WarmCatalogAdapter.align_source" title="compresso_recsys.models.WarmCatalogAdapter.align_source"><code class="xref py py-meth docutils literal notranslate"><span class="pre">align_source()</span></code></a> selects those columns from an interaction matrix over
+the expanded catalog, while <a class="reference internal" href="#compresso_recsys.models.WarmCatalogAdapter.predict_on_batch" title="compresso_recsys.models.WarmCatalogAdapter.predict_on_batch"><code class="xref py py-meth docutils literal notranslate"><span class="pre">predict_on_batch()</span></code></a> remaps the resulting
+ranked columns back into that catalog. Cold candidates remain valid target
+items but can never be emitted by the wrapped model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#compresso_recsys.models.Recommender" title="compresso_recsys.models.base.Recommender"><code class="xref py py-class docutils literal notranslate"><span class="pre">Recommender</span></code></a></span>) – Fitted recommender whose prediction columns follow <code class="docutils literal notranslate"><span class="pre">train_item_ids</span></code>.</p></li>
+<li><p><strong>train_item_ids</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Sequence</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Hashable</span></code>], <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>]</span>) – Item IDs in the exact column order used to fit <code class="docutils literal notranslate"><span class="pre">model</span></code>.</p></li>
+<li><p><strong>catalog_item_ids</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Sequence</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Hashable</span></code>], <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>]</span>) – Expanded source and target catalog. It must contain every training ID.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.WarmCatalogAdapter.align_source">
+<span class="sig-name descname"><span class="pre">align_source</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/cold_start.html#WarmCatalogAdapter.align_source"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.WarmCatalogAdapter.align_source" title="Link to this definition"></a></dt>
+<dd><p>Select training-item columns from an expanded-catalog CSR matrix.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">csr_matrix</span></code></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>source</strong> (<em>csr_matrix</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.WarmCatalogAdapter.predict_on_batch">
+<span class="sig-name descname"><span class="pre">predict_on_batch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exclude_seen</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/cold_start.html#WarmCatalogAdapter.predict_on_batch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.WarmCatalogAdapter.predict_on_batch" title="Link to this definition"></a></dt>
+<dd><p>Predict warm items and express their columns in the full catalog.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">SRPTensor</span></code></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>source</strong> (<em>csr_matrix</em>)</p></li>
+<li><p><strong>k</strong> (<em>int</em>)</p></li>
+<li><p><strong>exclude_seen</strong> (<em>bool</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 <section id="ease">
 <h2>EASE<a class="headerlink" href="#ease" title="Link to this heading"></a></h2>
@@ -284,6 +850,12 @@ default.</p>
 <dt class="sig sig-object py" id="compresso_recsys.models.EASE.is_fitted">
 <span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">is_fitted</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><a class="headerlink" href="#compresso_recsys.models.EASE.is_fitted" title="Link to this definition"></a></dt>
 <dd><p>Whether the item coefficient matrix has been fitted.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="compresso_recsys.models.EASE.n_items">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">n_items</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#compresso_recsys.models.EASE.n_items" title="Link to this definition"></a></dt>
+<dd><p>Number of fitted item columns, or <code class="docutils literal notranslate"><span class="pre">None</span></code> before fitting.</p>
 </dd></dl>
 
 <dl class="py property">
@@ -386,6 +958,685 @@ the selected source rows. The dense inference backend instead caches one full
 normalized factor matrix and can be faster for less sparse tickets. Configure
 the normal backend in <code class="docutils literal notranslate"><span class="pre">ELSACompressionConfig</span></code> or override it per
 <code class="docutils literal notranslate"><span class="pre">predict</span></code> or <code class="docutils literal notranslate"><span class="pre">predict_on_batch</span></code> call without retraining.</p>
+</section>
+<section id="contentrecommender">
+<h2>ContentRecommender<a class="headerlink" href="#contentrecommender" title="Link to this heading"></a></h2>
+<p>ContentRecommender is a cold-start baseline that learns nothing. A user profile
+is the sum of the feature vectors of the items they interacted with, and
+candidates are ranked by similarity to that profile, so items are recommendable
+as soon as they are registered on the catalog. <code class="docutils literal notranslate"><span class="pre">fit</span></code> takes item features
+alone; unlike TEASER there is no encoder for an interaction matrix to train.</p>
+<p>With its default configuration it reproduces the scoring in
+<a class="reference internal" href="retrieval.html#compresso_recsys.retrieval.evaluate_item_embeddings_with_holdout" title="compresso_recsys.retrieval.evaluate_item_embeddings_with_holdout"><code class="xref py py-func docutils literal notranslate"><span class="pre">compresso_recsys.retrieval.evaluate_item_embeddings_with_holdout()</span></code></a>
+exactly, which makes it the reference point for judging whether a learned
+cold-start model beats plain feature similarity on the same embeddings. That
+function is an ELSA-forward recommender fused with an evaluator rather than a
+neutral evaluator, so matching it needs L2-normalized item vectors, the
+self-subtraction and ReLU of ELSA-forward, and seen-item masking. <code class="docutils literal notranslate"><span class="pre">normalize</span></code>
+and <code class="docutils literal notranslate"><span class="pre">elsa_forward</span></code> expose the first and the middle two; masking always
+follows <code class="docutils literal notranslate"><span class="pre">exclude_seen</span></code>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">elsa_forward</span></code> does not change the ranking while <code class="docutils literal notranslate"><span class="pre">exclude_seen</span></code> is set,
+because the self-subtraction only touches entries that masking then sets to
+<code class="docutils literal notranslate"><span class="pre">-inf</span></code>. It matters only when predicting with <code class="docutils literal notranslate"><span class="pre">exclude_seen=False</span></code>.</p>
+<p>Every matrix product runs through torch, so <code class="docutils literal notranslate"><span class="pre">device</span></code> moves scoring onto a
+GPU; only the score matrix returns to the host.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="compresso_recsys.models.ContentRecommenderConfig">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">compresso_recsys.models.</span></span><span class="sig-name descname"><span class="pre">ContentRecommenderConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">normalize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">elsa_forward</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cpu'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'float32'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/content.html#ContentRecommenderConfig"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.ContentRecommenderConfig" title="Link to this definition"></a></dt>
+<dd><p>Configuration for <a class="reference internal" href="#compresso_recsys.models.ContentRecommender" title="compresso_recsys.models.ContentRecommender"><code class="xref py py-class docutils literal notranslate"><span class="pre">ContentRecommender</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>normalize</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – L2-normalize item feature vectors before scoring, making the
+profile/candidate product a cosine similarity instead of a raw dot
+product. Leaving this off lets high-norm items dominate the ranking.</p></li>
+<li><p><strong>elsa_forward</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – Subtract the user’s own interaction vector from the scores and apply
+ReLU, reproducing the ELSA-forward scoring used by
+<code class="docutils literal notranslate"><span class="pre">evaluate_item_embeddings_with_holdout</span></code>. This has no effect on the
+ranking when predicting with <code class="docutils literal notranslate"><span class="pre">exclude_seen=True</span></code>, since it only
+touches entries that seen-item masking then sets to <code class="docutils literal notranslate"><span class="pre">-inf</span></code>.</p></li>
+<li><p><strong>device</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Torch device for every matrix product, for example <code class="docutils literal notranslate"><span class="pre">&quot;cuda&quot;</span></code> or
+<code class="docutils literal notranslate"><span class="pre">&quot;mps&quot;</span></code>. Only the final score matrix is copied back to the host.</p></li>
+<li><p><strong>dtype</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Literal</span></code>[<code class="docutils literal notranslate"><span class="pre">'float32'</span></code>, <code class="docutils literal notranslate"><span class="pre">'float64'</span></code>]</span>) – Floating-point precision used for the stored features and all products.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="compresso_recsys.models.ContentRecommender">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">compresso_recsys.models.</span></span><span class="sig-name descname"><span class="pre">ContentRecommender</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/content.html#ContentRecommender"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.ContentRecommender" title="Link to this definition"></a></dt>
+<dd><p>Cold-start baseline scoring items by content-feature similarity.</p>
+<p>The model learns nothing. A user profile is the sum of the feature vectors
+of the items they interacted with, and candidates are ranked by their
+similarity to that profile. Because items are scored from features alone,
+unseen items are recommendable as soon as they are registered on the
+catalog.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">ContentRecommender</span><span class="p">(</span><span class="n">ContentRecommenderConfig</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="s2">&quot;cuda&quot;</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">item_features</span><span class="p">,</span> <span class="n">item_ids</span><span class="o">=</span><span class="n">item_ids</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">top</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>With the default configuration this reproduces the scoring in
+<a class="reference internal" href="retrieval.html#compresso_recsys.retrieval.evaluate_item_embeddings_with_holdout" title="compresso_recsys.retrieval.evaluate_item_embeddings_with_holdout"><code class="xref py py-func docutils literal notranslate"><span class="pre">compresso_recsys.retrieval.evaluate_item_embeddings_with_holdout()</span></code></a>
+exactly, so the same item embeddings yield the same metrics through either
+path. That function is an ELSA-forward recommender fused with an evaluator
+rather than a neutral evaluator, which is why <code class="docutils literal notranslate"><span class="pre">normalize</span></code> and
+<code class="docutils literal notranslate"><span class="pre">elsa_forward</span></code> exist at all.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> (<a class="reference internal" href="#compresso_recsys.models.ContentRecommenderConfig" title="compresso_recsys.models.ContentRecommenderConfig"><em>ContentRecommenderConfig</em></a><em> | </em><em>None</em>)</p>
+</dd>
+</dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="compresso_recsys.models.ContentRecommender.is_fitted">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">is_fitted</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><a class="headerlink" href="#compresso_recsys.models.ContentRecommender.is_fitted" title="Link to this definition"></a></dt>
+<dd><p>Whether the model is ready for prediction.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.ContentRecommender.to">
+<span class="sig-name descname"><span class="pre">to</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">device</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/content.html#ContentRecommender.to"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.ContentRecommender.to" title="Link to this definition"></a></dt>
+<dd><p>Move stored features to <code class="docutils literal notranslate"><span class="pre">device</span></code> and return <code class="docutils literal notranslate"><span class="pre">self</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#compresso_recsys.models.ContentRecommender" title="compresso_recsys.models.content.ContentRecommender"><code class="xref py py-class docutils literal notranslate"><span class="pre">ContentRecommender</span></code></a></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>device</strong> (<em>str</em><em> | </em><em>device</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.ContentRecommender.fit">
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">item_features</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">item_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/content.html#ContentRecommender.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.ContentRecommender.fit" title="Link to this definition"></a></dt>
+<dd><p>Publish <code class="docutils literal notranslate"><span class="pre">item_features</span></code> as both the source and candidate space.</p>
+<p>Unlike <a class="reference internal" href="#compresso_recsys.models.TEASER" title="compresso_recsys.models.TEASER"><code class="xref py py-class docutils literal notranslate"><span class="pre">TEASER</span></code></a>, this model takes no interaction matrix. It
+holds no parameters and scores directly in feature space, so there is
+nothing to learn from user histories.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#compresso_recsys.models.ContentRecommender" title="compresso_recsys.models.content.ContentRecommender"><code class="xref py py-class docutils literal notranslate"><span class="pre">ContentRecommender</span></code></a></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>item_features</strong> (<em>csr_matrix</em><em> | </em><em>ndarray</em>)</p></li>
+<li><p><strong>item_ids</strong> (<em>Sequence</em><em>[</em><em>Hashable</em><em>] </em><em>| </em><em>ndarray</em><em> | </em><em>None</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.ContentRecommender.predict_on_batch">
+<span class="sig-name descname"><span class="pre">predict_on_batch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exclude_seen</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">candidate_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/content.html#ContentRecommender.predict_on_batch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.ContentRecommender.predict_on_batch" title="Link to this definition"></a></dt>
+<dd><p>Predict ranked top-<code class="docutils literal notranslate"><span class="pre">k</span></code> items for one source batch.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">SRPTensor</span></code></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>source</strong> (<em>csr_matrix</em>)</p></li>
+<li><p><strong>k</strong> (<em>int</em>)</p></li>
+<li><p><strong>exclude_seen</strong> (<em>bool</em>)</p></li>
+<li><p><strong>candidate_ids</strong> (<em>Sequence</em><em>[</em><em>Hashable</em><em>] </em><em>| </em><em>ndarray</em><em> | </em><em>None</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="teaser">
+<h2>TEASER<a class="headerlink" href="#teaser" title="Link to this heading"></a></h2>
+<p>TEASER learns item-to-feature encoder weights from binary implicit interactions
+while keeping the supplied item-feature matrix fixed as its decoder. The
+reference implementation uses the original ADMM updates. It accepts item
+features as a SciPy CSR matrix, <code class="xref py py-class docutils literal notranslate"><span class="pre">compresso.SRPTensor</span></code>, NumPy array, or
+PyTorch tensor. Binary tags reproduce the original model, while real-valued
+dense or sparse embeddings provide the same fixed-decoder abstraction without
+necessarily retaining human-readable feature explanations.</p>
+<p>TEASER separates two item spaces for production cold start. The source
+vocabulary is fixed at fit time: only items with fitted encoder rows may appear
+in user history. The candidate catalog is an immutable, versioned snapshot that
+can be rebuilt or updated without retraining. New candidates receive a decoder
+row from their features and can be recommended immediately, but cannot appear
+in source history until the model is retrained.</p>
+<p>When an external interaction matrix uses a larger or differently ordered item
+space, <a class="reference internal" href="#compresso_recsys.models.TEASER.align_source" title="compresso_recsys.models.TEASER.align_source"><code class="xref py py-meth docutils literal notranslate"><span class="pre">align_source()</span></code></a> projects it into the
+fitted source vocabulary by stable ID. The operation uses sparse CSR column
+indexing, never densifies user histories, and returns an already aligned matrix
+unchanged.</p>
+<p>For an item cold-start split, pass the checkpoint’s <code class="docutils literal notranslate"><span class="pre">train_item_indices</span></code> to
+<code class="docutils literal notranslate"><span class="pre">fit</span></code>. Only those interaction columns and feature rows participate in ADMM,
+but the decoder keeps feature rows for every item. Validation and test items can
+therefore be ranked from metadata without being treated as zero-valued training
+targets. Source histories must contain fitted training items.</p>
+<p>Pass stable <code class="docutils literal notranslate"><span class="pre">item_ids</span></code> and optional aligned <code class="docutils literal notranslate"><span class="pre">metadata</span></code> to <code class="docutils literal notranslate"><span class="pre">fit</span></code> to build
+the initial catalog. <a class="reference internal" href="#compresso_recsys.models.TEASER.update_candidates" title="compresso_recsys.models.TEASER.update_candidates"><code class="xref py py-meth docutils literal notranslate"><span class="pre">update_candidates()</span></code></a>
+appends new IDs and can replace existing rows;
+<a class="reference internal" href="#compresso_recsys.models.TEASER.build_candidates" title="compresso_recsys.models.TEASER.build_candidates"><code class="xref py py-meth docutils literal notranslate"><span class="pre">build_candidates()</span></code></a> atomically replaces
+the entire catalog; and
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">remove_candidates()</span></code> removes IDs. When an
+embedding model supplies the features, set <code class="docutils literal notranslate"><span class="pre">feature_space_id</span></code> during fit so
+later updates can reject an explicitly different model or revision.</p>
+<p><code class="docutils literal notranslate"><span class="pre">predict</span></code> and <code class="docutils literal notranslate"><span class="pre">predict_on_batch</span></code> accept <code class="docutils literal notranslate"><span class="pre">candidate_ids</span></code> as a shared
+allowlist for the batch. They gather and score only those registered rows. The
+result remains an <code class="xref py py-class docutils literal notranslate"><span class="pre">compresso.SRPTensor</span></code> over the complete current
+catalog, so its columns can be resolved with
+<a class="reference internal" href="#compresso_recsys.models.CandidateCatalog.ids_for" title="compresso_recsys.models.CandidateCatalog.ids_for"><code class="xref py py-meth docutils literal notranslate"><span class="pre">ids_for()</span></code></a>. Unknown and duplicate
+allowlist IDs are rejected.</p>
+<p>The original solver forms a dense warm-item Gram matrix and eigendecomposes it,
+so fit memory grows quadratically and fit time cubically with the number of warm
+items. It also forms a dense feature Gram matrix. Sparse item features reduce
+input storage and can accelerate prediction, but do not remove those training
+costs. <code class="docutils literal notranslate"><span class="pre">float64</span></code> is the parity-oriented default.</p>
+<p>See <a class="reference internal" href="../citing.html"><span class="doc">Citing Compresso Recsys</span></a> for the original TEASER paper.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="compresso_recsys.models.TEASERConfig">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">compresso_recsys.models.</span></span><span class="sig-name descname"><span class="pre">TEASERConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">l2_coefficients</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">l2_encoder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_iterations</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_popularity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'float64'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/teaser.html#TEASERConfig"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.TEASERConfig" title="Link to this definition"></a></dt>
+<dd><p>Configuration for the reference ADMM implementation of TEASER.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>l2_coefficients</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – L2 regularization on the diagonal-free item coefficient matrix.</p></li>
+<li><p><strong>l2_encoder</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – L2 regularization on the learned item-to-feature encoder.</p></li>
+<li><p><strong>rho</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Positive ADMM penalty parameter.</p></li>
+<li><p><strong>max_iterations</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Number of fixed ADMM iterations. The reference implementation uses 10.</p></li>
+<li><p><strong>include_popularity</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – Append normalized training-item popularity as an additional feature.</p></li>
+<li><p><strong>dtype</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Literal</span></code>[<code class="docutils literal notranslate"><span class="pre">'float32'</span></code>, <code class="docutils literal notranslate"><span class="pre">'float64'</span></code>]</span>) – Numerical precision used by fitting and prediction. <code class="docutils literal notranslate"><span class="pre">float64</span></code> matches
+the reference implementation.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="compresso_recsys.models.TEASER">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">compresso_recsys.models.</span></span><span class="sig-name descname"><span class="pre">TEASER</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/teaser.html#TEASER"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.TEASER" title="Link to this definition"></a></dt>
+<dd><p>Transparent and explainable aspect-space recommender.</p>
+<p>TEASER learns an item-to-feature encoder from binary implicit interactions
+while keeping the supplied item-feature matrix fixed as its decoder. The
+ADMM implementation follows the original algorithm and supports warm-item
+training with metadata-only cold candidate items.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> (<a class="reference internal" href="#compresso_recsys.models.TEASERConfig" title="compresso_recsys.models.TEASERConfig"><em>TEASERConfig</em></a><em> | </em><em>None</em>)</p>
+</dd>
+</dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="compresso_recsys.models.TEASER.is_fitted">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">is_fitted</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><a class="headerlink" href="#compresso_recsys.models.TEASER.is_fitted" title="Link to this definition"></a></dt>
+<dd><p>Whether the encoder and fixed decoder have been fitted.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="compresso_recsys.models.TEASER.dtype">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">dtype</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">dtype</span></span><a class="headerlink" href="#compresso_recsys.models.TEASER.dtype" title="Link to this definition"></a></dt>
+<dd><p>NumPy dtype used by the model.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.TEASER.fit">
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">interactions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">item_features</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_item_indices</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">item_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_space_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_progress</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/teaser.html#TEASER.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.TEASER.fit" title="Link to this definition"></a></dt>
+<dd><p>Fit the original TEASER objective with ADMM.</p>
+<p><code class="docutils literal notranslate"><span class="pre">item_features</span></code> must have one row per source item. When
+<code class="docutils literal notranslate"><span class="pre">train_item_indices</span></code> is supplied, only those item columns and feature
+rows participate in fitting. All supplied feature rows initialize the
+candidate catalog, allowing the remaining items to be scored cold.
+<code class="docutils literal notranslate"><span class="pre">item_ids</span></code> defaults to positional integer IDs for compatibility.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#compresso_recsys.models.TEASER" title="compresso_recsys.models.teaser.TEASER"><code class="xref py py-class docutils literal notranslate"><span class="pre">TEASER</span></code></a></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>interactions</strong> (<em>csr_matrix</em>)</p></li>
+<li><p><strong>item_features</strong> (<em>csr_matrix</em><em> | </em><em>SRPTensor</em><em> | </em><em>ndarray</em><em> | </em><em>Tensor</em>)</p></li>
+<li><p><strong>train_item_indices</strong> (<em>ndarray</em><em> | </em><em>Sequence</em><em>[</em><em>int</em><em>] </em><em>| </em><em>None</em>)</p></li>
+<li><p><strong>item_ids</strong> (<em>Sequence</em><em>[</em><em>Hashable</em><em>] </em><em>| </em><em>ndarray</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>metadata</strong> (<em>DataFrame</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>feature_space_id</strong> (<em>str</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>feature_names</strong> (<em>Sequence</em><em>[</em><em>str</em><em>] </em><em>| </em><em>None</em>)</p></li>
+<li><p><strong>show_progress</strong> (<em>bool</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.TEASER.align_source">
+<span class="sig-name descname"><span class="pre">align_source</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">item_ids</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#compresso_recsys.models.TEASER.align_source" title="Link to this definition"></a></dt>
+<dd><p>Align external sparse columns to the fitted source vocabulary.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">csr_matrix</span></code></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>source</strong> (<em>csr_matrix</em>)</p></li>
+<li><p><strong>item_ids</strong> (<em>Sequence</em><em>[</em><em>Hashable</em><em>] </em><em>| </em><em>ndarray</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.TEASER.build_candidates">
+<span class="sig-name descname"><span class="pre">build_candidates</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">item_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">item_features</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_space_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#compresso_recsys.models.TEASER.build_candidates" title="Link to this definition"></a></dt>
+<dd><p>Add or update candidates and atomically publish a new snapshot.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#compresso_recsys.models.CandidateCatalog" title="compresso_recsys.models.cold_start.CandidateCatalog"><code class="xref py py-class docutils literal notranslate"><span class="pre">CandidateCatalog</span></code></a></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>item_ids</strong> (<em>Sequence</em><em>[</em><em>Hashable</em><em>] </em><em>| </em><em>ndarray</em>)</p></li>
+<li><p><strong>item_features</strong> (<em>csr_matrix</em><em> | </em><em>SRPTensor</em><em> | </em><em>ndarray</em><em> | </em><em>Tensor</em>)</p></li>
+<li><p><strong>metadata</strong> (<em>DataFrame</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>feature_space_id</strong> (<em>str</em><em> | </em><em>None</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="compresso_recsys.models.TEASER.candidates">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">candidates</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#compresso_recsys.models.CandidateCatalog" title="compresso_recsys.models.cold_start.CandidateCatalog"><span class="pre">CandidateCatalog</span></a></span><a class="headerlink" href="#compresso_recsys.models.TEASER.candidates" title="Link to this definition"></a></dt>
+<dd><p>Current immutable candidate-catalog snapshot.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="compresso_recsys.models.TEASER.n_candidates_">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">n_candidates_</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#compresso_recsys.models.TEASER.n_candidates_" title="Link to this definition"></a></dt>
+<dd><p>Number of current candidates, or <code class="docutils literal notranslate"><span class="pre">None</span></code> before fitting.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.TEASER.predict">
+<span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1024</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exclude_seen</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">candidate_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_progress</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#compresso_recsys.models.TEASER.predict" title="Link to this definition"></a></dt>
+<dd><p>Predict ranked top-<code class="docutils literal notranslate"><span class="pre">k</span></code> items for all source rows in batches.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">SRPTensor</span></code></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>source</strong> (<em>csr_matrix</em>)</p></li>
+<li><p><strong>k</strong> (<em>int</em>)</p></li>
+<li><p><strong>batch_size</strong> (<em>int</em>)</p></li>
+<li><p><strong>exclude_seen</strong> (<em>bool</em>)</p></li>
+<li><p><strong>candidate_ids</strong> (<em>Sequence</em><em>[</em><em>Hashable</em><em>] </em><em>| </em><em>ndarray</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>show_progress</strong> (<em>bool</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.TEASER.predict_on_batch">
+<span class="sig-name descname"><span class="pre">predict_on_batch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exclude_seen</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">candidate_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#compresso_recsys.models.TEASER.predict_on_batch" title="Link to this definition"></a></dt>
+<dd><p>Predict ranked top-<code class="docutils literal notranslate"><span class="pre">k</span></code> items for one source batch.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">SRPTensor</span></code></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>source</strong> (<em>csr_matrix</em>)</p></li>
+<li><p><strong>k</strong> (<em>int</em>)</p></li>
+<li><p><strong>exclude_seen</strong> (<em>bool</em>)</p></li>
+<li><p><strong>candidate_ids</strong> (<em>Sequence</em><em>[</em><em>Hashable</em><em>] </em><em>| </em><em>ndarray</em><em> | </em><em>None</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.TEASER.update_candidates">
+<span class="sig-name descname"><span class="pre">update_candidates</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">item_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">item_features</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">on_conflict</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'error'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_space_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#compresso_recsys.models.TEASER.update_candidates" title="Link to this definition"></a></dt>
+<dd><p>Remove registered candidates and publish a new snapshot.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#compresso_recsys.models.CandidateCatalog" title="compresso_recsys.models.cold_start.CandidateCatalog"><code class="xref py py-class docutils literal notranslate"><span class="pre">CandidateCatalog</span></code></a></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>item_ids</strong> (<em>Sequence</em><em>[</em><em>Hashable</em><em>] </em><em>| </em><em>ndarray</em>)</p></li>
+<li><p><strong>item_features</strong> (<em>csr_matrix</em><em> | </em><em>SRPTensor</em><em> | </em><em>ndarray</em><em> | </em><em>Tensor</em>)</p></li>
+<li><p><strong>metadata</strong> (<em>DataFrame</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>on_conflict</strong> (<em>Literal</em><em>[</em><em>'error'</em><em>, </em><em>'replace'</em><em>, </em><em>'ignore'</em><em>]</em>)</p></li>
+<li><p><strong>feature_space_id</strong> (<em>str</em><em> | </em><em>None</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.TEASER.user_profiles">
+<span class="sig-name descname"><span class="pre">user_profiles</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#compresso_recsys.models.TEASER.user_profiles" title="Link to this definition"></a></dt>
+<dd><p>Transform binary source histories into item-feature profiles.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>source</strong> (<em>csr_matrix</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="compresso_recsys.models.CandidateCatalog">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">compresso_recsys.models.</span></span><span class="sig-name descname"><span class="pre">CandidateCatalog</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">item_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">item_features</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_space_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">version</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">id_to_row</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/cold_start.html#CandidateCatalog"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.CandidateCatalog" title="Link to this definition"></a></dt>
+<dd><p>Immutable snapshot of a feature-based candidate catalog.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>item_ids</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>item_features</strong> (<em>csr_matrix</em><em> | </em><em>ndarray</em>)</p></li>
+<li><p><strong>metadata</strong> (<em>pd.DataFrame</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>feature_space_id</strong> (<em>str</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>version</strong> (<em>int</em>)</p></li>
+<li><p><strong>id_to_row</strong> (<em>Mapping</em><em>[</em><em>Hashable</em><em>, </em><em>int</em><em>]</em>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="compresso_recsys.models.CandidateCatalog.n_items">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">n_items</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><a class="headerlink" href="#compresso_recsys.models.CandidateCatalog.n_items" title="Link to this definition"></a></dt>
+<dd><p>Number of candidates in this snapshot.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="compresso_recsys.models.CandidateCatalog.metadata">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">metadata</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">DataFrame</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#compresso_recsys.models.CandidateCatalog.metadata" title="Link to this definition"></a></dt>
+<dd><p>Return a defensive copy of metadata aligned with candidate rows.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.CandidateCatalog.rows_for">
+<span class="sig-name descname"><span class="pre">rows_for</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">item_ids</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/cold_start.html#CandidateCatalog.rows_for"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.CandidateCatalog.rows_for" title="Link to this definition"></a></dt>
+<dd><p>Resolve stable item IDs to candidate rows in request order.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>item_ids</strong> (<em>Sequence</em><em>[</em><em>Hashable</em><em>]</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.CandidateCatalog.ids_for">
+<span class="sig-name descname"><span class="pre">ids_for</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rows</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/cold_start.html#CandidateCatalog.ids_for"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.CandidateCatalog.ids_for" title="Link to this definition"></a></dt>
+<dd><p>Resolve candidate row indices to stable item IDs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>rows</strong> (<em>ndarray</em><em> | </em><em>Tensor</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="teasergd">
+<h2>TEASERGD<a class="headerlink" href="#teasergd" title="Link to this heading"></a></h2>
+<p>TEASERGD keeps TEASER’s fixed item-feature decoder but learns the encoder with
+PyTorch instead of the reference ADMM solver. It never materializes the dense
+item-by-item coefficient matrix. A batch first forms user feature profiles and
+then scores candidate feature rows, so model storage grows with
+<code class="docutils literal notranslate"><span class="pre">warm_items</span> <span class="pre">*</span> <span class="pre">feature_dim</span></code> rather than <code class="docutils literal notranslate"><span class="pre">warm_items</span> <span class="pre">**</span> <span class="pre">2</span></code>.</p>
+<p>Training shares ELSA’s scalable controls: <code class="docutils literal notranslate"><span class="pre">max_output</span></code> retains every source
+item appearing in a batch as the candidate prefix and fills the remaining
+budget with sampled negatives, cosine-normalized reconstruction is optimized
+with NAdam or AdamW, and optional cosine learning-rate decay and
+<code class="docutils literal notranslate"><span class="pre">torch.compile</span></code> are available. <code class="docutils literal notranslate"><span class="pre">diagonal_scale</span></code> multiplies the self
+coefficient removed using <code class="docutils literal notranslate"><span class="pre">(encoder</span> <span class="pre">*</span> <span class="pre">item_features).sum(-1)</span></code> for each source
+item. The default <code class="docutils literal notranslate"><span class="pre">1.0</span></code> removes it completely, <code class="docutils literal notranslate"><span class="pre">0.0</span></code> leaves it untouched,
+and intermediate values subtract that fraction. No dense coefficient matrix is
+needed for the correction. Values below one intentionally relax TEASER’s
+anti-identity constraint and apply consistently during training and inference.</p>
+<p><code class="docutils literal notranslate"><span class="pre">loss=&quot;normalized_mse&quot;</span></code> is the default and preserves the ELSA-style
+row-normalized reconstruction objective. <code class="docutils literal notranslate"><span class="pre">loss=&quot;teaser&quot;</span></code> instead optimizes
+the original TEASER objective divided by the number of training users:
+per-user Frobenius reconstruction plus the complete off-diagonal coefficient
+norm and encoder norm. Dividing every term by the same constant does not change
+the minimizer. With sampled output candidates, negative reconstruction errors
+are importance-weighted to estimate the complete output error. Set
+<code class="docutils literal notranslate"><span class="pre">use_relu=False</span></code> with this mode for parity with the paper; enabling ReLU is an
+optional modification of the original model. Paper parity also requires
+<code class="docutils literal notranslate"><span class="pre">diagonal_scale=1.0</span></code>.</p>
+<p>The encoder defaults to Xavier initialization. Set
+<code class="docutils literal notranslate"><span class="pre">encoder_init=&quot;features&quot;</span></code> to initialize each warm encoder row from its fixed
+decoder feature row, making the initial coefficient matrix a scaled-diagonal
+variant of the metadata-similarity model <code class="docutils literal notranslate"><span class="pre">S</span> <span class="pre">&#64;</span> <span class="pre">S.T</span></code>. At the default
+<code class="docutils literal notranslate"><span class="pre">diagonal_scale=1.0</span></code> its diagonal is removed. This is particularly useful for
+sparse SAE codes because active feature dimensions receive a meaningful signal
+before the first gradient update. Dense and CSR features are both supported;
+the CSR path fills the allocated encoder directly without constructing another
+dense feature matrix.</p>
+<p><code class="docutils literal notranslate"><span class="pre">normalize_encoder=True</span></code> applies row-wise L2 normalization to the effective
+encoder in every training and inference path, as ELSA does for its item
+factors. The underlying trainable parameter remains unnormalized. Explicit
+<code class="docutils literal notranslate"><span class="pre">l2_encoder</span></code> and optimizer <code class="docutils literal notranslate"><span class="pre">weight_decay</span></code> still regularize that underlying
+parameter, so start with both set to zero when evaluating encoder
+normalization.</p>
+<p>The TEASER coefficient penalty is estimated from random off-diagonal item pairs
+and, when <code class="docutils literal notranslate"><span class="pre">diagonal_scale</span> <span class="pre">&lt;</span> <span class="pre">1</span></code>, matching sampled residual-diagonal entries.
+Its cost is
+<code class="docutils literal notranslate"><span class="pre">coefficient_regularization_samples</span> <span class="pre">*</span> <span class="pre">feature_dim</span></code> per batch; set the sample
+count to zero to disable it. TEASER loss mode scales the estimate to the full
+coefficient-matrix norm, while normalized-MSE mode preserves the previous mean
+penalty. <a class="reference internal" href="#compresso_recsys.models.TEASERGD.exact_coefficient_squared_norm" title="compresso_recsys.models.TEASERGD.exact_coefficient_squared_norm"><code class="xref py py-meth docutils literal notranslate"><span class="pre">exact_coefficient_squared_norm()</span></code></a>
+is provided for diagnostics on small problems, but deliberately materializes
+the coefficient matrix and should not be used in large training loops.</p>
+<p>Dense feature matrices are cached on the training device and indexed there.
+CSR feature matrices remain sparse for candidate scoring and only selected
+source rows are densified. Full candidate tensors are cached for prediction and
+invalidated when the catalog changes. TEASERGD uses the same stable-ID catalog,
+<code class="docutils literal notranslate"><span class="pre">align_source</span></code>, cold-candidate updates, metadata handling, and candidate
+allowlists as the ADMM implementation above.</p>
+<p>See <a class="reference internal" href="../citing.html"><span class="doc">Citing Compresso Recsys</span></a> for the original TEASER paper.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="compresso_recsys.models.TEASERGDConfig">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">compresso_recsys.models.</span></span><span class="sig-name descname"><span class="pre">TEASERGDConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1024</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_output</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight_decay</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">l2_coefficients</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">l2_encoder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coefficient_regularization_samples</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4096</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decay</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cpu'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_progress</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_relu</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_popularity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimizer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'NAdam'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loss</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'normalized_mse'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoder_init</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'xavier'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize_encoder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">diagonal_scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/teaser_gd.html#TEASERGDConfig"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.TEASERGDConfig" title="Link to this definition"></a></dt>
+<dd><p>Configuration for gradient-trained TEASER.</p>
+<p><code class="docutils literal notranslate"><span class="pre">loss=&quot;normalized_mse&quot;</span></code> preserves the ELSA-style objective, while
+<code class="docutils literal notranslate"><span class="pre">loss=&quot;teaser&quot;</span></code> uses the original TEASER Frobenius reconstruction and
+regularization scale. <code class="docutils literal notranslate"><span class="pre">max_output</span></code> uses the same source-prefix candidate
+sampling as ELSA. In TEASER mode, sampled negatives are importance-weighted
+to estimate full-output reconstruction.
+<code class="docutils literal notranslate"><span class="pre">coefficient_regularization_samples</span></code> controls a Monte Carlo estimate of
+the effective coefficient norm; zero disables that term.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>batch_size</strong> (<em>int</em>)</p></li>
+<li><p><strong>max_output</strong> (<em>int</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>epochs</strong> (<em>int</em>)</p></li>
+<li><p><strong>lr</strong> (<em>float</em>)</p></li>
+<li><p><strong>weight_decay</strong> (<em>float</em>)</p></li>
+<li><p><strong>l2_coefficients</strong> (<em>float</em>)</p></li>
+<li><p><strong>l2_encoder</strong> (<em>float</em>)</p></li>
+<li><p><strong>coefficient_regularization_samples</strong> (<em>int</em>)</p></li>
+<li><p><strong>decay</strong> (<em>bool</em>)</p></li>
+<li><p><strong>compile</strong> (<em>bool</em>)</p></li>
+<li><p><strong>device</strong> (<em>str</em><em> | </em><em>device</em>)</p></li>
+<li><p><strong>show_progress</strong> (<em>bool</em>)</p></li>
+<li><p><strong>seed</strong> (<em>int</em>)</p></li>
+<li><p><strong>use_relu</strong> (<em>bool</em>)</p></li>
+<li><p><strong>include_popularity</strong> (<em>bool</em>)</p></li>
+<li><p><strong>optimizer</strong> (<em>Literal</em><em>[</em><em>'NAdam'</em><em>, </em><em>'AdamW'</em><em>]</em>)</p></li>
+<li><p><strong>loss</strong> (<em>Literal</em><em>[</em><em>'normalized_mse'</em><em>, </em><em>'teaser'</em><em>]</em>)</p></li>
+<li><p><strong>encoder_init</strong> (<em>Literal</em><em>[</em><em>'xavier'</em><em>, </em><em>'features'</em><em>]</em>)</p></li>
+<li><p><strong>normalize_encoder</strong> (<em>bool</em>)</p></li>
+<li><p><strong>diagonal_scale</strong> (<em>float</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="compresso_recsys.models.TEASERGD">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">compresso_recsys.models.</span></span><span class="sig-name descname"><span class="pre">TEASERGD</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_dim</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_relu</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize_encoder</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">diagonal_scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/teaser_gd.html#TEASERGD"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.TEASERGD" title="Link to this definition"></a></dt>
+<dd><p>Trainable TEASER encoder with a fixed feature decoder.</p>
+<p>The model represents the coefficient matrix as <code class="docutils literal notranslate"><span class="pre">E</span> <span class="pre">&#64;</span> <span class="pre">S.T</span></code> without
+constructing it. <code class="docutils literal notranslate"><span class="pre">source_candidate_positions</span></code> identifies each source
+item’s position in the candidate output so <code class="docutils literal notranslate"><span class="pre">diagonal_scale</span></code> can remove
+all or part of the diagonal contribution <code class="docutils literal notranslate"><span class="pre">(E</span> <span class="pre">*</span> <span class="pre">S).sum(-1)</span></code> exactly.</p>
+<p>Initialize internal Module state, shared by both nn.Module and ScriptModule.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_dim</strong> (<em>int</em>)</p></li>
+<li><p><strong>feature_dim</strong> (<em>int</em>)</p></li>
+<li><p><strong>use_relu</strong> (<em>bool</em>)</p></li>
+<li><p><strong>normalize_encoder</strong> (<em>bool</em>)</p></li>
+<li><p><strong>diagonal_scale</strong> (<em>float</em>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.TEASERGD.encoder_weights">
+<span class="sig-name descname"><span class="pre">encoder_weights</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rows</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/teaser_gd.html#TEASERGD.encoder_weights"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.TEASERGD.encoder_weights" title="Link to this definition"></a></dt>
+<dd><p>Return effective encoder rows, optionally normalized as in ELSA.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>rows</strong> (<em>Tensor</em><em> | </em><em>None</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.TEASERGD.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">sources</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source_features</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">candidate_features</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source_candidate_positions</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/teaser_gd.html#TEASERGD.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.TEASERGD.forward" title="Link to this definition"></a></dt>
+<dd><p>Score candidates and scale represented self-coefficient removal.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>x</strong> (<em>Tensor</em>)</p></li>
+<li><p><strong>sources</strong> (<em>Tensor</em>)</p></li>
+<li><p><strong>source_features</strong> (<em>Tensor</em>)</p></li>
+<li><p><strong>candidate_features</strong> (<em>Tensor</em>)</p></li>
+<li><p><strong>source_candidate_positions</strong> (<em>Tensor</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.TEASERGD.exact_coefficient_squared_norm">
+<span class="sig-name descname"><span class="pre">exact_coefficient_squared_norm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">item_features</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/teaser_gd.html#TEASERGD.exact_coefficient_squared_norm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.TEASERGD.exact_coefficient_squared_norm" title="Link to this definition"></a></dt>
+<dd><p>Return the exact effective coefficient squared norm.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>item_features</strong> (<em>Tensor</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="compresso_recsys.models.TEASERGDTrainer">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">compresso_recsys.models.</span></span><span class="sig-name descname"><span class="pre">TEASERGDTrainer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/teaser_gd.html#TEASERGDTrainer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.TEASERGDTrainer" title="Link to this definition"></a></dt>
+<dd><p>Fit TEASER with PyTorch, sampled outputs, and cold candidate catalogs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> (<a class="reference internal" href="#compresso_recsys.models.TEASERGDConfig" title="compresso_recsys.models.TEASERGDConfig"><em>TEASERGDConfig</em></a><em> | </em><em>None</em>)</p>
+</dd>
+</dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="compresso_recsys.models.TEASERGDTrainer.is_fitted">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">is_fitted</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><a class="headerlink" href="#compresso_recsys.models.TEASERGDTrainer.is_fitted" title="Link to this definition"></a></dt>
+<dd><p>Whether the model is ready for prediction.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.TEASERGDTrainer.fit">
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">interactions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">item_features</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_item_indices</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">item_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_space_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_progress</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/teaser_gd.html#TEASERGDTrainer.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.TEASERGDTrainer.fit" title="Link to this definition"></a></dt>
+<dd><p>Fit the encoder while keeping item features fixed.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#compresso_recsys.models.TEASERGDTrainer" title="compresso_recsys.models.teaser_gd.TEASERGDTrainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">TEASERGDTrainer</span></code></a></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>interactions</strong> (<em>csr_matrix</em>)</p></li>
+<li><p><strong>item_features</strong> (<em>csr_matrix</em><em> | </em><em>SRPTensor</em><em> | </em><em>ndarray</em><em> | </em><em>Tensor</em>)</p></li>
+<li><p><strong>train_item_indices</strong> (<em>ndarray</em><em> | </em><em>Sequence</em><em>[</em><em>int</em><em>] </em><em>| </em><em>None</em>)</p></li>
+<li><p><strong>item_ids</strong> (<em>Sequence</em><em>[</em><em>Hashable</em><em>] </em><em>| </em><em>ndarray</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>metadata</strong> (<em>DataFrame</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>feature_space_id</strong> (<em>str</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>feature_names</strong> (<em>Sequence</em><em>[</em><em>str</em><em>] </em><em>| </em><em>None</em>)</p></li>
+<li><p><strong>show_progress</strong> (<em>bool</em><em> | </em><em>None</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.TEASERGDTrainer.predict_on_batch">
+<span class="sig-name descname"><span class="pre">predict_on_batch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exclude_seen</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">candidate_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/teaser_gd.html#TEASERGDTrainer.predict_on_batch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.TEASERGDTrainer.predict_on_batch" title="Link to this definition"></a></dt>
+<dd><p>Predict one batch against the current or restricted catalog.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">SRPTensor</span></code></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>source</strong> (<em>csr_matrix</em>)</p></li>
+<li><p><strong>k</strong> (<em>int</em>)</p></li>
+<li><p><strong>exclude_seen</strong> (<em>bool</em>)</p></li>
+<li><p><strong>candidate_ids</strong> (<em>Sequence</em><em>[</em><em>Hashable</em><em>] </em><em>| </em><em>ndarray</em><em> | </em><em>None</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.TEASERGDTrainer.predict">
+<span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1024</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exclude_seen</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">candidate_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_progress</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/teaser_gd.html#TEASERGDTrainer.predict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.TEASERGDTrainer.predict" title="Link to this definition"></a></dt>
+<dd><p>Predict all source rows while reusing one candidate tensor.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">SRPTensor</span></code></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>source</strong> (<em>csr_matrix</em>)</p></li>
+<li><p><strong>k</strong> (<em>int</em>)</p></li>
+<li><p><strong>batch_size</strong> (<em>int</em>)</p></li>
+<li><p><strong>exclude_seen</strong> (<em>bool</em>)</p></li>
+<li><p><strong>candidate_ids</strong> (<em>Sequence</em><em>[</em><em>Hashable</em><em>] </em><em>| </em><em>ndarray</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>show_progress</strong> (<em>bool</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 <section id="backend-performance">
 <h3>Backend Performance<a class="headerlink" href="#backend-performance" title="Link to this heading"></a></h3>
 <p>Sparse backends are not necessarily slower. In one representative benchmark
@@ -712,6 +1963,12 @@ mode (<code class="docutils literal notranslate"><span class="pre">False</span><
 <dt class="sig sig-object py" id="compresso_recsys.models.ELSATrainer.is_fitted">
 <span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">is_fitted</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><a class="headerlink" href="#compresso_recsys.models.ELSATrainer.is_fitted" title="Link to this definition"></a></dt>
 <dd><p>Whether <a class="reference internal" href="#compresso_recsys.models.ELSATrainer.fit" title="compresso_recsys.models.ELSATrainer.fit"><code class="xref py py-meth docutils literal notranslate"><span class="pre">fit()</span></code></a> has completed at least once.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="compresso_recsys.models.ELSATrainer.n_items">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">n_items</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#compresso_recsys.models.ELSATrainer.n_items" title="Link to this definition"></a></dt>
+<dd><p>Number of fitted item columns, or <code class="docutils literal notranslate"><span class="pre">None</span></code> before building.</p>
 </dd></dl>
 
 <dl class="py method">
