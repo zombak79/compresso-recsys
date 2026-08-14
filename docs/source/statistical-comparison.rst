@@ -113,11 +113,26 @@ How precisely you know it
 ``ci_low`` and ``ci_high`` give a range of plausible values for the true
 difference — here 0.0102 to 0.0112 at ``confidence_level`` 0.95.
 
-That range comes from a **bootstrap**: draw 50,000 users at random *with
-replacement* from your 50,000, recompute the mean difference, and repeat 9,999
-times. The spread of those 9,999 numbers shows how much the answer would move
-if you had happened to evaluate on a different sample of users from the same
-population. ``bootstrap_standard_error`` is that spread as a single number.
+That range comes from a **bootstrap**. Take your 50,000 users and draw 50,000
+of them *with replacement* — meaning the same user can be drawn more than once.
+
+That last phrase is doing all the work. Drawing 50,000 from 50,000 sounds like
+it must return the same set, and it would if each user could be drawn only once.
+With replacement, a typical draw looks like this:
+
+.. code-block:: text
+
+   31,630 distinct users (63.3%)
+   18,370 never picked
+   13,223 picked two or more times, one as often as seven
+
+So every draw is a different dataset — a plausible alternative version of your
+evaluation, in which some users happened to be over-represented and about a
+third are missing. Recompute the mean difference on it, repeat 9,999 times, and
+the spread of those 9,999 numbers shows how much your answer would move if you
+had happened to evaluate on a different sample of users from the same
+population. ``bootstrap_standard_error`` is that spread as a single number, and
+the interval is the middle 95% of it.
 
 An interval that excludes zero says the direction is stable. An interval that
 straddles zero says you cannot tell which model is better, whatever the point
@@ -145,12 +160,20 @@ Whether it could be chance
 ``p_value`` answers a single question: *if the two models were genuinely
 equivalent, how often would chance alone produce a difference this large?*
 
-The default test makes that concrete. If the models really are interchangeable
-for a given user, then which one came out ahead for that user is arbitrary — you
-could flip the sign of their difference and the data would be just as plausible.
-So the test flips every user's sign at random, recomputes the mean, and repeats.
-``p_value`` is the fraction of those random sign patterns that produced a
-difference at least as extreme as the one you observed.
+The default test makes that concrete. Suppose the two models really are
+interchangeable. Then for any given user, which model came out ahead is a coin
+flip — swapping the two labels for that user alone would produce data just as
+plausible as what you saw. Flipping the sign of that user's difference is
+exactly that swap.
+
+So the test flips a coin for every user, negates that user's difference when the
+coin says so, recomputes the mean, and repeats 9,999 times. Those 9,999 numbers
+are what the difference would look like in a world where the models are
+equivalent. ``p_value`` is the fraction of them that came out at least as
+extreme as the difference you actually measured.
+
+If your result sits comfortably inside that crowd, chance explains it. If almost
+nothing in the crowd reaches it, chance does not.
 
 Small p means chance rarely reproduces your result. Large p means it easily
 does.
