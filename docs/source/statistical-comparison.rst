@@ -705,7 +705,7 @@ user:
      - the user list, tiled once per fold
    * - ``user_split``, ``eval_fold=1``
      - one
-     - the user list
+     - the user list, once
    * - ``item_split``
      - one
      - one entry per user group
@@ -716,9 +716,19 @@ user:
      - one
      - the users present in that time stage
 
+.. warning::
+
+   ``eval_fold`` is a two-state switch, not a fold count. ``1`` means one fold;
+   **every other value means five**, which is the number the protocol stacks.
+   ``build_recsys_checkpoint`` accepts only ``0`` and ``1`` and raises otherwise,
+   but the lower-level
+   :func:`~compresso_recsys.retrieval.build_eval_holdout` does not check, so
+   ``eval_fold=5`` there yields five folds by falling through rather than by
+   being asked for.
+
 Rather than trusting that table, read ``n_units`` against ``n_samples``. It
-reports what the data actually contained, and stays correct if a split protocol
-changes.
+reports what the data actually contained, and stays correct whatever the
+protocol did — including if the table goes stale.
 
 Resampling those rows as though they were independent understates the
 uncertainty. On GoodBooks, measured:
