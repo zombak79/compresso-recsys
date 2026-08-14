@@ -144,6 +144,23 @@ tests that motivates choosing it for retrieval evaluation:
      doi={10.1145/1321440.1321528}
    }
 
+Why a Monte Carlo p-value is computed as ``(1 + extreme) / (B + 1)`` rather
+than as a plain proportion:
+
+.. code-block:: bibtex
+
+   @article{phipson2010permutation,
+     title={Permutation P-values Should Never Be Zero: Calculating Exact
+            P-values When Permutations Are Randomly Drawn},
+     author={Phipson, Belinda and Smyth, Gordon K.},
+     journal={Statistical Applications in Genetics and Molecular Biology},
+     volume={9},
+     number={1},
+     pages={Article 39},
+     year={2010},
+     doi={10.2202/1544-6115.1585}
+   }
+
 The multiple-testing correction applied across a comparison report:
 
 .. code-block:: bibtex
