@@ -614,11 +614,13 @@ the code does:
    systems are interchangeable for each user, we drew $B$ uniform sign
    assignments $\varepsilon_u\in\{-1,+1\}$, recomputed
    $|\mathcal{U}|^{-1}\sum_u \varepsilon_u d_u$, and report the Monte Carlo
-   p-value $(1+\#\{|\cdot|\ge|\widehat{\Delta}_{b,a}|\})/(B+1)$. Uncertainty
-   in the effect size is reported as a percentile interval from a paired
-   user-level bootstrap with the same $B$ replicates. When testing multiple
-   model--metric combinations, p-values were adjusted with Holm's sequential
-   procedure, which is valid under arbitrary dependence between hypotheses;
+   p-value $(1+\#\{|\cdot|\ge|\widehat{\Delta}_{b,a}|\})/(B+1)$
+   \cite{smucker2007comparison,davison1997bootstrap}. Uncertainty in the
+   effect size is reported as a percentile interval from a paired user-level
+   bootstrap with the same $B$ replicates \cite{efron1979bootstrap}. When
+   testing multiple model--metric combinations, p-values were adjusted with
+   Holm's sequential procedure, which is valid under arbitrary dependence
+   between hypotheses \cite{holm1979simple};
    significance was assessed at the family-wise level $\alpha=0.05$. These
    intervals quantify variation across evaluation users conditional on the
    fitted model instances; variation across training seeds is reported
@@ -652,6 +654,50 @@ State all of these, every time:
 
 Avoid "the models are significantly different" without at least the first five.
 
+References
+----------
+
+The methods here are standard rather than novel, and citing them is part of
+making a comparison defensible. Copy-ready BibTeX for all four is in
+:doc:`citing`.
+
+**The bootstrap.** Efron introduced resampling with replacement as a general
+way to estimate the sampling distribution of a statistic. The confidence
+interval reported by :mod:`compresso_recsys.stats` is the percentile form of
+that idea, applied to the mean paired difference.
+
+   Efron, B. (1979). Bootstrap Methods: Another Look at the Jackknife.
+   *The Annals of Statistics*, 7(1), 1–26.
+   `doi:10.1214/aos/1176344552 <https://doi.org/10.1214/aos/1176344552>`_
+
+**The randomization test in retrieval evaluation.** Smucker, Allan and
+Carterette compared the randomization test, the bootstrap, the t-test, the
+Wilcoxon signed-rank test and the sign test on retrieval data, and recommended
+the randomization test. That is why it is the default here, and citing it
+answers the reviewer question of why this test rather than another.
+
+   Smucker, M. D., Allan, J., & Carterette, B. (2007). A Comparison of
+   Statistical Significance Tests for Information Retrieval Evaluation.
+   *Proceedings of the Sixteenth ACM Conference on Information and Knowledge
+   Management (CIKM '07)*, 623–632.
+   `doi:10.1145/1321440.1321528 <https://doi.org/10.1145/1321440.1321528>`_
+
+**Multiple comparisons.** Holm's sequential procedure controls the family-wise
+error rate under arbitrary dependence between hypotheses, which is what makes
+it appropriate when comparisons share resampling draws and overlapping users.
+
+   Holm, S. (1979). A Simple Sequentially Rejective Multiple Test Procedure.
+   *Scandinavian Journal of Statistics*, 6(2), 65–70.
+
+**Monte Carlo p-values.** Davison and Hinkley are the standard reference for
+the ``(1 + extreme) / (B + 1)`` form and for choosing ``B`` so that
+``alpha * (B + 1)`` is an integer — the reason the defaults are 9,999 rather
+than 10,000.
+
+   Davison, A. C., & Hinkley, D. V. (1997). *Bootstrap Methods and their
+   Application*. Cambridge University Press.
+   `doi:10.1017/CBO9780511802843 <https://doi.org/10.1017/CBO9780511802843>`_
+
 See also
 --------
 
@@ -659,3 +705,4 @@ See also
   :mod:`compresso_recsys.stats`.
 * :doc:`api/evaluation` — :class:`~compresso_recsys.evaluation.EvaluationResult`
   and the per-user values this guide depends on.
+* :doc:`citing` — BibTeX for the works above and for the models being compared.

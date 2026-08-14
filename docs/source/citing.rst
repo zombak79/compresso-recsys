@@ -103,3 +103,70 @@ appropriate when ELSA itself is central to the work.
      pages={8577--8580},
      year={2026}
    }
+
+Statistical Comparison
+----------------------
+
+If you report significance from :mod:`compresso_recsys.stats`, cite the methods
+it implements. See :doc:`statistical-comparison` for what each one contributes
+and a ready-to-adapt methods paragraph.
+
+The paired bootstrap behind the confidence interval:
+
+.. code-block:: bibtex
+
+   @article{efron1979bootstrap,
+     title={Bootstrap Methods: Another Look at the Jackknife},
+     author={Efron, Bradley},
+     journal={The Annals of Statistics},
+     volume={7},
+     number={1},
+     pages={1--26},
+     year={1979},
+     doi={10.1214/aos/1176344552}
+   }
+
+The randomization test used for the p-value, and the comparison of significance
+tests that motivates choosing it for retrieval evaluation:
+
+.. code-block:: bibtex
+
+   @inproceedings{smucker2007comparison,
+     title={A Comparison of Statistical Significance Tests for Information
+            Retrieval Evaluation},
+     author={Smucker, Mark D. and Allan, James and Carterette, Ben},
+     booktitle={Proceedings of the Sixteenth ACM Conference on Information and
+                Knowledge Management},
+     series={CIKM '07},
+     pages={623--632},
+     year={2007},
+     publisher={ACM},
+     doi={10.1145/1321440.1321528}
+   }
+
+The multiple-testing correction applied across a comparison report:
+
+.. code-block:: bibtex
+
+   @article{holm1979simple,
+     title={A Simple Sequentially Rejective Multiple Test Procedure},
+     author={Holm, Sture},
+     journal={Scandinavian Journal of Statistics},
+     volume={6},
+     number={2},
+     pages={65--70},
+     year={1979}
+   }
+
+The Monte Carlo p-value form and the convention of choosing the resample count
+so that ``alpha * (B + 1)`` is an integer:
+
+.. code-block:: bibtex
+
+   @book{davison1997bootstrap,
+     title={Bootstrap Methods and their Application},
+     author={Davison, A. C. and Hinkley, D. V.},
+     publisher={Cambridge University Press},
+     year={1997},
+     doi={10.1017/CBO9780511802843}
+   }
