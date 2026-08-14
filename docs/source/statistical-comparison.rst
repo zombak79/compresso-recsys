@@ -595,46 +595,50 @@ never easier to reject than one with a smaller p-value.
 Reporting
 ---------
 
-Methods paragraph
-~~~~~~~~~~~~~~~~~
+Methods
+~~~~~~~
 
-Adapt this rather than paraphrasing it, so the description stays matched to what
-the code does:
+   For each user with at least one relevant test item we computed a per-user
+   ranking metric and report its macro average over those users. All models
+   were evaluated on identical users and target sets.
 
-.. code-block:: latex
+   To compare a candidate model against a baseline we formed paired per-user
+   differences and report their mean. Statistical significance was assessed
+   with a paired two-sided randomization test: under the null hypothesis that
+   the two systems are interchangeable for each user, the sign of every paired
+   difference is arbitrary, so we drew B uniform sign assignments, recomputed
+   the mean difference under each, and report the Monte Carlo p-value given by
+   one plus the number of assignments at least as extreme as the observed
+   difference, divided by B plus one (Smucker et al., 2007; Davison and
+   Hinkley, 1997).
 
-   For each user $u$ with at least one relevant test item we computed a
-   per-user ranking metric $m_u^{(a)}@k$ for model $a$ and report the macro
-   average $\widehat{M}^{(a)}@k = |\mathcal{U}|^{-1}\sum_{u\in\mathcal{U}}
-   m_u^{(a)}@k$. All models were evaluated on identical users and target
-   sets. To compare a candidate $b$ against a baseline $a$ we formed paired
-   per-user differences $d_u = m_u^{(b)}@k - m_u^{(a)}@k$ and report their
-   mean $\widehat{\Delta}_{b,a}$. Statistical significance was assessed with
-   a paired two-sided randomization test: under the null that the two
-   systems are interchangeable for each user, we drew $B$ uniform sign
-   assignments $\varepsilon_u\in\{-1,+1\}$, recomputed
-   $|\mathcal{U}|^{-1}\sum_u \varepsilon_u d_u$, and report the Monte Carlo
-   p-value $(1+\#\{|\cdot|\ge|\widehat{\Delta}_{b,a}|\})/(B+1)$
-   \cite{smucker2007comparison,davison1997bootstrap}. Uncertainty in the
-   effect size is reported as a percentile interval from a paired user-level
-   bootstrap with the same $B$ replicates \cite{efron1979bootstrap}. When
-   testing multiple model--metric combinations, p-values were adjusted with
-   Holm's sequential procedure, which is valid under arbitrary dependence
-   between hypotheses \cite{holm1979simple};
-   significance was assessed at the family-wise level $\alpha=0.05$. These
-   intervals quantify variation across evaluation users conditional on the
-   fitted model instances; variation across training seeds is reported
+   Uncertainty in the effect size is reported as a percentile confidence
+   interval from a paired user-level bootstrap using the same B replicates
+   (Efron, 1979). When testing several model and metric combinations together,
+   p-values were adjusted with Holm's sequential procedure, which controls the
+   family-wise error rate under arbitrary dependence between hypotheses (Holm,
+   1979), and significance was assessed at the family-wise level 0.05.
+
+   These intervals quantify variation across evaluation users conditional on
+   the fitted model instances. Variation across training seeds is reported
    separately.
 
-Result sentence
-~~~~~~~~~~~~~~~
+Results
+~~~~~~~
 
-.. code-block:: text
+Report the effect size first, and give the reader everything needed to judge
+it without reading the code:
 
-   ELSA improved nDCG@100 over EASE by 0.0050
-   (95% paired-bootstrap CI [0.0038, 0.0061], +1.0% relative;
-   paired randomization test, B = 9,999, Holm-adjusted p < 10^-3;
-   n = 12,500 users, 12,480 with a nonzero difference).
+   ELSA improved nDCG@100 over EASE by 0.0050 (95% paired-bootstrap confidence
+   interval [0.0038, 0.0061], a relative gain of 1.0%; paired randomization
+   test with 9,999 resamples, Holm-adjusted p < 0.001; n = 12,500 users, of
+   whom 12,480 had a nonzero difference).
+
+Every number there does work. The effect size says how much. The interval says
+how precisely. The relative gain makes it comparable across metrics. The test
+and its resample count say how the p-value was produced and bound how small it
+could have been. And the two counts distinguish how many users were evaluated
+from how many carried any information.
 
 Checklist
 ~~~~~~~~~
