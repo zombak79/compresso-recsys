@@ -1081,3 +1081,30 @@ def test_sample_ids_are_read_only():
 
     with pytest.raises(ValueError, match="read-only"):
         result.sample_ids[0] = 999
+
+
+def test_one_sided_without_a_reference_is_refused():
+    """Direction would otherwise come from dict insertion order."""
+    models = _two_models()
+
+    with pytest.raises(ValueError, match="directional"):
+        compare_models(models, metrics=["m1"], alternative="greater", n_resamples=99)
+
+
+def test_one_sided_with_a_reference_is_accepted():
+    models = _two_models()
+
+    report = compare_models(
+        models, metrics=["m1"], reference="EASE",
+        alternative="greater", n_resamples=99,
+    )
+
+    assert report.comparisons[0].baseline == "EASE"
+
+
+def test_two_sided_without_a_reference_still_compares_every_pair():
+    models = _two_models()
+
+    report = compare_models(models, metrics=["m1"], n_resamples=99)
+
+    assert len(report.comparisons) == 1

@@ -5,6 +5,15 @@ from __future__ import annotations
 import os
 import sys
 from importlib.metadata import PackageNotFoundError, version as package_version
+from pathlib import Path
+
+try:  # Python 3.11+
+    import tomllib
+except ModuleNotFoundError:  # Python 3.10, which pyproject still supports
+    try:
+        import tomli as tomllib
+    except ModuleNotFoundError:
+        tomllib = None
 
 
 sys.path.insert(0, os.path.abspath("../../src"))
@@ -12,11 +21,31 @@ sys.path.insert(0, os.path.abspath("../../src"))
 project = "Compresso Recsys"
 author = "Compresso contributors"
 
-try:
-    release = package_version("compresso-recsys")
-except PackageNotFoundError:
-    release = "0.1.0"
 
+def _release() -> str:
+    """Version to label the built documentation with.
+
+    pyproject first, installed metadata second. The other order looks like a
+    reasonable fallback and is useless: metadata is present whenever the package
+    is installed at all, so a stale install would always win, and stamping the
+    docs with a version the source has moved past is exactly the failure this
+    avoids. Building against an editable install of an older release is the
+    normal case, not an exotic one.
+    """
+    if tomllib is not None:
+        pyproject = Path(__file__).resolve().parents[2] / "pyproject.toml"
+        if pyproject.is_file():
+            with pyproject.open("rb") as handle:
+                declared = tomllib.load(handle).get("project", {}).get("version")
+            if declared:
+                return str(declared)
+    try:
+        return package_version("compresso-recsys")
+    except PackageNotFoundError:
+        return "0.0.0+unknown"
+
+
+release = _release()
 version = ".".join(release.split(".")[:2])
 
 extensions = [

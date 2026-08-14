@@ -15,10 +15,14 @@ Two procedures, each doing the job it is best at:
 * **Effect size** — a paired bootstrap over users gives a confidence interval
   for the mean difference. This is the primary output; report it.
 * **Hypothesis test** — a paired sign-flip randomization test gives the
-  p-value. Under the null that the two models are interchangeable for each
-  user, the sign of every paired difference is arbitrary, so the test is exact
-  up to Monte Carlo error and assumes no distribution. It is the default in the
-  information-retrieval evaluation literature.
+  p-value. Its null is *paired label exchangeability*: swapping which model
+  produced which score, independently for each user, leaves the joint
+  distribution unchanged. Under it the sign of every paired difference is
+  arbitrary, so the test is exact up to Monte Carlo error. That assumes no
+  parametric family, which is not the same as assuming nothing — exchangeability
+  is a real assumption, and it requires that users are the independent units
+  being resampled. It is the default in the information-retrieval evaluation
+  literature.
 
 ``test_method="t"`` runs a paired t-test instead, as a one-sample test on the
 same differences. Smucker, Allan and Carterette found the two agree closely on
@@ -733,6 +737,16 @@ def compare_models(
         raise ValueError("metrics must be unique")
 
     if reference is None:
+        if alternative != "two-sided":
+            # Without a reference, direction comes from mapping insertion order,
+            # which is a cosmetic detail for a two-sided test and the entire
+            # hypothesis for a one-sided one: reordering the dict would silently
+            # test the opposite claim.
+            raise ValueError(
+                f"alternative={alternative!r} is directional, so the comparison "
+                "must say which model is the baseline. Pass reference=..., or "
+                "use alternative='two-sided'."
+            )
         pairs = [
             (names[i], names[j])
             for i in range(len(names))
