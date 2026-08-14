@@ -95,7 +95,7 @@ def test_adapter_integrates_with_full_catalog_evaluation():
         batch_size=2,
     )
 
-    assert result["recall@1"] == pytest.approx(0.5)
+    assert result["calibrated_recall@1"] == pytest.approx(0.5)
     assert result["n_eval_users"] == 2.0
 
 

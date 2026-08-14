@@ -96,7 +96,7 @@ Checkpoint evaluation commonly reports this six-metric table:
 
 .. code-block:: text
 
-   recall@20, ndcg@20, recall@50, ndcg@50, recall@100, ndcg@100
+   calibrated_recall@20, ndcg@20, calibrated_recall@50, ndcg@50, calibrated_recall@100, ndcg@100
 
 Checkpoint Split Schema
 -----------------------

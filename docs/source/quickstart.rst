@@ -91,7 +91,7 @@ The temporal catalog expands between stages. Use ``train_item_ids``,
 ``val_item_ids``, or ``test_item_ids`` as the column IDs for the corresponding
 source/target pair.
 
-The full checkpoint-level metric set used in examples is ``recall@20``,
-``ndcg@20``, ``recall@50``, ``ndcg@50``, ``recall@100``, and ``ndcg@100``.
+The full checkpoint-level metric set used in examples is ``calibrated_recall@20``,
+``ndcg@20``, ``calibrated_recall@50``, ``ndcg@50``, ``calibrated_recall@100``, and ``ndcg@100``.
 Use :mod:`compresso_recsys.retrieval` to evaluate item embeddings against the
 stored holdouts.

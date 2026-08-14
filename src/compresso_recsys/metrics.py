@@ -129,9 +129,16 @@ class _MeanAtCutoffsMetric(RankingMetric):
 
 
 class CalibratedRecall(_MeanAtCutoffsMetric):
-    """Recall normalized by ``min(k, number of relevant targets)``."""
+    """Recall normalized by ``min(k, number of relevant targets)``.
 
-    result_prefix = "recall"
+    Reported as ``calibrated_recall@k``. The truncated denominator mirrors the
+    ideal ranking used by :class:`NDCG`, so a user with more relevant items than
+    ``k`` can still reach 1.0. It is greater than or equal to :class:`Recall`
+    for every user, with equality exactly when a user has at most ``k``
+    relevant items, so the two are not interchangeable in a results table.
+    """
+
+    result_prefix = "calibrated_recall"
 
     def _batch_values(self, batch: RankingBatch) -> torch.Tensor:
         cutoff_indices = torch.tensor(
@@ -147,9 +154,15 @@ class CalibratedRecall(_MeanAtCutoffsMetric):
 
 
 class Recall(_MeanAtCutoffsMetric):
-    """Standard recall normalized by the total number of relevant targets."""
+    """Recall normalized by the total number of relevant targets.
 
-    result_prefix = "standard_recall"
+    Reported as ``recall@k``. This is the usual definition, so it is the one to
+    use when comparing against published numbers unless that work states it
+    truncates the denominator. It cannot exceed ``k / (number of relevant
+    targets)``, so users with many relevant items cap below 1.0.
+    """
+
+    result_prefix = "recall"
 
     def _batch_values(self, batch: RankingBatch) -> torch.Tensor:
         cutoff_indices = torch.tensor(
