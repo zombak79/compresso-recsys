@@ -653,3 +653,154 @@ def test_interval_does_not_depend_on_the_test_method():
         assert left.ci_low == right.ci_low
         assert left.ci_high == right.ci_high
         assert left.bootstrap_standard_error == right.bootstrap_standard_error
+
+
+# --------------------------------------------------------------------------
+# resampling is a function of the hypothesis, not of report order
+# --------------------------------------------------------------------------
+
+
+def _two_models(seed: int = 40):
+    rng = np.random.default_rng(seed)
+    base = rng.random(N)
+    return {
+        "EASE": _multi(
+            **{"m1": base, "m2": rng.random(N), "unrelated": rng.random(N)}
+        ),
+        "ELSA": _multi(
+            **{
+                "m1": base + rng.normal(0.01, 0.1, N),
+                "m2": rng.random(N),
+                "unrelated": rng.random(N),
+            }
+        ),
+    }
+
+
+def _raw(comparison):
+    """The part of a comparison that must not depend on the rest of the report."""
+    return (
+        comparison.difference,
+        comparison.ci_low,
+        comparison.ci_high,
+        comparison.p_value,
+        comparison.bootstrap_standard_error,
+    )
+
+
+def _find(report, metric):
+    return next(c for c in report if c.metric == metric)
+
+
+def test_reordering_metrics_leaves_raw_comparisons_identical():
+    models = _two_models()
+    kwargs = {"reference": "EASE", "n_resamples": 499, "random_state": 4}
+
+    forward = compare_models(models, metrics=["m1", "m2"], **kwargs)
+    reversed_order = compare_models(models, metrics=["m2", "m1"], **kwargs)
+
+    for metric in ("m1", "m2"):
+        assert _raw(_find(forward, metric)) == _raw(_find(reversed_order, metric))
+
+
+def test_adding_a_metric_leaves_existing_raw_comparisons_unchanged():
+    models = _two_models()
+    kwargs = {"reference": "EASE", "n_resamples": 499, "random_state": 4}
+
+    without = compare_models(models, metrics=["m1"], **kwargs)
+    with_extra = compare_models(models, metrics=["unrelated", "m1"], **kwargs)
+
+    assert _raw(_find(without, "m1")) == _raw(_find(with_extra, "m1"))
+    # The family grew, so the adjustment is expected to move even though the
+    # raw comparison did not.
+    assert _find(without, "m1").adjusted_p_value != _find(with_extra, "m1").adjusted_p_value
+
+
+def test_reversing_a_pair_mirrors_the_comparison_exactly():
+    """Reversal reuses the same draws, so the result mirrors rather than re-noising.
+
+    Orientation follows insertion order, so swapping the mapping swaps baseline
+    and candidate. The seed is keyed on the sorted pair, so both directions draw
+    identical resample indices and sign assignments.
+    """
+    models = _two_models()
+    kwargs = {"metrics": ["m1"], "n_resamples": 499, "random_state": 4}
+
+    forward = compare_models(models, **kwargs).comparisons[0]
+    backward = compare_models(dict(reversed(models.items())), **kwargs).comparisons[0]
+
+    assert (forward.baseline, forward.candidate) == ("EASE", "ELSA")
+    assert (backward.baseline, backward.candidate) == ("ELSA", "EASE")
+
+    # Exact: IEEE subtraction is antisymmetric and summation negates term by
+    # term, so the mean does too. The p-value counts a symmetric condition over
+    # shared sign assignments, and the standard error squares its deviations.
+    assert backward.difference == -forward.difference
+    assert backward.p_value == forward.p_value
+    assert backward.n_samples == forward.n_samples
+    assert backward.n_effective == forward.n_effective
+    assert backward.bootstrap_standard_error == forward.bootstrap_standard_error
+
+    # Not exact: np.quantile interpolates as ``a + frac * (b - a)`` between
+    # order statistics, and that arithmetic is not sign-symmetric to the last
+    # bit. The endpoints mirror to within a couple of ULP, which is a rounding
+    # artefact of the interpolation rather than different resampling.
+    assert backward.ci_low == pytest.approx(-forward.ci_high, rel=1e-12, abs=1e-15)
+    assert backward.ci_high == pytest.approx(-forward.ci_low, rel=1e-12, abs=1e-15)
+
+
+def test_relative_difference_does_not_mirror_under_reversal():
+    """It divides by the baseline mean, and reversal changes which model that is."""
+    models = _two_models()
+    kwargs = {"metrics": ["m1"], "n_resamples": 499, "random_state": 4}
+
+    forward = compare_models(models, **kwargs).comparisons[0]
+    backward = compare_models(dict(reversed(models.items())), **kwargs).comparisons[0]
+
+    assert forward.relative_difference is not None
+    assert backward.relative_difference is not None
+    assert backward.relative_difference != -forward.relative_difference
+
+
+def test_random_state_none_stays_nondeterministic():
+    models = _two_models()
+    kwargs = {"metrics": ["m1"], "reference": "EASE", "n_resamples": 499}
+
+    first = compare_models(models, random_state=None, **kwargs).comparisons[0]
+    second = compare_models(models, random_state=None, **kwargs).comparisons[0]
+
+    # Deriving seeds from the literal None would have made these identical.
+    assert (first.ci_low, first.ci_high) != (second.ci_low, second.ci_high)
+    assert first.difference == second.difference
+
+
+def test_random_state_none_still_shares_one_draw_across_hypotheses():
+    """One nondeterministic draw per call, not one per hypothesis."""
+    models = _two_models()
+    report = compare_models(
+        models, metrics=["m1", "m2"], reference="EASE",
+        n_resamples=499, random_state=None,
+    )
+
+    assert report.random_state is None
+    assert len(report.comparisons) == 2
+
+
+def test_compare_pair_matches_compare_models_for_the_same_hypothesis():
+    """Identity is (metric, unordered pair of names), so the two entry points agree."""
+    models = _two_models()
+
+    paired = compare_pair(
+        models["EASE"], models["ELSA"],
+        metric="m1", baseline_name="EASE", candidate_name="ELSA",
+        n_resamples=499, random_state=4,
+    )
+    from_report = _find(
+        compare_models(
+            models, metrics=["m1", "m2"], reference="EASE",
+            n_resamples=499, random_state=4,
+        ),
+        "m1",
+    )
+
+    assert _raw(paired) == _raw(from_report)

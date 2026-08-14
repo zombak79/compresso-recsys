@@ -688,7 +688,8 @@ answers the reviewer question of why this test rather than another.
 
 **Multiple comparisons.** Holm's sequential procedure controls the family-wise
 error rate under arbitrary dependence between hypotheses, which is what makes
-it appropriate when comparisons share resampling draws and overlapping users.
+it appropriate when comparisons are computed over overlapping users and several
+metrics on one pair of models measure closely related things.
 
    Holm, S. (1979). A Simple Sequentially Rejective Multiple Test Procedure.
    *Scandinavian Journal of Statistics*, 6(2), 65–70.

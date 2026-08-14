@@ -33,6 +33,7 @@ with a different seed. Report seed variation separately.
 from __future__ import annotations
 
 import warnings
+import hashlib
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Literal
@@ -169,20 +170,57 @@ class ComparisonReport:
         )
 
 
-def _streams(
-    random_state: int | None,
+def _base_entropy(random_state: int | None) -> int:
+    """Entropy every hypothesis in one call derives its seeds from.
+
+    ``random_state=None`` asks for a nondeterministic run. Feeding it straight
+    into the derivation below would hash the string ``"None"`` into a fixed
+    value and silently make the call reproducible, so draw fresh operating
+    system entropy once here instead. Hypotheses stay order-invariant within
+    the call, and the call stays nondeterministic across runs.
+    """
+    if random_state is None:
+        return int(np.random.SeedSequence().entropy)
+    return int(random_state)
+
+
+def _hypothesis_streams(
+    base_entropy: int,
+    *,
+    metric: str,
+    baseline_name: str,
+    candidate_name: str,
 ) -> tuple[np.random.Generator, np.random.Generator]:
     """Independent generators for the interval and for the test.
 
-    Drawing both from one stream would make the confidence interval depend on
-    ``test_method``: the randomization test consumes draws that the bootstrap
-    test does not, so every hypothesis after the first would see a different
-    stream position and report a slightly different interval for identical
-    data. Splitting the seed keeps the interval a function of ``random_state``
-    alone.
+    Seeds are derived from the identity of the hypothesis rather than taken
+    from a position in a shared stream. A comparison therefore draws the same
+    resamples no matter what else the report contains, or in what order:
+    adding a metric or reordering the model mapping cannot perturb a result
+    that was already there.
+
+    Model names are sorted, so reversing a pair reuses its draws. The reported
+    difference and interval then mirror exactly rather than picking up
+    unrelated resampling noise. Orientation itself still follows insertion
+    order; only the seed is canonical.
+
+    Each component is length-prefixed before hashing, so no combination of
+    names and metrics can collide by running into its neighbour. blake2b
+    rather than :func:`hash`: string hashing is salted per process, and a seed
+    that changed between runs would be worse than the ordering it fixes.
+
+    The two generators are spawned from that seed rather than drawn in turn.
+    Sharing one would make the confidence interval depend on ``test_method``,
+    since the randomization test consumes draws the bootstrap test does not.
     """
-    first, second = np.random.SeedSequence(random_state).spawn(2)
-    return np.random.default_rng(first), np.random.default_rng(second)
+    digest = hashlib.blake2b(digest_size=32)
+    for part in (str(base_entropy), metric, *sorted((baseline_name, candidate_name))):
+        encoded = part.encode("utf-8")
+        digest.update(len(encoded).to_bytes(8, "big"))
+        digest.update(encoded)
+    seed = int.from_bytes(digest.digest(), "big")
+    interval, test = np.random.SeedSequence(seed).spawn(2)
+    return np.random.default_rng(interval), np.random.default_rng(test)
 
 
 def _validate_common(
@@ -492,7 +530,12 @@ def compare_pair(
         baseline_name=baseline_name,
         candidate_name=candidate_name,
     )
-    interval_rng, test_rng = _streams(random_state)
+    interval_rng, test_rng = _hypothesis_streams(
+        _base_entropy(random_state),
+        metric=metric,
+        baseline_name=baseline_name,
+        candidate_name=candidate_name,
+    )
     return _compare_arrays(
         x,
         y,
@@ -533,10 +576,16 @@ def compare_models(
     this once with three metrics is not the same as calling it three times: the
     family is what the call generates.
 
-    Holm is the default because these hypotheses are dependent. They share
-    resampling draws and overlapping users, and Holm controls the family-wise
-    error rate under arbitrary dependence. Procedures that assume independence
-    or positive dependence are not offered for that reason.
+    Holm is the default because these hypotheses are dependent: they are
+    computed over overlapping users, and several metrics on one pair of models
+    measure closely related things. Holm controls the family-wise error rate
+    under arbitrary dependence. Procedures that assume independence or positive
+    dependence are not offered for that reason.
+
+    Each hypothesis draws its own resamples, seeded from its metric and its
+    pair of model names. Adding a metric, reordering ``metrics``, or reordering
+    ``results`` therefore cannot change a raw comparison that was already in
+    the report. Adjusted p-values still move, because the family changed.
     """
     _validate_common(
         confidence_level=confidence_level,
@@ -571,13 +620,21 @@ def compare_models(
     else:
         pairs = [(reference, name) for name in names if name != reference]
 
-    # Two independent streams for the whole call. Every hypothesis draws from
-    # the same pair, so the report is internally coherent, and the interval
-    # cannot shift when test_method changes.
-    interval_rng, test_rng = _streams(random_state)
+    # Seeds are derived per hypothesis rather than drawn from a running
+    # stream, so a comparison is a function of its own identity and not of its
+    # position in the report. Resolve the entropy once here: with
+    # random_state=None every hypothesis must share one nondeterministic draw,
+    # not make its own.
+    base_entropy = _base_entropy(random_state)
     comparisons: list[PairwiseComparison] = []
     for metric in metric_names:
         for baseline_name, candidate_name in pairs:
+            interval_rng, test_rng = _hypothesis_streams(
+                base_entropy,
+                metric=metric,
+                baseline_name=baseline_name,
+                candidate_name=candidate_name,
+            )
             x, y = _paired_values(
                 results[baseline_name],
                 results[candidate_name],
