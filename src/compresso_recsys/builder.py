@@ -703,10 +703,26 @@ def _temporal_user_upper_bound(
 
 
 def _csr_row_indices(matrix: csr_matrix) -> list[np.ndarray]:
-    return [
-        matrix.indices[matrix.indptr[row] : matrix.indptr[row + 1]].copy()
-        for row in range(matrix.shape[0])
-    ]
+    """Per-row column indices as read-only views into ``matrix.indices``.
+
+    The split returned by the builders keeps ``matrix`` alongside this list, so
+    copying every row would duplicate the whole index buffer while the original
+    stays alive: 80 MB of the 200 MB these lists cost at a million users with
+    twenty interactions each. Slices share that buffer instead.
+
+    The views are marked read-only because they alias the matrix, and writing
+    through one would silently corrupt the other. Consumers do not need to
+    write: both ``_indices_to_csr`` and ``_as_obj_array`` convert to int64,
+    and the retrieval helpers concatenate, each producing fresh writable arrays.
+    """
+    indices = matrix.indices
+    indptr = matrix.indptr
+    rows: list[np.ndarray] = []
+    for row in range(matrix.shape[0]):
+        view = indices[indptr[row] : indptr[row + 1]]
+        view.flags.writeable = False
+        rows.append(view)
+    return rows
 
 
 def _filter_temporal_pair(

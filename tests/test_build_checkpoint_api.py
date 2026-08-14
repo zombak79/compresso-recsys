@@ -35,3 +35,52 @@ def test_build_checkpoint_include_image_urls_defaults_false_and_can_be_enabled()
 
     assert default_args.include_image_urls is False
     assert image_args.include_image_urls is True
+
+
+def test_csr_row_indices_are_read_only_views_over_the_matrix():
+    """The split keeps the matrix, so rows alias it instead of copying it.
+
+    Copying every row duplicated the whole index buffer while the original
+    stayed alive in the same returned dict. Views are read-only because a write
+    through one would corrupt the other.
+    """
+    import numpy as np
+    from scipy.sparse import csr_matrix
+
+    from compresso_recsys.builder import _csr_row_indices
+
+    matrix = csr_matrix(
+        np.array(
+            [[1, 0, 1, 0], [0, 0, 0, 0], [1, 1, 1, 1], [0, 1, 0, 0]],
+            dtype=np.float32,
+        )
+    )
+
+    rows = _csr_row_indices(matrix)
+
+    assert [row.tolist() for row in rows] == [[0, 2], [], [0, 1, 2, 3], [1]]
+    assert all(not row.flags.writeable for row in rows)
+    assert np.shares_memory(rows[0], matrix.indices)
+    with pytest.raises(ValueError):
+        rows[0][0] = 99
+
+
+def test_csr_row_indices_survive_conversion_by_its_consumers():
+    """Consumers convert or concatenate, so read-only views reach them intact."""
+    import numpy as np
+    from scipy.sparse import csr_matrix
+
+    from compresso_recsys.builder import _csr_row_indices
+    from compresso_recsys.checkpoint import _as_obj_array, _indices_to_csr
+
+    dense = np.array([[1, 0, 1], [0, 1, 0], [0, 0, 0]], dtype=np.float32)
+    matrix = csr_matrix(dense)
+    rows = _csr_row_indices(matrix)
+
+    rebuilt = _indices_to_csr(rows, n_cols=3)
+    assert np.array_equal(rebuilt.toarray(), dense)
+
+    stored = _as_obj_array(rows)
+    assert [np.asarray(v).tolist() for v in stored] == [[0, 2], [1], []]
+    # The conversion produces fresh writable arrays rather than aliasing.
+    assert all(np.asarray(v).flags.writeable for v in stored)
