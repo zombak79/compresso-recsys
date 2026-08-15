@@ -895,8 +895,8 @@ the possibilities, which makes the test valid at finite :math:`B` and is why
 restored to the original order. The running maximum ensures a hypothesis is
 never easier to reject than one with a smaller p-value.
 
-Reporting
----------
+Reporting the result
+--------------------
 
 Methods
 ~~~~~~~
