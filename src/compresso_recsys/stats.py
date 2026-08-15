@@ -156,13 +156,19 @@ class PairwiseComparison:
 
     @property
     def tie_rate(self) -> float:
-        """Fraction of evaluated users the two models scored identically.
+        """Fraction of units whose **mean** paired difference is exactly zero.
+
+        With one row per user that means the two models scored them
+        identically. With several, it means those rows cancelled: a user who
+        gained on one draw and lost the same amount on another is tied here
+        even though no single row was.
 
         High tie rates are normal for ranking metrics at small cutoffs and are
-        not a defect. They say the two models agree for that share of the
-        population, which is itself a finding, and they are why ``n_nonzero``
-        is reported: it bounds how discrete the randomization test's null
-        distribution can be, while the estimate still rests on every unit.
+        not a defect. They say the two models come out level for that share of
+        the population, which is itself a finding, and they are why
+        ``n_nonzero`` is reported: it bounds how discrete the randomization
+        test's null distribution can be, since flipping the sign of a zero
+        changes nothing. The estimate still rests on every unit.
         """
         if self.n_units == 0:
             return 0.0
@@ -475,10 +481,15 @@ def _t_test_p(
     p-values far below ``1 / (n_resamples + 1)``. Treat those with the caution
     any far-tail normal approximation deserves: the Berry-Esseen bound on the
     error of the approximation is governed by the number of *untied* units, and
-    is loose. Agreement with the randomization test is reassuring; disagreement
-    means one of the two approximations is strained, and which one is a question
-    about the tie rate and the skew of the nonzero differences rather than about
-    the resample count.
+    is loose.
+
+    Note also that the two tests do not share a null. This one asks whether the
+    population mean difference is zero; the randomization test asks whether the
+    two model labels are exchangeable within each user, which additionally
+    implies the differences are symmetric about zero. Exchangeability is the
+    stronger assumption, so a disagreement between them can reflect the nulls
+    differing rather than an approximation being strained -- a skewed difference
+    distribution centred on zero satisfies one and not the other.
     """
     if np.ptp(d) == 0:
         # Zero sample variance: the t statistic is 0/0 or x/0, and scipy
@@ -625,8 +636,9 @@ def _compare_arrays(
         # so difference 0, interval [0, 0] and p 1 are exactly right rather
         # than degraded, and saying "few observations" would misdescribe them.
         warnings.warn(
-            f"{metric!r}: the two models scored all {n_units} units "
-            f"identically, so there is nothing to resample. The difference, "
+            f"{metric!r}: every one of the {n_units} units has a mean paired "
+            f"difference of exactly zero, so there is nothing to resample. "
+            f"The difference, "
             f"interval and p-value are exact, not estimated.",
             RuntimeWarning,
             stacklevel=3,

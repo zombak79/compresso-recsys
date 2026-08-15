@@ -458,8 +458,10 @@ So read the three numbers as three different things:
 * ``n_nonzero`` — the rows that can move the randomization test, since flipping
   the sign of a zero does nothing. This bounds how *discrete* the null
   distribution is.
-* ``tie_rate`` — how often the two models were indistinguishable, which is a
-  finding worth reporting in its own right.
+* ``tie_rate`` — the share of units whose *mean* difference is exactly zero.
+  With one row per user that is the two models scoring them identically; with
+  several, it includes users whose rows cancelled. Either way it is a finding
+  worth reporting in its own right.
 
 When ``n_nonzero`` falls below 30 the comparison warns, and the warning is about
 that discreteness: the resampled differences land on few distinct values, so the
@@ -718,9 +720,14 @@ They are the far tail of a normal approximation, where the guarantees are
 weakest. What the table really says is that all four differences clear any
 threshold either test could set, by a wide margin.
 
-Agreement between the two is reassuring. Disagreement means one of the
-approximations is strained, and which one is a question about the tie rate and
-the skew of the differences — not a reason to reach for ``n_resamples``.
+Agreement between the two is reassuring. Disagreement has two possible causes,
+and neither is a reason to reach for ``n_resamples``. One is that an
+approximation is strained, which the tie rate and the skew of the differences
+will tell you. The other is that **they do not test the same null**: the t-test
+asks whether the population mean difference is zero, while the randomization
+test asks whether the two labels are exchangeable within each user, which also
+implies the differences are symmetric about zero. A skewed distribution centred
+on zero satisfies the first and not the second.
 
 .. note::
 
@@ -815,22 +822,12 @@ read ``n_units`` against ``n_samples`` to see what the data actually contained.
 What the methods do, formally
 -----------------------------
 
-For users :math:`\mathcal{U}` with at least one relevant target, and per-user
-metric values :math:`m_u^{(a)}` for model :math:`a`, the paired difference is
-
-.. math::
-
-   d_u = m_u^{(b)} - m_u^{(a)},
-   \qquad
-   \widehat{\Delta} = \frac{1}{n} \sum_{u \in \mathcal{U}} d_u
-   = \widehat{M}^{(b)} - \widehat{M}^{(a)},
-
-so the mean paired difference equals the difference of the reported aggregates,
-provided both models were evaluated on the same users.
-
-When a protocol gives user :math:`u` several rows — :math:`r_u` of them, with
-differences :math:`d_{u1}, \ldots, d_{u r_u}` — each user is first reduced to
-their own mean, and the estimand is the mean over users:
+Let :math:`\mathcal{U}` be the :math:`U` users with at least one relevant
+target, and :math:`m_u^{(a)}` the metric value for user :math:`u` under model
+:math:`a`. Where a protocol gives user :math:`u` several evaluation rows —
+:math:`r_u` of them, with differences :math:`d_{u1}, \ldots, d_{u r_u}` — that
+user is reduced to their own mean first, and the estimand is the mean over
+users:
 
 .. math::
 
@@ -838,21 +835,37 @@ their own mean, and the estimand is the mean over users:
    \qquad
    \widehat{\Delta} = \frac{1}{U} \sum_{u=1}^{U} \bar d_u .
 
-Every procedure below then operates on :math:`\bar d_1, \ldots, \bar d_U`, so
-they all estimate the same quantity. Weighting by rows instead would let the
-evaluation protocol decide which users count for more, and the two agree exactly
-when every :math:`r_u` is the same.
+With one row per user this is just :math:`\bar d_u = m_u^{(b)} - m_u^{(a)}` and
+:math:`\widehat{\Delta} = \widehat{M}^{(b)} - \widehat{M}^{(a)}`: the mean
+paired difference equals the difference of the reported aggregates, provided
+both models were evaluated on the same users. Weighting by rows instead would
+let the evaluation protocol decide which users count for more, and the two agree
+exactly when every :math:`r_u` is the same.
+
+Every procedure below operates on :math:`\bar d_1, \ldots, \bar d_U`, so they
+all estimate that same quantity.
 
 **Interval.** For replicate :math:`t`, draw indices
-:math:`i_{t1}, \ldots, i_{tn}` uniformly with replacement and compute
-:math:`\widehat{\Delta}^{*(t)} = n^{-1} \sum_j d_{i_{tj}}`. The reported
-interval is the empirical
+:math:`i_{t1}, \ldots, i_{tU}` uniformly with replacement from
+:math:`\{1, \ldots, U\}` and compute
+
+.. math::
+
+   \widehat{\Delta}^{*(t)} = \frac{1}{U} \sum_{j=1}^{U} \bar d_{i_{tj}} .
+
+The reported interval is the empirical
 :math:`[\alpha/2,\, 1-\alpha/2]` quantile range of those replicates.
 
 **Test.** Under the null that the two models are interchangeable for each user,
-:math:`d_u` and :math:`-d_u` are equally likely. Draw signs
+:math:`\bar d_u` and :math:`-\bar d_u` are equally likely. Draw signs
 :math:`\varepsilon_{tu} \in \{-1, +1\}` uniformly, compute
-:math:`\widehat{\Delta}^{0*(t)} = n^{-1} \sum_u \varepsilon_{tu} d_u`, and report
+
+.. math::
+
+   \widehat{\Delta}^{0*(t)} = \frac{1}{U} \sum_{u=1}^{U}
+   \varepsilon_{tu} \bar d_u ,
+
+and report
 
 .. math::
 
@@ -894,7 +907,7 @@ Methods
    Hinkley, 1997).
 
    Uncertainty in the effect size is reported as a percentile confidence
-   interval from a paired user-level bootstrap using the same B replicates
+   interval from a paired user-level bootstrap using B bootstrap replicates
    (Efron, 1979). When testing several model and metric combinations together,
    p-values were adjusted with Holm's sequential procedure, which controls the
    family-wise error rate under arbitrary dependence between hypotheses (Holm,

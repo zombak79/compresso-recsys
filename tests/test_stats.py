@@ -345,7 +345,7 @@ def test_all_tied_warns_that_the_answer_is_exact_rather_than_degraded():
     """Zero untied users is a different situation from a handful of them."""
     base = np.random.default_rng(31).random(N)
 
-    with pytest.warns(RuntimeWarning, match="scored all") as caught:
+    with pytest.warns(RuntimeWarning, match="mean paired") as caught:
         comparison = compare_pair(
             _result(base), _result(base), metric=METRIC, n_resamples=299
         )
