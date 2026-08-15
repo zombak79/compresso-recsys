@@ -3,8 +3,8 @@ Comparing Models Statistically
 
 Two models evaluated on the same users can be compared far more precisely than
 their aggregate scores suggest. This guide shows how, and — more importantly —
-how to read and report the result without saying something a reviewer will
-object to.
+how to read and report the result without claiming more than a careful reader
+would grant.
 
 No statistics background is assumed. The concepts are introduced where they are
 needed rather than up front.
