@@ -338,7 +338,7 @@ def test_small_untied_count_warns_about_discreteness_not_sample_size():
         compare_pair(_result(base), _result(other), metric=METRIC, n_resamples=299)
 
     # The estimate is not what is degraded, and the message must not imply it is.
-    assert f"still uses all {N} samples" in str(caught[0].message)
+    assert f"still uses all {N} units" in str(caught[0].message)
 
 
 def test_all_tied_warns_that_the_answer_is_exact_rather_than_degraded():
@@ -992,19 +992,18 @@ def test_t_test_on_identical_models_reports_one_rather_than_nan():
     assert comparison.p_value == 1.0
 
 
-def test_t_test_on_a_constant_difference_warns_that_it_is_undefined():
-    """scipy returns exactly 0.0 from zero variance; that is an artefact.
+def test_t_test_on_a_constant_difference_refuses_rather_than_returning_zero():
+    """scipy returns exactly 0.0 from zero variance; that is not a verdict.
 
-    The values are chosen to survive the float32 round-trip exactly, so every
-    paired difference really is identical rather than merely close.
+    The values survive the float32 round-trip exactly, so every paired
+    difference really is identical rather than merely close.
     """
-    with pytest.warns(RuntimeWarning, match="undefined"):
-        comparison = compare_pair(
+    with pytest.raises(ValueError, match="t statistic is undefined"):
+        compare_pair(
             _result(np.zeros(N)), _result(np.full(N, 0.5)), metric=METRIC,
             n_resamples=99, test_method="t",
         )
 
-    assert comparison.p_value == 0.0
     # The randomization test is defined here and reports its floor instead.
     randomized = compare_pair(
         _result(np.zeros(N)), _result(np.full(N, 0.5)), metric=METRIC,
@@ -1267,3 +1266,64 @@ def test_t_test_uses_unit_means_when_rows_repeat():
     assert comparison.p_value == pytest.approx(
         float(ttest_1samp(unit_means, 0.0).pvalue), rel=1e-9
     )
+
+
+def test_unequal_row_counts_weight_every_user_the_same():
+    """One user is one observation however many rows the protocol gave them.
+
+    Four rows: user A contributes one difference of 1.0, user B contributes
+    three of 0.0. Weighting by row gives 0.25 and lets the protocol decide whose
+    score counts more; weighting by user gives 0.5, which is the mean over the
+    two users actually evaluated.
+    """
+    ids = np.array(["A", "B", "B", "B"])
+    baseline = _result(np.zeros(4), sample_ids=ids)
+    candidate = _result(np.array([1.0, 0.0, 0.0, 0.0]), sample_ids=ids)
+
+    comparison = _quiet(
+        compare_pair, baseline, candidate, metric=METRIC, n_resamples=99
+    )
+
+    assert comparison.n_samples == 4
+    assert comparison.n_units == 2
+    assert comparison.difference == pytest.approx(0.5)
+    assert comparison.candidate_mean - comparison.baseline_mean == pytest.approx(0.5)
+
+
+@pytest.mark.parametrize("test_method", ["randomization", "bootstrap", "t"])
+def test_every_method_tests_the_same_estimand_under_unequal_counts(test_method):
+    """The three used to disagree: two kept row weights, the t-test did not."""
+    rng = np.random.default_rng(80)
+    # Users own 1, 2 or 3 rows, so row and user weighting genuinely differ.
+    ids = np.repeat(np.arange(60), rng.integers(1, 4, 60))
+    base = rng.random(ids.size)
+    other = base + rng.normal(0.05, 0.1, ids.size)
+
+    comparison = compare_pair(
+        _result(base, sample_ids=ids), _result(other, sample_ids=ids),
+        metric=METRIC, n_resamples=999, test_method=test_method, random_state=0,
+    )
+
+    unit_means = np.array([
+        (_stored(other) - _stored(base))[ids == u].mean() for u in np.unique(ids)
+    ])
+    assert comparison.n_units == 60
+    assert comparison.difference == pytest.approx(unit_means.mean(), rel=1e-9)
+    # The interval brackets the same quantity every method is testing.
+    assert comparison.ci_low <= comparison.difference <= comparison.ci_high
+
+
+def test_tie_rate_counts_tied_users_not_tied_rows():
+    """A user whose rows cancel is tied; flipping their sign does nothing."""
+    ids = np.array(["A", "A", "B", "B"])
+    baseline = _result(np.zeros(4), sample_ids=ids)
+    # A's rows cancel to zero; B's do not.
+    candidate = _result(np.array([0.4, -0.4, 0.3, 0.3]), sample_ids=ids)
+
+    comparison = _quiet(
+        compare_pair, baseline, candidate, metric=METRIC, n_resamples=99
+    )
+
+    assert comparison.n_units == 2
+    assert comparison.n_nonzero == 1
+    assert comparison.tie_rate == pytest.approx(0.5)

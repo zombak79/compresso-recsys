@@ -612,13 +612,16 @@ standard deviation is the retraining column exactly as above.
 Do not compare all twenty-five combinations. It costs five times the evaluation
 and buys almost nothing: every ``A`` appears in five of those differences, so
 they are far from independent, and the information was in the ten training runs
-rather than the pairings. Pairing by seed index is arbitrary when the two models
-draw independent randomness, but harmless — the variance of the difference is
-the sum either way. It is better than harmless when the seed also fixes
-something shared, such as batch order, since the pairing then cancels that noise
-instead of adding it. If you would rather not pair at all, estimate each model's
-training spread from its own five runs and add them in quadrature; the two
-approaches estimate the same quantity.
+rather than the pairings.
+
+Pair by seed only when the seed controls something the two models **share**,
+such as batch order — then the pairing cancels that noise rather than adding
+it, which is what makes it worth doing. When the two draw independent
+randomness, the seed index is an arbitrary matching: unbiased, but the standard
+deviation you get from five arbitrary pairs depends on which pairing you
+happened to choose. Estimate each model's training spread from its own five runs
+and add them in quadrature instead. That uses all ten runs rather than five
+differences, and does not make you pick a pairing.
 
 There is also a blunter check needing no statistics at all — **did any seed
 reverse the sign?** Across four metrics and five seeds, all twenty differences
@@ -742,7 +745,11 @@ seeing the data**. Choosing ``"greater"`` after noticing your model won is not a
 statistical test. Use ``"two-sided"`` unless you have a pre-registered reason.
 
 The interval follows the alternative, so a one-sided test reports a one-sided
-interval and the two cannot contradict each other.
+interval. That removes one avoidable source of disagreement — a two-sided
+interval printed beside a one-sided test — but not all of it. A percentile
+bootstrap interval and a randomization test are not inverses of one another, so
+they can still occasionally disagree even pointing the same way at the same
+level.
 
 ``correction``
 ~~~~~~~~~~~~~~
@@ -783,10 +790,13 @@ draw. What it does not give is more independent observations. Five draws of one
 reader are still one reader.
 
 **You do not have to do anything about it.** Comparison groups rows by
-``sample_ids``, so repeated identifiers mean one unit produced several rows: it
-resamples whole users, assigns one sign per user in the randomization test, and
-runs the t-test on user means. ``n_units`` reports how many independent units
-there were, and equals ``n_samples`` when every row is its own.
+``sample_ids``, so repeated identifiers mean one unit produced several rows.
+Each user is reduced to a single difference — the mean of their rows — and
+everything downstream works on those: the effect is their mean, the bootstrap
+resamples them, the randomization test flips their signs, the t-test tests them.
+One user is one observation however many rows the protocol produced, so a user
+evaluated five times is not weighted five times over. ``n_units`` reports how
+many there were, and equals ``n_samples`` when every row is its own.
 
 Had those rows been resampled as independent, every interval would have come out
 27 to 44 percent too narrow, with p-values understated to match.
@@ -817,6 +827,21 @@ metric values :math:`m_u^{(a)}` for model :math:`a`, the paired difference is
 
 so the mean paired difference equals the difference of the reported aggregates,
 provided both models were evaluated on the same users.
+
+When a protocol gives user :math:`u` several rows — :math:`r_u` of them, with
+differences :math:`d_{u1}, \ldots, d_{u r_u}` — each user is first reduced to
+their own mean, and the estimand is the mean over users:
+
+.. math::
+
+   \bar d_u = \frac{1}{r_u} \sum_{j=1}^{r_u} d_{uj},
+   \qquad
+   \widehat{\Delta} = \frac{1}{U} \sum_{u=1}^{U} \bar d_u .
+
+Every procedure below then operates on :math:`\bar d_1, \ldots, \bar d_U`, so
+they all estimate the same quantity. Weighting by rows instead would let the
+evaluation protocol decide which users count for more, and the two agree exactly
+when every :math:`r_u` is the same.
 
 **Interval.** For replicate :math:`t`, draw indices
 :math:`i_{t1}, \ldots, i_{tn}` uniformly with replacement and compute

@@ -32,15 +32,21 @@ The randomization test remains the default: it is exact under exchangeability
 where the t-test is asymptotic, and it stays valid where a heavily tied,
 skewed difference distribution strains the normal approximation.
 
+Every procedure works on one difference per independent unit. When a protocol
+gives a user several evaluation rows, that user is first reduced to the mean of
+their rows, so one user is one observation however many rows they produced.
+``n_samples`` counts rows, ``n_units`` counts users, and they are equal whenever
+each row is its own unit.
+
 Ranking differences are dominated by exact ties: for most users both models
-return the same items and ``d_u`` is zero. Every comparison therefore reports
-``n_nonzero`` and ``tie_rate`` alongside ``n_samples``.
+return the same items and the difference is zero. Every comparison therefore
+reports ``n_nonzero`` and ``tie_rate`` over units.
 
 Tied users are not spare. They carry no *sign* information — flipping the sign
 of a zero changes nothing, so ``n_nonzero`` alone governs the combinatorial
 support of the randomization test. But they are part of the empirical
 population, and the mean difference and the paired bootstrap interval are
-computed over all ``n_samples`` of them. Thirty users who all differ by +1 and
+computed over all ``n_units`` of them. Thirty users who all differ by +1 and
 ten thousand users of whom thirty differ by +1 share an ``n_nonzero`` and
 describe entirely different systems.
 
@@ -84,7 +90,7 @@ MAX_CHUNK_ELEMENTS = 8_000_000
 #: Below this many untied users the empirical difference distribution is too
 #: discrete for a percentile interval to be read literally, and the comparison
 #: warns. This bounds the *shape* of the resampled distribution, not the amount
-#: of data behind the estimate, which is always ``n_samples``.
+#: of data behind the estimate, which is always ``n_units``.
 MIN_NONZERO_SAMPLES = 30
 
 _ZERO_TOLERANCE = 1e-12
@@ -156,11 +162,11 @@ class PairwiseComparison:
         not a defect. They say the two models agree for that share of the
         population, which is itself a finding, and they are why ``n_nonzero``
         is reported: it bounds how discrete the randomization test's null
-        distribution can be, while the estimate still rests on ``n_samples``.
+        distribution can be, while the estimate still rests on every unit.
         """
-        if self.n_samples == 0:
+        if self.n_units == 0:
             return 0.0
-        return 1.0 - self.n_nonzero / self.n_samples
+        return 1.0 - self.n_nonzero / self.n_units
 
     @property
     def direction(self) -> str:
@@ -432,56 +438,6 @@ def _unit_sums(d: np.ndarray, codes: np.ndarray, n_units: int) -> np.ndarray:
     return np.bincount(codes, weights=d, minlength=n_units).astype(np.float64)
 
 
-def _unit_bootstrap_means(
-    sums: np.ndarray,
-    counts: np.ndarray,
-    *,
-    n_resamples: int,
-    rng: np.random.Generator,
-    resample_batch_size: int,
-) -> np.ndarray:
-    """Mean of ``d`` over resamples of whole units, with replacement.
-
-    A unit enters or leaves a replicate whole, so only its total and its size
-    are needed: the replicate mean is the summed totals over the summed sizes.
-    Resampled datasets vary in row count, which is inherent to resampling units
-    rather than an approximation.
-    """
-    n_units = sums.shape[0]
-    out = np.empty(n_resamples, dtype=np.float64)
-    step = _effective_batch(resample_batch_size, n_units)
-    for start in range(0, n_resamples, step):
-        size = min(step, n_resamples - start)
-        picks = rng.integers(0, n_units, size=(size, n_units))
-        out[start : start + size] = sums[picks].sum(axis=1) / counts[picks].sum(axis=1)
-    return out
-
-
-def _unit_randomization_means(
-    sums: np.ndarray,
-    n_rows: int,
-    *,
-    n_resamples: int,
-    rng: np.random.Generator,
-    resample_batch_size: int,
-) -> np.ndarray:
-    """Mean of ``d`` under sign assignments drawn per unit.
-
-    Exchangeability holds at the unit that was randomised. Flipping one of a
-    user's five folds while leaving the others alone is not a relabelling the
-    null permits, so the sign applies to the whole unit and the statistic is a
-    weighted sum of unit totals over a fixed row count.
-    """
-    n_units = sums.shape[0]
-    out = np.empty(n_resamples, dtype=np.float64)
-    step = _effective_batch(resample_batch_size, n_units)
-    for start in range(0, n_resamples, step):
-        size = min(step, n_resamples - start)
-        signs = rng.integers(0, 2, size=(size, n_units), dtype=np.int8) * 2 - 1
-        out[start : start + size] = (signs * sums).sum(axis=1) / n_rows
-    return out
-
-
 def _monte_carlo_p(
     null_statistics: np.ndarray,
     observed: float,
@@ -504,51 +460,39 @@ def _t_test_p(
     *,
     alternative: Alternative,
     metric: str,
-    units: tuple[np.ndarray, int] | None = None,
 ) -> float:
     """Paired t-test, as a one-sample test on the paired differences.
 
-    When one unit owns several rows the test runs on the per-unit means, since
-    those are the independent observations; testing all rows would count
-    correlated folds of one user as separate evidence and shrink the p-value for
-    no reason. With unequal unit sizes that tests the mean of unit means, which
-    is not quite the row mean reported as ``difference``. They coincide when
-    units are the same size, which is what the stacked-fold protocol produces.
-
     One-sample on ``d`` rather than ``ttest_rel(y, x)``. The two are
     mathematically identical, but the bootstrap and the randomization test both
-    consume the ``d`` computed in :func:`_compare_arrays`, and letting this
-    derive its own would mean any precision divergence surfaced as the three
-    methods disagreeing about statistics rather than about floating point.
+    consume the same ``d``, and letting this derive its own would mean any
+    precision divergence surfaced as the three methods disagreeing about
+    statistics rather than about floating point. ``d`` holds one value per
+    independent unit, so when a user owns several rows this is already their
+    mean and all three methods test the same estimand.
 
     Unlike the resampled tests this has no Monte Carlo floor, so it can report
     p-values far below ``1 / (n_resamples + 1)``. Treat those with the caution
     any far-tail normal approximation deserves: the Berry-Esseen bound on the
-    error of the approximation is governed by the number of *untied* pairs, and
+    error of the approximation is governed by the number of *untied* units, and
     is loose. Agreement with the randomization test is reassuring; disagreement
     means one of the two approximations is strained, and which one is a question
     about the tie rate and the skew of the nonzero differences rather than about
     the resample count.
     """
-    if units is not None:
-        codes, n_units = units
-        counts = np.bincount(codes, minlength=n_units)
-        d = _unit_sums(d, codes, n_units) / counts
-
     if np.ptp(d) == 0:
-        # Zero sample variance. The t statistic is 0/0 or x/0, and scipy
-        # returns nan or exactly zero; neither is a p-value.
+        # Zero sample variance: the t statistic is 0/0 or x/0, and scipy
+        # returns nan or exactly zero. All differences equal means there is
+        # nothing to estimate a standard error from.
         if difference == 0.0:
             return 1.0
-        warnings.warn(
+        raise ValueError(
             f"{metric!r}: every paired difference is identical, so the t "
-            f"statistic is undefined and its p-value is an artefact of zero "
-            f"sample variance rather than evidence. Prefer "
-            f"test_method='randomization' here.",
-            RuntimeWarning,
-            stacklevel=4,
+            f"statistic is undefined -- there is no sample variance to divide "
+            f"by. scipy would return exactly 0.0, which is a verdict the test "
+            f"cannot support. Use test_method='randomization', which is exact "
+            f"here and reports its resolution floor."
         )
-        return 0.0
     return float(ttest_1samp(d, 0.0, alternative=alternative).pvalue)
 
 
@@ -607,11 +551,30 @@ def _compare_arrays(
     units: tuple[np.ndarray, int] | None,
 ) -> PairwiseComparison:
     """Compare two aligned per-user arrays. Raw p-value only; adjust later."""
-    d = y - x
-    n_samples = int(d.shape[0])
+    rows = y - x
+    n_samples = int(rows.shape[0])
+
+    # Everything downstream works on one difference per independent unit. When
+    # a user owns several rows, that is their mean, and the estimand is the
+    # mean over users rather than over rows -- a user evaluated five times is
+    # one user, not five, and weighting by row count would let the protocol
+    # decide whose opinion counts more. With equal row counts the two coincide
+    # exactly; with unequal ones only this version answers the question the
+    # rest of the module is asking.
+    if units is None:
+        n_units = n_samples
+        d, unit_x, unit_y = rows, x, y
+    else:
+        codes, n_units = units
+        counts = np.bincount(codes, minlength=n_units)
+        d = _unit_sums(rows, codes, n_units) / counts
+        unit_x = _unit_sums(x, codes, n_units) / counts
+        unit_y = _unit_sums(y, codes, n_units) / counts
+
     n_nonzero = int(np.count_nonzero(d))
-    baseline_mean = float(x.mean(dtype=np.float64))
-    candidate_mean = float(y.mean(dtype=np.float64))
+    baseline_mean = float(unit_x.mean(dtype=np.float64))
+    candidate_mean = float(unit_y.mean(dtype=np.float64))
+    # Averaging is linear, so this identity survives the reduction above.
     difference = float(d.mean(dtype=np.float64))
 
     relative_difference = (
@@ -620,35 +583,12 @@ def _compare_arrays(
         else float(difference / abs(baseline_mean))
     )
 
-    if units is None:
-        n_units = n_samples
-        unit_sums = None
-        unit_counts = None
-        # Nothing groups the rows, so a resampling unit is a row.
-        n_nonzero_units = n_nonzero
-    else:
-        codes, n_units = units
-        unit_sums = _unit_sums(d, codes, n_units)
-        unit_counts = np.bincount(codes, minlength=n_units).astype(np.float64)
-        # A unit whose rows cancel to zero is inert under sign flipping, the
-        # same way a tied row is.
-        n_nonzero_units = int(np.count_nonzero(unit_sums))
-
-    if unit_sums is None:
-        bootstrap_means = _bootstrap_means(
-            d,
-            n_resamples=n_resamples,
-            rng=interval_rng,
-            resample_batch_size=resample_batch_size,
-        )
-    else:
-        bootstrap_means = _unit_bootstrap_means(
-            unit_sums,
-            unit_counts,
-            n_resamples=n_resamples,
-            rng=interval_rng,
-            resample_batch_size=resample_batch_size,
-        )
+    bootstrap_means = _bootstrap_means(
+        d,
+        n_resamples=n_resamples,
+        rng=interval_rng,
+        resample_batch_size=resample_batch_size,
+    )
     ci_low, ci_high = _interval(
         bootstrap_means,
         confidence_level=confidence_level,
@@ -663,27 +603,15 @@ def _compare_arrays(
         # derived per hypothesis, so that cannot shift any other comparison.
         # The interval above is still resampled, so this does not make the
         # call RNG-free.
-        p_value = _t_test_p(
-            d, difference, alternative=alternative, metric=metric,
-            units=units,
-        )
+        p_value = _t_test_p(d, difference, alternative=alternative, metric=metric)
     else:
         if test_method == "randomization":
-            if unit_sums is None:
-                null_statistics = _randomization_means(
-                    d,
-                    n_resamples=n_resamples,
-                    rng=test_rng,
-                    resample_batch_size=resample_batch_size,
-                )
-            else:
-                null_statistics = _unit_randomization_means(
-                    unit_sums,
-                    n_samples,
-                    n_resamples=n_resamples,
-                    rng=test_rng,
-                    resample_batch_size=resample_batch_size,
-                )
+            null_statistics = _randomization_means(
+                d,
+                n_resamples=n_resamples,
+                rng=test_rng,
+                resample_batch_size=resample_batch_size,
+            )
         else:
             # Resampling the centered differences is an exact shift of the
             # ordinary bootstrap, so the replicates above already contain the
@@ -697,19 +625,19 @@ def _compare_arrays(
         # so difference 0, interval [0, 0] and p 1 are exactly right rather
         # than degraded, and saying "few observations" would misdescribe them.
         warnings.warn(
-            f"{metric!r}: the two models scored all {n_samples} samples "
+            f"{metric!r}: the two models scored all {n_units} units "
             f"identically, so there is nothing to resample. The difference, "
             f"interval and p-value are exact, not estimated.",
             RuntimeWarning,
             stacklevel=3,
         )
-    elif n_nonzero_units < MIN_NONZERO_SAMPLES:
+    elif n_nonzero < MIN_NONZERO_SAMPLES:
         warnings.warn(
-            f"{metric!r}: only {n_nonzero} of {n_samples} samples have a nonzero "
+            f"{metric!r}: only {n_nonzero} of {n_units} units have a nonzero "
             f"paired difference, so the empirical difference distribution is "
             f"highly discrete and the percentile interval lands on few distinct "
             f"values. Interpret it cautiously. The estimate itself still uses "
-            f"all {n_samples} samples.",
+            f"all {n_units} units.",
             RuntimeWarning,
             stacklevel=3,
         )
