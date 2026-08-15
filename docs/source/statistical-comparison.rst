@@ -277,8 +277,8 @@ The effect
 ~~~~~~~~~~
 
 ``difference`` is always **candidate minus baseline**, so positive favours the
-candidate. Here ELSA gained 0.0050 nDCG@100 over EASE, which
-``relative_difference`` expresses as 1.0% of the baseline.
+candidate. Here ELSA gained 0.0054 nDCG@100 over EASE, which
+``relative_difference`` expresses as 1.1% of the baseline.
 
 This is the number to lead with. It is computed directly from the data, so it
 does not depend on any of the resampling settings.
@@ -317,9 +317,11 @@ estimate suggests.
 How often the two models tied
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-``n_samples`` is the rows evaluated. ``n_nonzero`` is the rows whose score
-actually *differed* between the two models, and ``tie_rate`` is the share that
-did not.
+``n_samples`` is the evaluation rows. ``n_units`` is the independent users
+behind them — equal to ``n_samples`` unless a protocol gave someone several
+rows, and the count everything else is computed over. ``n_nonzero`` is the units
+whose mean score actually *differed* between the two models, and ``tie_rate`` is
+the share that did not.
 
 That distinction matters more in recommendation than almost anywhere else,
 because ranking metrics produce enormous numbers of exact ties. Across the
@@ -452,20 +454,23 @@ Both have ``n_nonzero = 30``. They describe completely different systems, and
 their bootstrap distributions look nothing alike. A tied user is an observation
 that the two models agreed — evidence, not an absence of it.
 
-So read the three numbers as three different things:
+So read the four numbers as four different things:
 
-* ``n_samples`` — everything the estimate and the interval are computed over.
-* ``n_nonzero`` — the rows that can move the randomization test, since flipping
+* ``n_samples`` — the raw evaluation rows.
+* ``n_units`` — the independent users, which the estimate, the interval and
+  every test are computed over. Equal to ``n_samples`` when each row is its own
+  unit.
+* ``n_nonzero`` — the units that can move the randomization test, since flipping
   the sign of a zero does nothing. This bounds how *discrete* the null
   distribution is.
-* ``tie_rate`` — the share of units whose *mean* difference is exactly zero.
-  With one row per user that is the two models scoring them identically; with
-  several, it includes users whose rows cancelled. Either way it is a finding
-  worth reporting in its own right.
+* ``tie_rate`` — ``1 - n_nonzero / n_units``, the share of users whose *mean*
+  difference is exactly zero. With one row per user that is the two models
+  scoring them identically; with several, it includes users whose rows
+  cancelled. Either way it is a finding worth reporting in its own right.
 
 When ``n_nonzero`` falls below 30 the comparison warns, and the warning is about
 that discreteness: the resampled differences land on few distinct values, so the
-percentile interval is coarse. The estimate still uses every sample.
+percentile interval is coarse. The estimate still uses every unit.
 
 .. _stats-trap-adjusted:
 
@@ -698,11 +703,12 @@ Smucker, Allan and Carterette compared both on retrieval data and found they
 agree closely, so this is not a case of the resampled test being obviously
 right and the familiar one wrong.
 
-The randomization test is the default for two reasons. It is **exact** under
-paired label exchangeability, where the t-test relies on the central limit
-theorem holding well enough; and ranking differences are exactly the kind of
-data — heavily tied, sharply peaked at zero, occasional large outliers — where
-that reliance is least comfortable.
+The randomization test is the default because it avoids the normal
+approximation entirely wherever paired label exchangeability is defensible,
+and ranking differences — heavily tied, sharply peaked at zero, occasional large
+outliers — are exactly the data where relying on that approximation is least
+comfortable. Reach for the t-test when its null is the one you want, and when
+enough untied units make the approximation credible.
 
 Run both. On the worked example:
 
@@ -715,7 +721,10 @@ Run both. On the worked example:
    mrr@20                     1009     59.6%           0.0001   6.82e-06
 
 Every randomization p-value is pinned at its floor; the t-test, having no floor,
-prints numbers far below it. **Do not read those small numbers as more precise.**
+prints numbers far below it. **That is not a reason to prefer it.** Having no
+floor is a property of the procedure rather than evidence about the models, and
+choosing a test by which one prints the smaller number is how p-values stop
+meaning anything.
 They are the far tail of a normal approximation, where the guarantees are
 weakest. What the table really says is that all four differences clear any
 threshold either test could set, by a wide margin.

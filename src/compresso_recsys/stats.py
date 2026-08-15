@@ -26,11 +26,15 @@ Two procedures, each doing the job it is best at:
 
 ``test_method="t"`` runs a paired t-test instead, as a one-sample test on the
 same differences. Smucker, Allan and Carterette found the two agree closely on
-retrieval data, so it is available as a familiar cross-check and for the
-occasions when a p-value below the ``1 / (n_resamples + 1)`` floor is wanted.
-The randomization test remains the default: it is exact under exchangeability
-where the t-test is asymptotic, and it stays valid where a heavily tied,
-skewed difference distribution strains the normal approximation.
+retrieval data, so it is a familiar cross-check.
+
+The randomization test is the default because it avoids the normal
+approximation entirely wherever paired-label exchangeability is defensible.
+Choose the t-test when its null is the one you want -- a zero population mean
+difference, without the symmetry that exchangeability additionally implies --
+and when enough untied units make the normal approximation credible. Not
+because it prints a smaller number: having no Monte Carlo floor is a property
+of the procedure, not evidence about the models.
 
 Every procedure works on one difference per independent unit. When a protocol
 gives a user several evaluation rows, that user is first reduced to the mean of
