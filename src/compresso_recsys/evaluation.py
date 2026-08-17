@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
+import hashlib
+import warnings
+from collections.abc import Iterator, Mapping, Sequence
+from dataclasses import dataclass, field
 from typing import Any, Literal
 
 import numpy as np
@@ -14,10 +17,238 @@ from compresso_recsys.models import Recommender
 MatchBackend = Literal["auto", "dense", "searchsorted"]
 
 __all__ = [
+    "EvaluationResult",
     "RankingEvaluator",
     "evaluate_ranked_predictions",
     "evaluate_recommender",
 ]
+
+
+def _owned(array: np.ndarray, source: Any) -> np.ndarray:
+    """Return ``array`` guaranteed not to alias ``source``.
+
+    ``np.ascontiguousarray`` and ``np.asarray`` hand back the input untouched
+    when it already has the requested layout, so storing the result would alias
+    an array the caller still holds. Marking that read-only, as the per-user
+    values are, would reach out and freeze the caller's own array.
+    """
+    return array.copy() if array is source else array
+
+
+class _TargetFingerprint:
+    """Canonical, batch-size independent digest of the target matrix.
+
+    Two evaluations can only be paired when they scored the same users against
+    the same relevant items. Identifiers catch a different user set; this
+    catches the same identifiers against different targets, which no identifier
+    check can see.
+
+    The evaluator receives targets one batch at a time and never holds the
+    whole matrix, so the digest has to be accumulated. Three properties make
+    the result independent of how the rows were divided:
+
+    * Row counts and column indices go into two separate streams. Interleaving
+      them per batch would put the bytes in a different order for a different
+      ``batch_size``, while each stream on its own is simply the same sequence
+      of rows however it was chunked, and blake2b digests a stream in pieces
+      exactly as it digests it whole.
+    * Neither stream contains ``indptr``, whose values are rebased to zero in
+      every slice. Row lengths carry the same information and survive slicing.
+    * Both are cast to fixed width and byte order, so the same logical matrix
+      agrees across platforms and across int32 and int64 index dtypes.
+
+    Values are not hashed. Targets are binary relevance and only nonzero
+    locations matter, so two matrices that differ solely in stored values are
+    genuinely the same evaluation.
+
+    Canonical form -- sorted, deduplicated, no stored zeros -- is a
+    precondition, supplied by :func:`_canonical_csr` before every update.
+    """
+
+    __slots__ = ("_row_lengths", "_indices", "_n_items", "_n_rows")
+
+    def __init__(self) -> None:
+        self._row_lengths = hashlib.blake2b(digest_size=16)
+        self._indices = hashlib.blake2b(digest_size=16)
+        self._n_items: int | None = None
+        self._n_rows = 0
+
+    def update(self, targets: csr_matrix) -> None:
+        """Fold one canonical batch in, in global row order."""
+        if self._n_items is None:
+            self._n_items = int(targets.shape[1])
+        self._row_lengths.update(np.diff(targets.indptr).astype("<u8").tobytes())
+        self._indices.update(targets.indices.astype("<i8", copy=False).tobytes())
+        self._n_rows += int(targets.shape[0])
+
+    def digest(self) -> str:
+        """Hex digest binding both streams to the matrix shape."""
+        final = hashlib.blake2b(digest_size=16)
+        final.update(int(self._n_items or 0).to_bytes(8, "big"))
+        final.update(self._n_rows.to_bytes(8, "big"))
+        final.update(self._row_lengths.digest())
+        final.update(self._indices.digest())
+        return final.hexdigest()
+
+
+@dataclass(eq=False)
+class EvaluationResult(Mapping[str, Any]):
+    """Aggregate metrics plus the per-user observations behind them.
+
+    The mapping view carries the aggregates and ``n_scored_rows``, so existing
+    code that treats an evaluation as a dictionary keeps working::
+
+        result["ndcg@20"]
+        dict(result)
+
+    Per-user values, sample identifiers and metadata are attributes rather than
+    mapping keys, because they are large and because a caller reaching for them
+    is doing something other than reading a headline number.
+
+    ``per_user`` and ``sample_ids`` are what make paired statistical comparison
+    possible: two evaluations can only be compared when they refer to the same
+    evaluation units in the same order.
+    """
+
+    metrics: dict[str, float]
+    per_user: dict[str, np.ndarray] | None
+    sample_ids: np.ndarray | None
+    n_rows: int
+    n_scored_rows: int
+    required_k: int
+    metadata: dict[str, Any] = field(default_factory=dict)
+    # ``None`` means debug collection was off; an empty tuple means it was on
+    # and produced nothing. The mapping exposes ``"debug"`` in the second case
+    # but not the first, so a caller that asked for debug always finds the key.
+    debug_rows: tuple[dict[str, Any], ...] | None = None
+    # Identifies the targets these metrics were computed against, so paired
+    # comparison can refuse two results that scored the same users on different
+    # relevant items. ``None`` for results built by hand rather than by an
+    # evaluator; comparison warns rather than failing in that case.
+    target_fingerprint: str | None = None
+
+    def __post_init__(self) -> None:
+        for key, value in self.metrics.items():
+            if not np.isfinite(value):
+                raise ValueError(f"aggregate metric {key!r} is not finite: {value!r}")
+        self.n_rows = int(self.n_rows)
+        self.n_scored_rows = int(self.n_scored_rows)
+        self.required_k = int(self.required_k)
+        if self.n_rows < 0:
+            raise ValueError("n_rows must be >= 0")
+        if not 0 <= self.n_scored_rows <= self.n_rows:
+            raise ValueError(
+                f"n_scored_rows ({self.n_scored_rows}) must be in [0, n_rows={self.n_rows}]"
+            )
+        if self.required_k < 1:
+            raise ValueError("required_k must be >= 1")
+
+        if self.per_user is None:
+            if self.sample_ids is not None:
+                raise ValueError("sample_ids requires per_user values")
+            return
+
+        if set(self.per_user) != set(self.metrics):
+            missing = sorted(set(self.metrics) - set(self.per_user))
+            extra = sorted(set(self.per_user) - set(self.metrics))
+            raise ValueError(
+                "per_user keys must match metric keys; "
+                f"missing={missing}, unexpected={extra}"
+            )
+        cleaned: dict[str, np.ndarray] = {}
+        for key, values in self.per_user.items():
+            array = _owned(np.ascontiguousarray(values, dtype=np.float32), values)
+            if array.ndim != 1:
+                raise ValueError(f"per_user[{key!r}] must be one-dimensional")
+            if array.shape[0] != self.n_scored_rows:
+                raise ValueError(
+                    f"per_user[{key!r}] has {array.shape[0]} values, "
+                    f"expected n_scored_rows={self.n_scored_rows}"
+                )
+            if not np.isfinite(array).all():
+                raise ValueError(f"per_user[{key!r}] contains non-finite values")
+            array.setflags(write=False)
+            cleaned[key] = array
+        self.per_user = cleaned
+
+        if self.sample_ids is None:
+            raise ValueError("per_user values require sample_ids")
+        ids = _owned(np.asarray(self.sample_ids), self.sample_ids)
+        if ids.ndim != 1:
+            raise ValueError("sample_ids must be one-dimensional")
+        if ids.shape[0] != self.n_scored_rows:
+            raise ValueError(
+                f"sample_ids has {ids.shape[0]} values, "
+                f"expected n_scored_rows={self.n_scored_rows}"
+            )
+        # Repeated identifiers are legitimate here: the stacked-fold protocol
+        # in :func:`compresso_recsys.retrieval.build_eval_holdout` evaluates
+        # each user in several folds, so one user owns several rows. Evaluating
+        # them is fine; resampling them as independent units is not, which is a
+        # question for paired comparison rather than for this constructor.
+        #
+        # As with the per-user values above: frozen so a later mutation cannot
+        # silently invalidate the pairing this result was matched on.
+        ids.setflags(write=False)
+        self.sample_ids = ids
+
+    def _mapping_view(self) -> dict[str, Any]:
+        view: dict[str, Any] = dict(self.metrics)
+        view["n_scored_rows"] = self.n_scored_rows
+        view["n_units"] = self.n_units
+        if self.debug_rows is not None:
+            view["debug"] = list(self.debug_rows)
+        return view
+
+    def __getitem__(self, key: str) -> Any:
+        return self._mapping_view()[key]
+
+    def __iter__(self) -> Iterator[str]:
+        return iter(self._mapping_view())
+
+    def __len__(self) -> int:
+        return len(self._mapping_view())
+
+    def __repr__(self) -> str:
+        collected = "none" if self.per_user is None else f"{len(self.per_user)} keys"
+        return (
+            f"EvaluationResult(metrics={self.metrics!r}, "
+            f"n_scored_rows={self.n_scored_rows}, n_rows={self.n_rows}, "
+            f"required_k={self.required_k}, per_user={collected})"
+        )
+
+    @property
+    def n_units(self) -> int:
+        """Independent evaluation units behind the scored rows.
+
+        Distinct ``sample_ids``, which is smaller than ``n_scored_rows`` when a
+        protocol gives one user several rows -- ``eval_draws`` above 1, say. It
+        matches :attr:`compresso_recsys.stats.PairwiseComparison.n_units`, the
+        count paired comparison actually resamples.
+
+        Without identifiers there is nothing to group by, and every row is its
+        own unit, which is also what comparison assumes when it numbers rows
+        positionally.
+        """
+        if self.sample_ids is None:
+            return self.n_scored_rows
+        return int(np.unique(self.sample_ids).shape[0])
+
+    @property
+    def has_per_user(self) -> bool:
+        """Whether per-user observations were collected."""
+        return self.per_user is not None
+
+    def to_dict(self, *, include_debug: bool = True) -> dict[str, Any]:
+        """Return the mapping view as a plain ``dict``.
+
+        Use this where an actual ``dict`` is required, such as JSON
+        serialization. Per-user values are deliberately excluded.
+        """
+        view = self._mapping_view()
+        if not include_debug:
+            view.pop("debug", None)
+        return view
 
 
 def _canonical_csr(targets: csr_matrix) -> csr_matrix:
@@ -60,6 +291,24 @@ def _indices_to_csr(rows: Sequence[np.ndarray], *, n_items: int) -> csr_matrix:
     targets.eliminate_zeros()
     targets.sort_indices()
     return targets
+
+
+def _canonical_sample_ids(
+    sample_ids: Sequence[Any] | np.ndarray | None,
+    *,
+    n_rows: int,
+) -> np.ndarray | None:
+    """Validate caller-supplied identifiers against the input row count."""
+    if sample_ids is None:
+        return None
+    ids = np.asarray(sample_ids)
+    if ids.ndim != 1:
+        raise ValueError("sample_ids must be one-dimensional")
+    if ids.shape[0] != n_rows:
+        raise ValueError(
+            f"sample_ids has {ids.shape[0]} values, expected one per input row ({n_rows})"
+        )
+    return ids
 
 
 def _slice_srp_rows(predictions: SRPTensor, start: int, end: int) -> SRPTensor:
@@ -165,6 +414,8 @@ class RankingEvaluator:
         match_backend: MatchBackend = "auto",
         max_dense_cells: int = 20_000_000,
         validate_predictions: bool = True,
+        collect_per_user: bool = True,
+        metadata: Mapping[str, Any] | None = None,
         debug: bool = False,
         debug_users: int = 5,
     ) -> None:
@@ -181,6 +432,8 @@ class RankingEvaluator:
         self.match_backend = match_backend
         self.max_dense_cells = int(max_dense_cells)
         self.validate_predictions = bool(validate_predictions)
+        self.collect_per_user = bool(collect_per_user)
+        self.metadata = dict(metadata) if metadata is not None else {}
         self.debug = bool(debug)
         self.debug_users = int(debug_users)
         self.required_k = max(metric.required_k for metric in self.metrics)
@@ -193,9 +446,56 @@ class RankingEvaluator:
     def reset(self) -> None:
         for metric in self.metrics:
             metric.reset()
-        self._n_eval_users = 0
+        self._n_scored_rows = 0
         self._rows_seen = 0
         self._debug_rows: list[dict[str, Any]] = []
+        self._value_chunks: dict[str, list[np.ndarray]] = {}
+        self._id_chunks: list[np.ndarray] = []
+        self._fingerprint = _TargetFingerprint()
+
+    def _validate_metric_values(
+        self,
+        metric: RankingMetric,
+        values: Any,
+        *,
+        rows: int,
+        valid: torch.Tensor,
+    ) -> torch.Tensor:
+        """Check the per-row tensor a metric returned under the update contract."""
+        name = type(metric).__name__
+        if not isinstance(values, torch.Tensor):
+            raise TypeError(
+                f"{name}.update must return a torch.Tensor of per-row values when "
+                f"collect_per_user is enabled, got {type(values).__name__}"
+            )
+        if values.ndim != 2:
+            raise ValueError(f"{name}.update must return a 2D tensor, got {values.ndim}D")
+        expected = len(metric.result_keys)
+        if values.shape != (rows, expected):
+            raise ValueError(
+                f"{name}.update must return shape ({rows}, {expected}), "
+                f"got {tuple(values.shape)}"
+            )
+        if not values.dtype.is_floating_point:
+            raise ValueError(f"{name}.update must return a floating-point tensor")
+        if bool(valid.any()) and not bool(torch.isfinite(values[valid]).all()):
+            raise ValueError(f"{name}.update returned non-finite values for evaluable rows")
+        return values
+
+    def _collect(
+        self,
+        metric: RankingMetric,
+        values: torch.Tensor,
+        valid: torch.Tensor,
+    ) -> None:
+        """Retain the evaluable rows of one metric's per-row values."""
+        # Host first, then cast: see the note in _MeanAtCutoffsMetric.update.
+        kept = values[valid].detach().cpu().to(torch.float32)
+        array = kept.numpy()
+        for column, key in enumerate(metric.result_keys):
+            self._value_chunks.setdefault(key, []).append(
+                np.ascontiguousarray(array[:, column])
+            )
 
     def _validate(self, predictions: SRPTensor, targets: csr_matrix) -> None:
         if predictions.rows != targets.shape[0]:
@@ -261,8 +561,15 @@ class RankingEvaluator:
                 }
             )
 
-    def update(self, predictions: SRPTensor, targets: csr_matrix) -> None:
+    def update(
+        self,
+        predictions: SRPTensor,
+        targets: csr_matrix,
+        *,
+        sample_ids: Sequence[Any] | np.ndarray | None = None,
+    ) -> None:
         targets = _canonical_csr(targets)
+        self._fingerprint.update(targets)
         if self.validate_predictions:
             self._validate(predictions, targets)
         else:
@@ -286,20 +593,69 @@ class RankingEvaluator:
             hits=hits,
             target_counts=target_counts,
         )
-        for metric in self.metrics:
-            metric.update(batch)
-        self._collect_debug(batch)
-        self._n_eval_users += int((target_counts > 0).sum().item())
-        self._rows_seen += predictions.rows
+        rows = predictions.rows
+        valid = target_counts > 0
 
-    def compute(self) -> dict[str, Any]:
-        out: dict[str, Any] = {}
+        if sample_ids is None:
+            batch_ids = np.arange(self._rows_seen, self._rows_seen + rows)
+        else:
+            batch_ids = np.asarray(sample_ids)
+            if batch_ids.ndim != 1:
+                raise ValueError("sample_ids must be one-dimensional")
+            if batch_ids.shape[0] != rows:
+                raise ValueError(
+                    f"sample_ids has {batch_ids.shape[0]} values, "
+                    f"expected one per prediction row ({rows})"
+                )
+
         for metric in self.metrics:
-            out.update(metric.compute())
-        out["n_eval_users"] = float(self._n_eval_users)
-        if self.debug:
-            out["debug"] = list(self._debug_rows)
-        return out
+            values = metric.update(batch)
+            if self.collect_per_user:
+                values = self._validate_metric_values(
+                    metric, values, rows=rows, valid=valid
+                )
+                self._collect(metric, values, valid)
+
+        if self.collect_per_user:
+            self._id_chunks.append(batch_ids[valid.detach().cpu().numpy()])
+
+        self._collect_debug(batch)
+        self._n_scored_rows += int(valid.sum().item())
+        self._rows_seen += rows
+
+    def compute(self) -> EvaluationResult:
+        metrics: dict[str, float] = {}
+        for metric in self.metrics:
+            metrics.update(metric.compute())
+
+        per_user: dict[str, np.ndarray] | None = None
+        sample_ids: np.ndarray | None = None
+        if self.collect_per_user:
+            per_user = {
+                key: (
+                    np.concatenate(self._value_chunks[key])
+                    if self._value_chunks.get(key)
+                    else np.empty(0, dtype=np.float32)
+                )
+                for key in metrics
+            }
+            sample_ids = (
+                np.concatenate(self._id_chunks)
+                if self._id_chunks
+                else np.empty(0, dtype=np.int64)
+            )
+
+        return EvaluationResult(
+            metrics=metrics,
+            per_user=per_user,
+            sample_ids=sample_ids,
+            n_rows=self._rows_seen,
+            n_scored_rows=self._n_scored_rows,
+            required_k=self.required_k,
+            metadata=dict(self.metadata),
+            debug_rows=tuple(self._debug_rows) if self.debug else None,
+            target_fingerprint=self._fingerprint.digest(),
+        )
 
 
 def evaluate_ranked_predictions(
@@ -307,13 +663,16 @@ def evaluate_ranked_predictions(
     predictions: SRPTensor,
     targets: csr_matrix,
     metrics: Sequence[RankingMetric] | None = None,
+    sample_ids: Sequence[Any] | np.ndarray | None = None,
+    collect_per_user: bool = True,
+    metadata: Mapping[str, Any] | None = None,
     batch_size: int = 4096,
     match_backend: MatchBackend = "auto",
     max_dense_cells: int = 20_000_000,
     validate_predictions: bool = True,
     debug: bool = False,
     debug_users: int = 5,
-) -> dict[str, Any]:
+) -> EvaluationResult:
     """Evaluate ranked top-k SRP predictions against binary CSR targets.
 
     Prediction columns must be unique within each row and ordered by
@@ -345,9 +704,12 @@ def evaluate_ranked_predictions(
         match_backend=match_backend,
         max_dense_cells=max_dense_cells,
         validate_predictions=validate_predictions,
+        collect_per_user=collect_per_user,
+        metadata=metadata,
         debug=debug,
         debug_users=debug_users,
     )
+    resolved_ids = _canonical_sample_ids(sample_ids, n_rows=predictions.rows)
     if predictions.k < evaluator.required_k:
         raise ValueError(
             f"predictions contain top-{predictions.k}, "
@@ -360,6 +722,7 @@ def evaluate_ranked_predictions(
         evaluator.update(
             _slice_srp_rows(predictions, start, end),
             targets[start:end],
+            sample_ids=None if resolved_ids is None else resolved_ids[start:end],
         )
     return evaluator.compute()
 
@@ -370,6 +733,9 @@ def evaluate_recommender(
     source: csr_matrix,
     targets: csr_matrix,
     metrics: Sequence[RankingMetric],
+    sample_ids: Sequence[Any] | np.ndarray | None = None,
+    collect_per_user: bool = True,
+    metadata: Mapping[str, Any] | None = None,
     batch_size: int = 1024,
     match_backend: MatchBackend = "auto",
     max_dense_cells: int = 20_000_000,
@@ -377,7 +743,7 @@ def evaluate_recommender(
     debug: bool = False,
     debug_users: int = 5,
     show_progress: bool = False,
-) -> dict[str, Any]:
+) -> EvaluationResult:
     """Evaluate a recommender without retaining predictions between batches.
 
     The largest metric cutoff determines the ``k`` passed to the model's
@@ -404,9 +770,12 @@ def evaluate_recommender(
         match_backend=match_backend,
         max_dense_cells=max_dense_cells,
         validate_predictions=validate_predictions,
+        collect_per_user=collect_per_user,
+        metadata=metadata,
         debug=debug,
         debug_users=debug_users,
     )
+    resolved_ids = _canonical_sample_ids(sample_ids, n_rows=source.shape[0])
     starts = range(0, source.shape[0], batch_size)
     for start in _progress(
         starts,
@@ -418,5 +787,9 @@ def evaluate_recommender(
             source[start:end],
             k=evaluator.required_k,
         )
-        evaluator.update(predictions, targets[start:end])
+        evaluator.update(
+            predictions,
+            targets[start:end],
+            sample_ids=None if resolved_ids is None else resolved_ids[start:end],
+        )
     return evaluator.compute()

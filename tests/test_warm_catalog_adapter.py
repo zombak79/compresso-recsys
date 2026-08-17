@@ -96,7 +96,7 @@ def test_adapter_integrates_with_full_catalog_evaluation():
     )
 
     assert result["calibrated_recall@1"] == pytest.approx(0.5)
-    assert result["n_eval_users"] == 2.0
+    assert result["n_scored_rows"] == 2.0
 
 
 def test_adapter_returns_already_aligned_source_unchanged():

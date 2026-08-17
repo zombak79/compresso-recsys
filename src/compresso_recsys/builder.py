@@ -115,7 +115,8 @@ def parse_args():
     p.add_argument("--item_min_support", type=int, default=None)
     p.add_argument("--min_value_to_keep", type=float, default=None)
     p.add_argument("--set_all_values_to", type=float, default=None)
-    p.add_argument("--eval_fold", type=int, default=0, choices=[0, 1])
+    p.add_argument("--eval_draws", type=int, default=5)
+    p.add_argument("--eval_holdout_frac", type=float, default=0.2)
     p.add_argument(
         "--split_mode",
         type=str,
@@ -187,7 +188,8 @@ def _build_args(
     item_min_support: int | None = None,
     min_value_to_keep: float | None = None,
     set_all_values_to: float | None = None,
-    eval_fold: int = 0,
+    eval_draws: int = 5,
+    eval_holdout_frac: float = 0.2,
     split_mode: str = "user_split",
     val_items: int | None = None,
     test_items: int | None = None,
@@ -208,8 +210,13 @@ def _build_args(
     if dataset not in DATASETS:
         choices = ", ".join(sorted(DATASETS))
         raise ValueError(f"dataset must be one of {{{choices}}}, got {dataset!r}")
-    if eval_fold not in (0, 1):
-        raise ValueError(f"eval_fold must be 0 or 1, got {eval_fold!r}")
+    if eval_draws < 1:
+        raise ValueError(f"eval_draws must be >= 1, got {eval_draws!r}")
+    if not 0.0 < eval_holdout_frac < 1.0:
+        raise ValueError(
+            f"eval_holdout_frac must be strictly between 0 and 1, "
+            f"got {eval_holdout_frac!r}"
+        )
     if split_mode not in {"user_split", "item_split", "leave_last_out", "temporal"}:
         raise ValueError(f"Unsupported split_mode: {split_mode!r}")
     if annotation_source not in {"genres", "ml20m_tags", "goodbooks_tags", "none"}:
@@ -238,7 +245,8 @@ def _build_args(
         item_min_support=item_min_support,
         min_value_to_keep=min_value_to_keep,
         set_all_values_to=set_all_values_to,
-        eval_fold=eval_fold,
+        eval_draws=eval_draws,
+        eval_holdout_frac=eval_holdout_frac,
         split_mode=split_mode,
         val_items=val_items,
         test_items=test_items,
@@ -504,14 +512,16 @@ def _build_user_split(args, ds, proc_df):
         eval_interactions=split.val,
         min_user_support=args.min_user_support,
         random_state=args.seed,
-        eval_fold=args.eval_fold,
+        eval_draws=args.eval_draws,
+        eval_holdout_frac=args.eval_holdout_frac,
     )
     test_holdout = build_eval_holdout(
         train_item_ids=item_ids,
         eval_interactions=split.test,
         min_user_support=args.min_user_support,
         random_state=args.seed,
-        eval_fold=args.eval_fold,
+        eval_draws=args.eval_draws,
+        eval_holdout_frac=args.eval_holdout_frac,
     )
     catalog_item_ids = test_holdout["item_ids"]
     return {
@@ -1038,6 +1048,18 @@ def _build_temporal_split(args, proc_df, progress: _CheckpointProgress | None = 
     }
 
 
+def _distinct_eval_users(holdout) -> int | None:
+    """How many distinct users a holdout evaluates, or ``None`` if unrecorded.
+
+    Not the same as its row count. ``eval_draws`` above 1 gives each user one
+    row per draw and tiles the identifiers to match.
+    """
+    user_ids = holdout.get("user_ids")
+    if user_ids is None:
+        return None
+    return int(np.unique(np.asarray(user_ids)).shape[0])
+
+
 def _build_split_payload(args, ds, proc_df, progress: _CheckpointProgress | None = None):
     if args.split_mode == "user_split":
         return _build_user_split(args, ds, proc_df)
@@ -1127,7 +1149,8 @@ def _build_recsys_checkpoint_from_args(args) -> Path:
                     "item_min_support": args.item_min_support,
                     "min_value_to_keep": args.min_value_to_keep,
                     "set_all_values_to": args.set_all_values_to,
-                    "eval_fold": args.eval_fold,
+                    "eval_draws": args.eval_draws,
+                    "eval_holdout_frac": args.eval_holdout_frac,
                     "split_mode": args.split_mode,
                     "min_source_items": args.min_source_items,
                     "min_target_items": args.min_target_items,
@@ -1137,8 +1160,14 @@ def _build_recsys_checkpoint_from_args(args) -> Path:
                     "n_train_users": int(len(split_payload["train_user_ids"])) if split_payload.get("train_user_ids") is not None else None,
                     "n_val_users": int(len(split_payload["val_user_ids"])) if split_payload.get("val_user_ids") is not None else None,
                     "n_test_users": int(len(split_payload["test_user_ids"])) if split_payload.get("test_user_ids") is not None else None,
-                    "n_val_eval_users": int(len(val_holdout["source_indices"])),
-                    "n_test_eval_users": int(len(test_holdout["source_indices"])),
+                    # Rows and users differ once a protocol draws a user more
+                    # than once: at eval_draws=5 the row count is five times the
+                    # user count, and recording only the former under a name
+                    # saying "users" overstated the evaluation by that factor.
+                    "n_val_eval_rows": int(len(val_holdout["source_indices"])),
+                    "n_test_eval_rows": int(len(test_holdout["source_indices"])),
+                    "n_val_eval_users": _distinct_eval_users(val_holdout),
+                    "n_test_eval_users": _distinct_eval_users(test_holdout),
                     "split_files": {
                         "train_source_matrix": "data/train_source_matrix.npz",
                         "train_target_matrix": "data/train_target_matrix.npz",
@@ -1188,7 +1217,8 @@ def build_recsys_checkpoint(
     item_min_support: int | None = None,
     min_value_to_keep: float | None = None,
     set_all_values_to: float | None = None,
-    eval_fold: int = 0,
+    eval_draws: int = 5,
+    eval_holdout_frac: float = 0.2,
     split_mode: str = "user_split",
     val_items: int | None = None,
     test_items: int | None = None,
@@ -1218,7 +1248,8 @@ def build_recsys_checkpoint(
         item_min_support=item_min_support,
         min_value_to_keep=min_value_to_keep,
         set_all_values_to=set_all_values_to,
-        eval_fold=eval_fold,
+        eval_draws=eval_draws,
+        eval_holdout_frac=eval_holdout_frac,
         split_mode=split_mode,
         val_items=val_items,
         test_items=test_items,

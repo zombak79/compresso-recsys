@@ -220,3 +220,7 @@ __marimo__/
 
 # macOS
 .DS_Store
+
+# Downloaded datasets and built checkpoints
+data/
+artifacts/

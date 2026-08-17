@@ -529,8 +529,8 @@ def test_streaming_evaluation(interactions, item_features):
         batch_size=2,
     )
 
-    assert set(result) == {"calibrated_recall@2", "ndcg@3", "n_eval_users"}
-    assert result["n_eval_users"] == 5
+    assert set(result) == {"calibrated_recall@2", "ndcg@3", "n_scored_rows", "n_units"}
+    assert result["n_scored_rows"] == 5
 
 
 def test_protocols_and_configuration_validation():

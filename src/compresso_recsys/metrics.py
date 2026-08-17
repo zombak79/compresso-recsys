@@ -77,8 +77,23 @@ class RankingMetric(ABC):
         """Clear accumulated metric state."""
 
     @abstractmethod
-    def update(self, batch: RankingBatch) -> None:
-        """Accumulate one ranking batch."""
+    def update(self, batch: RankingBatch) -> torch.Tensor:
+        """Accumulate one ranking batch and return its per-row values.
+
+        Returns
+        -------
+        torch.Tensor
+            Floating-point tensor of shape
+            ``(batch.predictions.rows, len(result_keys))``, with column ``i``
+            holding the per-row value behind ``result_keys[i]``. Rows whose
+            ``target_counts`` is zero are excluded from the aggregate but must
+            still occupy a row here, so the evaluator can align values with
+            sample identifiers before filtering.
+
+            Returning the values rather than only accumulating them lets
+            :class:`~compresso_recsys.evaluation.RankingEvaluator` retain
+            per-user observations without computing every metric twice.
+        """
 
     @abstractmethod
     def compute(self) -> dict[str, float]:
@@ -104,18 +119,25 @@ class _MeanAtCutoffsMetric(RankingMetric):
         self._sums = torch.zeros(len(self.cutoffs), dtype=torch.float64)
         self._count = 0
 
-    def update(self, batch: RankingBatch) -> None:
+    def update(self, batch: RankingBatch) -> torch.Tensor:
         if batch.hits.shape[1] < self.required_k:
             raise ValueError(
                 f"{type(self).__name__} requires predictions through rank {self.required_k}, "
                 f"got {batch.hits.shape[1]}"
             )
+        # Values are computed for every row, including rows with no targets,
+        # so the caller can align them with sample identifiers. Each subclass
+        # guards its denominator, so those rows are finite rather than NaN.
+        values = self.batch_values(batch)
         valid = batch.target_counts > 0
-        if not bool(valid.any()):
-            return
-        values = self._batch_values(batch)
-        self._sums += values[valid].detach().to(device="cpu", dtype=torch.float64).sum(dim=0)
-        self._count += int(valid.sum().item())
+        if bool(valid.any()):
+            # Move to the host before widening. A single .to(device=..., dtype=...)
+            # asks the source device for the cast, and MPS has no float64, so
+            # evaluating any model on an Apple GPU would fail here.
+            kept = values[valid].detach().cpu().to(torch.float64)
+            self._sums += kept.sum(dim=0)
+            self._count += int(valid.sum().item())
+        return values
 
     def compute(self) -> dict[str, float]:
         if self._count == 0:
@@ -124,7 +146,7 @@ class _MeanAtCutoffsMetric(RankingMetric):
         return {key: float(value) for key, value in zip(self.result_keys, means.tolist())}
 
     @abstractmethod
-    def _batch_values(self, batch: RankingBatch) -> torch.Tensor:
+    def batch_values(self, batch: RankingBatch) -> torch.Tensor:
         """Return per-row values with shape ``(rows, len(cutoffs))``."""
 
 
@@ -140,7 +162,7 @@ class CalibratedRecall(_MeanAtCutoffsMetric):
 
     result_prefix = "calibrated_recall"
 
-    def _batch_values(self, batch: RankingBatch) -> torch.Tensor:
+    def batch_values(self, batch: RankingBatch) -> torch.Tensor:
         cutoff_indices = torch.tensor(
             [k - 1 for k in self.cutoffs],
             dtype=torch.long,
@@ -164,7 +186,7 @@ class Recall(_MeanAtCutoffsMetric):
 
     result_prefix = "recall"
 
-    def _batch_values(self, batch: RankingBatch) -> torch.Tensor:
+    def batch_values(self, batch: RankingBatch) -> torch.Tensor:
         cutoff_indices = torch.tensor(
             [k - 1 for k in self.cutoffs],
             dtype=torch.long,
@@ -180,7 +202,7 @@ class Precision(_MeanAtCutoffsMetric):
 
     result_prefix = "precision"
 
-    def _batch_values(self, batch: RankingBatch) -> torch.Tensor:
+    def batch_values(self, batch: RankingBatch) -> torch.Tensor:
         cutoff_indices = torch.tensor(
             [k - 1 for k in self.cutoffs],
             dtype=torch.long,
@@ -201,7 +223,7 @@ class HitRate(_MeanAtCutoffsMetric):
 
     result_prefix = "hit_rate"
 
-    def _batch_values(self, batch: RankingBatch) -> torch.Tensor:
+    def batch_values(self, batch: RankingBatch) -> torch.Tensor:
         cutoff_indices = torch.tensor(
             [k - 1 for k in self.cutoffs],
             dtype=torch.long,
@@ -217,7 +239,7 @@ class MRR(_MeanAtCutoffsMetric):
 
     result_prefix = "mrr"
 
-    def _batch_values(self, batch: RankingBatch) -> torch.Tensor:
+    def batch_values(self, batch: RankingBatch) -> torch.Tensor:
         ranks = torch.arange(
             1,
             self.required_k + 1,
@@ -239,7 +261,7 @@ class MAP(_MeanAtCutoffsMetric):
 
     result_prefix = "map"
 
-    def _batch_values(self, batch: RankingBatch) -> torch.Tensor:
+    def batch_values(self, batch: RankingBatch) -> torch.Tensor:
         hits = batch.hits[:, : self.required_k].to(torch.float32)
         ranks = torch.arange(
             1,
@@ -268,7 +290,7 @@ class NDCG(_MeanAtCutoffsMetric):
 
     result_prefix = "ndcg"
 
-    def _batch_values(self, batch: RankingBatch) -> torch.Tensor:
+    def batch_values(self, batch: RankingBatch) -> torch.Tensor:
         ranks = torch.arange(
             2,
             self.required_k + 2,

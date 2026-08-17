@@ -7,6 +7,7 @@ import compresso_recsys.evaluation as evaluation
 import compresso_recsys.metrics as metrics
 import compresso_recsys.models as models
 import compresso_recsys.models.batching as batching
+import compresso_recsys.stats as stats
 
 
 def test_top_level_public_api_is_intentional():
@@ -86,9 +87,16 @@ def test_submodule_public_apis_are_intentional():
             "AmazonReviews2023",
         },
         evaluation: {
+            "EvaluationResult",
             "RankingEvaluator",
             "evaluate_ranked_predictions",
             "evaluate_recommender",
+        },
+        stats: {
+            "ComparisonReport",
+            "PairwiseComparison",
+            "compare_models",
+            "compare_pair",
         },
         metrics: {
             "CalibratedRecall",

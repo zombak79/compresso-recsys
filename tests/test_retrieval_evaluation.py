@@ -43,7 +43,7 @@ def test_embedding_evaluator_preserves_existing_results(embedding_fixture):
 
     assert result["calibrated_recall@3"] == 1.0
     assert result["ndcg@3"] == 1.0
-    assert result["n_eval_users"] == 3.0
+    assert result["n_scored_rows"] == 3.0
     assert [row["hit_ranks"] for row in result["debug"]] == [[1, 2], [1], [1, 2]]
     assert result["debug"][0]["dcg"] == pytest.approx(1.6309297535714575)
 
@@ -64,7 +64,8 @@ def test_embedding_evaluator_accepts_reusable_multi_cutoff_metrics(embedding_fix
         "calibrated_recall@2",
         "ndcg@1",
         "ndcg@2",
-        "n_eval_users",
+        "n_scored_rows",
+        "n_units",
     }
     assert result["calibrated_recall@2"] == 1.0
     assert result["ndcg@2"] == 1.0
@@ -180,6 +181,8 @@ def test_embedding_evaluator_handles_no_users(embedding_fixture):
     assert result == {
         "calibrated_recall@3": 0.0,
         "ndcg@3": 0.0,
-        "n_eval_users": 0.0,
+        "n_scored_rows": 0,
+        "n_units": 0,
+        "n_units": 0.0,
         "debug": [],
     }
