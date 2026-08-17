@@ -10,6 +10,36 @@ Entries before 0.2.0 are reconstructed from release history rather than written
 at the time, so they summarise what each tag contained rather than listing every
 change.
 
+## [Unreleased]
+
+### Fixed
+
+- **`leave_last_out` was not leave-last-out.** It removed from training every
+  item that was *anyone's* last interaction, forcing all targets cold: 56% of
+  the catalog at MovieLens-1M shape, 86% at MovieLens-20M shape. A warm model
+  scored zero on it by construction, since the items it had to rank were exactly
+  the ones absent from its training. It now holds out each user's last two
+  interactions and leaves the catalog whole; item partitions are observed rather
+  than imposed, so they are empty unless an item's every occurrence falls in a
+  held-out tail.
+- **`leave_last_out` validation was test.** `val_holdout` and `test_holdout`
+  were the same object, so any tuning on validation was tuning on test. The
+  second-to-last interaction is now the validation target and the last the test
+  target, with the third-to-last as the training target.
+- `leave_last_out` now populates `train_source_matrix` and
+  `train_target_matrix` distinctly, with `x_train` as their union, matching what
+  `temporal` already did.
+
+### Changed
+
+- **Breaking.** `leave_last_out` requires at least four interactions per user,
+  up from two, so every stage has a non-empty source and target. Results from
+  this split mode change; checkpoints built before this release are not
+  comparable to ones built after.
+- **Breaking.** `build_leave_last_out_holdout` takes `stage` and `min_history`
+  in place of `min_source_items` and `min_target_items`, and returns one stage at
+  a time.
+
 ## [0.2.0] — 2026-08-17
 
 Paired statistical comparison of evaluation results, the per-user retention it

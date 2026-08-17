@@ -38,11 +38,16 @@ consistently.
 Leave-Last-Out Checkpoint
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-``leave_last_out`` is computed locally from timestamps. For every eligible
-user, the latest interaction becomes the target and earlier interactions
-become the source profile. This respects time within each user, but it is not
-globally future-blind because other users may contribute later interactions to
-training.
+``leave_last_out`` is computed locally from timestamps. Each user's latest
+interaction is the test target, the one before it the validation target, and the
+one before that the training target; sources are the corresponding prefixes, so
+each stage sees everything up to its own target. A user needs at least four
+interactions to contribute to all three stages.
+
+The catalog is left whole — nothing is withheld from training merely for being
+someone's target. This respects time within each user, but it is not globally
+future-blind, because another user's training interactions may post-date this
+user's test target.
 
 .. code-block:: bash
 

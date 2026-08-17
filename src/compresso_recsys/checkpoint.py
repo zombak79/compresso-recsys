@@ -187,8 +187,10 @@ def save_recsys_split(
       none, so the train partition is the full range and val/test are empty.
     - ``item_split``: three disjoint partitions, the val/test ones being the
       cold items held out of training.
-    - ``leave_last_out``: train holds the items that never appear as a target,
-      val/test hold the target items.
+    - ``leave_last_out``: nothing is held out of the catalog. An item lands in
+      the val or test partition only when every one of its occurrences falls in
+      a held-out tail, so on dense data both partitions are empty and on sparse
+      data they hold the genuinely new items.
     - ``temporal``: each phase introduces the items first seen in its window,
       so the partitions are consecutive ranges of the growing catalog.
 

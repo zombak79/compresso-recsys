@@ -11,12 +11,20 @@ import numpy as np
 import pandas as pd
 from scipy.sparse import csr_matrix
 
-from compresso_recsys.checkpoint import save_recsys_split, update_checkpoint
+from compresso_recsys.checkpoint import (
+    _indices_to_csr,
+    save_recsys_split,
+    update_checkpoint,
+)
 from compresso_recsys.datasets import AmazonReviews2023, Goodbooks, MovieLens1M, MovieLens20M
 from compresso_recsys.retrieval import (
+    LEAVE_LAST_OUT_MIN_HISTORY,
+    LEAVE_LAST_OUT_STAGES,
     build_eval_holdout,
     build_item_cold_holdout,
     build_leave_last_out_holdout,
+    leave_last_out_histories,
+    leave_last_out_stage_slices,
 )
 
 
@@ -603,113 +611,97 @@ def _build_item_split(args, proc_df):
 
 
 def _build_leave_last_out_split(args, proc_df):
+    """Chronological per-user holdout with the catalog left intact.
+
+    Each user's last interaction is the test target, the one before it the
+    validation target, and the one before that the training target. Sources are
+    the corresponding prefixes.
+
+    Nothing is stripped from training. Item partitions are *observed* rather than
+    imposed: an item lands in the validation or test partition only when every
+    one of its occurrences happens to fall in a held-out tail, which on dense
+    data means the partitions come out empty and on sparse data means they hold
+    the genuinely new items.
+    """
     item_ids = np.array(sorted(proc_df["item_id"].astype(str).unique()))
-    holdout = build_leave_last_out_holdout(
+    histories, user_ids = leave_last_out_histories(
         item_ids=item_ids,
         interactions=proc_df,
-        min_source_items=args.min_source_items,
-        min_target_items=args.min_target_items,
+        min_history=LEAVE_LAST_OUT_MIN_HISTORY,
     )
-    target_items = sorted({int(i) for row in holdout["target_indices"] for i in row.tolist()})
-    target_idx = np.asarray(target_items, dtype=np.int64)
-    train_idx = np.setdiff1d(np.arange(len(item_ids), dtype=np.int64), target_idx, assume_unique=False)
-    train_items = set(item_ids[train_idx].tolist())
-    train_df = proc_df[proc_df["item_id"].astype(str).isin(train_items)].copy()
-    x_train, train_user_ids = _to_sparse_matrix_for_items_with_users(train_df, item_ids)
+    if len(user_ids) == 0:
+        raise ValueError(
+            f"leave_last_out needs users with at least "
+            f"{LEAVE_LAST_OUT_MIN_HISTORY} interactions; none qualified"
+        )
+
+    stages: dict[str, dict[str, list[np.ndarray]]] = {}
+    for stage in LEAVE_LAST_OUT_STAGES:
+        sources, targets = [], []
+        for history in histories:
+            source, target = leave_last_out_stage_slices(history, stage)
+            sources.append(np.unique(source))
+            targets.append(np.unique(target))
+        stages[stage] = {"source_indices": sources, "target_indices": targets}
+
+    n_items = len(item_ids)
+    train_source = _indices_to_csr(stages["train"]["source_indices"], n_cols=n_items)
+    train_target = _indices_to_csr(stages["train"]["target_indices"], n_cols=n_items)
+    # The same relationship temporal uses: the training window is the pair's
+    # union, and a symmetric model trains on that.
+    x_train = train_source.maximum(train_target).tocsr()
+
+    # Items first seen in each phase, exactly as the temporal stages compute it.
+    def _observed(stage: str) -> np.ndarray:
+        rows = stages[stage]["source_indices"] + stages[stage]["target_indices"]
+        return np.unique(np.concatenate(rows)) if rows else np.array([], dtype=np.int64)
+
+    train_item_indices = _observed("train")
+    val_item_indices = np.setdiff1d(_observed("val"), train_item_indices)
+    test_item_indices = np.setdiff1d(
+        _observed("test"), np.union1d(train_item_indices, val_item_indices)
+    )
+
+    holdouts = {
+        stage: {
+            "item_ids": item_ids,
+            "source_indices": stages[stage]["source_indices"],
+            "target_indices": stages[stage]["target_indices"],
+            "user_ids": user_ids,
+        }
+        for stage in LEAVE_LAST_OUT_STAGES
+    }
+
     return {
         "item_ids": item_ids,
         "x_train": x_train,
-        "train_source_matrix": x_train,
-        "train_target_matrix": x_train,
-        "val_holdout": holdout,
-        "test_holdout": holdout,
-        "train_item_indices": train_idx,
-        "val_item_indices": target_idx,
-        "test_item_indices": target_idx,
-        "train_user_ids": train_user_ids,
-        "val_user_ids": None,
-        "test_user_ids": None,
+        "train_source_matrix": train_source,
+        "train_target_matrix": train_target,
+        "val_holdout": holdouts["val"],
+        "test_holdout": holdouts["test"],
+        "train_holdout": holdouts["train"],
+        "train_item_indices": train_item_indices,
+        "val_item_indices": val_item_indices,
+        "test_item_indices": test_item_indices,
+        "train_user_ids": user_ids,
+        "val_user_ids": user_ids,
+        "test_user_ids": user_ids,
         "extra_metadata": {
             "has_user_partitions": False,
-            "has_item_partitions": False,
+            "has_item_partitions": bool(val_item_indices.size or test_item_indices.size),
             "is_temporal": False,
             "is_future_blind": False,
-            "leakage_note": "Leave-last-out is chronological within each user but can leak global future information across users.",
-            "cold_target_items": int(len(target_idx)),
+            "leakage_note": (
+                "Leave-last-out is chronological within each user but not "
+                "globally future-blind: another user's training interactions may "
+                "post-date this user's test target."
+            ),
+            "min_history": LEAVE_LAST_OUT_MIN_HISTORY,
+            "eligible_users": int(len(user_ids)),
+            "new_val_items": int(val_item_indices.size),
+            "new_test_items": int(test_item_indices.size),
         },
     }
-
-
-def _timestamps_in_seconds(values: pd.Series) -> np.ndarray:
-    timestamps = pd.to_numeric(values, errors="coerce").to_numpy(dtype=np.float64)
-    finite = np.isfinite(timestamps)
-    if not bool(finite.any()):
-        raise ValueError("temporal split requires non-empty timestamp values")
-    magnitude = float(np.max(np.abs(timestamps[finite])))
-    if magnitude >= 1e17:
-        timestamps /= 1e9
-    elif magnitude >= 1e14:
-        timestamps /= 1e6
-    elif magnitude >= 1e11:
-        timestamps /= 1e3
-    return timestamps
-
-
-def _matrix_from_temporal_codes(
-    *,
-    event_mask: np.ndarray,
-    global_user_codes: np.ndarray,
-    global_item_codes: np.ndarray,
-    values: np.ndarray,
-    user_lookup: np.ndarray,
-    item_lookup: np.ndarray,
-    shape: tuple[int, int],
-) -> csr_matrix:
-    if not bool(event_mask.any()) or shape[0] == 0 or shape[1] == 0:
-        return csr_matrix(shape, dtype=np.float32)
-
-    rows = user_lookup[global_user_codes[event_mask]]
-    cols = item_lookup[global_item_codes[event_mask]]
-    valid = (rows >= 0) & (cols >= 0)
-    matrix = csr_matrix(
-        (values[event_mask][valid], (rows[valid], cols[valid])),
-        shape=shape,
-        dtype=np.float32,
-    )
-    matrix.sum_duplicates()
-    matrix.eliminate_zeros()
-    matrix.sort_indices()
-    return matrix
-
-
-def _temporal_user_upper_bound(
-    *,
-    source_mask: np.ndarray,
-    target_mask: np.ndarray,
-    global_user_codes: np.ndarray,
-    n_users: int,
-    min_user_support: int,
-    min_source_items: int,
-    min_target_items: int,
-) -> tuple[np.ndarray, int]:
-    """Reject users that cannot meet support before allocating tall CSRs.
-
-    Event counts are an upper bound on distinct nonzero item counts. Keeping a
-    user here does not guarantee eligibility, but rejecting one is always safe;
-    the exact fixed-point filter still runs on the resulting sparse matrices.
-    """
-    source_counts = np.bincount(
-        global_user_codes[source_mask], minlength=n_users
-    )
-    target_counts = np.bincount(
-        global_user_codes[target_mask], minlength=n_users
-    )
-    keep = source_counts >= min_source_items
-    keep &= target_counts >= min_target_items
-    source_counts += target_counts
-    initial_users = int(np.count_nonzero(source_counts > 0))
-    keep &= source_counts >= min_user_support
-    return np.flatnonzero(keep).astype(np.int64, copy=False), initial_users
 
 
 def _csr_row_indices(matrix: csr_matrix) -> list[np.ndarray]:
@@ -807,6 +799,78 @@ def _filter_temporal_pair(
         "support_iterations": int(iterations),
     }
     return source, target, user_ids, item_ids, stats
+
+
+def _matrix_from_temporal_codes(
+    *,
+    event_mask: np.ndarray,
+    global_user_codes: np.ndarray,
+    global_item_codes: np.ndarray,
+    values: np.ndarray,
+    user_lookup: np.ndarray,
+    item_lookup: np.ndarray,
+    shape: tuple[int, int],
+) -> csr_matrix:
+    if not bool(event_mask.any()) or shape[0] == 0 or shape[1] == 0:
+        return csr_matrix(shape, dtype=np.float32)
+
+    rows = user_lookup[global_user_codes[event_mask]]
+    cols = item_lookup[global_item_codes[event_mask]]
+    valid = (rows >= 0) & (cols >= 0)
+    matrix = csr_matrix(
+        (values[event_mask][valid], (rows[valid], cols[valid])),
+        shape=shape,
+        dtype=np.float32,
+    )
+    matrix.sum_duplicates()
+    matrix.eliminate_zeros()
+    matrix.sort_indices()
+    return matrix
+
+
+def _temporal_user_upper_bound(
+    *,
+    source_mask: np.ndarray,
+    target_mask: np.ndarray,
+    global_user_codes: np.ndarray,
+    n_users: int,
+    min_user_support: int,
+    min_source_items: int,
+    min_target_items: int,
+) -> tuple[np.ndarray, int]:
+    """Reject users that cannot meet support before allocating tall CSRs.
+
+    Event counts are an upper bound on distinct nonzero item counts. Keeping a
+    user here does not guarantee eligibility, but rejecting one is always safe;
+    the exact fixed-point filter still runs on the resulting sparse matrices.
+    """
+    source_counts = np.bincount(
+        global_user_codes[source_mask], minlength=n_users
+    )
+    target_counts = np.bincount(
+        global_user_codes[target_mask], minlength=n_users
+    )
+    keep = source_counts >= min_source_items
+    keep &= target_counts >= min_target_items
+    source_counts += target_counts
+    initial_users = int(np.count_nonzero(source_counts > 0))
+    keep &= source_counts >= min_user_support
+    return np.flatnonzero(keep).astype(np.int64, copy=False), initial_users
+
+
+def _timestamps_in_seconds(values: pd.Series) -> np.ndarray:
+    timestamps = pd.to_numeric(values, errors="coerce").to_numpy(dtype=np.float64)
+    finite = np.isfinite(timestamps)
+    if not bool(finite.any()):
+        raise ValueError("temporal split requires non-empty timestamp values")
+    magnitude = float(np.max(np.abs(timestamps[finite])))
+    if magnitude >= 1e17:
+        timestamps /= 1e9
+    elif magnitude >= 1e14:
+        timestamps /= 1e6
+    elif magnitude >= 1e11:
+        timestamps /= 1e3
+    return timestamps
 
 
 def _build_temporal_stage(

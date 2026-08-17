@@ -52,8 +52,8 @@ items it may score:
      - Warm items
      - The disjoint cold items held out of training
    * - ``leave_last_out``
-     - Items never used as a target
-     - The target items
+     - Every item; nothing is withheld from the catalog
+     - Only items whose every occurrence falls in a held-out tail
    * - ``temporal``
      - Items in the first window
      - Items first seen in each later window

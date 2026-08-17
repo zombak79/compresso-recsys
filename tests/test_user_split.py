@@ -5,7 +5,11 @@ import pandas as pd
 import pytest
 from scipy.sparse import csr_matrix
 
-from compresso_recsys.builder import _build_args, _build_user_split
+from compresso_recsys.builder import (
+    _build_args,
+    _build_leave_last_out_split,
+    _build_user_split,
+)
 from compresso_recsys.checkpoint import load_recsys_split, save_recsys_split
 from compresso_recsys.datasets.base import RecSysDataset
 
@@ -201,3 +205,142 @@ def test_invalid_draw_settings_are_rejected(kwargs, message):
             eval_interactions=pd.DataFrame({"user_id": ["u"], "item_id": ["a"]}),
             **kwargs,
         )
+
+
+# --------------------------------------------------------------------------
+# leave_last_out: the chronological protocol
+# --------------------------------------------------------------------------
+
+
+def _events(histories: dict[str, list[str]]) -> pd.DataFrame:
+    """Event-level frame with strictly increasing timestamps per user."""
+    rows = []
+    for user, items in histories.items():
+        for t, item in enumerate(items):
+            rows.append({"user_id": user, "item_id": item, "value": 1.0, "timestamp": 1000 + t})
+    return pd.DataFrame(rows)
+
+
+def _llo_args(**over):
+    return _build_args(dataset="goodbooks", split_mode="leave_last_out", **over)
+
+
+def test_leave_last_out_holds_out_the_last_two_interactions():
+    """Positions n and n-1 leave training; n-2 is the training target."""
+    from compresso_recsys.retrieval import leave_last_out_stage_slices
+
+    history = np.arange(10)
+    train_s, train_t = leave_last_out_stage_slices(history, "train")
+    val_s, val_t = leave_last_out_stage_slices(history, "val")
+    test_s, test_t = leave_last_out_stage_slices(history, "test")
+
+    assert test_t.tolist() == [9]
+    assert val_t.tolist() == [8]
+    assert train_t.tolist() == [7]
+    # Each source is the previous stage's source plus its target.
+    assert train_s.tolist() == list(range(7))
+    assert val_s.tolist() == list(range(8))
+    assert test_s.tolist() == list(range(9))
+    # Two items are withheld from training; the training target is not.
+    assert set(np.union1d(train_s, train_t).tolist()) == set(range(8))
+
+
+def test_leave_last_out_keeps_the_whole_catalog():
+    """The bug this replaces stripped every target item from training."""
+    df = _events({f"u{i}": [f"i{(i + j) % 6}" for j in range(5)] for i in range(12)})
+    payload = _build_leave_last_out_split(_llo_args(), df)
+
+    catalog = set(payload["item_ids"].tolist())
+    trained = set(payload["item_ids"][payload["x_train"].indices].tolist())
+    assert trained == catalog, "training must still see every item"
+    assert payload["x_train"].shape[1] == len(catalog)
+
+
+def test_leave_last_out_val_and_test_are_distinct():
+    """They were literally the same object, so tuning on val was tuning on test."""
+    df = _events({f"u{i}": [f"i{j}" for j in range(6)] for i in range(5)})
+    payload = _build_leave_last_out_split(_llo_args(), df)
+
+    val, test = payload["val_holdout"], payload["test_holdout"]
+    assert val is not test
+    for v, t in zip(val["target_indices"], test["target_indices"]):
+        assert v.tolist() != t.tolist()
+    # And the test source is exactly one item longer than the validation source.
+    for vs, ts in zip(val["source_indices"], test["source_indices"]):
+        assert len(ts) == len(vs) + 1
+
+
+def test_leave_last_out_training_never_sees_the_held_out_items():
+    df = _events({f"u{i}": [f"i{j}" for j in range(6)] for i in range(5)})
+    payload = _build_leave_last_out_split(_llo_args(), df)
+
+    x_train = payload["x_train"].tolil()
+    for row, (v, t) in enumerate(
+        zip(payload["val_holdout"]["target_indices"],
+            payload["test_holdout"]["target_indices"])
+    ):
+        assert x_train[row, int(v[0])] == 0, "validation target leaked into training"
+        assert x_train[row, int(t[0])] == 0, "test target leaked into training"
+
+
+def test_x_train_is_the_union_of_the_training_pair():
+    df = _events({f"u{i}": [f"i{j}" for j in range(7)] for i in range(4)})
+    payload = _build_leave_last_out_split(_llo_args(), df)
+
+    union = payload["train_source_matrix"].maximum(payload["train_target_matrix"])
+    assert (payload["x_train"] != union.tocsr()).nnz == 0
+    # And the pair is a genuine partition, not two copies of x_train.
+    assert (payload["train_source_matrix"] != payload["x_train"]).nnz > 0
+
+
+def test_leave_last_out_requires_four_interactions():
+    short = _events({"u0": ["a", "b", "c"], "u1": ["a", "b", "c", "d"]})
+    payload = _build_leave_last_out_split(_llo_args(), short)
+
+    assert payload["train_user_ids"].tolist() == ["u1"], "3 interactions is too few"
+
+    with pytest.raises(ValueError, match="at least 4 interactions"):
+        _build_leave_last_out_split(_llo_args(), _events({"u0": ["a", "b", "c"]}))
+
+
+def test_item_partitions_are_observed_not_imposed():
+    """Overlapping histories yield empty partitions; a tail-only item lands in one.
+
+    The histories must be *staggered*. Give every user the same order and the
+    final items are everyone's tail, so they never appear in any training prefix
+    and are correctly reported as new — which is the protocol working, not a
+    dense case.
+    """
+    dense = _events({f"u{i}": [f"i{(i + j) % 6}" for j in range(5)] for i in range(12)})
+    payload = _build_leave_last_out_split(_llo_args(), dense)
+    assert payload["val_item_indices"].size == 0
+    assert payload["test_item_indices"].size == 0
+
+    # "rare" appears once, as u0's final interaction, so nothing trains on it.
+    # "e" is also a test target, but u2 sees it early enough to train on, which
+    # is exactly the distinction the partitions are supposed to make.
+    sparse = _events({
+        "u0": ["a", "b", "c", "d", "rare"],
+        "u1": ["a", "b", "c", "d", "e"],
+        "u2": ["e", "a", "b", "c", "d"],
+    })
+    payload = _build_leave_last_out_split(_llo_args(), sparse)
+    items = payload["item_ids"]
+    assert items[payload["test_item_indices"]].tolist() == ["rare"]
+    # "d" first appears as a validation target, so it belongs to that phase.
+    assert items[payload["val_item_indices"]].tolist() == ["d"]
+
+
+def test_leave_last_out_orders_by_timestamp_not_by_row_order():
+    shuffled = pd.DataFrame([
+        {"user_id": "u0", "item_id": "d", "value": 1.0, "timestamp": 40},
+        {"user_id": "u0", "item_id": "b", "value": 1.0, "timestamp": 20},
+        {"user_id": "u0", "item_id": "e", "value": 1.0, "timestamp": 50},
+        {"user_id": "u0", "item_id": "a", "value": 1.0, "timestamp": 10},
+        {"user_id": "u0", "item_id": "c", "value": 1.0, "timestamp": 30},
+    ])
+    payload = _build_leave_last_out_split(_llo_args(), shuffled)
+
+    items = payload["item_ids"]
+    assert items[payload["test_holdout"]["target_indices"][0]].tolist() == ["e"]
+    assert items[payload["val_holdout"]["target_indices"][0]].tolist() == ["d"]
