@@ -10,7 +10,7 @@ Entries before 0.2.0 are reconstructed from release history rather than written
 at the time, so they summarise what each tag contained rather than listing every
 change.
 
-## [0.2.0] — Unreleased
+## [0.2.0] — 2026-08-17
 
 Paired statistical comparison of evaluation results, the per-user retention it
 depends on, and two evaluation-protocol corrections found while validating it.
