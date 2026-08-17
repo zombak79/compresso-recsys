@@ -30,6 +30,16 @@ change.
   `train_target_matrix` distinctly, with `x_train` as their union, matching what
   `temporal` already did.
 
+### Added
+
+- `save_recsys_split` enforces `x_train = train_source_matrix ∪
+  train_target_matrix` and refuses a checkpoint whose training keys disagree.
+  The relationship was already true of every split mode but nothing checked it,
+  so a new mode could partition its training data inconsistently and be written
+  out. Its docstring now states the relationship and the per-mode partition
+  rule: `temporal` divides by time, `leave_last_out` by position, and the
+  non-chronological modes not at all.
+
 ### Changed
 
 - **Breaking.** `leave_last_out` requires at least four interactions per user,

@@ -344,3 +344,61 @@ def test_leave_last_out_orders_by_timestamp_not_by_row_order():
     items = payload["item_ids"]
     assert items[payload["test_holdout"]["target_indices"][0]].tolist() == ["e"]
     assert items[payload["val_holdout"]["target_indices"][0]].tolist() == ["d"]
+
+
+@pytest.mark.parametrize("mode", ["user_split", "leave_last_out", "temporal"])
+def test_x_train_is_the_union_of_the_training_pair_in_every_split_mode(mode):
+    """The one relationship every split mode owes the checkpoint.
+
+    Chronological modes partition genuinely; ``user_split`` sets both keys to
+    ``x_train`` and satisfies it trivially. Either way a model reading the pair
+    and a model reading ``x_train`` must see the same interactions.
+    """
+    if mode == "user_split":
+        payload = _user_split()
+    elif mode == "leave_last_out":
+        df = _events({f"u{i}": [f"i{(i + j) % 7}" for j in range(6)] for i in range(10)})
+        payload = _build_leave_last_out_split(_llo_args(), df)
+    else:
+        from tests.test_temporal_split import _temporal_args, _timeline
+        from compresso_recsys.builder import _build_temporal_split
+
+        payload = _build_temporal_split(_temporal_args(), _timeline())
+
+    union = payload["train_source_matrix"].maximum(payload["train_target_matrix"])
+    assert (payload["x_train"].tocsr() != union.tocsr()).nnz == 0, mode
+
+
+def test_only_chronological_modes_partition_the_training_data():
+    """user_split has no boundary to divide on, so both keys are x_train."""
+    payload = _user_split()
+    assert (payload["train_source_matrix"] != payload["x_train"]).nnz == 0
+    assert (payload["train_target_matrix"] != payload["x_train"]).nnz == 0
+
+    df = _events({f"u{i}": [f"i{(i + j) % 7}" for j in range(6)] for i in range(10)})
+    chrono = _build_leave_last_out_split(_llo_args(), df)
+    assert (chrono["train_source_matrix"] != chrono["x_train"]).nnz > 0
+
+
+def test_save_refuses_a_training_pair_that_disagrees_with_x_train():
+    """A future split mode cannot quietly partition its training data wrongly."""
+    import tempfile
+    from compresso_recsys.checkpoint import save_recsys_split
+
+    n = 4
+    full = csr_matrix(np.eye(n, dtype=np.float32))
+    half = csr_matrix((n, n), dtype=np.float32)          # loses every interaction
+
+    with tempfile.TemporaryDirectory() as tmp:
+        with pytest.raises(ValueError, match="union of train_source_matrix"):
+            save_recsys_split(
+                tmp,
+                item_ids=np.array([f"i{i}" for i in range(n)]),
+                x_train=full,
+                train_source_matrix=half,
+                train_target_matrix=half,
+                val_source_indices=[np.array([0])] * n,
+                val_target_indices=[np.array([1])] * n,
+                test_source_indices=[np.array([0])] * n,
+                test_target_indices=[np.array([1])] * n,
+            )

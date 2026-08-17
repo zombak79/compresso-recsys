@@ -177,6 +177,35 @@ def save_recsys_split(
 ) -> None:
     """Write the split stage of a checkpoint.
 
+    Training matrices
+    -----------------
+    Three keys describe the same training data, and the relationship between
+    them is fixed::
+
+        x_train = train_source_matrix ∪ train_target_matrix
+
+    ``x_train`` is what a symmetric model trains on — an autoencoder reconstructs
+    the whole window. The pair is what an asymmetric model trains on, mapping
+    source to target. They must agree, and this function refuses a checkpoint
+    where they do not.
+
+    How the training data is partitioned follows each split mode's protocol, and
+    only the chronological modes have one to follow:
+
+    - ``temporal``: by time. Source is everything before the first target
+      window, target is the events inside it.
+    - ``leave_last_out``: by position. Target is the last interaction of the
+      training window, source is everything earlier.
+    - ``user_split`` and ``item_split``: no partition. Both keys equal
+      ``x_train``, and the invariant holds trivially.
+
+    The last case is deliberate rather than a gap. A non-chronological split has
+    no boundary to divide on, so any per-user division would be an arbitrary
+    choice invented here rather than a property of the protocol. A model wanting
+    asymmetric training on those modes can partition ``x_train`` itself, under
+    its own seed, and own that choice. The same absence of an ordering is why
+    sequences exist only for the chronological modes.
+
     Item partitions
     ---------------
     ``train_item_indices``, ``val_item_indices`` and ``test_item_indices`` are
@@ -258,6 +287,20 @@ def save_recsys_split(
             )
     if x_train.shape != train_source_matrix.shape:
         raise ValueError("x_train shape must match train source matrix shape")
+    # x_train is derived from the training pair, not stored beside it: a
+    # symmetric model trains on the whole window, an asymmetric one on the two
+    # halves, and they must describe the same interactions. Checking it here
+    # means a new split mode cannot quietly disagree with itself.
+    union = train_source_matrix.maximum(train_target_matrix).tocsr()
+    union.eliminate_zeros()
+    canonical = x_train.tocsr(copy=True)
+    canonical.eliminate_zeros()
+    if (canonical != union).nnz:
+        raise ValueError(
+            "x_train must equal the union of train_source_matrix and "
+            "train_target_matrix; the split mode that produced this checkpoint "
+            "partitions its training data inconsistently"
+        )
 
     save_npz(data_dir / "train_source_matrix.npz", train_source_matrix.tocsr())
     save_npz(data_dir / "train_target_matrix.npz", train_target_matrix.tocsr())
