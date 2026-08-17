@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>compresso_recsys.models.content &mdash; Compresso Recsys 0.1.2 documentation</title>
+  <title>compresso_recsys.models.content &mdash; Compresso Recsys 0.2.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
 
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=92734c54"></script>
+      <script src="../../../_static/documentation_options.js?v=938c9ccc"></script>
       <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/js/theme.js"></script>
@@ -76,6 +76,53 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../examples.html#train-and-evaluate-elsa">Train and Evaluate ELSA</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../../../statistical-comparison.html">Comparing Models Statistically</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../statistical-comparison.html#why-the-aggregates-are-not-enough">Why the aggregates are not enough</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../statistical-comparison.html#do-the-comparison">Do the comparison</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../statistical-comparison.html#a-complete-worked-example">A complete worked example</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../statistical-comparison.html#build-the-split">Build the split</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../statistical-comparison.html#train-both-models">Train both models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../statistical-comparison.html#evaluate-both-on-identical-users">Evaluate both on identical users</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../statistical-comparison.html#compare">Compare</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../statistical-comparison.html#reading-it">Reading it</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../statistical-comparison.html#reading-the-output">Reading the output</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../statistical-comparison.html#the-effect">The effect</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../statistical-comparison.html#how-precisely-you-know-it">How precisely you know it</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../statistical-comparison.html#how-often-the-two-models-tied">How often the two models tied</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../statistical-comparison.html#whether-it-could-be-chance">Whether it could be chance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../statistical-comparison.html#the-verdict">The verdict</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../statistical-comparison.html#five-traps">Five traps</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../statistical-comparison.html#p-values-have-a-floor">p-values have a floor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../statistical-comparison.html#ties-are-not-missing-data">Ties are not missing data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../statistical-comparison.html#the-interval-and-the-p-value-can-disagree">The interval and the p-value can disagree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../statistical-comparison.html#confidence-level-also-moves-the-significance-bar"><code class="docutils literal notranslate"><span class="pre">confidence_level</span></code> also moves the significance bar</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../statistical-comparison.html#one-trained-model-is-not-the-method">One trained model is not the method</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../statistical-comparison.html#choosing-the-settings">Choosing the settings</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../statistical-comparison.html#n-resamples"><code class="docutils literal notranslate"><span class="pre">n_resamples</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../statistical-comparison.html#test-method"><code class="docutils literal notranslate"><span class="pre">test_method</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../statistical-comparison.html#test-method-why-not-a-t-test"><code class="docutils literal notranslate"><span class="pre">test_method</span></code>: why not a t-test?</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../statistical-comparison.html#alternative"><code class="docutils literal notranslate"><span class="pre">alternative</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../statistical-comparison.html#correction"><code class="docutils literal notranslate"><span class="pre">correction</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../statistical-comparison.html#when-one-user-owns-several-rows">When one user owns several rows</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../statistical-comparison.html#what-the-methods-do-formally">What the methods do, formally</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../statistical-comparison.html#reporting-the-result">Reporting the result</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../statistical-comparison.html#methods">Methods</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../statistical-comparison.html#results">Results</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../statistical-comparison.html#checklist">Checklist</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../statistical-comparison.html#references">References</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../statistical-comparison.html#see-also">See also</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="../../../citing.html">Citing Compresso Recsys</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../citing.html#compresso">Compresso</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../citing.html#ease">EASE</a></li>
@@ -83,6 +130,8 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../citing.html#elsa">ELSA</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../citing.html#elsa-with-sampled-output-candidates">ELSA with sampled output candidates</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../citing.html#compressed-elsa">Compressed ELSA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../citing.html#evaluation-protocol">Evaluation Protocol</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../citing.html#statistical-comparison">Statistical Comparison</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../cli-reference.html">Checkpoint CLI Reference</a><ul>
@@ -196,7 +245,12 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/evaluation.html">Ranking Evaluation API</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../api/evaluation.html#predictions-and-targets">Predictions and Targets</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/evaluation.html#predictions-and-targets">Predictions and Targets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/evaluation.html#evaluation-results">Evaluation Results</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/evaluation.html#compresso_recsys.evaluation.EvaluationResult"><code class="docutils literal notranslate"><span class="pre">EvaluationResult</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/evaluation.html#custom-metrics">Custom Metrics</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/evaluation.html#compresso_recsys.evaluation.evaluate_recommender"><code class="docutils literal notranslate"><span class="pre">evaluate_recommender()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/evaluation.html#compresso_recsys.evaluation.evaluate_ranked_predictions"><code class="docutils literal notranslate"><span class="pre">evaluate_ranked_predictions()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/evaluation.html#compresso_recsys.evaluation.RankingEvaluator"><code class="docutils literal notranslate"><span class="pre">RankingEvaluator</span></code></a></li>
@@ -207,6 +261,20 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../api/evaluation.html#optional-metrics">Optional Metrics</a></li>
 </ul>
 </li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/statistics.html">Statistics API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/statistics.html#comparison-functions">Comparison Functions</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/statistics.html#compresso_recsys.stats.compare_models"><code class="docutils literal notranslate"><span class="pre">compare_models()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/statistics.html#compresso_recsys.stats.compare_pair"><code class="docutils literal notranslate"><span class="pre">compare_pair()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/statistics.html#results">Results</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/statistics.html#compresso_recsys.stats.PairwiseComparison"><code class="docutils literal notranslate"><span class="pre">PairwiseComparison</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/statistics.html#compresso_recsys.stats.ComparisonReport"><code class="docutils literal notranslate"><span class="pre">ComparisonReport</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/statistics.html#parameter-values">Parameter Values</a></li>
 </ul>
 </li>
 </ul>
@@ -250,18 +318,18 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">compresso</span><span class="w"> </span><span class="kn">import</span> <span class="n">SRPTensor</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.models.cold_start</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseColdStartRecommender</span>
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;ContentRecommender&quot;</span><span class="p">,</span> <span class="s2">&quot;ContentRecommenderConfig&quot;</span><span class="p">]</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"ContentRecommender"</span><span class="p">,</span> <span class="s2">"ContentRecommenderConfig"</span><span class="p">]</span>
 
-<span class="n">ContentDataType</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;float32&quot;</span><span class="p">,</span> <span class="s2">&quot;float64&quot;</span><span class="p">]</span>
+<span class="n">ContentDataType</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"float32"</span><span class="p">,</span> <span class="s2">"float64"</span><span class="p">]</span>
 
 <span class="n">_TORCH_DTYPES</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">&quot;float32&quot;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
-    <span class="s2">&quot;float64&quot;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span>
+    <span class="s2">"float32"</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+    <span class="s2">"float64"</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span>
 <span class="p">}</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_l2_normalize</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-12</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Row-wise L2 normalization, matching ``F.normalize(x, dim=-1)``.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Row-wise L2 normalization, matching ``F.normalize(x, dim=-1)``."""</span>
     <span class="k">return</span> <span class="n">x</span> <span class="o">/</span> <span class="n">x</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">clamp_min</span><span class="p">(</span><span class="n">eps</span><span class="p">)</span>
 
 
@@ -269,7 +337,7 @@
 <a class="viewcode-back" href="../../../api/models.html#compresso_recsys.models.ContentRecommenderConfig">[docs]</a>
 <span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">ContentRecommenderConfig</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Configuration for :class:`ContentRecommender`.</span>
+<span class="w">    </span><span class="sd">"""Configuration for :class:`ContentRecommender`.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -278,27 +346,27 @@
 <span class="sd">        profile/candidate product a cosine similarity instead of a raw dot</span>
 <span class="sd">        product. Leaving this off lets high-norm items dominate the ranking.</span>
 <span class="sd">    elsa_forward:</span>
-<span class="sd">        Subtract the user&#39;s own interaction vector from the scores and apply</span>
+<span class="sd">        Subtract the user's own interaction vector from the scores and apply</span>
 <span class="sd">        ReLU, reproducing the ELSA-forward scoring used by</span>
 <span class="sd">        ``evaluate_item_embeddings_with_holdout``. This has no effect on the</span>
 <span class="sd">        ranking when predicting with ``exclude_seen=True``, since it only</span>
 <span class="sd">        touches entries that seen-item masking then sets to ``-inf``.</span>
 <span class="sd">    device:</span>
-<span class="sd">        Torch device for every matrix product, for example ``&quot;cuda&quot;`` or</span>
-<span class="sd">        ``&quot;mps&quot;``. Only the final score matrix is copied back to the host.</span>
+<span class="sd">        Torch device for every matrix product, for example ``"cuda"`` or</span>
+<span class="sd">        ``"mps"``. Only the final score matrix is copied back to the host.</span>
 <span class="sd">    dtype:</span>
 <span class="sd">        Floating-point precision used for the stored features and all products.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="n">normalize</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="n">elsa_forward</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
-    <span class="n">device</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;cpu&quot;</span>
-    <span class="n">dtype</span><span class="p">:</span> <span class="n">ContentDataType</span> <span class="o">=</span> <span class="s2">&quot;float32&quot;</span>
+    <span class="n">device</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"cpu"</span>
+    <span class="n">dtype</span><span class="p">:</span> <span class="n">ContentDataType</span> <span class="o">=</span> <span class="s2">"float32"</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_TORCH_DTYPES</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;dtype must be one of </span><span class="si">{</span><span class="nb">sorted</span><span class="p">(</span><span class="n">_TORCH_DTYPES</span><span class="p">)</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="si">!r}</span><span class="s2">&quot;</span>
+                <span class="sa">f</span><span class="s2">"dtype must be one of </span><span class="si">{</span><span class="nb">sorted</span><span class="p">(</span><span class="n">_TORCH_DTYPES</span><span class="p">)</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="si">!r}</span><span class="s2">"</span>
             <span class="p">)</span></div>
 
 
@@ -306,7 +374,7 @@
 <div class="viewcode-block" id="ContentRecommender">
 <a class="viewcode-back" href="../../../api/models.html#compresso_recsys.models.ContentRecommender">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">ContentRecommender</span><span class="p">(</span><span class="n">BaseColdStartRecommender</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Cold-start baseline scoring items by content-feature similarity.</span>
+<span class="w">    </span><span class="sd">"""Cold-start baseline scoring items by content-feature similarity.</span>
 
 <span class="sd">    The model learns nothing. A user profile is the sum of the feature vectors</span>
 <span class="sd">    of the items they interacted with, and candidates are ranked by their</span>
@@ -314,7 +382,7 @@
 <span class="sd">    unseen items are recommendable as soon as they are registered on the</span>
 <span class="sd">    catalog.</span>
 
-<span class="sd">    &gt;&gt;&gt; model = ContentRecommender(ContentRecommenderConfig(device=&quot;cuda&quot;))</span>
+<span class="sd">    &gt;&gt;&gt; model = ContentRecommender(ContentRecommenderConfig(device="cuda"))</span>
 <span class="sd">    &gt;&gt;&gt; model.fit(item_features, item_ids=item_ids)</span>
 <span class="sd">    &gt;&gt;&gt; top = model.predict(source, k=20)</span>
 
@@ -324,7 +392,7 @@
 <span class="sd">    path. That function is an ELSA-forward recommender fused with an evaluator</span>
 <span class="sd">    rather than a neutral evaluator, which is why ``normalize`` and</span>
 <span class="sd">    ``elsa_forward`` exist at all.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">ContentRecommenderConfig</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
@@ -336,13 +404,13 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">is_fitted</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Whether the model is ready for prediction.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Whether the model is ready for prediction."""</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">source_features_</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
 
 <div class="viewcode-block" id="ContentRecommender.to">
 <a class="viewcode-back" href="../../../api/models.html#compresso_recsys.models.ContentRecommender.to">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">to</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;ContentRecommender&quot;</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Move stored features to ``device`` and return ``self``.&quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">to</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"ContentRecommender"</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Move stored features to ``device`` and return ``self``."""</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">source_features_</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">source_features_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">source_features_</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
@@ -357,13 +425,13 @@
         <span class="n">item_features</span><span class="p">:</span> <span class="n">csr_matrix</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
         <span class="n">item_ids</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Hashable</span><span class="p">]</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;ContentRecommender&quot;</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Publish ``item_features`` as both the source and candidate space.</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"ContentRecommender"</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Publish ``item_features`` as both the source and candidate space.</span>
 
 <span class="sd">        Unlike :class:`TEASER`, this model takes no interaction matrix. It</span>
 <span class="sd">        holds no parameters and scores directly in feature space, so there is</span>
 <span class="sd">        nothing to learn from user histories.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="n">features</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
             <span class="n">item_features</span><span class="o">.</span><span class="n">todense</span><span class="p">()</span> <span class="k">if</span> <span class="n">issparse</span><span class="p">(</span><span class="n">item_features</span><span class="p">)</span> <span class="k">else</span> <span class="n">item_features</span><span class="p">,</span>
             <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
@@ -371,12 +439,12 @@
         <span class="p">)</span>
         <span class="k">if</span> <span class="n">features</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;item_features must be 2D, got shape </span><span class="si">{</span><span class="nb">tuple</span><span class="p">(</span><span class="n">features</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="sa">f</span><span class="s2">"item_features must be 2D, got shape </span><span class="si">{</span><span class="nb">tuple</span><span class="p">(</span><span class="n">features</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
             <span class="p">)</span>
         <span class="k">if</span> <span class="n">features</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;item_features must contain at least one item&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"item_features must contain at least one item"</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">features</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;item_features must contain only finite values&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"item_features must contain only finite values"</span><span class="p">)</span>
 
         <span class="n">ids</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">features</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
@@ -385,8 +453,8 @@
         <span class="p">)</span>
         <span class="k">if</span> <span class="n">ids</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">features</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;item_features has </span><span class="si">{</span><span class="n">features</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> rows but got &quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">ids</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> item_ids&quot;</span>
+                <span class="sa">f</span><span class="s2">"item_features has </span><span class="si">{</span><span class="n">features</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> rows but got "</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">ids</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> item_ids"</span>
             <span class="p">)</span>
 
         <span class="n">source</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">features</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_torch_dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
@@ -413,13 +481,13 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">_candidate_matrix</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">features</span><span class="p">:</span> <span class="n">csr_matrix</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Candidate features on device, normalized, cached by identity.</span>
+<span class="w">        </span><span class="sd">"""Candidate features on device, normalized, cached by identity.</span>
 
 <span class="sd">        The cache holds a reference to ``features`` so the identity test stays</span>
 <span class="sd">        valid. It hits for whole-catalog selections, where the frozen catalog</span>
 <span class="sd">        array is reused, and misses for ``candidate_ids=`` selections, which</span>
 <span class="sd">        build a fresh slice per call.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_candidate_cache</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_candidate_cache</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">is</span> <span class="n">features</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_candidate_cache</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
         <span class="c1"># Copy: catalog features are frozen read-only and torch warns when</span>
@@ -437,7 +505,7 @@
         <span class="k">return</span> <span class="n">matrix</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_profiles</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source</span><span class="p">:</span> <span class="n">csr_matrix</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;User profiles as a sparse-times-dense product on ``self.device``.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""User profiles as a sparse-times-dense product on ``self.device``."""</span>
         <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">source_features_</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
         <span class="n">coo</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">tocoo</span><span class="p">()</span>
         <span class="n">indices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span>
@@ -447,7 +515,7 @@
             <span class="n">coo</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_torch_dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span>
         <span class="p">)</span>
         <span class="c1"># Built from a valid scipy COO and coalesced below, so the invariant</span>
-        <span class="c1"># check is redundant; opting out explicitly silences torch&#39;s warning.</span>
+        <span class="c1"># check is redundant; opting out explicitly silences torch's warning.</span>
         <span class="n">sparse</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sparse_coo_tensor</span><span class="p">(</span>
             <span class="n">indices</span><span class="p">,</span>
             <span class="n">values</span><span class="p">,</span>
@@ -467,12 +535,12 @@
         <span class="n">exclude_seen</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">candidate_ids</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Hashable</span><span class="p">]</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SRPTensor</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Predict ranked top-``k`` items for one source batch.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Predict ranked top-``k`` items for one source batch."""</span>
         <span class="n">source</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_source</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>
         <span class="n">selection</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resolve_candidate_selection</span><span class="p">(</span><span class="n">candidate_ids</span><span class="p">)</span>
         <span class="n">n_candidates</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">selection</span><span class="o">.</span><span class="n">rows</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="mi">1</span> <span class="o">&lt;=</span> <span class="nb">int</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">n_candidates</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;k must be in [1, </span><span class="si">{</span><span class="n">n_candidates</span><span class="si">}</span><span class="s2">], got </span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"k must be in [1, </span><span class="si">{</span><span class="n">n_candidates</span><span class="si">}</span><span class="s2">], got </span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
         <span class="c1"># Two hops: source-vocabulary column -&gt; catalog row -&gt; selection-local</span>
         <span class="c1"># column. Indexing scores with source.indices directly is only correct</span>
@@ -496,8 +564,8 @@
             <span class="k">if</span> <span class="n">available</span><span class="o">.</span><span class="n">size</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">available</span> <span class="o">&lt;</span> <span class="n">k</span><span class="p">):</span>
                 <span class="n">row</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="n">available</span> <span class="o">&lt;</span> <span class="n">k</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;source row </span><span class="si">{</span><span class="n">row</span><span class="si">}</span><span class="s2"> has only </span><span class="si">{</span><span class="n">available</span><span class="p">[</span><span class="n">row</span><span class="p">]</span><span class="si">}</span><span class="s2"> unseen items &quot;</span>
-                    <span class="sa">f</span><span class="s2">&quot;among the selected candidates, fewer than k=</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="sa">f</span><span class="s2">"source row </span><span class="si">{</span><span class="n">row</span><span class="si">}</span><span class="s2"> has only </span><span class="si">{</span><span class="n">available</span><span class="p">[</span><span class="n">row</span><span class="p">]</span><span class="si">}</span><span class="s2"> unseen items "</span>
+                    <span class="sa">f</span><span class="s2">"among the selected candidates, fewer than k=</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">"</span>
                 <span class="p">)</span>
 
         <span class="k">if</span> <span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
@@ -531,7 +599,7 @@
             <span class="n">scores</span><span class="p">[</span><span class="n">rows</span><span class="p">,</span> <span class="n">cols</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">torch</span><span class="o">.</span><span class="n">inf</span>
 
         <span class="c1"># from_dense needs a host tensor; this copy must not be non-blocking.</span>
-        <span class="n">local</span> <span class="o">=</span> <span class="n">SRPTensor</span><span class="o">.</span><span class="n">from_dense</span><span class="p">(</span><span class="n">scores</span><span class="o">.</span><span class="n">cpu</span><span class="p">(),</span> <span class="n">k</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">k</span><span class="p">),</span> <span class="n">score_mode</span><span class="o">=</span><span class="s2">&quot;raw&quot;</span><span class="p">)</span>
+        <span class="n">local</span> <span class="o">=</span> <span class="n">SRPTensor</span><span class="o">.</span><span class="n">from_dense</span><span class="p">(</span><span class="n">scores</span><span class="o">.</span><span class="n">cpu</span><span class="p">(),</span> <span class="n">k</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">k</span><span class="p">),</span> <span class="n">score_mode</span><span class="o">=</span><span class="s2">"raw"</span><span class="p">)</span>
         <span class="n">catalog_rows</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">selection</span><span class="o">.</span><span class="n">rows</span><span class="p">))</span>
         <span class="k">return</span> <span class="n">SRPTensor</span><span class="p">(</span>
             <span class="n">cols</span><span class="o">=</span><span class="n">catalog_rows</span><span class="p">[</span><span class="n">local</span><span class="o">.</span><span class="n">cols</span><span class="p">],</span>

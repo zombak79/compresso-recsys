@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>compresso_recsys.models.teaser_gd &mdash; Compresso Recsys 0.1.2 documentation</title>
+  <title>compresso_recsys.models.teaser_gd &mdash; Compresso Recsys 0.2.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
 
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=92734c54"></script>
+      <script src="../../../_static/documentation_options.js?v=938c9ccc"></script>
       <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/js/theme.js"></script>
@@ -76,6 +76,53 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../examples.html#train-and-evaluate-elsa">Train and Evaluate ELSA</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../../../statistical-comparison.html">Comparing Models Statistically</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../statistical-comparison.html#why-the-aggregates-are-not-enough">Why the aggregates are not enough</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../statistical-comparison.html#do-the-comparison">Do the comparison</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../statistical-comparison.html#a-complete-worked-example">A complete worked example</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../statistical-comparison.html#build-the-split">Build the split</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../statistical-comparison.html#train-both-models">Train both models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../statistical-comparison.html#evaluate-both-on-identical-users">Evaluate both on identical users</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../statistical-comparison.html#compare">Compare</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../statistical-comparison.html#reading-it">Reading it</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../statistical-comparison.html#reading-the-output">Reading the output</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../statistical-comparison.html#the-effect">The effect</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../statistical-comparison.html#how-precisely-you-know-it">How precisely you know it</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../statistical-comparison.html#how-often-the-two-models-tied">How often the two models tied</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../statistical-comparison.html#whether-it-could-be-chance">Whether it could be chance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../statistical-comparison.html#the-verdict">The verdict</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../statistical-comparison.html#five-traps">Five traps</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../statistical-comparison.html#p-values-have-a-floor">p-values have a floor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../statistical-comparison.html#ties-are-not-missing-data">Ties are not missing data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../statistical-comparison.html#the-interval-and-the-p-value-can-disagree">The interval and the p-value can disagree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../statistical-comparison.html#confidence-level-also-moves-the-significance-bar"><code class="docutils literal notranslate"><span class="pre">confidence_level</span></code> also moves the significance bar</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../statistical-comparison.html#one-trained-model-is-not-the-method">One trained model is not the method</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../statistical-comparison.html#choosing-the-settings">Choosing the settings</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../statistical-comparison.html#n-resamples"><code class="docutils literal notranslate"><span class="pre">n_resamples</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../statistical-comparison.html#test-method"><code class="docutils literal notranslate"><span class="pre">test_method</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../statistical-comparison.html#test-method-why-not-a-t-test"><code class="docutils literal notranslate"><span class="pre">test_method</span></code>: why not a t-test?</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../statistical-comparison.html#alternative"><code class="docutils literal notranslate"><span class="pre">alternative</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../statistical-comparison.html#correction"><code class="docutils literal notranslate"><span class="pre">correction</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../statistical-comparison.html#when-one-user-owns-several-rows">When one user owns several rows</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../statistical-comparison.html#what-the-methods-do-formally">What the methods do, formally</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../statistical-comparison.html#reporting-the-result">Reporting the result</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../statistical-comparison.html#methods">Methods</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../statistical-comparison.html#results">Results</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../statistical-comparison.html#checklist">Checklist</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../statistical-comparison.html#references">References</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../statistical-comparison.html#see-also">See also</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="../../../citing.html">Citing Compresso Recsys</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../citing.html#compresso">Compresso</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../citing.html#ease">EASE</a></li>
@@ -83,6 +130,8 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../citing.html#elsa">ELSA</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../citing.html#elsa-with-sampled-output-candidates">ELSA with sampled output candidates</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../citing.html#compressed-elsa">Compressed ELSA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../citing.html#evaluation-protocol">Evaluation Protocol</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../citing.html#statistical-comparison">Statistical Comparison</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../cli-reference.html">Checkpoint CLI Reference</a><ul>
@@ -196,7 +245,12 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/evaluation.html">Ranking Evaluation API</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../api/evaluation.html#predictions-and-targets">Predictions and Targets</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/evaluation.html#predictions-and-targets">Predictions and Targets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/evaluation.html#evaluation-results">Evaluation Results</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/evaluation.html#compresso_recsys.evaluation.EvaluationResult"><code class="docutils literal notranslate"><span class="pre">EvaluationResult</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/evaluation.html#custom-metrics">Custom Metrics</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/evaluation.html#compresso_recsys.evaluation.evaluate_recommender"><code class="docutils literal notranslate"><span class="pre">evaluate_recommender()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/evaluation.html#compresso_recsys.evaluation.evaluate_ranked_predictions"><code class="docutils literal notranslate"><span class="pre">evaluate_ranked_predictions()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/evaluation.html#compresso_recsys.evaluation.RankingEvaluator"><code class="docutils literal notranslate"><span class="pre">RankingEvaluator</span></code></a></li>
@@ -207,6 +261,20 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../api/evaluation.html#optional-metrics">Optional Metrics</a></li>
 </ul>
 </li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/statistics.html">Statistics API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/statistics.html#comparison-functions">Comparison Functions</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/statistics.html#compresso_recsys.stats.compare_models"><code class="docutils literal notranslate"><span class="pre">compare_models()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/statistics.html#compresso_recsys.stats.compare_pair"><code class="docutils literal notranslate"><span class="pre">compare_pair()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/statistics.html#results">Results</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/statistics.html#compresso_recsys.stats.PairwiseComparison"><code class="docutils literal notranslate"><span class="pre">PairwiseComparison</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/statistics.html#compresso_recsys.stats.ComparisonReport"><code class="docutils literal notranslate"><span class="pre">ComparisonReport</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/statistics.html#parameter-values">Parameter Values</a></li>
 </ul>
 </li>
 </ul>
@@ -274,11 +342,11 @@
     <span class="n">take_features</span><span class="p">,</span>
 <span class="p">)</span>
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;TEASERGD&quot;</span><span class="p">,</span> <span class="s2">&quot;TEASERGDConfig&quot;</span><span class="p">,</span> <span class="s2">&quot;TEASERGDTrainer&quot;</span><span class="p">]</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"TEASERGD"</span><span class="p">,</span> <span class="s2">"TEASERGDConfig"</span><span class="p">,</span> <span class="s2">"TEASERGDTrainer"</span><span class="p">]</span>
 
-<span class="n">OptimizerName</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;NAdam&quot;</span><span class="p">,</span> <span class="s2">&quot;AdamW&quot;</span><span class="p">]</span>
-<span class="n">TEASERGDLoss</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;normalized_mse&quot;</span><span class="p">,</span> <span class="s2">&quot;teaser&quot;</span><span class="p">]</span>
-<span class="n">EncoderInit</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;xavier&quot;</span><span class="p">,</span> <span class="s2">&quot;features&quot;</span><span class="p">]</span>
+<span class="n">OptimizerName</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"NAdam"</span><span class="p">,</span> <span class="s2">"AdamW"</span><span class="p">]</span>
+<span class="n">TEASERGDLoss</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"normalized_mse"</span><span class="p">,</span> <span class="s2">"teaser"</span><span class="p">]</span>
+<span class="n">EncoderInit</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"xavier"</span><span class="p">,</span> <span class="s2">"features"</span><span class="p">]</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_teaser_reconstruction_loss</span><span class="p">(</span>
@@ -288,7 +356,7 @@
     <span class="n">n_source_items</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">n_items</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Estimate the original TEASER Frobenius reconstruction per user.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Estimate the original TEASER Frobenius reconstruction per user."""</span>
     <span class="n">squared_error</span> <span class="o">=</span> <span class="p">(</span><span class="n">predictions</span> <span class="o">-</span> <span class="n">targets</span><span class="p">)</span><span class="o">.</span><span class="n">square</span><span class="p">()</span>
     <span class="n">n_sampled_negatives</span> <span class="o">=</span> <span class="n">predictions</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">n_source_items</span>
     <span class="n">n_available_negatives</span> <span class="o">=</span> <span class="n">n_items</span> <span class="o">-</span> <span class="n">n_source_items</span>
@@ -312,7 +380,7 @@
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
     <span class="n">selected</span> <span class="o">=</span> <span class="n">features</span><span class="p">[</span><span class="n">rows</span><span class="p">]</span>
     <span class="n">array</span> <span class="o">=</span> <span class="n">selected</span><span class="o">.</span><span class="n">toarray</span><span class="p">()</span> <span class="k">if</span> <span class="n">isspmatrix_csr</span><span class="p">(</span><span class="n">selected</span><span class="p">)</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">selected</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s2">&quot;C&quot;</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span><span class="o">.</span><span class="n">to</span><span class="p">(</span>
+    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s2">"C"</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span><span class="o">.</span><span class="n">to</span><span class="p">(</span>
         <span class="n">device</span>
     <span class="p">)</span>
 
@@ -324,7 +392,7 @@
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">isspmatrix_csr</span><span class="p">(</span><span class="n">features</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span>
-            <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">features</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s2">&quot;C&quot;</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">features</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s2">"C"</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
 
     <span class="n">coo</span> <span class="o">=</span> <span class="n">features</span><span class="o">.</span><span class="n">tocoo</span><span class="p">()</span>
@@ -334,8 +402,8 @@
     <span class="n">values</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">coo</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
     <span class="k">with</span> <span class="n">warnings</span><span class="o">.</span><span class="n">catch_warnings</span><span class="p">():</span>
         <span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span>
-            <span class="s2">&quot;ignore&quot;</span><span class="p">,</span>
-            <span class="n">message</span><span class="o">=</span><span class="s2">&quot;Sparse invariant checks are implicitly disabled.*&quot;</span><span class="p">,</span>
+            <span class="s2">"ignore"</span><span class="p">,</span>
+            <span class="n">message</span><span class="o">=</span><span class="s2">"Sparse invariant checks are implicitly disabled.*"</span><span class="p">,</span>
             <span class="n">category</span><span class="o">=</span><span class="ne">UserWarning</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">sparse_coo_tensor</span><span class="p">(</span>
@@ -361,13 +429,13 @@
     <span class="n">model</span><span class="p">:</span> <span class="n">TEASERGD</span><span class="p">,</span>
     <span class="n">features</span><span class="p">:</span> <span class="n">csr_matrix</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Copy dense or sparse fixed features into the trainable encoder.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Copy dense or sparse fixed features into the trainable encoder."""</span>
     <span class="k">if</span> <span class="n">features</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">model</span><span class="o">.</span><span class="n">feature_dim</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;features shape must match input_dim and feature_dim&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"features shape must match input_dim and feature_dim"</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">isspmatrix_csr</span><span class="p">(</span><span class="n">features</span><span class="p">):</span>
         <span class="n">model</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">copy_</span><span class="p">(</span>
             <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span>
-                <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">features</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s2">&quot;C&quot;</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">features</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s2">"C"</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
             <span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
         <span class="p">)</span>
         <span class="k">return</span>
@@ -389,13 +457,13 @@
 <div class="viewcode-block" id="TEASERGD">
 <a class="viewcode-back" href="../../../api/models.html#compresso_recsys.models.TEASERGD">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">TEASERGD</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Trainable TEASER encoder with a fixed feature decoder.</span>
+<span class="w">    </span><span class="sd">"""Trainable TEASER encoder with a fixed feature decoder.</span>
 
 <span class="sd">    The model represents the coefficient matrix as ``E @ S.T`` without</span>
 <span class="sd">    constructing it. ``source_candidate_positions`` identifies each source</span>
-<span class="sd">    item&#39;s position in the candidate output so ``diagonal_scale`` can remove</span>
+<span class="sd">    item's position in the candidate output so ``diagonal_scale`` can remove</span>
 <span class="sd">    all or part of the diagonal contribution ``(E * S).sum(-1)`` exactly.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -408,15 +476,15 @@
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">input_dim</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;input_dim must be &gt;= 1&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"input_dim must be &gt;= 1"</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">feature_dim</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;feature_dim must be &gt;= 1&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"feature_dim must be &gt;= 1"</span><span class="p">)</span>
         <span class="k">if</span> <span class="p">(</span>
             <span class="nb">isinstance</span><span class="p">(</span><span class="n">diagonal_scale</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span>
             <span class="ow">or</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">diagonal_scale</span><span class="p">)</span>
             <span class="ow">or</span> <span class="ow">not</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">diagonal_scale</span> <span class="o">&lt;=</span> <span class="mi">1</span>
         <span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;diagonal_scale must be finite and in [0, 1]&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"diagonal_scale must be finite and in [0, 1]"</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">input_dim</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">feature_dim</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">feature_dim</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">use_relu</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">use_relu</span><span class="p">)</span>
@@ -431,7 +499,7 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">rows</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return effective encoder rows, optionally normalized as in ELSA.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Return effective encoder rows, optionally normalized as in ELSA."""</span>
         <span class="n">weights</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span> <span class="k">if</span> <span class="n">rows</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">[</span><span class="n">rows</span><span class="p">]</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize_encoder</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">F</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
@@ -449,15 +517,15 @@
         <span class="n">candidate_features</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">source_candidate_positions</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Score candidates and scale represented self-coefficient removal.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Score candidates and scale represented self-coefficient removal."""</span>
         <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="n">sources</span><span class="o">.</span><span class="n">numel</span><span class="p">():</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;x columns must match sources&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"x columns must match sources"</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">source_features</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="n">sources</span><span class="o">.</span><span class="n">numel</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">feature_dim</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;source_features shape must match sources and feature_dim&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"source_features shape must match sources and feature_dim"</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">candidate_features</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">feature_dim</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;candidate_features has an incompatible feature dimension&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"candidate_features has an incompatible feature dimension"</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">source_candidate_positions</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="n">sources</span><span class="o">.</span><span class="n">shape</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;source_candidate_positions must match sources&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"source_candidate_positions must match sources"</span><span class="p">)</span>
 
         <span class="n">source_encoder</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder_weights</span><span class="p">(</span><span class="n">sources</span><span class="p">)</span>
         <span class="n">profiles</span> <span class="o">=</span> <span class="n">x</span> <span class="o">@</span> <span class="n">source_encoder</span>
@@ -480,11 +548,11 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">item_features</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the exact effective coefficient squared norm.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Return the exact effective coefficient squared norm."""</span>
         <span class="k">if</span> <span class="n">item_features</span><span class="o">.</span><span class="n">layout</span> <span class="o">!=</span> <span class="n">torch</span><span class="o">.</span><span class="n">strided</span><span class="p">:</span>
             <span class="n">item_features</span> <span class="o">=</span> <span class="n">item_features</span><span class="o">.</span><span class="n">to_dense</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">item_features</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">feature_dim</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;item_features shape must match input_dim and feature_dim&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"item_features shape must match input_dim and feature_dim"</span><span class="p">)</span>
         <span class="n">encoder</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder_weights</span><span class="p">()</span>
         <span class="n">coefficients</span> <span class="o">=</span> <span class="n">encoder</span> <span class="o">@</span> <span class="n">item_features</span><span class="o">.</span><span class="n">T</span>
         <span class="n">diagonal</span> <span class="o">=</span> <span class="p">(</span><span class="n">encoder</span> <span class="o">*</span> <span class="n">item_features</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
@@ -498,16 +566,16 @@
 <a class="viewcode-back" href="../../../api/models.html#compresso_recsys.models.TEASERGDConfig">[docs]</a>
 <span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">TEASERGDConfig</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Configuration for gradient-trained TEASER.</span>
+<span class="w">    </span><span class="sd">"""Configuration for gradient-trained TEASER.</span>
 
-<span class="sd">    ``loss=&quot;normalized_mse&quot;`` preserves the ELSA-style objective, while</span>
-<span class="sd">    ``loss=&quot;teaser&quot;`` uses the original TEASER Frobenius reconstruction and</span>
+<span class="sd">    ``loss="normalized_mse"`` preserves the ELSA-style objective, while</span>
+<span class="sd">    ``loss="teaser"`` uses the original TEASER Frobenius reconstruction and</span>
 <span class="sd">    regularization scale. ``max_output`` uses the same source-prefix candidate</span>
 <span class="sd">    sampling as ELSA. In TEASER mode, sampled negatives are importance-weighted</span>
 <span class="sd">    to estimate full-output reconstruction.</span>
 <span class="sd">    ``coefficient_regularization_samples`` controls a Monte Carlo estimate of</span>
 <span class="sd">    the effective coefficient norm; zero disables that term.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1024</span>
     <span class="n">max_output</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
@@ -519,76 +587,76 @@
     <span class="n">coefficient_regularization_samples</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4096</span>
     <span class="n">decay</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="nb">compile</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
-    <span class="n">device</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="s2">&quot;cpu&quot;</span>
+    <span class="n">device</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="s2">"cpu"</span>
     <span class="n">show_progress</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">use_relu</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="n">include_popularity</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
-    <span class="n">optimizer</span><span class="p">:</span> <span class="n">OptimizerName</span> <span class="o">=</span> <span class="s2">&quot;NAdam&quot;</span>
-    <span class="n">loss</span><span class="p">:</span> <span class="n">TEASERGDLoss</span> <span class="o">=</span> <span class="s2">&quot;normalized_mse&quot;</span>
-    <span class="n">encoder_init</span><span class="p">:</span> <span class="n">EncoderInit</span> <span class="o">=</span> <span class="s2">&quot;xavier&quot;</span>
+    <span class="n">optimizer</span><span class="p">:</span> <span class="n">OptimizerName</span> <span class="o">=</span> <span class="s2">"NAdam"</span>
+    <span class="n">loss</span><span class="p">:</span> <span class="n">TEASERGDLoss</span> <span class="o">=</span> <span class="s2">"normalized_mse"</span>
+    <span class="n">encoder_init</span><span class="p">:</span> <span class="n">EncoderInit</span> <span class="o">=</span> <span class="s2">"xavier"</span>
     <span class="n">normalize_encoder</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="n">diagonal_scale</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;batch_size&quot;</span><span class="p">,</span> <span class="s2">&quot;epochs&quot;</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"batch_size"</span><span class="p">,</span> <span class="s2">"epochs"</span><span class="p">):</span>
             <span class="n">value</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">or</span> <span class="n">value</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> must be &gt;= 1&quot;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> must be &gt;= 1"</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_output</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="p">(</span>
             <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_output</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span>
             <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_output</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
             <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_output</span> <span class="o">&lt;</span> <span class="mi">1</span>
         <span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;max_output must be &gt;= 1 or None&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"max_output must be &gt;= 1 or None"</span><span class="p">)</span>
         <span class="k">if</span> <span class="p">(</span>
             <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coefficient_regularization_samples</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span>
             <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coefficient_regularization_samples</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
             <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">coefficient_regularization_samples</span> <span class="o">&lt;</span> <span class="mi">0</span>
         <span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;coefficient_regularization_samples must be &gt;= 0&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"coefficient_regularization_samples must be &gt;= 0"</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">(</span>
-            <span class="s2">&quot;lr&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;weight_decay&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;l2_coefficients&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;l2_encoder&quot;</span><span class="p">,</span>
+            <span class="s2">"lr"</span><span class="p">,</span>
+            <span class="s2">"weight_decay"</span><span class="p">,</span>
+            <span class="s2">"l2_coefficients"</span><span class="p">,</span>
+            <span class="s2">"l2_encoder"</span><span class="p">,</span>
         <span class="p">):</span>
             <span class="n">value</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">))</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="ow">or</span> <span class="n">value</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="p">(</span><span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;lr&quot;</span> <span class="ow">and</span> <span class="n">value</span> <span class="o">==</span> <span class="mi">0</span><span class="p">):</span>
-                <span class="n">relation</span> <span class="o">=</span> <span class="s2">&quot;&gt; 0&quot;</span> <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;lr&quot;</span> <span class="k">else</span> <span class="s2">&quot;&gt;= 0&quot;</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> must be finite and </span><span class="si">{</span><span class="n">relation</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="ow">or</span> <span class="n">value</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="p">(</span><span class="n">name</span> <span class="o">==</span> <span class="s2">"lr"</span> <span class="ow">and</span> <span class="n">value</span> <span class="o">==</span> <span class="mi">0</span><span class="p">):</span>
+                <span class="n">relation</span> <span class="o">=</span> <span class="s2">"&gt; 0"</span> <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">"lr"</span> <span class="k">else</span> <span class="s2">"&gt;= 0"</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> must be finite and </span><span class="si">{</span><span class="n">relation</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
         <span class="k">if</span> <span class="p">(</span>
             <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">diagonal_scale</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span>
             <span class="ow">or</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">diagonal_scale</span><span class="p">)</span>
             <span class="ow">or</span> <span class="ow">not</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">diagonal_scale</span> <span class="o">&lt;=</span> <span class="mi">1</span>
         <span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;diagonal_scale must be finite and in [0, 1]&quot;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;NAdam&quot;</span><span class="p">,</span> <span class="s2">&quot;AdamW&quot;</span><span class="p">}:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;optimizer must be &#39;NAdam&#39; or &#39;AdamW&#39;&quot;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;normalized_mse&quot;</span><span class="p">,</span> <span class="s2">&quot;teaser&quot;</span><span class="p">}:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;loss must be &#39;normalized_mse&#39; or &#39;teaser&#39;&quot;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder_init</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;xavier&quot;</span><span class="p">,</span> <span class="s2">&quot;features&quot;</span><span class="p">}:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;encoder_init must be &#39;xavier&#39; or &#39;features&#39;&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"diagonal_scale must be finite and in [0, 1]"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">"NAdam"</span><span class="p">,</span> <span class="s2">"AdamW"</span><span class="p">}:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"optimizer must be 'NAdam' or 'AdamW'"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">"normalized_mse"</span><span class="p">,</span> <span class="s2">"teaser"</span><span class="p">}:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"loss must be 'normalized_mse' or 'teaser'"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder_init</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">"xavier"</span><span class="p">,</span> <span class="s2">"features"</span><span class="p">}:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"encoder_init must be 'xavier' or 'features'"</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">(</span>
-            <span class="s2">&quot;decay&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;compile&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;show_progress&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;use_relu&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;normalize_encoder&quot;</span><span class="p">,</span>
+            <span class="s2">"decay"</span><span class="p">,</span>
+            <span class="s2">"compile"</span><span class="p">,</span>
+            <span class="s2">"show_progress"</span><span class="p">,</span>
+            <span class="s2">"use_relu"</span><span class="p">,</span>
+            <span class="s2">"normalize_encoder"</span><span class="p">,</span>
         <span class="p">):</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">),</span> <span class="nb">bool</span><span class="p">):</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> must be a bool&quot;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> must be a bool"</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">include_popularity</span><span class="p">,</span> <span class="nb">bool</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;include_popularity must be a bool&quot;</span><span class="p">)</span></div>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"include_popularity must be a bool"</span><span class="p">)</span></div>
 
 
 
 <div class="viewcode-block" id="TEASERGDTrainer">
 <a class="viewcode-back" href="../../../api/models.html#compresso_recsys.models.TEASERGDTrainer">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">TEASERGDTrainer</span><span class="p">(</span><span class="n">BaseColdStartRecommender</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Fit TEASER with PyTorch, sampled outputs, and cold candidate catalogs.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Fit TEASER with PyTorch, sampled outputs, and cold candidate catalogs."""</span>
 
-    <span class="n">_fit_name</span> <span class="o">=</span> <span class="s2">&quot;TEASERGD&quot;</span>
+    <span class="n">_fit_name</span> <span class="o">=</span> <span class="s2">"TEASERGD"</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">TEASERGDConfig</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
@@ -620,9 +688,9 @@
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_reset_optimizer</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">teaser</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;trainer must be built before creating optimizer&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">"trainer must be built before creating optimizer"</span><span class="p">)</span>
         <span class="n">optimizer_class</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">AdamW</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">optimizer</span> <span class="o">==</span> <span class="s2">&quot;AdamW&quot;</span> <span class="k">else</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">NAdam</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">AdamW</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">optimizer</span> <span class="o">==</span> <span class="s2">"AdamW"</span> <span class="k">else</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">NAdam</span>
         <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span> <span class="o">=</span> <span class="n">optimizer_class</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">teaser</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span>
@@ -654,10 +722,10 @@
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_empty_epoch_sums</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
         <span class="k">return</span> <span class="p">{</span>
-            <span class="s2">&quot;loss&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
-            <span class="s2">&quot;reconstruction&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
-            <span class="s2">&quot;coefficient_l2&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
-            <span class="s2">&quot;encoder_l2&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+            <span class="s2">"loss"</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+            <span class="s2">"reconstruction"</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+            <span class="s2">"coefficient_l2"</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+            <span class="s2">"encoder_l2"</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
         <span class="p">}</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_coefficient_penalty</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
@@ -685,7 +753,7 @@
             <span class="n">diagonal_penalty</span> <span class="o">=</span> <span class="p">(</span>
                 <span class="n">residual_diagonal_scale</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="n">diagonal</span><span class="o">.</span><span class="n">square</span><span class="p">()</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
             <span class="p">)</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">loss</span> <span class="o">==</span> <span class="s2">&quot;teaser&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">loss</span> <span class="o">==</span> <span class="s2">"teaser"</span><span class="p">:</span>
             <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_training_users</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
             <span class="n">penalty</span> <span class="o">=</span> <span class="n">penalty</span> <span class="o">*</span> <span class="p">(</span><span class="n">n_items</span> <span class="o">*</span> <span class="p">(</span><span class="n">n_items</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_training_users</span><span class="p">)</span>
             <span class="n">penalty</span> <span class="o">=</span> <span class="n">penalty</span> <span class="o">+</span> <span class="p">(</span>
@@ -730,22 +798,22 @@
         <span class="n">feature_names</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">show_progress</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TEASERGDTrainer</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Fit the encoder while keeping item features fixed.&quot;&quot;&quot;</span>
-        <span class="n">interactions</span> <span class="o">=</span> <span class="n">canonical_csr</span><span class="p">(</span><span class="n">interactions</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;interactions&quot;</span><span class="p">)</span>
+<span class="w">        </span><span class="sd">"""Fit the encoder while keeping item features fixed."""</span>
+        <span class="n">interactions</span> <span class="o">=</span> <span class="n">canonical_csr</span><span class="p">(</span><span class="n">interactions</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"interactions"</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">interactions</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">interactions</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;interactions must contain at least one user and one item&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"interactions must contain at least one user and one item"</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">interactions</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">size</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">interactions</span><span class="o">.</span><span class="n">data</span> <span class="o">==</span> <span class="mi">1</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">&quot;interactions must contain binary implicit values equal to 1&quot;</span>
+                <span class="s2">"interactions must contain binary implicit values equal to 1"</span>
             <span class="p">)</span>
 
-        <span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="s2">&quot;float32&quot;</span><span class="p">)</span>
+        <span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="s2">"float32"</span><span class="p">)</span>
         <span class="n">features</span> <span class="o">=</span> <span class="n">canonical_item_features</span><span class="p">(</span><span class="n">item_features</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
         <span class="n">n_items</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">interactions</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
         <span class="k">if</span> <span class="n">features</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">n_items</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;item_features has </span><span class="si">{</span><span class="n">features</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> rows, but interactions &quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;has </span><span class="si">{</span><span class="n">n_items</span><span class="si">}</span><span class="s2"> items&quot;</span>
+                <span class="sa">f</span><span class="s2">"item_features has </span><span class="si">{</span><span class="n">features</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> rows, but interactions "</span>
+                <span class="sa">f</span><span class="s2">"has </span><span class="si">{</span><span class="n">n_items</span><span class="si">}</span><span class="s2"> items"</span>
             <span class="p">)</span>
         <span class="n">resolved_ids</span> <span class="o">=</span> <span class="n">canonical_item_ids</span><span class="p">(</span>
             <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n_items</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span> <span class="k">if</span> <span class="n">item_ids</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">item_ids</span><span class="p">,</span>
@@ -760,7 +828,7 @@
         <span class="n">names</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">feature_names</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">feature_names</span><span class="p">))</span>
         <span class="k">if</span> <span class="n">names</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">names</span><span class="p">)</span> <span class="o">!=</span> <span class="n">features</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">&quot;feature_names length must match the number of item_features columns&quot;</span>
+                <span class="s2">"feature_names length must match the number of item_features columns"</span>
             <span class="p">)</span>
 
         <span class="n">training_interactions</span> <span class="o">=</span> <span class="n">interactions</span><span class="p">[:,</span> <span class="n">train_indices</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span>
@@ -769,7 +837,7 @@
         <span class="p">)</span>
         <span class="k">if</span> <span class="n">training_interactions</span><span class="o">.</span><span class="n">nnz</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">&quot;training item columns must contain at least one interaction&quot;</span>
+                <span class="s2">"training item columns must contain at least one interaction"</span>
             <span class="p">)</span>
         <span class="n">training_features</span> <span class="o">=</span> <span class="n">take_features</span><span class="p">(</span><span class="n">features</span><span class="p">,</span> <span class="n">train_indices</span><span class="p">)</span>
         <span class="n">decoder_features</span> <span class="o">=</span> <span class="n">features</span>
@@ -779,23 +847,23 @@
             <span class="n">max_popularity</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">popularity</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">initial</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
             <span class="k">if</span> <span class="n">max_popularity</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="s2">&quot;cannot compute popularity without training interactions&quot;</span>
+                    <span class="s2">"cannot compute popularity without training interactions"</span>
                 <span class="p">)</span>
             <span class="n">popularity</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">popularity</span> <span class="o">/</span> <span class="n">max_popularity</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
             <span class="n">source_popularity</span><span class="p">[</span><span class="n">train_indices</span><span class="p">]</span> <span class="o">=</span> <span class="n">popularity</span>
             <span class="n">training_features</span> <span class="o">=</span> <span class="n">append_column</span><span class="p">(</span><span class="n">training_features</span><span class="p">,</span> <span class="n">popularity</span><span class="p">)</span>
             <span class="n">decoder_features</span> <span class="o">=</span> <span class="n">append_column</span><span class="p">(</span><span class="n">decoder_features</span><span class="p">,</span> <span class="n">source_popularity</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">names</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">names</span> <span class="o">=</span> <span class="p">(</span><span class="o">*</span><span class="n">names</span><span class="p">,</span> <span class="s2">&quot;popularity&quot;</span><span class="p">)</span>
+                <span class="n">names</span> <span class="o">=</span> <span class="p">(</span><span class="o">*</span><span class="n">names</span><span class="p">,</span> <span class="s2">"popularity"</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">show_progress</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">show_progress</span><span class="p">,</span> <span class="nb">bool</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;show_progress must be a bool or None&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"show_progress must be a bool or None"</span><span class="p">)</span>
         <span class="n">torch</span><span class="o">.</span><span class="n">manual_seed</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">seed</span><span class="p">))</span>
         <span class="n">base_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_base_model</span><span class="p">(</span>
             <span class="n">input_dim</span><span class="o">=</span><span class="n">train_indices</span><span class="o">.</span><span class="n">size</span><span class="p">,</span>
             <span class="n">feature_dim</span><span class="o">=</span><span class="n">training_features</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
         <span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">encoder_init</span> <span class="o">==</span> <span class="s2">&quot;features&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">encoder_init</span> <span class="o">==</span> <span class="s2">"features"</span><span class="p">:</span>
             <span class="n">_initialize_encoder_from_features</span><span class="p">(</span><span class="n">base_model</span><span class="p">,</span> <span class="n">training_features</span><span class="p">)</span>
         <span class="n">model</span><span class="p">:</span> <span class="n">TEASERGD</span> <span class="o">|</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span> <span class="o">=</span> <span class="n">base_model</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">compile</span><span class="p">:</span>
@@ -841,14 +909,14 @@
         <span class="n">epoch_iter</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_progress_with_override</span><span class="p">(</span>
             <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">epochs</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span>
             <span class="n">total</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">epochs</span><span class="p">,</span>
-            <span class="n">desc</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_fit_name</span><span class="si">}</span><span class="s2"> fit&quot;</span><span class="p">,</span>
+            <span class="n">desc</span><span class="o">=</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_fit_name</span><span class="si">}</span><span class="s2"> fit"</span><span class="p">,</span>
             <span class="n">enabled</span><span class="o">=</span><span class="n">progress_enabled</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="c1"># A single batch bar is rewound and relabelled each epoch, rather than a</span>
         <span class="c1"># finished bar being left behind per epoch.</span>
         <span class="n">batch_bar</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_progress_bar_with_override</span><span class="p">(</span>
             <span class="n">total</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">dataset</span><span class="p">),</span>
-            <span class="n">desc</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_fit_name</span><span class="si">}</span><span class="s2"> epoch 1&quot;</span><span class="p">,</span>
+            <span class="n">desc</span><span class="o">=</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_fit_name</span><span class="si">}</span><span class="s2"> epoch 1"</span><span class="p">,</span>
             <span class="n">enabled</span><span class="o">=</span><span class="n">progress_enabled</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
@@ -857,7 +925,7 @@
                 <span class="n">batches</span> <span class="o">=</span> <span class="mi">0</span>
                 <span class="k">if</span> <span class="n">batch_bar</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                     <span class="n">batch_bar</span><span class="o">.</span><span class="n">reset</span><span class="p">(</span><span class="n">total</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">dataset</span><span class="p">))</span>
-                    <span class="n">batch_bar</span><span class="o">.</span><span class="n">set_description</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_fit_name</span><span class="si">}</span><span class="s2"> epoch </span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="n">batch_bar</span><span class="o">.</span><span class="n">set_description</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_fit_name</span><span class="si">}</span><span class="s2"> epoch </span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
                 <span class="k">for</span> <span class="n">batch_index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">dataset</span><span class="p">)):</span>
                     <span class="n">batch</span> <span class="o">=</span> <span class="n">dataset</span><span class="p">[</span><span class="n">batch_index</span><span class="p">]</span>
                     <span class="n">stats</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_train_step</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="n">training_features</span><span class="p">)</span>
@@ -868,17 +936,17 @@
                         <span class="n">batch_bar</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
                 <span class="n">dataset</span><span class="o">.</span><span class="n">on_epoch_end</span><span class="p">()</span>
                 <span class="n">record</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="n">value</span> <span class="o">/</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">batches</span><span class="p">)</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">sums</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
-                <span class="n">record</span><span class="p">[</span><span class="s2">&quot;epoch&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">epoch</span><span class="p">)</span>
-                <span class="n">record</span><span class="p">[</span><span class="s2">&quot;lr&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">param_groups</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;lr&quot;</span><span class="p">])</span>
+                <span class="n">record</span><span class="p">[</span><span class="s2">"epoch"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">epoch</span><span class="p">)</span>
+                <span class="n">record</span><span class="p">[</span><span class="s2">"lr"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">param_groups</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">"lr"</span><span class="p">])</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">history</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
-                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">epoch_iter</span><span class="p">,</span> <span class="s2">&quot;set_postfix&quot;</span><span class="p">):</span>
-                    <span class="n">epoch_iter</span><span class="o">.</span><span class="n">set_postfix</span><span class="p">(</span><span class="n">loss</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">record</span><span class="p">[</span><span class="s1">&#39;loss&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">epoch_iter</span><span class="p">,</span> <span class="s2">"set_postfix"</span><span class="p">):</span>
+                    <span class="n">epoch_iter</span><span class="o">.</span><span class="n">set_postfix</span><span class="p">(</span><span class="n">loss</span><span class="o">=</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">record</span><span class="p">[</span><span class="s1">'loss'</span><span class="p">]</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
                 <span class="k">if</span> <span class="n">scheduler</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                     <span class="n">scheduler</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
         <span class="k">finally</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">batch_bar</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">batch_bar</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
-            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">epoch_iter</span><span class="p">,</span> <span class="s2">&quot;close&quot;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">epoch_iter</span><span class="p">,</span> <span class="s2">"close"</span><span class="p">):</span>
                 <span class="n">epoch_iter</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_is_fitted</span> <span class="o">=</span> <span class="kc">True</span>
         <span class="k">return</span> <span class="bp">self</span></div>
@@ -896,7 +964,7 @@
 
     <span class="nd">@staticmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_progress_bar_with_override</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">total</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">desc</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">enabled</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;A bar to drive by hand, or ``None`` when progress is unavailable.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""A bar to drive by hand, or ``None`` when progress is unavailable."""</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">enabled</span><span class="p">:</span>
             <span class="k">return</span> <span class="kc">None</span>
         <span class="k">try</span><span class="p">:</span>
@@ -949,7 +1017,7 @@
             <span class="n">candidate_features</span><span class="o">=</span><span class="n">candidate_features</span><span class="p">,</span>
             <span class="n">source_candidate_positions</span><span class="o">=</span><span class="n">positions</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">loss</span> <span class="o">==</span> <span class="s2">&quot;normalized_mse&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">loss</span> <span class="o">==</span> <span class="s2">"normalized_mse"</span><span class="p">:</span>
             <span class="n">reconstruction</span> <span class="o">=</span> <span class="n">normalized_mse</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">reconstruction</span> <span class="o">=</span> <span class="n">_teaser_reconstruction_loss</span><span class="p">(</span>
@@ -960,7 +1028,7 @@
             <span class="p">)</span>
         <span class="n">base_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_base_model</span>
         <span class="n">coefficient_l2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coefficient_penalty</span><span class="p">()</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">loss</span> <span class="o">==</span> <span class="s2">&quot;normalized_mse&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">loss</span> <span class="o">==</span> <span class="s2">"normalized_mse"</span><span class="p">:</span>
             <span class="n">encoder_l2</span> <span class="o">=</span> <span class="n">base_model</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">square</span><span class="p">()</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_training_users</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
@@ -973,37 +1041,37 @@
         <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
         <span class="k">return</span> <span class="p">{</span>
-            <span class="s2">&quot;loss&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">loss</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()),</span>
-            <span class="s2">&quot;reconstruction&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">reconstruction</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()),</span>
-            <span class="s2">&quot;coefficient_l2&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">coefficient_l2</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()),</span>
-            <span class="s2">&quot;encoder_l2&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">encoder_l2</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()),</span>
+            <span class="s2">"loss"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">loss</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()),</span>
+            <span class="s2">"reconstruction"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">reconstruction</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()),</span>
+            <span class="s2">"coefficient_l2"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">coefficient_l2</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()),</span>
+            <span class="s2">"encoder_l2"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">encoder_l2</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()),</span>
         <span class="p">}</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">_base_model</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TEASERGD</span><span class="p">:</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">teaser</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;TEASERGDTrainer must be fitted before use&quot;</span><span class="p">)</span>
-        <span class="n">model</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">teaser</span><span class="p">,</span> <span class="s2">&quot;_orig_mod&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">teaser</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">"TEASERGDTrainer must be fitted before use"</span><span class="p">)</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">teaser</span><span class="p">,</span> <span class="s2">"_orig_mod"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">teaser</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">TEASERGD</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;underlying TEASERGD model is unavailable&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">"underlying TEASERGD model is unavailable"</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">model</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_prepare_source</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source</span><span class="p">:</span> <span class="n">csr_matrix</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">csr_matrix</span><span class="p">:</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_fitted</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_items_</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">train_item_mask_</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;TEASERGDTrainer must be fitted before prediction&quot;</span><span class="p">)</span>
-        <span class="n">source</span> <span class="o">=</span> <span class="n">canonical_csr</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;source&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">"TEASERGDTrainer must be fitted before prediction"</span><span class="p">)</span>
+        <span class="n">source</span> <span class="o">=</span> <span class="n">canonical_csr</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"source"</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_items_</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;source has </span><span class="si">{</span><span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2"> items, but TEASERGD was fitted &quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;with </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_items_</span><span class="si">}</span><span class="s2"> items&quot;</span>
+                <span class="sa">f</span><span class="s2">"source has </span><span class="si">{</span><span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2"> items, but TEASERGD was fitted "</span>
+                <span class="sa">f</span><span class="s2">"with </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_items_</span><span class="si">}</span><span class="s2"> items"</span>
             <span class="p">)</span>
         <span class="k">if</span> <span class="n">source</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">size</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">source</span><span class="o">.</span><span class="n">data</span> <span class="o">==</span> <span class="mi">1</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;source must contain binary implicit values equal to 1&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"source must contain binary implicit values equal to 1"</span><span class="p">)</span>
         <span class="n">cold_positions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="o">~</span><span class="bp">self</span><span class="o">.</span><span class="n">train_item_mask_</span><span class="p">[</span><span class="n">source</span><span class="o">.</span><span class="n">indices</span><span class="p">])</span>
         <span class="k">if</span> <span class="n">cold_positions</span><span class="o">.</span><span class="n">size</span><span class="p">:</span>
             <span class="n">cold_item</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">source</span><span class="o">.</span><span class="n">indices</span><span class="p">[</span><span class="n">cold_positions</span><span class="p">[</span><span class="mi">0</span><span class="p">]])</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;source contains item </span><span class="si">{</span><span class="n">cold_item</span><span class="si">}</span><span class="s2">, which has no fitted encoder row&quot;</span>
+                <span class="sa">f</span><span class="s2">"source contains item </span><span class="si">{</span><span class="n">cold_item</span><span class="si">}</span><span class="s2">, which has no fitted encoder row"</span>
             <span class="p">)</span>
         <span class="k">return</span> <span class="n">source</span>
 
@@ -1028,7 +1096,7 @@
         <span class="n">candidate_features</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SRPTensor</span><span class="p">:</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="mi">1</span> <span class="o">&lt;=</span> <span class="nb">int</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">selection</span><span class="o">.</span><span class="n">rows</span><span class="o">.</span><span class="n">size</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;k must be in [1, </span><span class="si">{</span><span class="n">selection</span><span class="o">.</span><span class="n">rows</span><span class="o">.</span><span class="n">size</span><span class="si">}</span><span class="s2">], got </span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"k must be in [1, </span><span class="si">{</span><span class="n">selection</span><span class="o">.</span><span class="n">rows</span><span class="o">.</span><span class="n">size</span><span class="si">}</span><span class="s2">], got </span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">SRPTensor</span><span class="p">(</span>
                 <span class="n">cols</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="n">k</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
@@ -1095,14 +1163,14 @@
             <span class="k">if</span> <span class="n">available</span><span class="o">.</span><span class="n">size</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">available</span> <span class="o">&lt;</span> <span class="n">k</span><span class="p">):</span>
                 <span class="n">row</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="n">available</span> <span class="o">&lt;</span> <span class="n">k</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;source row </span><span class="si">{</span><span class="n">row</span><span class="si">}</span><span class="s2"> has only </span><span class="si">{</span><span class="n">available</span><span class="p">[</span><span class="n">row</span><span class="p">]</span><span class="si">}</span><span class="s2"> unseen items &quot;</span>
-                    <span class="sa">f</span><span class="s2">&quot;among the selected candidates, fewer than k=</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="sa">f</span><span class="s2">"source row </span><span class="si">{</span><span class="n">row</span><span class="si">}</span><span class="s2"> has only </span><span class="si">{</span><span class="n">available</span><span class="p">[</span><span class="n">row</span><span class="p">]</span><span class="si">}</span><span class="s2"> unseen items "</span>
+                    <span class="sa">f</span><span class="s2">"among the selected candidates, fewer than k=</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">"</span>
                 <span class="p">)</span>
             <span class="k">if</span> <span class="nb">bool</span><span class="p">(</span><span class="n">selected</span><span class="o">.</span><span class="n">any</span><span class="p">()):</span>
                 <span class="n">rows</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">seen_users</span><span class="p">[</span><span class="n">selected</span><span class="p">])</span><span class="o">.</span><span class="n">long</span><span class="p">()</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
                 <span class="n">columns</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">seen_local</span><span class="p">[</span><span class="n">selected</span><span class="p">])</span><span class="o">.</span><span class="n">long</span><span class="p">()</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
                 <span class="n">scores</span><span class="p">[</span><span class="n">rows</span><span class="p">,</span> <span class="n">columns</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">torch</span><span class="o">.</span><span class="n">inf</span>
-        <span class="n">local</span> <span class="o">=</span> <span class="n">SRPTensor</span><span class="o">.</span><span class="n">from_dense</span><span class="p">(</span><span class="n">scores</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">k</span><span class="p">),</span> <span class="n">score_mode</span><span class="o">=</span><span class="s2">&quot;raw&quot;</span><span class="p">)</span>
+        <span class="n">local</span> <span class="o">=</span> <span class="n">SRPTensor</span><span class="o">.</span><span class="n">from_dense</span><span class="p">(</span><span class="n">scores</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">k</span><span class="p">),</span> <span class="n">score_mode</span><span class="o">=</span><span class="s2">"raw"</span><span class="p">)</span>
         <span class="n">global_rows</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">selection</span><span class="o">.</span><span class="n">rows</span><span class="p">)</span><span class="o">.</span><span class="n">long</span><span class="p">()</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">SRPTensor</span><span class="p">(</span>
             <span class="n">cols</span><span class="o">=</span><span class="n">global_rows</span><span class="p">[</span><span class="n">local</span><span class="o">.</span><span class="n">cols</span><span class="p">],</span>
@@ -1120,7 +1188,7 @@
         <span class="n">exclude_seen</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">candidate_ids</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Hashable</span><span class="p">]</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SRPTensor</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Predict one batch against the current or restricted catalog.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Predict one batch against the current or restricted catalog."""</span>
         <span class="n">source</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_source</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>
         <span class="n">selection</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resolve_candidate_selection</span><span class="p">(</span><span class="n">candidate_ids</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_predict_prepared_batch</span><span class="p">(</span>
@@ -1144,10 +1212,10 @@
         <span class="n">candidate_ids</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Hashable</span><span class="p">]</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">show_progress</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SRPTensor</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Predict all source rows while reusing one candidate tensor.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Predict all source rows while reusing one candidate tensor."""</span>
         <span class="n">source</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_source</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">batch_size</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;batch_size must be &gt;= 1&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"batch_size must be &gt;= 1"</span><span class="p">)</span>
         <span class="n">selection</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resolve_candidate_selection</span><span class="p">(</span><span class="n">candidate_ids</span><span class="p">)</span>
         <span class="n">candidate_features</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_selection_tensor</span><span class="p">(</span><span class="n">selection</span><span class="p">)</span>
         <span class="n">columns</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
@@ -1156,7 +1224,7 @@
         <span class="k">for</span> <span class="n">start</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_progress_with_override</span><span class="p">(</span>
             <span class="n">starts</span><span class="p">,</span>
             <span class="n">total</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">starts</span><span class="p">),</span>
-            <span class="n">desc</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;TEASERGD predict@</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="n">desc</span><span class="o">=</span><span class="sa">f</span><span class="s2">"TEASERGD predict@</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
             <span class="n">enabled</span><span class="o">=</span><span class="n">show_progress</span><span class="p">,</span>
         <span class="p">):</span>
             <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_predict_prepared_batch</span><span class="p">(</span>

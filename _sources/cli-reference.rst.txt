@@ -96,7 +96,7 @@ Checkpoint evaluation commonly reports this six-metric table:
 
 .. code-block:: text
 
-   recall@20, ndcg@20, recall@50, ndcg@50, recall@100, ndcg@100
+   calibrated_recall@20, ndcg@20, calibrated_recall@50, ndcg@50, calibrated_recall@100, ndcg@100
 
 Checkpoint Split Schema
 -----------------------
@@ -225,10 +225,15 @@ Full ``compresso-recsys-build-checkpoint`` parameter table:
      - dataset-specific
      - If set, binarize all remaining interaction values to this value. Usually
        ``1.0``.
-   * - ``--eval_fold``
-     - ``0``
-     - Evaluation fold protocol for ``user_split``. ``0`` means stacked 5-fold
-       paper-style behavior; ``1`` means single fold.
+   * - ``--eval_draws``
+     - ``5``
+     - How many independent fold-in/scored splits to draw per held-out user in
+       ``user_split``, stacked one row per draw. More draws sharpen each user's
+       score without adding independent users; ``1`` gives one row per user.
+   * - ``--eval_holdout_frac``
+     - ``0.2``
+     - Share of each held-out user's history scored against, the rest being the
+       fold-in history the model sees.
    * - ``--split_mode``
      - ``user_split``
      - Split protocol. Choices: ``user_split``, ``item_split``,

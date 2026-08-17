@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>compresso_recsys.evaluation &mdash; Compresso Recsys 0.1.2 documentation</title>
+  <title>compresso_recsys.evaluation &mdash; Compresso Recsys 0.2.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
 
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=92734c54"></script>
+      <script src="../../_static/documentation_options.js?v=938c9ccc"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/js/theme.js"></script>
@@ -76,6 +76,53 @@
 <li class="toctree-l2"><a class="reference internal" href="../../examples.html#train-and-evaluate-elsa">Train and Evaluate ELSA</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../../statistical-comparison.html">Comparing Models Statistically</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../statistical-comparison.html#why-the-aggregates-are-not-enough">Why the aggregates are not enough</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../statistical-comparison.html#do-the-comparison">Do the comparison</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../statistical-comparison.html#a-complete-worked-example">A complete worked example</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#build-the-split">Build the split</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#train-both-models">Train both models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#evaluate-both-on-identical-users">Evaluate both on identical users</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#compare">Compare</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#reading-it">Reading it</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../statistical-comparison.html#reading-the-output">Reading the output</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#the-effect">The effect</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#how-precisely-you-know-it">How precisely you know it</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#how-often-the-two-models-tied">How often the two models tied</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#whether-it-could-be-chance">Whether it could be chance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#the-verdict">The verdict</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../statistical-comparison.html#five-traps">Five traps</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#p-values-have-a-floor">p-values have a floor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#ties-are-not-missing-data">Ties are not missing data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#the-interval-and-the-p-value-can-disagree">The interval and the p-value can disagree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#confidence-level-also-moves-the-significance-bar"><code class="docutils literal notranslate"><span class="pre">confidence_level</span></code> also moves the significance bar</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#one-trained-model-is-not-the-method">One trained model is not the method</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../statistical-comparison.html#choosing-the-settings">Choosing the settings</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#n-resamples"><code class="docutils literal notranslate"><span class="pre">n_resamples</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#test-method"><code class="docutils literal notranslate"><span class="pre">test_method</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#test-method-why-not-a-t-test"><code class="docutils literal notranslate"><span class="pre">test_method</span></code>: why not a t-test?</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#alternative"><code class="docutils literal notranslate"><span class="pre">alternative</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#correction"><code class="docutils literal notranslate"><span class="pre">correction</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../statistical-comparison.html#when-one-user-owns-several-rows">When one user owns several rows</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../statistical-comparison.html#what-the-methods-do-formally">What the methods do, formally</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../statistical-comparison.html#reporting-the-result">Reporting the result</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#methods">Methods</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#results">Results</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#checklist">Checklist</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../statistical-comparison.html#references">References</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../statistical-comparison.html#see-also">See also</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="../../citing.html">Citing Compresso Recsys</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../citing.html#compresso">Compresso</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../citing.html#ease">EASE</a></li>
@@ -83,6 +130,8 @@
 <li class="toctree-l2"><a class="reference internal" href="../../citing.html#elsa">ELSA</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../citing.html#elsa-with-sampled-output-candidates">ELSA with sampled output candidates</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../citing.html#compressed-elsa">Compressed ELSA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../citing.html#evaluation-protocol">Evaluation Protocol</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../citing.html#statistical-comparison">Statistical Comparison</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../cli-reference.html">Checkpoint CLI Reference</a><ul>
@@ -196,7 +245,12 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/evaluation.html">Ranking Evaluation API</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../api/evaluation.html#predictions-and-targets">Predictions and Targets</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/evaluation.html#predictions-and-targets">Predictions and Targets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/evaluation.html#evaluation-results">Evaluation Results</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/evaluation.html#compresso_recsys.evaluation.EvaluationResult"><code class="docutils literal notranslate"><span class="pre">EvaluationResult</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/evaluation.html#custom-metrics">Custom Metrics</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../api/evaluation.html#compresso_recsys.evaluation.evaluate_recommender"><code class="docutils literal notranslate"><span class="pre">evaluate_recommender()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/evaluation.html#compresso_recsys.evaluation.evaluate_ranked_predictions"><code class="docutils literal notranslate"><span class="pre">evaluate_ranked_predictions()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/evaluation.html#compresso_recsys.evaluation.RankingEvaluator"><code class="docutils literal notranslate"><span class="pre">RankingEvaluator</span></code></a></li>
@@ -207,6 +261,20 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/evaluation.html#optional-metrics">Optional Metrics</a></li>
 </ul>
 </li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/statistics.html">Statistics API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/statistics.html#comparison-functions">Comparison Functions</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/statistics.html#compresso_recsys.stats.compare_models"><code class="docutils literal notranslate"><span class="pre">compare_models()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/statistics.html#compresso_recsys.stats.compare_pair"><code class="docutils literal notranslate"><span class="pre">compare_pair()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/statistics.html#results">Results</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/statistics.html#compresso_recsys.stats.PairwiseComparison"><code class="docutils literal notranslate"><span class="pre">PairwiseComparison</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/statistics.html#compresso_recsys.stats.ComparisonReport"><code class="docutils literal notranslate"><span class="pre">ComparisonReport</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/statistics.html#parameter-values">Parameter Values</a></li>
 </ul>
 </li>
 </ul>
@@ -240,7 +308,10 @@
   <h1>Source code for compresso_recsys.evaluation</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Sequence</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">hashlib</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Sequence</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Literal</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
@@ -251,18 +322,252 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">CalibratedRecall</span><span class="p">,</span> <span class="n">NDCG</span><span class="p">,</span> <span class="n">RankingBatch</span><span class="p">,</span> <span class="n">RankingMetric</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Recommender</span>
 
-<span class="n">MatchBackend</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;auto&quot;</span><span class="p">,</span> <span class="s2">&quot;dense&quot;</span><span class="p">,</span> <span class="s2">&quot;searchsorted&quot;</span><span class="p">]</span>
+<span class="n">MatchBackend</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"auto"</span><span class="p">,</span> <span class="s2">"dense"</span><span class="p">,</span> <span class="s2">"searchsorted"</span><span class="p">]</span>
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
-    <span class="s2">&quot;RankingEvaluator&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;evaluate_ranked_predictions&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;evaluate_recommender&quot;</span><span class="p">,</span>
+    <span class="s2">"EvaluationResult"</span><span class="p">,</span>
+    <span class="s2">"RankingEvaluator"</span><span class="p">,</span>
+    <span class="s2">"evaluate_ranked_predictions"</span><span class="p">,</span>
+    <span class="s2">"evaluate_recommender"</span><span class="p">,</span>
 <span class="p">]</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_owned</span><span class="p">(</span><span class="n">array</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">source</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Return ``array`` guaranteed not to alias ``source``.</span>
+
+<span class="sd">    ``np.ascontiguousarray`` and ``np.asarray`` hand back the input untouched</span>
+<span class="sd">    when it already has the requested layout, so storing the result would alias</span>
+<span class="sd">    an array the caller still holds. Marking that read-only, as the per-user</span>
+<span class="sd">    values are, would reach out and freeze the caller's own array.</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="n">array</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span> <span class="k">if</span> <span class="n">array</span> <span class="ow">is</span> <span class="n">source</span> <span class="k">else</span> <span class="n">array</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">_TargetFingerprint</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Canonical, batch-size independent digest of the target matrix.</span>
+
+<span class="sd">    Two evaluations can only be paired when they scored the same users against</span>
+<span class="sd">    the same relevant items. Identifiers catch a different user set; this</span>
+<span class="sd">    catches the same identifiers against different targets, which no identifier</span>
+<span class="sd">    check can see.</span>
+
+<span class="sd">    The evaluator receives targets one batch at a time and never holds the</span>
+<span class="sd">    whole matrix, so the digest has to be accumulated. Three properties make</span>
+<span class="sd">    the result independent of how the rows were divided:</span>
+
+<span class="sd">    * Row counts and column indices go into two separate streams. Interleaving</span>
+<span class="sd">      them per batch would put the bytes in a different order for a different</span>
+<span class="sd">      ``batch_size``, while each stream on its own is simply the same sequence</span>
+<span class="sd">      of rows however it was chunked, and blake2b digests a stream in pieces</span>
+<span class="sd">      exactly as it digests it whole.</span>
+<span class="sd">    * Neither stream contains ``indptr``, whose values are rebased to zero in</span>
+<span class="sd">      every slice. Row lengths carry the same information and survive slicing.</span>
+<span class="sd">    * Both are cast to fixed width and byte order, so the same logical matrix</span>
+<span class="sd">      agrees across platforms and across int32 and int64 index dtypes.</span>
+
+<span class="sd">    Values are not hashed. Targets are binary relevance and only nonzero</span>
+<span class="sd">    locations matter, so two matrices that differ solely in stored values are</span>
+<span class="sd">    genuinely the same evaluation.</span>
+
+<span class="sd">    Canonical form -- sorted, deduplicated, no stored zeros -- is a</span>
+<span class="sd">    precondition, supplied by :func:`_canonical_csr` before every update.</span>
+<span class="sd">    """</span>
+
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"_row_lengths"</span><span class="p">,</span> <span class="s2">"_indices"</span><span class="p">,</span> <span class="s2">"_n_items"</span><span class="p">,</span> <span class="s2">"_n_rows"</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_row_lengths</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">blake2b</span><span class="p">(</span><span class="n">digest_size</span><span class="o">=</span><span class="mi">16</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_indices</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">blake2b</span><span class="p">(</span><span class="n">digest_size</span><span class="o">=</span><span class="mi">16</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_n_items</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_n_rows</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">csr_matrix</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Fold one canonical batch in, in global row order."""</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_items</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_n_items</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">targets</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_row_lengths</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">targets</span><span class="o">.</span><span class="n">indptr</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">"&lt;u8"</span><span class="p">)</span><span class="o">.</span><span class="n">tobytes</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_indices</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">targets</span><span class="o">.</span><span class="n">indices</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">"&lt;i8"</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">tobytes</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_n_rows</span> <span class="o">+=</span> <span class="nb">int</span><span class="p">(</span><span class="n">targets</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">digest</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Hex digest binding both streams to the matrix shape."""</span>
+        <span class="n">final</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">blake2b</span><span class="p">(</span><span class="n">digest_size</span><span class="o">=</span><span class="mi">16</span><span class="p">)</span>
+        <span class="n">final</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_n_items</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">to_bytes</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="s2">"big"</span><span class="p">))</span>
+        <span class="n">final</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_n_rows</span><span class="o">.</span><span class="n">to_bytes</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="s2">"big"</span><span class="p">))</span>
+        <span class="n">final</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_row_lengths</span><span class="o">.</span><span class="n">digest</span><span class="p">())</span>
+        <span class="n">final</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_indices</span><span class="o">.</span><span class="n">digest</span><span class="p">())</span>
+        <span class="k">return</span> <span class="n">final</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="EvaluationResult">
+<a class="viewcode-back" href="../../api/evaluation.html#compresso_recsys.evaluation.EvaluationResult">[docs]</a>
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">eq</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">EvaluationResult</span><span class="p">(</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]):</span>
+<span class="w">    </span><span class="sd">"""Aggregate metrics plus the per-user observations behind them.</span>
+
+<span class="sd">    The mapping view carries the aggregates and ``n_scored_rows``, so existing</span>
+<span class="sd">    code that treats an evaluation as a dictionary keeps working::</span>
+
+<span class="sd">        result["ndcg@20"]</span>
+<span class="sd">        dict(result)</span>
+
+<span class="sd">    Per-user values, sample identifiers and metadata are attributes rather than</span>
+<span class="sd">    mapping keys, because they are large and because a caller reaching for them</span>
+<span class="sd">    is doing something other than reading a headline number.</span>
+
+<span class="sd">    ``per_user`` and ``sample_ids`` are what make paired statistical comparison</span>
+<span class="sd">    possible: two evaluations can only be compared when they refer to the same</span>
+<span class="sd">    evaluation units in the same order.</span>
+<span class="sd">    """</span>
+
+    <span class="n">metrics</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span>
+    <span class="n">per_user</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
+    <span class="n">sample_ids</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span>
+    <span class="n">n_rows</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">n_scored_rows</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">required_k</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">metadata</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>
+    <span class="c1"># ``None`` means debug collection was off; an empty tuple means it was on</span>
+    <span class="c1"># and produced nothing. The mapping exposes ``"debug"`` in the second case</span>
+    <span class="c1"># but not the first, so a caller that asked for debug always finds the key.</span>
+    <span class="n">debug_rows</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="c1"># Identifies the targets these metrics were computed against, so paired</span>
+    <span class="c1"># comparison can refuse two results that scored the same users on different</span>
+    <span class="c1"># relevant items. ``None`` for results built by hand rather than by an</span>
+    <span class="c1"># evaluator; comparison warns rather than failing in that case.</span>
+    <span class="n">target_fingerprint</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"aggregate metric </span><span class="si">{</span><span class="n">key</span><span class="si">!r}</span><span class="s2"> is not finite: </span><span class="si">{</span><span class="n">value</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_rows</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_rows</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_scored_rows</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_scored_rows</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">required_k</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">required_k</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_rows</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"n_rows must be &gt;= 0"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_scored_rows</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_rows</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"n_scored_rows (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_scored_rows</span><span class="si">}</span><span class="s2">) must be in [0, n_rows=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_rows</span><span class="si">}</span><span class="s2">]"</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">required_k</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"required_k must be &gt;= 1"</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">per_user</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_ids</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"sample_ids requires per_user values"</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">per_user</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="p">):</span>
+            <span class="n">missing</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="p">)</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">per_user</span><span class="p">))</span>
+            <span class="n">extra</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">per_user</span><span class="p">)</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="p">))</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">"per_user keys must match metric keys; "</span>
+                <span class="sa">f</span><span class="s2">"missing=</span><span class="si">{</span><span class="n">missing</span><span class="si">}</span><span class="s2">, unexpected=</span><span class="si">{</span><span class="n">extra</span><span class="si">}</span><span class="s2">"</span>
+            <span class="p">)</span>
+        <span class="n">cleaned</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">values</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">per_user</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">array</span> <span class="o">=</span> <span class="n">_owned</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span> <span class="n">values</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">array</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"per_user[</span><span class="si">{</span><span class="n">key</span><span class="si">!r}</span><span class="s2">] must be one-dimensional"</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">array</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_scored_rows</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"per_user[</span><span class="si">{</span><span class="n">key</span><span class="si">!r}</span><span class="s2">] has </span><span class="si">{</span><span class="n">array</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> values, "</span>
+                    <span class="sa">f</span><span class="s2">"expected n_scored_rows=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_scored_rows</span><span class="si">}</span><span class="s2">"</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">array</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"per_user[</span><span class="si">{</span><span class="n">key</span><span class="si">!r}</span><span class="s2">] contains non-finite values"</span><span class="p">)</span>
+            <span class="n">array</span><span class="o">.</span><span class="n">setflags</span><span class="p">(</span><span class="n">write</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">cleaned</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">array</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">per_user</span> <span class="o">=</span> <span class="n">cleaned</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_ids</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"per_user values require sample_ids"</span><span class="p">)</span>
+        <span class="n">ids</span> <span class="o">=</span> <span class="n">_owned</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sample_ids</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_ids</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ids</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"sample_ids must be one-dimensional"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ids</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_scored_rows</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"sample_ids has </span><span class="si">{</span><span class="n">ids</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> values, "</span>
+                <span class="sa">f</span><span class="s2">"expected n_scored_rows=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_scored_rows</span><span class="si">}</span><span class="s2">"</span>
+            <span class="p">)</span>
+        <span class="c1"># Repeated identifiers are legitimate here: the stacked-fold protocol</span>
+        <span class="c1"># in :func:`compresso_recsys.retrieval.build_eval_holdout` evaluates</span>
+        <span class="c1"># each user in several folds, so one user owns several rows. Evaluating</span>
+        <span class="c1"># them is fine; resampling them as independent units is not, which is a</span>
+        <span class="c1"># question for paired comparison rather than for this constructor.</span>
+        <span class="c1">#</span>
+        <span class="c1"># As with the per-user values above: frozen so a later mutation cannot</span>
+        <span class="c1"># silently invalidate the pairing this result was matched on.</span>
+        <span class="n">ids</span><span class="o">.</span><span class="n">setflags</span><span class="p">(</span><span class="n">write</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sample_ids</span> <span class="o">=</span> <span class="n">ids</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_mapping_view</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="n">view</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="p">)</span>
+        <span class="n">view</span><span class="p">[</span><span class="s2">"n_scored_rows"</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_scored_rows</span>
+        <span class="n">view</span><span class="p">[</span><span class="s2">"n_units"</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_units</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug_rows</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">view</span><span class="p">[</span><span class="s2">"debug"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">debug_rows</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">view</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mapping_view</span><span class="p">()[</span><span class="n">key</span><span class="p">]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_mapping_view</span><span class="p">())</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_mapping_view</span><span class="p">())</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="n">collected</span> <span class="o">=</span> <span class="s2">"none"</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">per_user</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">per_user</span><span class="p">)</span><span class="si">}</span><span class="s2"> keys"</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"EvaluationResult(metrics=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="si">!r}</span><span class="s2">, "</span>
+            <span class="sa">f</span><span class="s2">"n_scored_rows=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_scored_rows</span><span class="si">}</span><span class="s2">, n_rows=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_rows</span><span class="si">}</span><span class="s2">, "</span>
+            <span class="sa">f</span><span class="s2">"required_k=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">required_k</span><span class="si">}</span><span class="s2">, per_user=</span><span class="si">{</span><span class="n">collected</span><span class="si">}</span><span class="s2">)"</span>
+        <span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">n_units</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Independent evaluation units behind the scored rows.</span>
+
+<span class="sd">        Distinct ``sample_ids``, which is smaller than ``n_scored_rows`` when a</span>
+<span class="sd">        protocol gives one user several rows -- ``eval_draws`` above 1, say. It</span>
+<span class="sd">        matches :attr:`compresso_recsys.stats.PairwiseComparison.n_units`, the</span>
+<span class="sd">        count paired comparison actually resamples.</span>
+
+<span class="sd">        Without identifiers there is nothing to group by, and every row is its</span>
+<span class="sd">        own unit, which is also what comparison assumes when it numbers rows</span>
+<span class="sd">        positionally.</span>
+<span class="sd">        """</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_ids</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_scored_rows</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sample_ids</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">has_per_user</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Whether per-user observations were collected."""</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">per_user</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="EvaluationResult.to_dict">
+<a class="viewcode-back" href="../../api/evaluation.html#compresso_recsys.evaluation.EvaluationResult.to_dict">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">include_debug</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Return the mapping view as a plain ``dict``.</span>
+
+<span class="sd">        Use this where an actual ``dict`` is required, such as JSON</span>
+<span class="sd">        serialization. Per-user values are deliberately excluded.</span>
+<span class="sd">        """</span>
+        <span class="n">view</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mapping_view</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">include_debug</span><span class="p">:</span>
+            <span class="n">view</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"debug"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">view</span></div>
+</div>
+
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_canonical_csr</span><span class="p">(</span><span class="n">targets</span><span class="p">:</span> <span class="n">csr_matrix</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">csr_matrix</span><span class="p">:</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">isspmatrix_csr</span><span class="p">(</span><span class="n">targets</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;targets must be a scipy.sparse.csr_matrix&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">"targets must be a scipy.sparse.csr_matrix"</span><span class="p">)</span>
     <span class="n">needs_copy</span> <span class="o">=</span> <span class="ow">not</span> <span class="n">targets</span><span class="o">.</span><span class="n">has_canonical_format</span> <span class="ow">or</span> <span class="nb">bool</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">targets</span><span class="o">.</span><span class="n">data</span> <span class="o">==</span> <span class="mi">0</span><span class="p">))</span>
     <span class="n">out</span> <span class="o">=</span> <span class="n">targets</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span> <span class="k">if</span> <span class="n">needs_copy</span> <span class="k">else</span> <span class="n">targets</span>
     <span class="k">if</span> <span class="n">needs_copy</span><span class="p">:</span>
@@ -270,7 +575,7 @@
         <span class="n">out</span><span class="o">.</span><span class="n">eliminate_zeros</span><span class="p">()</span>
         <span class="n">out</span><span class="o">.</span><span class="n">sort_indices</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">out</span><span class="o">.</span><span class="n">indices</span><span class="o">.</span><span class="n">size</span> <span class="ow">and</span> <span class="p">(</span><span class="n">out</span><span class="o">.</span><span class="n">indices</span><span class="o">.</span><span class="n">min</span><span class="p">()</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">out</span><span class="o">.</span><span class="n">indices</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">&gt;=</span> <span class="n">out</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;target item indices are out of bounds&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"target item indices are out of bounds"</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">out</span>
 
 
@@ -300,6 +605,24 @@
     <span class="n">targets</span><span class="o">.</span><span class="n">eliminate_zeros</span><span class="p">()</span>
     <span class="n">targets</span><span class="o">.</span><span class="n">sort_indices</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">targets</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_canonical_sample_ids</span><span class="p">(</span>
+    <span class="n">sample_ids</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">n_rows</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Validate caller-supplied identifiers against the input row count."""</span>
+    <span class="k">if</span> <span class="n">sample_ids</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="n">ids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">sample_ids</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">ids</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"sample_ids must be one-dimensional"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">ids</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">n_rows</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"sample_ids has </span><span class="si">{</span><span class="n">ids</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> values, expected one per input row (</span><span class="si">{</span><span class="n">n_rows</span><span class="si">}</span><span class="s2">)"</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">ids</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_slice_srp_rows</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">SRPTensor</span><span class="p">,</span> <span class="n">start</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">end</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SRPTensor</span><span class="p">:</span>
@@ -375,85 +698,136 @@
     <span class="n">max_dense_cells</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
     <span class="n">selected_backend</span> <span class="o">=</span> <span class="n">backend</span>
-    <span class="k">if</span> <span class="n">backend</span> <span class="o">==</span> <span class="s2">&quot;auto&quot;</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">backend</span> <span class="o">==</span> <span class="s2">"auto"</span><span class="p">:</span>
         <span class="n">selected_backend</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="s2">&quot;dense&quot;</span>
+            <span class="s2">"dense"</span>
             <span class="k">if</span> <span class="n">targets</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">n_items</span> <span class="o">&lt;=</span> <span class="n">max_dense_cells</span>
-            <span class="k">else</span> <span class="s2">&quot;searchsorted&quot;</span>
+            <span class="k">else</span> <span class="s2">"searchsorted"</span>
         <span class="p">)</span>
-    <span class="k">if</span> <span class="n">selected_backend</span> <span class="o">==</span> <span class="s2">&quot;dense&quot;</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">selected_backend</span> <span class="o">==</span> <span class="s2">"dense"</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">_match_dense</span><span class="p">(</span><span class="n">prediction_columns</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">n_items</span><span class="o">=</span><span class="n">n_items</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">selected_backend</span> <span class="o">==</span> <span class="s2">&quot;searchsorted&quot;</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">selected_backend</span> <span class="o">==</span> <span class="s2">"searchsorted"</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">_match_searchsorted</span><span class="p">(</span><span class="n">prediction_columns</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">n_items</span><span class="o">=</span><span class="n">n_items</span><span class="p">)</span>
-    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;unknown match_backend: </span><span class="si">{</span><span class="n">backend</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"unknown match_backend: </span><span class="si">{</span><span class="n">backend</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="RankingEvaluator">
 <a class="viewcode-back" href="../../api/evaluation.html#compresso_recsys.evaluation.RankingEvaluator">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">RankingEvaluator</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Stream ranked SRP predictions against variable-length CSR targets.</span>
+<span class="w">    </span><span class="sd">"""Stream ranked SRP predictions against variable-length CSR targets.</span>
 
 <span class="sd">    The evaluator matches each prediction batch to its target CSR rows once</span>
 <span class="sd">    and sends the resulting :class:`~compresso_recsys.metrics.RankingBatch` to</span>
 <span class="sd">    every metric. ``auto`` matching uses a dense boolean target mask for small</span>
 <span class="sd">    batches and composite-key ``torch.searchsorted`` matching for larger item</span>
 <span class="sd">    spaces.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">metrics</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">RankingMetric</span><span class="p">],</span>
         <span class="o">*</span><span class="p">,</span>
-        <span class="n">match_backend</span><span class="p">:</span> <span class="n">MatchBackend</span> <span class="o">=</span> <span class="s2">&quot;auto&quot;</span><span class="p">,</span>
+        <span class="n">match_backend</span><span class="p">:</span> <span class="n">MatchBackend</span> <span class="o">=</span> <span class="s2">"auto"</span><span class="p">,</span>
         <span class="n">max_dense_cells</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">20_000_000</span><span class="p">,</span>
         <span class="n">validate_predictions</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">collect_per_user</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">metadata</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">debug</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">debug_users</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">metrics</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;metrics must contain at least one RankingMetric&quot;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">match_backend</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;auto&quot;</span><span class="p">,</span> <span class="s2">&quot;dense&quot;</span><span class="p">,</span> <span class="s2">&quot;searchsorted&quot;</span><span class="p">}:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;unknown match_backend: </span><span class="si">{</span><span class="n">match_backend</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"metrics must contain at least one RankingMetric"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">match_backend</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">"auto"</span><span class="p">,</span> <span class="s2">"dense"</span><span class="p">,</span> <span class="s2">"searchsorted"</span><span class="p">}:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"unknown match_backend: </span><span class="si">{</span><span class="n">match_backend</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">max_dense_cells</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;max_dense_cells must be &gt;= 1&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"max_dense_cells must be &gt;= 1"</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">debug_users</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;debug_users must be &gt;= 0&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"debug_users must be &gt;= 0"</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">metrics</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">match_backend</span> <span class="o">=</span> <span class="n">match_backend</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">max_dense_cells</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">max_dense_cells</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">validate_predictions</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">validate_predictions</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">collect_per_user</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">collect_per_user</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">metadata</span><span class="p">)</span> <span class="k">if</span> <span class="n">metadata</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">debug</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">debug_users</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">debug_users</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">required_k</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">metric</span><span class="o">.</span><span class="n">required_k</span> <span class="k">for</span> <span class="n">metric</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="p">)</span>
 
         <span class="n">keys</span> <span class="o">=</span> <span class="p">[</span><span class="n">key</span> <span class="k">for</span> <span class="n">metric</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">metric</span><span class="o">.</span><span class="n">result_keys</span><span class="p">]</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">keys</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">keys</span><span class="p">)):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;metrics must produce unique result keys&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"metrics must produce unique result keys"</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">for</span> <span class="n">metric</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="p">:</span>
             <span class="n">metric</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_n_eval_users</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_n_scored_rows</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_rows_seen</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_debug_rows</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_value_chunks</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_id_chunks</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fingerprint</span> <span class="o">=</span> <span class="n">_TargetFingerprint</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_validate_metric_values</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">metric</span><span class="p">:</span> <span class="n">RankingMetric</span><span class="p">,</span>
+        <span class="n">values</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">rows</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">valid</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Check the per-row tensor a metric returned under the update contract."""</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">metric</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">.update must return a torch.Tensor of per-row values when "</span>
+                <span class="sa">f</span><span class="s2">"collect_per_user is enabled, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">values</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">"</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">values</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">.update must return a 2D tensor, got </span><span class="si">{</span><span class="n">values</span><span class="o">.</span><span class="n">ndim</span><span class="si">}</span><span class="s2">D"</span><span class="p">)</span>
+        <span class="n">expected</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">metric</span><span class="o">.</span><span class="n">result_keys</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">values</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">expected</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">.update must return shape (</span><span class="si">{</span><span class="n">rows</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">expected</span><span class="si">}</span><span class="s2">), "</span>
+                <span class="sa">f</span><span class="s2">"got </span><span class="si">{</span><span class="nb">tuple</span><span class="p">(</span><span class="n">values</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">values</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">is_floating_point</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">.update must return a floating-point tensor"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">bool</span><span class="p">(</span><span class="n">valid</span><span class="o">.</span><span class="n">any</span><span class="p">())</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">bool</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">values</span><span class="p">[</span><span class="n">valid</span><span class="p">])</span><span class="o">.</span><span class="n">all</span><span class="p">()):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">.update returned non-finite values for evaluable rows"</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">values</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_collect</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">metric</span><span class="p">:</span> <span class="n">RankingMetric</span><span class="p">,</span>
+        <span class="n">values</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">valid</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Retain the evaluable rows of one metric's per-row values."""</span>
+        <span class="c1"># Host first, then cast: see the note in _MeanAtCutoffsMetric.update.</span>
+        <span class="n">kept</span> <span class="o">=</span> <span class="n">values</span><span class="p">[</span><span class="n">valid</span><span class="p">]</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">array</span> <span class="o">=</span> <span class="n">kept</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">column</span><span class="p">,</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">metric</span><span class="o">.</span><span class="n">result_keys</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_value_chunks</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="p">[])</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">array</span><span class="p">[:,</span> <span class="n">column</span><span class="p">])</span>
+            <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_validate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">predictions</span><span class="p">:</span> <span class="n">SRPTensor</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">csr_matrix</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">predictions</span><span class="o">.</span><span class="n">rows</span> <span class="o">!=</span> <span class="n">targets</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;prediction rows (</span><span class="si">{</span><span class="n">predictions</span><span class="o">.</span><span class="n">rows</span><span class="si">}</span><span class="s2">) must match target rows (</span><span class="si">{</span><span class="n">targets</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">)&quot;</span>
+                <span class="sa">f</span><span class="s2">"prediction rows (</span><span class="si">{</span><span class="n">predictions</span><span class="o">.</span><span class="n">rows</span><span class="si">}</span><span class="s2">) must match target rows (</span><span class="si">{</span><span class="n">targets</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">)"</span>
             <span class="p">)</span>
         <span class="k">if</span> <span class="n">predictions</span><span class="o">.</span><span class="n">cols_total</span> <span class="o">!=</span> <span class="n">targets</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;prediction items (</span><span class="si">{</span><span class="n">predictions</span><span class="o">.</span><span class="n">cols_total</span><span class="si">}</span><span class="s2">) must match target items (</span><span class="si">{</span><span class="n">targets</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">)&quot;</span>
+                <span class="sa">f</span><span class="s2">"prediction items (</span><span class="si">{</span><span class="n">predictions</span><span class="o">.</span><span class="n">cols_total</span><span class="si">}</span><span class="s2">) must match target items (</span><span class="si">{</span><span class="n">targets</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">)"</span>
             <span class="p">)</span>
         <span class="k">if</span> <span class="n">predictions</span><span class="o">.</span><span class="n">k</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">required_k</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;predictions contain top-</span><span class="si">{</span><span class="n">predictions</span><span class="o">.</span><span class="n">k</span><span class="si">}</span><span class="s2">, but metrics require top-</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">required_k</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="sa">f</span><span class="s2">"predictions contain top-</span><span class="si">{</span><span class="n">predictions</span><span class="o">.</span><span class="n">k</span><span class="si">}</span><span class="s2">, but metrics require top-</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">required_k</span><span class="si">}</span><span class="s2">"</span>
             <span class="p">)</span>
         <span class="k">if</span> <span class="n">predictions</span><span class="o">.</span><span class="n">cols</span><span class="o">.</span><span class="n">device</span> <span class="o">!=</span> <span class="n">predictions</span><span class="o">.</span><span class="n">vals</span><span class="o">.</span><span class="n">device</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;prediction columns and scores must be on the same device&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"prediction columns and scores must be on the same device"</span><span class="p">)</span>
         <span class="n">ranked_columns</span> <span class="o">=</span> <span class="n">predictions</span><span class="o">.</span><span class="n">cols</span><span class="p">[:,</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">required_k</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">ranked_columns</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">return</span>
@@ -461,15 +835,15 @@
             <span class="nb">int</span><span class="p">(</span><span class="n">ranked_columns</span><span class="o">.</span><span class="n">min</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">())</span> <span class="o">&lt;</span> <span class="mi">0</span>
             <span class="ow">or</span> <span class="nb">int</span><span class="p">(</span><span class="n">ranked_columns</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">())</span> <span class="o">&gt;=</span> <span class="n">predictions</span><span class="o">.</span><span class="n">cols_total</span>
         <span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;prediction item indices are out of bounds&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"prediction item indices are out of bounds"</span><span class="p">)</span>
         <span class="n">sorted_columns</span> <span class="o">=</span> <span class="n">ranked_columns</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">values</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">required_k</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="nb">bool</span><span class="p">((</span><span class="n">sorted_columns</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">==</span> <span class="n">sorted_columns</span><span class="p">[:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">any</span><span class="p">()):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;predictions must not contain duplicate items within a row&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"predictions must not contain duplicate items within a row"</span><span class="p">)</span>
         <span class="n">ranked_values</span> <span class="o">=</span> <span class="n">predictions</span><span class="o">.</span><span class="n">vals</span><span class="p">[:,</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">required_k</span><span class="p">]</span>
         <span class="k">if</span> <span class="nb">bool</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">ranked_values</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">()):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;prediction scores must not contain NaN&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"prediction scores must not contain NaN"</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">required_k</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="nb">bool</span><span class="p">((</span><span class="n">ranked_values</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">&gt;</span> <span class="n">ranked_values</span><span class="p">[:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">any</span><span class="p">()):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;prediction scores must be ordered from highest to lowest&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"prediction scores must be ordered from highest to lowest"</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_collect_debug</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">:</span> <span class="n">RankingBatch</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rows_seen</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug_users</span><span class="p">:</span>
@@ -492,27 +866,34 @@
             <span class="n">idcg</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">ideal_curve</span><span class="p">[</span><span class="n">ideal_len</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_debug_rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
                 <span class="p">{</span>
-                    <span class="s2">&quot;user_row&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rows_seen</span> <span class="o">+</span> <span class="n">row</span><span class="p">,</span>
-                    <span class="s2">&quot;n_true&quot;</span><span class="p">:</span> <span class="n">n_true</span><span class="p">,</span>
-                    <span class="s2">&quot;n_hits_topk&quot;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">hit_ranks</span><span class="p">),</span>
-                    <span class="s2">&quot;first_hit_rank&quot;</span><span class="p">:</span> <span class="n">hit_ranks</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">hit_ranks</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
-                    <span class="s2">&quot;hit_ranks&quot;</span><span class="p">:</span> <span class="n">hit_ranks</span><span class="p">,</span>
-                    <span class="s2">&quot;dcg&quot;</span><span class="p">:</span> <span class="n">dcg</span><span class="p">,</span>
-                    <span class="s2">&quot;idcg&quot;</span><span class="p">:</span> <span class="n">idcg</span><span class="p">,</span>
-                    <span class="s2">&quot;ndcg&quot;</span><span class="p">:</span> <span class="n">dcg</span> <span class="o">/</span> <span class="n">idcg</span> <span class="k">if</span> <span class="n">idcg</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mf">0.0</span><span class="p">,</span>
+                    <span class="s2">"user_row"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rows_seen</span> <span class="o">+</span> <span class="n">row</span><span class="p">,</span>
+                    <span class="s2">"n_true"</span><span class="p">:</span> <span class="n">n_true</span><span class="p">,</span>
+                    <span class="s2">"n_hits_topk"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">hit_ranks</span><span class="p">),</span>
+                    <span class="s2">"first_hit_rank"</span><span class="p">:</span> <span class="n">hit_ranks</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">hit_ranks</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                    <span class="s2">"hit_ranks"</span><span class="p">:</span> <span class="n">hit_ranks</span><span class="p">,</span>
+                    <span class="s2">"dcg"</span><span class="p">:</span> <span class="n">dcg</span><span class="p">,</span>
+                    <span class="s2">"idcg"</span><span class="p">:</span> <span class="n">idcg</span><span class="p">,</span>
+                    <span class="s2">"ndcg"</span><span class="p">:</span> <span class="n">dcg</span> <span class="o">/</span> <span class="n">idcg</span> <span class="k">if</span> <span class="n">idcg</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mf">0.0</span><span class="p">,</span>
                 <span class="p">}</span>
             <span class="p">)</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">predictions</span><span class="p">:</span> <span class="n">SRPTensor</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">csr_matrix</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">predictions</span><span class="p">:</span> <span class="n">SRPTensor</span><span class="p">,</span>
+        <span class="n">targets</span><span class="p">:</span> <span class="n">csr_matrix</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">sample_ids</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">targets</span> <span class="o">=</span> <span class="n">_canonical_csr</span><span class="p">(</span><span class="n">targets</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fingerprint</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">targets</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">validate_predictions</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_validate</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">predictions</span><span class="o">.</span><span class="n">rows</span> <span class="o">!=</span> <span class="n">targets</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">or</span> <span class="n">predictions</span><span class="o">.</span><span class="n">cols_total</span> <span class="o">!=</span> <span class="n">targets</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;prediction and target shapes must match&quot;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"prediction and target shapes must match"</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">predictions</span><span class="o">.</span><span class="n">k</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">required_k</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;predictions contain top-</span><span class="si">{</span><span class="n">predictions</span><span class="o">.</span><span class="n">k</span><span class="si">}</span><span class="s2">, but metrics require top-</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">required_k</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="sa">f</span><span class="s2">"predictions contain top-</span><span class="si">{</span><span class="n">predictions</span><span class="o">.</span><span class="n">k</span><span class="si">}</span><span class="s2">, but metrics require top-</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">required_k</span><span class="si">}</span><span class="s2">"</span>
                 <span class="p">)</span>
 
         <span class="n">ranked_columns</span> <span class="o">=</span> <span class="n">predictions</span><span class="o">.</span><span class="n">cols</span><span class="p">[:,</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">required_k</span><span class="p">]</span>
@@ -528,20 +909,69 @@
             <span class="n">hits</span><span class="o">=</span><span class="n">hits</span><span class="p">,</span>
             <span class="n">target_counts</span><span class="o">=</span><span class="n">target_counts</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="k">for</span> <span class="n">metric</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="p">:</span>
-            <span class="n">metric</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_collect_debug</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_n_eval_users</span> <span class="o">+=</span> <span class="nb">int</span><span class="p">((</span><span class="n">target_counts</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_rows_seen</span> <span class="o">+=</span> <span class="n">predictions</span><span class="o">.</span><span class="n">rows</span>
+        <span class="n">rows</span> <span class="o">=</span> <span class="n">predictions</span><span class="o">.</span><span class="n">rows</span>
+        <span class="n">valid</span> <span class="o">=</span> <span class="n">target_counts</span> <span class="o">&gt;</span> <span class="mi">0</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-        <span class="n">out</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="n">sample_ids</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">batch_ids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_rows_seen</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rows_seen</span> <span class="o">+</span> <span class="n">rows</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">batch_ids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">sample_ids</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">batch_ids</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"sample_ids must be one-dimensional"</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">batch_ids</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">rows</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"sample_ids has </span><span class="si">{</span><span class="n">batch_ids</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> values, "</span>
+                    <span class="sa">f</span><span class="s2">"expected one per prediction row (</span><span class="si">{</span><span class="n">rows</span><span class="si">}</span><span class="s2">)"</span>
+                <span class="p">)</span>
+
         <span class="k">for</span> <span class="n">metric</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="p">:</span>
-            <span class="n">out</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">metric</span><span class="o">.</span><span class="n">compute</span><span class="p">())</span>
-        <span class="n">out</span><span class="p">[</span><span class="s2">&quot;n_eval_users&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_n_eval_users</span><span class="p">)</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span><span class="p">:</span>
-            <span class="n">out</span><span class="p">[</span><span class="s2">&quot;debug&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_debug_rows</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">out</span></div>
+            <span class="n">values</span> <span class="o">=</span> <span class="n">metric</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">collect_per_user</span><span class="p">:</span>
+                <span class="n">values</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_validate_metric_values</span><span class="p">(</span>
+                    <span class="n">metric</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">rows</span><span class="o">=</span><span class="n">rows</span><span class="p">,</span> <span class="n">valid</span><span class="o">=</span><span class="n">valid</span>
+                <span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_collect</span><span class="p">(</span><span class="n">metric</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">valid</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">collect_per_user</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_id_chunks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">batch_ids</span><span class="p">[</span><span class="n">valid</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()])</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_collect_debug</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_n_scored_rows</span> <span class="o">+=</span> <span class="nb">int</span><span class="p">(</span><span class="n">valid</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_rows_seen</span> <span class="o">+=</span> <span class="n">rows</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EvaluationResult</span><span class="p">:</span>
+        <span class="n">metrics</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">metric</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="p">:</span>
+            <span class="n">metrics</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">metric</span><span class="o">.</span><span class="n">compute</span><span class="p">())</span>
+
+        <span class="n">per_user</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">sample_ids</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">collect_per_user</span><span class="p">:</span>
+            <span class="n">per_user</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="n">key</span><span class="p">:</span> <span class="p">(</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_value_chunks</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_value_chunks</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+                    <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">metrics</span>
+            <span class="p">}</span>
+            <span class="n">sample_ids</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_id_chunks</span><span class="p">)</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_id_chunks</span>
+                <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">EvaluationResult</span><span class="p">(</span>
+            <span class="n">metrics</span><span class="o">=</span><span class="n">metrics</span><span class="p">,</span>
+            <span class="n">per_user</span><span class="o">=</span><span class="n">per_user</span><span class="p">,</span>
+            <span class="n">sample_ids</span><span class="o">=</span><span class="n">sample_ids</span><span class="p">,</span>
+            <span class="n">n_rows</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_rows_seen</span><span class="p">,</span>
+            <span class="n">n_scored_rows</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_n_scored_rows</span><span class="p">,</span>
+            <span class="n">required_k</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">required_k</span><span class="p">,</span>
+            <span class="n">metadata</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="p">),</span>
+            <span class="n">debug_rows</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_debug_rows</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">target_fingerprint</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_fingerprint</span><span class="o">.</span><span class="n">digest</span><span class="p">(),</span>
+        <span class="p">)</span></div>
 
 
 
@@ -552,14 +982,17 @@
     <span class="n">predictions</span><span class="p">:</span> <span class="n">SRPTensor</span><span class="p">,</span>
     <span class="n">targets</span><span class="p">:</span> <span class="n">csr_matrix</span><span class="p">,</span>
     <span class="n">metrics</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">RankingMetric</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">sample_ids</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">collect_per_user</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">metadata</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4096</span><span class="p">,</span>
-    <span class="n">match_backend</span><span class="p">:</span> <span class="n">MatchBackend</span> <span class="o">=</span> <span class="s2">&quot;auto&quot;</span><span class="p">,</span>
+    <span class="n">match_backend</span><span class="p">:</span> <span class="n">MatchBackend</span> <span class="o">=</span> <span class="s2">"auto"</span><span class="p">,</span>
     <span class="n">max_dense_cells</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">20_000_000</span><span class="p">,</span>
     <span class="n">validate_predictions</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">debug</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">debug_users</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Evaluate ranked top-k SRP predictions against binary CSR targets.</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EvaluationResult</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Evaluate ranked top-k SRP predictions against binary CSR targets.</span>
 
 <span class="sd">    Prediction columns must be unique within each row and ordered by</span>
 <span class="sd">    descending prediction score. Target values are interpreted as binary</span>
@@ -568,17 +1001,17 @@
 <span class="sd">    When ``metrics`` is omitted, calibrated recall and nDCG are calculated at</span>
 <span class="sd">    the full prediction width. Use :class:`RankingEvaluator` directly when</span>
 <span class="sd">    predictions are generated one batch at a time.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">if</span> <span class="n">batch_size</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;batch_size must be &gt;= 1&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"batch_size must be &gt;= 1"</span><span class="p">)</span>
     <span class="n">targets</span> <span class="o">=</span> <span class="n">_canonical_csr</span><span class="p">(</span><span class="n">targets</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">predictions</span><span class="o">.</span><span class="n">rows</span> <span class="o">!=</span> <span class="n">targets</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;prediction rows (</span><span class="si">{</span><span class="n">predictions</span><span class="o">.</span><span class="n">rows</span><span class="si">}</span><span class="s2">) must match target rows (</span><span class="si">{</span><span class="n">targets</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">)&quot;</span>
+            <span class="sa">f</span><span class="s2">"prediction rows (</span><span class="si">{</span><span class="n">predictions</span><span class="o">.</span><span class="n">rows</span><span class="si">}</span><span class="s2">) must match target rows (</span><span class="si">{</span><span class="n">targets</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">)"</span>
         <span class="p">)</span>
     <span class="k">if</span> <span class="n">predictions</span><span class="o">.</span><span class="n">cols_total</span> <span class="o">!=</span> <span class="n">targets</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;prediction items (</span><span class="si">{</span><span class="n">predictions</span><span class="o">.</span><span class="n">cols_total</span><span class="si">}</span><span class="s2">) must match target items (</span><span class="si">{</span><span class="n">targets</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">)&quot;</span>
+            <span class="sa">f</span><span class="s2">"prediction items (</span><span class="si">{</span><span class="n">predictions</span><span class="o">.</span><span class="n">cols_total</span><span class="si">}</span><span class="s2">) must match target items (</span><span class="si">{</span><span class="n">targets</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">)"</span>
         <span class="p">)</span>
     <span class="n">resolved_metrics</span> <span class="o">=</span> <span class="p">(</span>
         <span class="nb">list</span><span class="p">(</span><span class="n">metrics</span><span class="p">)</span>
@@ -590,21 +1023,25 @@
         <span class="n">match_backend</span><span class="o">=</span><span class="n">match_backend</span><span class="p">,</span>
         <span class="n">max_dense_cells</span><span class="o">=</span><span class="n">max_dense_cells</span><span class="p">,</span>
         <span class="n">validate_predictions</span><span class="o">=</span><span class="n">validate_predictions</span><span class="p">,</span>
+        <span class="n">collect_per_user</span><span class="o">=</span><span class="n">collect_per_user</span><span class="p">,</span>
+        <span class="n">metadata</span><span class="o">=</span><span class="n">metadata</span><span class="p">,</span>
         <span class="n">debug</span><span class="o">=</span><span class="n">debug</span><span class="p">,</span>
         <span class="n">debug_users</span><span class="o">=</span><span class="n">debug_users</span><span class="p">,</span>
     <span class="p">)</span>
+    <span class="n">resolved_ids</span> <span class="o">=</span> <span class="n">_canonical_sample_ids</span><span class="p">(</span><span class="n">sample_ids</span><span class="p">,</span> <span class="n">n_rows</span><span class="o">=</span><span class="n">predictions</span><span class="o">.</span><span class="n">rows</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">predictions</span><span class="o">.</span><span class="n">k</span> <span class="o">&lt;</span> <span class="n">evaluator</span><span class="o">.</span><span class="n">required_k</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;predictions contain top-</span><span class="si">{</span><span class="n">predictions</span><span class="o">.</span><span class="n">k</span><span class="si">}</span><span class="s2">, &quot;</span>
-            <span class="sa">f</span><span class="s2">&quot;but metrics require top-</span><span class="si">{</span><span class="n">evaluator</span><span class="o">.</span><span class="n">required_k</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">"predictions contain top-</span><span class="si">{</span><span class="n">predictions</span><span class="o">.</span><span class="n">k</span><span class="si">}</span><span class="s2">, "</span>
+            <span class="sa">f</span><span class="s2">"but metrics require top-</span><span class="si">{</span><span class="n">evaluator</span><span class="o">.</span><span class="n">required_k</span><span class="si">}</span><span class="s2">"</span>
         <span class="p">)</span>
     <span class="k">if</span> <span class="n">predictions</span><span class="o">.</span><span class="n">cols</span><span class="o">.</span><span class="n">device</span> <span class="o">!=</span> <span class="n">predictions</span><span class="o">.</span><span class="n">vals</span><span class="o">.</span><span class="n">device</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;prediction columns and scores must be on the same device&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"prediction columns and scores must be on the same device"</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">start</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">predictions</span><span class="o">.</span><span class="n">rows</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>
         <span class="n">end</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">start</span> <span class="o">+</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">predictions</span><span class="o">.</span><span class="n">rows</span><span class="p">)</span>
         <span class="n">evaluator</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
             <span class="n">_slice_srp_rows</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">),</span>
             <span class="n">targets</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">],</span>
+            <span class="n">sample_ids</span><span class="o">=</span><span class="kc">None</span> <span class="k">if</span> <span class="n">resolved_ids</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">resolved_ids</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">],</span>
         <span class="p">)</span>
     <span class="k">return</span> <span class="n">evaluator</span><span class="o">.</span><span class="n">compute</span><span class="p">()</span></div>
 
@@ -618,55 +1055,65 @@
     <span class="n">source</span><span class="p">:</span> <span class="n">csr_matrix</span><span class="p">,</span>
     <span class="n">targets</span><span class="p">:</span> <span class="n">csr_matrix</span><span class="p">,</span>
     <span class="n">metrics</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">RankingMetric</span><span class="p">],</span>
+    <span class="n">sample_ids</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">collect_per_user</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">metadata</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1024</span><span class="p">,</span>
-    <span class="n">match_backend</span><span class="p">:</span> <span class="n">MatchBackend</span> <span class="o">=</span> <span class="s2">&quot;auto&quot;</span><span class="p">,</span>
+    <span class="n">match_backend</span><span class="p">:</span> <span class="n">MatchBackend</span> <span class="o">=</span> <span class="s2">"auto"</span><span class="p">,</span>
     <span class="n">max_dense_cells</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">20_000_000</span><span class="p">,</span>
     <span class="n">validate_predictions</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">debug</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">debug_users</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
     <span class="n">show_progress</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Evaluate a recommender without retaining predictions between batches.</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EvaluationResult</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Evaluate a recommender without retaining predictions between batches.</span>
 
-<span class="sd">    The largest metric cutoff determines the ``k`` passed to the model&#39;s</span>
+<span class="sd">    The largest metric cutoff determines the ``k`` passed to the model's</span>
 <span class="sd">    ``predict_on_batch`` method. Source and target rows are sliced together,</span>
 <span class="sd">    and each prediction batch is immediately sent to :class:`RankingEvaluator`.</span>
 <span class="sd">    Source and target column counts may differ: source columns describe the</span>
-<span class="sd">    model&#39;s history vocabulary, while target columns describe its candidates.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    model's history vocabulary, while target columns describe its candidates.</span>
+<span class="sd">    """</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">Recommender</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;model must implement predict_on_batch(source, *, k)&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">"model must implement predict_on_batch(source, *, k)"</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">isspmatrix_csr</span><span class="p">(</span><span class="n">source</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;source must be a scipy.sparse.csr_matrix&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">"source must be a scipy.sparse.csr_matrix"</span><span class="p">)</span>
     <span class="n">targets</span> <span class="o">=</span> <span class="n">_canonical_csr</span><span class="p">(</span><span class="n">targets</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">targets</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;source rows (</span><span class="si">{</span><span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">) must match target rows &quot;</span>
-            <span class="sa">f</span><span class="s2">&quot;(</span><span class="si">{</span><span class="n">targets</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">)&quot;</span>
+            <span class="sa">f</span><span class="s2">"source rows (</span><span class="si">{</span><span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">) must match target rows "</span>
+            <span class="sa">f</span><span class="s2">"(</span><span class="si">{</span><span class="n">targets</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">)"</span>
         <span class="p">)</span>
     <span class="k">if</span> <span class="n">batch_size</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;batch_size must be &gt;= 1&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"batch_size must be &gt;= 1"</span><span class="p">)</span>
 
     <span class="n">evaluator</span> <span class="o">=</span> <span class="n">RankingEvaluator</span><span class="p">(</span>
         <span class="n">metrics</span><span class="p">,</span>
         <span class="n">match_backend</span><span class="o">=</span><span class="n">match_backend</span><span class="p">,</span>
         <span class="n">max_dense_cells</span><span class="o">=</span><span class="n">max_dense_cells</span><span class="p">,</span>
         <span class="n">validate_predictions</span><span class="o">=</span><span class="n">validate_predictions</span><span class="p">,</span>
+        <span class="n">collect_per_user</span><span class="o">=</span><span class="n">collect_per_user</span><span class="p">,</span>
+        <span class="n">metadata</span><span class="o">=</span><span class="n">metadata</span><span class="p">,</span>
         <span class="n">debug</span><span class="o">=</span><span class="n">debug</span><span class="p">,</span>
         <span class="n">debug_users</span><span class="o">=</span><span class="n">debug_users</span><span class="p">,</span>
     <span class="p">)</span>
+    <span class="n">resolved_ids</span> <span class="o">=</span> <span class="n">_canonical_sample_ids</span><span class="p">(</span><span class="n">sample_ids</span><span class="p">,</span> <span class="n">n_rows</span><span class="o">=</span><span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
     <span class="n">starts</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">batch_size</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">start</span> <span class="ow">in</span> <span class="n">_progress</span><span class="p">(</span>
         <span class="n">starts</span><span class="p">,</span>
         <span class="n">enabled</span><span class="o">=</span><span class="n">show_progress</span><span class="p">,</span>
-        <span class="n">desc</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;evaluate recommender@</span><span class="si">{</span><span class="n">evaluator</span><span class="o">.</span><span class="n">required_k</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+        <span class="n">desc</span><span class="o">=</span><span class="sa">f</span><span class="s2">"evaluate recommender@</span><span class="si">{</span><span class="n">evaluator</span><span class="o">.</span><span class="n">required_k</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="n">end</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">start</span> <span class="o">+</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
         <span class="n">predictions</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict_on_batch</span><span class="p">(</span>
             <span class="n">source</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">],</span>
             <span class="n">k</span><span class="o">=</span><span class="n">evaluator</span><span class="o">.</span><span class="n">required_k</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="n">evaluator</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">])</span>
+        <span class="n">evaluator</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+            <span class="n">predictions</span><span class="p">,</span>
+            <span class="n">targets</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">],</span>
+            <span class="n">sample_ids</span><span class="o">=</span><span class="kc">None</span> <span class="k">if</span> <span class="n">resolved_ids</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">resolved_ids</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">],</span>
+        <span class="p">)</span>
     <span class="k">return</span> <span class="n">evaluator</span><span class="o">.</span><span class="n">compute</span><span class="p">()</span></div>
 
 </pre></div>

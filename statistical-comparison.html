@@ -1,0 +1,1254 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Comparing Models Statistically &mdash; Compresso Recsys 0.2.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=938c9ccc"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Citing Compresso Recsys" href="citing.html" />
+    <link rel="prev" title="Examples" href="examples.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Compresso Recsys
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#install-from-pypi">Install from PyPI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#optional-extras">Optional Extras</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#local-development">Local Development</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#install-from-github">Install from GitHub</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#build-the-documentation-locally">Build the Documentation Locally</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="getting-started.html">Getting Started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="getting-started.html#basic-python-usage">Basic Python Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started.html#checkpoint-workflow">Checkpoint Workflow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started.html#what-goes-into-a-checkpoint">What Goes Into a Checkpoint</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started.html#split-modes">Split Modes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started.html#retrieval-metrics">Retrieval Metrics</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#choose-a-split-mode">Choose a Split Mode</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#dataset-loader">Dataset Loader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#building-checkpoints">Building Checkpoints</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#checkpoint-read-write">Checkpoint Read/Write</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#evaluate-embeddings-from-python">Evaluate Embeddings From Python</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#evaluate-model-predictions">Evaluate Model Predictions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#train-teaser-for-cold-items">Train TEASER for Cold Items</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#train-teaser-with-gradient-descent">Train TEASER with Gradient Descent</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#serve-new-teaser-candidates">Serve New TEASER Candidates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#train-and-evaluate-elsa">Train and Evaluate ELSA</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Comparing Models Statistically</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#why-the-aggregates-are-not-enough">Why the aggregates are not enough</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#do-the-comparison">Do the comparison</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#a-complete-worked-example">A complete worked example</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#build-the-split">Build the split</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#train-both-models">Train both models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#evaluate-both-on-identical-users">Evaluate both on identical users</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#compare">Compare</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#reading-it">Reading it</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#reading-the-output">Reading the output</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#the-effect">The effect</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#how-precisely-you-know-it">How precisely you know it</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#how-often-the-two-models-tied">How often the two models tied</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#whether-it-could-be-chance">Whether it could be chance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#the-verdict">The verdict</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#five-traps">Five traps</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#p-values-have-a-floor">p-values have a floor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ties-are-not-missing-data">Ties are not missing data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#the-interval-and-the-p-value-can-disagree">The interval and the p-value can disagree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#confidence-level-also-moves-the-significance-bar"><code class="docutils literal notranslate"><span class="pre">confidence_level</span></code> also moves the significance bar</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#one-trained-model-is-not-the-method">One trained model is not the method</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#choosing-the-settings">Choosing the settings</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#n-resamples"><code class="docutils literal notranslate"><span class="pre">n_resamples</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#test-method"><code class="docutils literal notranslate"><span class="pre">test_method</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#test-method-why-not-a-t-test"><code class="docutils literal notranslate"><span class="pre">test_method</span></code>: why not a t-test?</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#alternative"><code class="docutils literal notranslate"><span class="pre">alternative</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#correction"><code class="docutils literal notranslate"><span class="pre">correction</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#when-one-user-owns-several-rows">When one user owns several rows</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#what-the-methods-do-formally">What the methods do, formally</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#reporting-the-result">Reporting the result</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#methods">Methods</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#results">Results</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#checklist">Checklist</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#references">References</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#see-also">See also</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="citing.html">Citing Compresso Recsys</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#compresso">Compresso</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#ease">EASE</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#teaser">TEASER</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#elsa">ELSA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#elsa-with-sampled-output-candidates">ELSA with sampled output candidates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#compressed-elsa">Compressed ELSA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#evaluation-protocol">Evaluation Protocol</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#statistical-comparison">Statistical Comparison</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="cli-reference.html">Checkpoint CLI Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="cli-reference.html#amazon-reviews-2023">Amazon Reviews 2023</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cli-reference.html#leave-last-out-checkpoint">Leave-Last-Out Checkpoint</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cli-reference.html#temporal-checkpoint">Temporal Checkpoint</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cli-reference.html#checkpoint-split-schema">Checkpoint Split Schema</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cli-reference.html#builder-parameters">Builder Parameters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cli-reference.html#supported-amazon-reviews-2023-datasets">Supported Amazon Reviews 2023 Datasets</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="api/index.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/compresso_recsys.html">Core API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/compresso_recsys.html#datasets">Datasets</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.SplitBundle"><code class="docutils literal notranslate"><span class="pre">SplitBundle</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.RecSysDataset"><code class="docutils literal notranslate"><span class="pre">RecSysDataset</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.Goodbooks"><code class="docutils literal notranslate"><span class="pre">Goodbooks</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.MovieLens1M"><code class="docutils literal notranslate"><span class="pre">MovieLens1M</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.MovieLens20M"><code class="docutils literal notranslate"><span class="pre">MovieLens20M</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.AmazonReviews2023"><code class="docutils literal notranslate"><span class="pre">AmazonReviews2023</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/compresso_recsys.html#checkpoint-helpers">Checkpoint Helpers</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.build_recsys_checkpoint"><code class="docutils literal notranslate"><span class="pre">build_recsys_checkpoint()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.update_checkpoint"><code class="docutils literal notranslate"><span class="pre">update_checkpoint()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.read_checkpoint"><code class="docutils literal notranslate"><span class="pre">read_checkpoint()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.load_manifest"><code class="docutils literal notranslate"><span class="pre">load_manifest()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.save_manifest"><code class="docutils literal notranslate"><span class="pre">save_manifest()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.update_stage_manifest"><code class="docutils literal notranslate"><span class="pre">update_stage_manifest()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.save_json"><code class="docutils literal notranslate"><span class="pre">save_json()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.load_json"><code class="docutils literal notranslate"><span class="pre">load_json()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.save_recsys_split"><code class="docutils literal notranslate"><span class="pre">save_recsys_split()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.load_recsys_split"><code class="docutils literal notranslate"><span class="pre">load_recsys_split()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.save_cluster_graph_stage"><code class="docutils literal notranslate"><span class="pre">save_cluster_graph_stage()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.load_cluster_graph_stage"><code class="docutils literal notranslate"><span class="pre">load_cluster_graph_stage()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api/datasets.html">Datasets API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/checkpoint.html">Checkpoint API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/checkpoint.html#checkpoint-contexts">Checkpoint Contexts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/checkpoint.html#manifest-and-json-helpers">Manifest and JSON Helpers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/checkpoint.html#split-and-cluster-stages">Split and Cluster Stages</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/checkpoint.html#item-partitions">Item partitions</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api/models.html">Models API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#recommender-contract">Recommender Contract</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.Recommender"><code class="docutils literal notranslate"><span class="pre">Recommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.ColdStartRecommender"><code class="docutils literal notranslate"><span class="pre">ColdStartRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.ItemVocabulary"><code class="docutils literal notranslate"><span class="pre">ItemVocabulary</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#implementing-new-models">Implementing New Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.BaseCollaborativeRecommender"><code class="docutils literal notranslate"><span class="pre">BaseCollaborativeRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.BaseColdStartRecommender"><code class="docutils literal notranslate"><span class="pre">BaseColdStartRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#training-interaction-batches">Training Interaction Batches</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#transductive-models-in-expanding-catalogs">Transductive Models in Expanding Catalogs</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.WarmCatalogAdapter"><code class="docutils literal notranslate"><span class="pre">WarmCatalogAdapter</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#ease">EASE</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.EASEConfig"><code class="docutils literal notranslate"><span class="pre">EASEConfig</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.EASE"><code class="docutils literal notranslate"><span class="pre">EASE</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#elsa">ELSA</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#contentrecommender">ContentRecommender</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.ContentRecommenderConfig"><code class="docutils literal notranslate"><span class="pre">ContentRecommenderConfig</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.ContentRecommender"><code class="docutils literal notranslate"><span class="pre">ContentRecommender</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#teaser">TEASER</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.TEASERConfig"><code class="docutils literal notranslate"><span class="pre">TEASERConfig</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.TEASER"><code class="docutils literal notranslate"><span class="pre">TEASER</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.CandidateCatalog"><code class="docutils literal notranslate"><span class="pre">CandidateCatalog</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#teasergd">TEASERGD</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.TEASERGDConfig"><code class="docutils literal notranslate"><span class="pre">TEASERGDConfig</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.TEASERGD"><code class="docutils literal notranslate"><span class="pre">TEASERGD</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.TEASERGDTrainer"><code class="docutils literal notranslate"><span class="pre">TEASERGDTrainer</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#backend-performance">Backend Performance</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api/retrieval.html">Retrieval API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/retrieval.html#holdout-builders">Holdout Builders</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/retrieval.html#compresso_recsys.retrieval.build_eval_holdout"><code class="docutils literal notranslate"><span class="pre">build_eval_holdout()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/retrieval.html#compresso_recsys.retrieval.build_item_cold_holdout"><code class="docutils literal notranslate"><span class="pre">build_item_cold_holdout()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/retrieval.html#compresso_recsys.retrieval.build_leave_last_out_holdout"><code class="docutils literal notranslate"><span class="pre">build_leave_last_out_holdout()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/retrieval.html#compresso_recsys.retrieval.build_temporal_holdout"><code class="docutils literal notranslate"><span class="pre">build_temporal_holdout()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/retrieval.html#embedding-evaluation">Embedding Evaluation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/retrieval.html#compresso_recsys.retrieval.evaluate_item_embeddings"><code class="docutils literal notranslate"><span class="pre">evaluate_item_embeddings()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/retrieval.html#compresso_recsys.retrieval.evaluate_item_embeddings_with_holdout"><code class="docutils literal notranslate"><span class="pre">evaluate_item_embeddings_with_holdout()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api/evaluation.html">Ranking Evaluation API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/evaluation.html#predictions-and-targets">Predictions and Targets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/evaluation.html#evaluation-results">Evaluation Results</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/evaluation.html#compresso_recsys.evaluation.EvaluationResult"><code class="docutils literal notranslate"><span class="pre">EvaluationResult</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/evaluation.html#custom-metrics">Custom Metrics</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/evaluation.html#compresso_recsys.evaluation.evaluate_recommender"><code class="docutils literal notranslate"><span class="pre">evaluate_recommender()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/evaluation.html#compresso_recsys.evaluation.evaluate_ranked_predictions"><code class="docutils literal notranslate"><span class="pre">evaluate_ranked_predictions()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/evaluation.html#compresso_recsys.evaluation.RankingEvaluator"><code class="docutils literal notranslate"><span class="pre">RankingEvaluator</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/evaluation.html#metrics">Metrics</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/evaluation.html#default-metrics">Default Metrics</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/evaluation.html#optional-metrics">Optional Metrics</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api/statistics.html">Statistics API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/statistics.html#comparison-functions">Comparison Functions</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/statistics.html#compresso_recsys.stats.compare_models"><code class="docutils literal notranslate"><span class="pre">compare_models()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/statistics.html#compresso_recsys.stats.compare_pair"><code class="docutils literal notranslate"><span class="pre">compare_pair()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/statistics.html#results">Results</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/statistics.html#compresso_recsys.stats.PairwiseComparison"><code class="docutils literal notranslate"><span class="pre">PairwiseComparison</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/statistics.html#compresso_recsys.stats.ComparisonReport"><code class="docutils literal notranslate"><span class="pre">ComparisonReport</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/statistics.html#parameter-values">Parameter Values</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Compresso Recsys</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Comparing Models Statistically</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/statistical-comparison.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="comparing-models-statistically">
+<h1>Comparing Models Statistically<a class="headerlink" href="#comparing-models-statistically" title="Link to this heading"></a></h1>
+<p>Two models evaluated on the same users can be compared far more precisely than
+their aggregate scores suggest. This guide shows how, and — more importantly —
+how to read and report the result without claiming more than a careful reader
+would grant.</p>
+<p>No statistics background is assumed. The concepts are introduced where they are
+needed rather than up front.</p>
+<section id="why-the-aggregates-are-not-enough">
+<h2>Why the aggregates are not enough<a class="headerlink" href="#why-the-aggregates-are-not-enough" title="Link to this heading"></a></h2>
+<p>Suppose EASE scores <a class="reference external" href="mailto:nDCG&#37;&#52;&#48;100">nDCG<span>&#64;</span>100</a> of 0.4862 on GoodBooks and ELSA scores 0.4916.
+Is ELSA better?</p>
+<p>The honest answer is that you cannot tell from those two numbers. They are
+averages over thousands of users, and averages hide how much the two models
+actually disagreed. Perhaps one model won for nearly every user by a
+hair. Perhaps they were identical for 90% of users and the gap comes from a
+handful of outliers. Those two situations warrant very different conclusions,
+and the aggregate cannot distinguish them.</p>
+<p>What settles it is the <strong>per-user difference</strong>: for every user, how much better
+did the candidate do than the baseline? That is what
+<code class="xref py py-mod docutils literal notranslate"><span class="pre">compresso_recsys.stats</span></code> works with, and it is why evaluation retains
+per-user values rather than only their mean.</p>
+</section>
+<section id="do-the-comparison">
+<h2>Do the comparison<a class="headerlink" href="#do-the-comparison" title="Link to this heading"></a></h2>
+<p>Evaluate every model on identical users and targets, then compare:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.evaluation</span><span class="w"> </span><span class="kn">import</span> <span class="n">evaluate_recommender</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">CalibratedRecall</span><span class="p">,</span> <span class="n">NDCG</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.stats</span><span class="w"> </span><span class="kn">import</span> <span class="n">compare_models</span>
+
+<span class="n">metrics</span> <span class="o">=</span> <span class="p">[</span><span class="n">CalibratedRecall</span><span class="p">([</span><span class="mi">20</span><span class="p">,</span> <span class="mi">50</span><span class="p">]),</span> <span class="n">NDCG</span><span class="p">(</span><span class="mi">100</span><span class="p">)]</span>
+
+<span class="n">ease_result</span> <span class="o">=</span> <span class="n">evaluate_recommender</span><span class="p">(</span>
+    <span class="n">ease</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="n">test_source</span><span class="p">,</span> <span class="n">targets</span><span class="o">=</span><span class="n">test_targets</span><span class="p">,</span>
+    <span class="n">metrics</span><span class="o">=</span><span class="n">metrics</span><span class="p">,</span> <span class="n">sample_ids</span><span class="o">=</span><span class="n">test_user_ids</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">elsa_result</span> <span class="o">=</span> <span class="n">evaluate_recommender</span><span class="p">(</span>
+    <span class="n">elsa</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="n">test_source</span><span class="p">,</span> <span class="n">targets</span><span class="o">=</span><span class="n">test_targets</span><span class="p">,</span>
+    <span class="n">metrics</span><span class="o">=</span><span class="n">metrics</span><span class="p">,</span> <span class="n">sample_ids</span><span class="o">=</span><span class="n">test_user_ids</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">report</span> <span class="o">=</span> <span class="n">compare_models</span><span class="p">(</span>
+    <span class="p">{</span><span class="s2">"EASE"</span><span class="p">:</span> <span class="n">ease_result</span><span class="p">,</span> <span class="s2">"ELSA"</span><span class="p">:</span> <span class="n">elsa_result</span><span class="p">},</span>
+    <span class="n">metrics</span><span class="o">=</span><span class="p">[</span><span class="s2">"ndcg@100"</span><span class="p">,</span> <span class="s2">"calibrated_recall@20"</span><span class="p">],</span>
+    <span class="n">reference</span><span class="o">=</span><span class="s2">"EASE"</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">report</span><span class="o">.</span><span class="n">to_frame</span><span class="p">()</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>Two requirements, both enforced rather than assumed:</p>
+<ul class="simple">
+<li><p><strong>The same users, in the same order.</strong> Comparison is <em>paired</em>: each user is
+compared against themselves under the other model. Passing <code class="docutils literal notranslate"><span class="pre">sample_ids</span></code>
+makes that explicit, and mismatched or reordered identifiers raise an error
+instead of quietly comparing different people.</p></li>
+<li><p><strong>Per-user values retained.</strong> They are collected by default. A result
+evaluated with <code class="docutils literal notranslate"><span class="pre">collect_per_user=False</span></code> cannot be compared.</p></li>
+</ul>
+<p>For a single hypothesis, use <a class="reference internal" href="api/statistics.html#compresso_recsys.stats.compare_pair" title="compresso_recsys.stats.compare_pair"><code class="xref py py-func docutils literal notranslate"><span class="pre">compare_pair()</span></code></a>.</p>
+</section>
+<section id="a-complete-worked-example">
+<span id="stats-walkthrough"></span><h2>A complete worked example<a class="headerlink" href="#a-complete-worked-example" title="Link to this heading"></a></h2>
+<p>Everything below runs end to end on a laptop in about three minutes, including
+the dataset download. The numbers in this guide come from this script, not from
+illustration.</p>
+<p>The question: on GoodBooks, does ELSA beat EASE?</p>
+<section id="build-the-split">
+<h3>Build the split<a class="headerlink" href="#build-the-split" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">compresso_recsys</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cr</span>
+
+<span class="n">cr</span><span class="o">.</span><span class="n">build_recsys_checkpoint</span><span class="p">(</span>
+    <span class="n">dataset</span><span class="o">=</span><span class="s2">"goodbooks"</span><span class="p">,</span>
+    <span class="n">data_dir</span><span class="o">=</span><span class="s2">"data"</span><span class="p">,</span>
+    <span class="n">checkpoint_path</span><span class="o">=</span><span class="s2">"artifacts/goodbooks/comparison.zip"</span><span class="p">,</span>
+    <span class="n">split_mode</span><span class="o">=</span><span class="s2">"user_split"</span><span class="p">,</span>
+    <span class="n">eval_draws</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">seed</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Roughly 40 seconds, most of it downloading. A user split holds out whole users,
+so both models see the same 9,975 items and are evaluated on 2,500 unseen users.</p>
+<p><code class="docutils literal notranslate"><span class="pre">eval_draws=1</span></code> gives each held-out user a single fold-in/scored split, so one
+row means one user, which keeps this walkthrough simple. The default of 5 splits
+each user five times and stacks the rows — a more precise protocol, and the one
+the ELSA papers use, but it gives each user several rows. See
+<a class="reference internal" href="#stats-repeated-rows"><span class="std std-ref">When one user owns several rows</span></a>.</p>
+</section>
+<section id="train-both-models">
+<h3>Train both models<a class="headerlink" href="#train-both-models" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">EASE</span><span class="p">,</span> <span class="n">EASEConfig</span><span class="p">,</span> <span class="n">ELSAConfig</span><span class="p">,</span> <span class="n">ELSATrainer</span>
+
+<span class="k">with</span> <span class="n">cr</span><span class="o">.</span><span class="n">read_checkpoint</span><span class="p">(</span><span class="s2">"artifacts/goodbooks/comparison.zip"</span><span class="p">)</span> <span class="k">as</span> <span class="n">root</span><span class="p">:</span>
+    <span class="n">split</span> <span class="o">=</span> <span class="n">cr</span><span class="o">.</span><span class="n">load_recsys_split</span><span class="p">(</span><span class="n">root</span><span class="p">)</span>
+
+<span class="n">x_train</span> <span class="o">=</span> <span class="n">split</span><span class="p">[</span><span class="s2">"x_train"</span><span class="p">]</span>        <span class="c1"># (49865, 9975), 3.85M interactions</span>
+<span class="n">device</span> <span class="o">=</span> <span class="s2">"cuda"</span> <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="s2">"cpu"</span>
+
+<span class="n">ease</span> <span class="o">=</span> <span class="n">EASE</span><span class="p">(</span><span class="n">EASEConfig</span><span class="p">(</span><span class="n">l2</span><span class="o">=</span><span class="mf">700.0</span><span class="p">))</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">x_train</span><span class="p">)</span>
+
+<span class="n">elsa</span> <span class="o">=</span> <span class="n">ELSATrainer</span><span class="p">(</span>
+    <span class="n">ELSAConfig</span><span class="p">(</span><span class="n">latent_dim</span><span class="o">=</span><span class="mi">3250</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">2048</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+               <span class="n">lr</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">x_train</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>EASE takes about 12 seconds — it is a closed-form solve. ELSA takes about 100
+seconds for 10 epochs on a GPU.</p>
+</section>
+<section id="evaluate-both-on-identical-users">
+<h3>Evaluate both on identical users<a class="headerlink" href="#evaluate-both-on-identical-users" title="Link to this heading"></a></h3>
+<p>This is the step the comparison depends on. Both models must see the same
+source rows, the same targets and the same identifiers:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.evaluation</span><span class="w"> </span><span class="kn">import</span> <span class="n">evaluate_recommender</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">MRR</span><span class="p">,</span> <span class="n">CalibratedRecall</span><span class="p">,</span> <span class="n">NDCG</span><span class="p">,</span> <span class="n">Recall</span>
+
+<span class="n">source</span> <span class="o">=</span> <span class="n">split</span><span class="p">[</span><span class="s2">"test_source_matrix"</span><span class="p">]</span>
+<span class="n">targets</span> <span class="o">=</span> <span class="n">split</span><span class="p">[</span><span class="s2">"test_target_matrix"</span><span class="p">]</span>
+<span class="n">user_ids</span> <span class="o">=</span> <span class="n">split</span><span class="p">[</span><span class="s2">"test_eval_user_ids"</span><span class="p">]</span>
+<span class="n">metrics</span> <span class="o">=</span> <span class="p">[</span><span class="n">CalibratedRecall</span><span class="p">([</span><span class="mi">20</span><span class="p">,</span> <span class="mi">50</span><span class="p">]),</span> <span class="n">Recall</span><span class="p">([</span><span class="mi">20</span><span class="p">,</span> <span class="mi">50</span><span class="p">]),</span> <span class="n">NDCG</span><span class="p">(</span><span class="mi">100</span><span class="p">),</span> <span class="n">MRR</span><span class="p">(</span><span class="mi">20</span><span class="p">)]</span>
+
+<span class="n">results</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="n">name</span><span class="p">:</span> <span class="n">evaluate_recommender</span><span class="p">(</span>
+        <span class="n">model</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="n">source</span><span class="p">,</span> <span class="n">targets</span><span class="o">=</span><span class="n">targets</span><span class="p">,</span> <span class="n">metrics</span><span class="o">=</span><span class="n">metrics</span><span class="p">,</span>
+        <span class="n">sample_ids</span><span class="o">=</span><span class="n">user_ids</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">model</span> <span class="ow">in</span> <span class="p">((</span><span class="s2">"EASE"</span><span class="p">,</span> <span class="n">ease</span><span class="p">),</span> <span class="p">(</span><span class="s2">"ELSA"</span><span class="p">,</span> <span class="n">elsa</span><span class="p">))</span>
+<span class="p">}</span>
+
+<span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">results</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="nb">round</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">result</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">items</span><span class="p">()})</span>
+</pre></div>
+</div>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>EASE {'calibrated_recall@20': 0.3320, 'calibrated_recall@50': 0.4752,
+      'recall@20': 0.3222, 'recall@50': 0.4752,
+      'ndcg@100': 0.4862, 'mrr@20': 0.6851}
+ELSA {'calibrated_recall@20': 0.3429, 'calibrated_recall@50': 0.4796,
+      'recall@20': 0.3329, 'recall@50': 0.4796,
+      'ndcg@100': 0.4916, 'mrr@20': 0.7091}
+</pre></div>
+</div>
+<p>ELSA is ahead everywhere. Whether that means anything is the next step — but
+first, one thing in that output is worth pausing on.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><code class="docutils literal notranslate"><span class="pre">recall&#64;20</span></code> and <code class="docutils literal notranslate"><span class="pre">calibrated_recall&#64;20</span></code> differ (0.3222 against 0.3320),
+while <code class="docutils literal notranslate"><span class="pre">recall&#64;50</span></code> and <code class="docutils literal notranslate"><span class="pre">calibrated_recall&#64;50</span></code> are <em>identical</em> (0.4752).</p>
+<p>Calibrated recall divides by <span class="math notranslate nohighlight">\(\min(k, |\mathcal{R}_u|)\)</span> rather than
+<span class="math notranslate nohighlight">\(|\mathcal{R}_u|\)</span>, so the two coincide exactly when no user has more
+targets than the cutoff. Here users hold between 2 and 35 targets, 15.8 on
+average: 17% exceed 20, and none exceed 50.</p>
+<p>This is why the metric keys were separated. Quoting a
+<code class="docutils literal notranslate"><span class="pre">calibrated_recall&#64;20</span></code> of 0.3320 against a published <a class="reference external" href="mailto:Recall&#37;&#52;&#48;20">Recall<span>&#64;</span>20</a> would
+overstate the result by 3%. The absolute gap is bounded — both metrics live
+in <span class="math notranslate nohighlight">\([0, 1]\)</span> — but the <em>relative</em> overstatement is not, and on a denser
+holdout it grows without bound.</p>
+</div>
+</section>
+<section id="compare">
+<h3>Compare<a class="headerlink" href="#compare" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.stats</span><span class="w"> </span><span class="kn">import</span> <span class="n">compare_models</span>
+
+<span class="n">report</span> <span class="o">=</span> <span class="n">compare_models</span><span class="p">(</span>
+    <span class="n">results</span><span class="p">,</span>
+    <span class="n">metrics</span><span class="o">=</span><span class="p">[</span><span class="s2">"ndcg@100"</span><span class="p">,</span> <span class="s2">"calibrated_recall@20"</span><span class="p">,</span> <span class="s2">"recall@20"</span><span class="p">,</span> <span class="s2">"mrr@20"</span><span class="p">],</span>
+    <span class="n">reference</span><span class="o">=</span><span class="s2">"EASE"</span><span class="p">,</span>
+    <span class="n">n_resamples</span><span class="o">=</span><span class="mi">9999</span><span class="p">,</span>
+    <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">report</span><span class="o">.</span><span class="n">to_frame</span><span class="p">()</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+</pre></div>
+</div>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>metric                n_samples  n_nonzero  tie_rate  baseline_mean  candidate_mean  difference  relative    ci_low   ci_high  adj_p   direction
+ndcg@100                   2500       2495      0.2%       0.486191        0.491611    0.005420     1.11%  0.002953  0.007977  0.0004  better
+calibrated_recall@20       2500       1418     43.3%       0.332034        0.342880    0.010846     3.27%  0.007751  0.013895  0.0004  better
+recall@20                  2500       1418     43.3%       0.322212        0.332898    0.010686     3.32%  0.007629  0.013792  0.0004  better
+mrr@20                     2500       1009     59.6%       0.685141        0.709079    0.023938     3.49%  0.013721  0.034306  0.0004  better
+</pre></div>
+</div>
+</section>
+<section id="reading-it">
+<h3>Reading it<a class="headerlink" href="#reading-it" title="Link to this heading"></a></h3>
+<p><strong>ELSA beats EASE, and the margin is small but solid.</strong> Every interval sits well
+clear of zero, and every adjusted p-value is at the floor for 9,999 resamples.</p>
+<p><strong>The relative gains disagree, and that is informative.</strong> <a class="reference external" href="mailto:nDCG&#37;&#52;&#48;100">nDCG<span>&#64;</span>100</a> improves by
+1.1%, <a class="reference external" href="mailto:recall&#37;&#52;&#48;20">recall<span>&#64;</span>20</a> by 3.3%, <a class="reference external" href="mailto:MRR&#37;&#52;&#48;20">MRR<span>&#64;</span>20</a> by 3.5%. ELSA is noticeably better near the top
+of the list; across the full hundred ranks the two are much closer. A paper
+reporting only <a class="reference external" href="mailto:nDCG&#37;&#52;&#48;100">nDCG<span>&#64;</span>100</a> would understate what changed, and one reporting only
+<a class="reference external" href="mailto:MRR&#37;&#52;&#48;20">MRR<span>&#64;</span>20</a> would overstate it.</p>
+<p><strong>Look at the tie rate.</strong> For <a class="reference external" href="mailto:nDCG&#37;&#52;&#48;100">nDCG<span>&#64;</span>100</a> the models differ for 2,495 of the 2,500
+users — essentially everyone, because a metric reading 100 ranks deep notices
+almost any reordering. For <a class="reference external" href="mailto:recall&#37;&#52;&#48;20">recall<span>&#64;</span>20</a> they differ for 1,418, and for <a class="reference external" href="mailto:MRR&#37;&#52;&#48;20">MRR<span>&#64;</span>20</a> only
+1,009. So <strong>60% of users get an identical MRR from both models</strong>, because their
+first relevant book lands at the same rank either way.</p>
+<p>That does not mean the MRR comparison rests on 1,009 users. All 2,500
+contribute to the estimated difference and to its interval; a tied user is an
+observation that the two systems agreed, not a missing one. What <code class="docutils literal notranslate"><span class="pre">n_nonzero</span></code>
+governs is the <em>randomization test</em>: flipping the sign of a zero changes
+nothing, so only those 1,009 differences can move the null distribution, and a
+small count there makes it coarse. <a class="reference internal" href="#stats-trap-tied"><span class="std std-ref">Ties are not missing data</span></a> returns to this.</p>
+<p><strong>What this does not establish, yet.</strong> Both models were trained once. These
+intervals say the advantage would survive a different sample of users; they say
+nothing about whether it survives retraining ELSA with a different seed. EASE has
+no seed at all, being closed-form, so only one side of the comparison can move.</p>
+<p>To claim ELSA is the better <em>method</em> rather than that this ELSA beat this EASE,
+that has to be measured rather than assumed. <a class="reference internal" href="#stats-seeds"><span class="std std-ref">Retraining under five seeds</span></a> does exactly that on these models, and the gap turns out to be
+about ten times the spread they produce.</p>
+</section>
+</section>
+<section id="reading-the-output">
+<h2>Reading the output<a class="headerlink" href="#reading-the-output" title="Link to this heading"></a></h2>
+<p>One row of the <code class="docutils literal notranslate"><span class="pre">report.to_frame()</span></code> above, laid out vertically:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>metric                    ndcg@100
+baseline                  EASE
+candidate                 ELSA
+n_samples                 2500
+n_units                   2500
+n_nonzero                 2495
+tie_rate                  0.002000
+baseline_mean             0.486191
+candidate_mean            0.491611
+difference                0.005420
+relative_difference       0.011148
+ci_low                    0.002953
+ci_high                   0.007977
+confidence_level          0.95
+bootstrap_standard_error  0.001275
+p_value                   0.0001
+adjusted_p_value          0.0004
+significant               True
+direction                 better
+alternative               two-sided
+test_method               randomization
+interval_method           percentile
+n_resamples               9999
+random_state              0
+</pre></div>
+</div>
+<section id="the-effect">
+<h3>The effect<a class="headerlink" href="#the-effect" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">difference</span></code> is always <strong>candidate minus baseline</strong>, so positive favours the
+candidate. Here ELSA gained 0.0054 <a class="reference external" href="mailto:nDCG&#37;&#52;&#48;100">nDCG<span>&#64;</span>100</a> over EASE, which
+<code class="docutils literal notranslate"><span class="pre">relative_difference</span></code> expresses as 1.1% of the baseline.</p>
+<p>This is the number to lead with. It is computed directly from the data, so it
+does not depend on any of the resampling settings.</p>
+</section>
+<section id="how-precisely-you-know-it">
+<h3>How precisely you know it<a class="headerlink" href="#how-precisely-you-know-it" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">ci_low</span></code> and <code class="docutils literal notranslate"><span class="pre">ci_high</span></code> give a range of plausible values for the true
+difference — here 0.0030 to 0.0080 at <code class="docutils literal notranslate"><span class="pre">confidence_level</span></code> 0.95.</p>
+<p>That range comes from a <strong>bootstrap</strong>. Take your 2,500 users and draw 2,500 of
+them <em>with replacement</em> — meaning the same user can be drawn more than once.</p>
+<p>That last phrase is doing all the work. Drawing 2,500 from 2,500 sounds like it
+must return the same set, and it would if each user could be drawn only once.
+With replacement, a typical draw looks like this:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>1,581 distinct users (63.2%)
+  919 never picked
+  661 picked two or more times, one as often as six
+</pre></div>
+</div>
+<p>So every draw is a different dataset — a plausible alternative version of your
+evaluation, in which some users happened to be over-represented and about a
+third are missing. Recompute the mean difference on it, repeat 9,999 times, and
+the spread of those 9,999 numbers shows how much your answer would move if you
+had happened to evaluate on a different sample of users from the same
+population. <code class="docutils literal notranslate"><span class="pre">bootstrap_standard_error</span></code> is that spread as a single number, and
+the interval is the middle 95% of it.</p>
+<p>An interval that excludes zero says the direction is stable. An interval that
+straddles zero says you cannot tell which model is better, whatever the point
+estimate suggests.</p>
+</section>
+<section id="how-often-the-two-models-tied">
+<h3>How often the two models tied<a class="headerlink" href="#how-often-the-two-models-tied" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">n_samples</span></code> is the evaluation rows. <code class="docutils literal notranslate"><span class="pre">n_units</span></code> is the independent users
+behind them — equal to <code class="docutils literal notranslate"><span class="pre">n_samples</span></code> unless a protocol gave someone several
+rows, and the count everything else is computed over. <code class="docutils literal notranslate"><span class="pre">n_nonzero</span></code> is the units
+whose mean score actually <em>differed</em> between the two models, and <code class="docutils literal notranslate"><span class="pre">tie_rate</span></code> is
+the share that did not.</p>
+<p>That distinction matters more in recommendation than almost anywhere else,
+because ranking metrics produce enormous numbers of exact ties. Across the
+EASE-versus-ELSA comparison, from the same 2,500 users:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>ndcg@100               2,495 of 2,500   (99.8%)
+calibrated_recall@20   1,418 of 2,500   (56.7%)
+recall@20              1,418 of 2,500   (56.7%)
+mrr@20                 1,009 of 2,500   (40.4%)
+</pre></div>
+</div>
+<p>A metric reading 100 ranks deep notices almost any reordering, so nearly every
+user counts. <a class="reference external" href="mailto:MRR&#37;&#52;&#48;20">MRR<span>&#64;</span>20</a> depends only on where the <em>first</em> relevant book lands, so
+for 60% of users it lands in the same place under both models.</p>
+<p>Report the tie rate. It is a finding in its own right — these two models are
+indistinguishable for most users at rank one — and it tells a reader how coarse
+the randomization test’s null distribution was. What it is <em>not</em> is a smaller
+sample size: all 2,500 users contribute to the difference and to the interval.
+<a class="reference internal" href="#stats-trap-tied"><span class="std std-ref">Ties are not missing data</span></a> works through why that distinction matters.</p>
+</section>
+<section id="whether-it-could-be-chance">
+<h3>Whether it could be chance<a class="headerlink" href="#whether-it-could-be-chance" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">p_value</span></code> answers a single question: <em>if the two models were genuinely
+equivalent, how often would chance alone produce a difference this large?</em></p>
+<p>The default test makes that concrete. Suppose the two models really are
+interchangeable. Then for any given user, which model came out ahead is a coin
+flip — swapping the two labels for that user alone would produce data just as
+plausible as what you saw. Flipping the sign of that user’s difference is
+exactly that swap.</p>
+<p>So the test flips a coin for every user, negates that user’s difference when the
+coin says so, recomputes the mean, and repeats 9,999 times. Those 9,999 numbers
+are what the difference would look like in a world where the models are
+equivalent. <code class="docutils literal notranslate"><span class="pre">p_value</span></code> is the fraction of them that came out at least as
+extreme as the difference you actually measured.</p>
+<p>If your result sits comfortably inside that crowd, chance explains it. If almost
+nothing in the crowd reaches it, chance does not.</p>
+<p>Small p means chance rarely reproduces your result. Large p means it easily
+does.</p>
+<p><code class="docutils literal notranslate"><span class="pre">adjusted_p_value</span></code> corrects for testing several hypotheses at once — see
+<a class="reference internal" href="#stats-trap-adjusted"><span class="std std-ref">The interval and the p-value can disagree</span></a> below.</p>
+</section>
+<section id="the-verdict">
+<h3>The verdict<a class="headerlink" href="#the-verdict" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">significant</span></code> is <code class="docutils literal notranslate"><span class="pre">adjusted_p_value</span> <span class="pre">&lt;=</span> <span class="pre">alpha</span></code>, where <code class="docutils literal notranslate"><span class="pre">alpha</span></code> is
+<code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">-</span> <span class="pre">confidence_level</span></code>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">direction</span></code> combines that with the sign:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">better</span></code> — significant and the candidate is ahead</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">worse</span></code> — significant and the candidate is behind</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">inconclusive</span></code> — not significant, <strong>whatever the sign of the difference</strong></p></li>
+</ul>
+<p>A negative difference that is not significant reads <code class="docutils literal notranslate"><span class="pre">inconclusive</span></code>, not
+<code class="docutils literal notranslate"><span class="pre">worse</span></code>. The sign of an estimate you cannot distinguish from noise is not
+information, and a table that prints a direction for it invites a misreading.</p>
+</section>
+</section>
+<section id="five-traps">
+<span id="stats-traps"></span><h2>Five traps<a class="headerlink" href="#five-traps" title="Link to this heading"></a></h2>
+<p>These are the mistakes that cost papers, in rough order of how often they occur.</p>
+<section id="p-values-have-a-floor">
+<h3>p-values have a floor<a class="headerlink" href="#p-values-have-a-floor" title="Link to this heading"></a></h3>
+<p>With <code class="docutils literal notranslate"><span class="pre">n_resamples</span></code> set to <code class="docutils literal notranslate"><span class="pre">B</span></code>, the smallest achievable p-value is
+<code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">/</span> <span class="pre">(B</span> <span class="pre">+</span> <span class="pre">1)</span></code>. At the default 9,999 that is 0.0001.</p>
+<p>So the <code class="docutils literal notranslate"><span class="pre">p_value</span></code> of 0.0001 in the worked example does <strong>not</strong> mean one in ten
+thousand. It means <em>not one</em> of 9,999 random sign assignments was as extreme as
+what ELSA achieved.</p>
+<p>It is tempting to conclude the true p is therefore below <span class="math notranslate nohighlight">\(10^{-4}\)</span> and to
+write <code class="docutils literal notranslate"><span class="pre">p</span> <span class="pre">&lt;</span> <span class="pre">10^-4</span></code>. <strong>That does not follow.</strong> If the exhaustive p were exactly
+<span class="math notranslate nohighlight">\(10^{-4}\)</span>, you would still see zero exceedances in 9,999 draws about 37%
+of the time — <span class="math notranslate nohighlight">\((1 - 10^{-4})^{9999} \approx 0.37\)</span>. Nothing here rules that
+out. Applying the rule of three to 0 exceedances in 9,999 draws puts the 95%
+upper bound nearer <span class="math notranslate nohighlight">\(3 \times 10^{-4}\)</span>, three times the value the <code class="docutils literal notranslate"><span class="pre">&lt;</span></code>
+would be claiming as a hard ceiling.</p>
+<p>Report the value the procedure actually produces, and say what it rests on:</p>
+<blockquote>
+<div><p><em>The paired randomization test gave</em> <span class="math notranslate nohighlight">\(p_{\mathrm{MC}} = 0.0001\)</span>, <em>the
+minimum attainable with 9,999 sampled sign assignments; none of the sampled
+assignments was at least as extreme as the observed difference.</em></p>
+</div></blockquote>
+<p>The <code class="docutils literal notranslate"><span class="pre">(1</span> <span class="pre">+</span> <span class="pre">extreme)</span> <span class="pre">/</span> <span class="pre">(B</span> <span class="pre">+</span> <span class="pre">1)</span></code> form exists precisely so this number is a valid
+p-value on its own terms rather than an estimate that has to be qualified — see
+Phipson and Smyth in <a class="reference internal" href="#stats-references"><span class="std std-ref">References</span></a>.</p>
+<p>The deeper point is that <strong>you almost never need a smaller p-value.</strong> If your
+argument depends on the difference between <span class="math notranslate nohighlight">\(10^{-4}\)</span> and <span class="math notranslate nohighlight">\(10^{-11}\)</span>,
+the argument is resting on the wrong quantity. Report the effect and its
+interval; the p only has to clear the bar. If you genuinely need finer
+resolution, raise <code class="docutils literal notranslate"><span class="pre">n_resamples</span></code>, or use <code class="docutils literal notranslate"><span class="pre">test_method=&quot;t&quot;</span></code>, which has no
+floor — bearing in mind <a class="reference internal" href="#stats-t-test"><span class="std std-ref">what that trades away</span></a>.</p>
+<p>The floor also interacts with the correction. With <code class="docutils literal notranslate"><span class="pre">J</span></code> hypotheses the
+smallest reachable adjusted p is <code class="docutils literal notranslate"><span class="pre">J</span> <span class="pre">/</span> <span class="pre">(B</span> <span class="pre">+</span> <span class="pre">1)</span></code>. At <code class="docutils literal notranslate"><span class="pre">B</span> <span class="pre">=</span> <span class="pre">100</span></code> and six
+hypotheses that is 0.059, so <strong>nothing could be significant at 0.05 no matter
+what the data said</strong>. Never set <code class="docutils literal notranslate"><span class="pre">n_resamples</span></code> below 999.</p>
+</section>
+<section id="ties-are-not-missing-data">
+<span id="stats-trap-tied"></span><h3>Ties are not missing data<a class="headerlink" href="#ties-are-not-missing-data" title="Link to this heading"></a></h3>
+<p>Ranking metrics tie constantly. In the worked example 60% of users get the same
+<a class="reference external" href="mailto:MRR&#37;&#52;&#48;20">MRR<span>&#64;</span>20</a> from both models, and that is ordinary rather than a defect: it says the
+two systems put the user’s first relevant book at the same rank.</p>
+<p>The tempting move is to treat <code class="docutils literal notranslate"><span class="pre">n_nonzero</span></code> as the real sample size and say the
+MRR comparison “rests on 1,009 users, not 2,500”. <strong>It does not.</strong> Consider:</p>
+<ul class="simple">
+<li><p>30 users, every one differing by <span class="math notranslate nohighlight">\(+1\)</span>. Mean difference 1.0.</p></li>
+<li><p>10,000 users, 30 differing by <span class="math notranslate nohighlight">\(+1\)</span> and the rest tied. Mean difference
+0.003.</p></li>
+</ul>
+<p>Both have <code class="docutils literal notranslate"><span class="pre">n_nonzero</span> <span class="pre">=</span> <span class="pre">30</span></code>. They describe completely different systems, and
+their bootstrap distributions look nothing alike. A tied user is an observation
+that the two models agreed — evidence, not an absence of it.</p>
+<p>So read the four numbers as four different things:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">n_samples</span></code> — the raw evaluation rows.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">n_units</span></code> — the independent users, which the estimate, the interval and
+every test are computed over. Equal to <code class="docutils literal notranslate"><span class="pre">n_samples</span></code> when each row is its own
+unit.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">n_nonzero</span></code> — the units that can move the randomization test, since flipping
+the sign of a zero does nothing. This bounds how <em>discrete</em> the null
+distribution is.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">tie_rate</span></code> — <code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">-</span> <span class="pre">n_nonzero</span> <span class="pre">/</span> <span class="pre">n_units</span></code>, the share of users whose <em>mean</em>
+difference is exactly zero. With one row per user that is the two models
+scoring them identically; with several, it includes users whose rows
+cancelled. Either way it is a finding worth reporting in its own right.</p></li>
+</ul>
+<p>When <code class="docutils literal notranslate"><span class="pre">n_nonzero</span></code> falls below 30 the comparison warns, and the warning is about
+that discreteness: the resampled differences land on few distinct values, so the
+percentile interval is coarse. The estimate still uses every unit.</p>
+</section>
+<section id="the-interval-and-the-p-value-can-disagree">
+<span id="stats-trap-adjusted"></span><h3>The interval and the p-value can disagree<a class="headerlink" href="#the-interval-and-the-p-value-can-disagree" title="Link to this heading"></a></h3>
+<p>Testing four hypotheses at 5% each gives roughly an 18.5% chance of at least one
+false positive when nothing is really different. The correction holds that back
+to 5% across the whole family, at the cost of making each individual test
+harder to pass.</p>
+<p>The family is <em>everything one</em> <a class="reference internal" href="api/statistics.html#compresso_recsys.stats.compare_models" title="compresso_recsys.stats.compare_models"><code class="xref py py-func docutils literal notranslate"><span class="pre">compare_models()</span></code></a>
+<em>call produces</em> — every pair, every metric.</p>
+<p>This creates a disagreement that looks like a bug and is not. Run the same
+EASE-versus-ELSA comparison on the first 400 test users instead of all 2,500,
+and the four metrics split:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>metric                difference    ci_low   ci_high  p_value  adjusted_p  significant
+ndcg@100                0.006523  0.000391  0.012691   0.0399      0.0676        False
+calibrated_recall@20    0.010172  0.002118  0.018378   0.0123      0.0492         True
+recall@20               0.009912  0.001800  0.017684   0.0159      0.0492         True
+mrr@20                  0.027903  0.002771  0.052912   0.0338      0.0676        False
+</pre></div>
+</div>
+<p><strong>Every one of those four intervals excludes zero. Only two are significant.</strong></p>
+<p>Both readings are correct. <strong>Intervals are never adjusted</strong> — each describes one
+comparison on its own, and on its own each of these would clear 0.05.
+<strong>p-values are adjusted.</strong> Holm ranks the four raw p-values and scales each by
+how many hypotheses remain: the smallest, 0.0123, is multiplied by four to give
+0.0492 and just survives; <code class="docutils literal notranslate"><span class="pre">ndcg&#64;100</span></code>’s 0.0399 is multiplied by two to give
+0.0676 and does not.</p>
+<p>Note what that means for <code class="docutils literal notranslate"><span class="pre">ndcg&#64;100</span></code>: its interval excludes zero, and it is
+still not significant. The row is not broken. It is telling you the evidence for
+that particular metric is not strong enough to survive being one of four
+questions asked at once.</p>
+<p>The same models on all 2,500 users are significant on every metric. Nothing
+about the models changed; the evidence did.</p>
+<p>Never describe these intervals as simultaneous or family-wise. They are not.</p>
+</section>
+<section id="confidence-level-also-moves-the-significance-bar">
+<h3><code class="docutils literal notranslate"><span class="pre">confidence_level</span></code> also moves the significance bar<a class="headerlink" href="#confidence-level-also-moves-the-significance-bar" title="Link to this heading"></a></h3>
+<p>One parameter controls both, because <code class="docutils literal notranslate"><span class="pre">alpha</span> <span class="pre">=</span> <span class="pre">1</span> <span class="pre">-</span> <span class="pre">confidence_level</span></code>. Setting
+<code class="docutils literal notranslate"><span class="pre">confidence_level=0.99</span></code> widens the interval <strong>and</strong> tightens the test from
+0.05 to 0.01, which will make results disappear that were significant before.</p>
+<p>They are coupled deliberately: a 99% interval printed beside a 5% test would
+produce rows that look contradictory for no reason other than mismatched levels.
+But it does mean 0.99 is a bigger change than it looks.</p>
+<p>Coupling them does not <em>guarantee</em> the interval and the verdict agree. They come
+from different procedures — a percentile bootstrap interval and a sign-flip test
+are not inverses of one another — so even at matching levels, and before any
+multiplicity adjustment, they can occasionally disagree. Matching the levels
+removes one avoidable source of confusion, not all of them.</p>
+</section>
+<section id="one-trained-model-is-not-the-method">
+<span id="stats-seeds"></span><h3>One trained model is not the method<a class="headerlink" href="#one-trained-model-is-not-the-method" title="Link to this heading"></a></h3>
+<p>Everything so far resamples <strong>users</strong>, so the interval answers one question:
+would this advantage hold on a different sample of users? Gradient-trained
+models depend on a random seed as well, and retraining moves the result in a way
+the interval cannot see. Whether you are writing this up or deciding what to
+ship, you want the advantage to be a property of the method rather than of one
+lucky run.</p>
+<p>Measure it: retrain under matched seeds, evaluate each on identical users and
+targets, and collect both how the difference moves across seeds and how much it
+already moved across users.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="n">reported</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"ndcg@100"</span><span class="p">,</span> <span class="s2">"calibrated_recall@20"</span><span class="p">,</span> <span class="s2">"recall@20"</span><span class="p">,</span> <span class="s2">"mrr@20"</span><span class="p">]</span>
+<span class="n">by_seed</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="p">[]</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">reported</span><span class="p">}</span>
+<span class="n">user_se</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="p">[]</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">reported</span><span class="p">}</span>
+
+<span class="k">for</span> <span class="n">seed</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">):</span>
+    <span class="n">config</span> <span class="o">=</span> <span class="n">ELSAConfig</span><span class="p">(</span><span class="n">latent_dim</span><span class="o">=</span><span class="mi">3250</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">2048</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+                        <span class="n">lr</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span>
+    <span class="n">elsa_result</span> <span class="o">=</span> <span class="n">evaluate_recommender</span><span class="p">(</span>
+        <span class="n">ELSATrainer</span><span class="p">(</span><span class="n">config</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">x_train</span><span class="p">),</span>
+        <span class="n">source</span><span class="o">=</span><span class="n">source</span><span class="p">,</span> <span class="n">targets</span><span class="o">=</span><span class="n">targets</span><span class="p">,</span> <span class="n">metrics</span><span class="o">=</span><span class="n">metrics</span><span class="p">,</span> <span class="n">sample_ids</span><span class="o">=</span><span class="n">user_ids</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">reported</span><span class="p">:</span>
+        <span class="n">comparison</span> <span class="o">=</span> <span class="n">compare_pair</span><span class="p">(</span>
+            <span class="n">ease_result</span><span class="p">,</span> <span class="n">elsa_result</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="n">key</span><span class="p">,</span>
+            <span class="n">baseline_name</span><span class="o">=</span><span class="s2">"EASE"</span><span class="p">,</span> <span class="n">candidate_name</span><span class="o">=</span><span class="s2">"ELSA"</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">by_seed</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">comparison</span><span class="o">.</span><span class="n">difference</span><span class="p">)</span>
+        <span class="n">user_se</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">comparison</span><span class="o">.</span><span class="n">bootstrap_standard_error</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="s1">'metric'</span><span class="si">:</span><span class="s2">&lt;22</span><span class="si">}{</span><span class="s1">'mean'</span><span class="si">:</span><span class="s2">&gt;10</span><span class="si">}{</span><span class="s1">'SD (users)'</span><span class="si">:</span><span class="s2">&gt;13</span><span class="si">}</span><span class="s2">"</span>
+      <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="s1">'SD (retraining)'</span><span class="si">:</span><span class="s2">&gt;18</span><span class="si">}{</span><span class="s1">'ratio'</span><span class="si">:</span><span class="s2">&gt;8</span><span class="si">}{</span><span class="s1">'widens by'</span><span class="si">:</span><span class="s2">&gt;12</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">reported</span><span class="p">:</span>
+    <span class="n">seed_sd</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">by_seed</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="n">ddof</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+    <span class="n">users_sd</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">user_se</span><span class="p">[</span><span class="n">key</span><span class="p">]))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">key</span><span class="si">:</span><span class="s2">&lt;22</span><span class="si">}{</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">by_seed</span><span class="p">[</span><span class="n">key</span><span class="p">])</span><span class="si">:</span><span class="s2">&gt;10.6f</span><span class="si">}{</span><span class="n">users_sd</span><span class="si">:</span><span class="s2">&gt;13.6f</span><span class="si">}</span><span class="s2">"</span>
+          <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">seed_sd</span><span class="si">:</span><span class="s2">&gt;18.6f</span><span class="si">}{</span><span class="n">seed_sd</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">users_sd</span><span class="si">:</span><span class="s2">&gt;8.2f</span><span class="si">}</span><span class="s2">"</span>
+          <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">hypot</span><span class="p">(</span><span class="n">users_sd</span><span class="p">,</span><span class="w"> </span><span class="n">seed_sd</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">users_sd</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="si">:</span><span class="s2">&gt;12.1%</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Only ELSA is retrained — EASE is closed-form and has no seed — so this measures
+one model’s training variance, not a symmetric wobble in both. Its five
+<a class="reference external" href="mailto:nDCG&#37;&#52;&#48;100">nDCG<span>&#64;</span>100</a> differences come out 0.0054, 0.0057, 0.0069, 0.0060 and 0.0056, and
+the loop prints:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>metric                      mean   SD (users)   SD (retraining)   ratio   widens by
+ndcg@100                0.005916     0.001279          0.000598    0.47       10.4%
+calibrated_recall@20    0.010760     0.001575          0.000481    0.31        4.6%
+recall@20               0.010609     0.001560          0.000450    0.29        4.1%
+mrr@20                  0.025512     0.005311          0.001344    0.25        3.2%
+</pre></div>
+</div>
+<p>Both columns are standard deviations of the <strong>same number</strong> — the measured
+difference — under two different things varying. <code class="docutils literal notranslate"><span class="pre">bootstrap_standard_error</span></code>
+goes by the conventional name <em>standard error</em> because it is the spread of an
+estimator rather than of raw observations, but so is the retraining column. That
+is what makes their <strong>ratio</strong> meaningful rather than a comparison of unlike
+things:</p>
+<ul class="simple">
+<li><p><strong>Well below 1</strong> — user sampling is the larger unknown, and the interval is
+most of the uncertainty. Here it runs 0.25 to 0.47, so retraining matters but
+users matter more.</p></li>
+<li><p><strong>Near or above 1</strong> — retraining is at least as large. The interval is then
+precise about <em>this</em> trained model while saying little about the method, and
+reporting it alone would overstate what you know.</p></li>
+</ul>
+<p>The two sources are roughly independent, so combining them in quadrature gives
+the <strong>widens by</strong> column: allowing for retraining stretches the interval by 3 to
+10%, most for <a class="reference external" href="mailto:nDCG&#37;&#52;&#48;100">nDCG<span>&#64;</span>100</a> where seed noise is nearly half the user noise.</p>
+<p><strong>If both models are stochastic</strong>, train five of each and pair them by seed:
+<code class="docutils literal notranslate"><span class="pre">A</span></code> seed 0 against <code class="docutils literal notranslate"><span class="pre">B</span></code> seed 0, and so on. Five paired differences, and their
+standard deviation is the retraining column exactly as above.</p>
+<p>Do not compare all twenty-five combinations. It costs five times the evaluation
+and buys almost nothing: every <code class="docutils literal notranslate"><span class="pre">A</span></code> appears in five of those differences, so
+they are far from independent, and the information was in the ten training runs
+rather than the pairings.</p>
+<p>Pair by seed only when the seed controls something the two models <strong>share</strong>,
+such as batch order — then the pairing cancels that noise rather than adding
+it, which is what makes it worth doing. When the two draw independent
+randomness, the seed index is an arbitrary matching: unbiased, but the standard
+deviation you get from five arbitrary pairs depends on which pairing you
+happened to choose. Estimate each model’s training spread from its own five runs
+and add them in quadrature instead. That uses all ten runs rather than five
+differences, and does not make you pick a pairing.</p>
+<p>There is also a blunter check needing no statistics at all — <strong>did any seed
+reverse the sign?</strong> Across four metrics and five seeds, all twenty differences
+favour ELSA. That either holds or it does not, and it is a stronger statement
+than any interval.</p>
+<p>Two limits. Five runs give a standard deviation with roughly 35% relative
+error, enough to show <em>clearly smaller</em> or <em>clearly larger</em> but not to separate
+0.9 from 1.1 — if yours lands near 1, run more seeds rather than reporting it.
+And the retraining column is the spread of <strong>one more run</strong>, which is what you
+want when reporting or shipping a single model; if you average several runs and
+report the average instead, its uncertainty is smaller by the square root of how
+many you trained.</p>
+</section>
+</section>
+<section id="choosing-the-settings">
+<h2>Choosing the settings<a class="headerlink" href="#choosing-the-settings" title="Link to this heading"></a></h2>
+<section id="n-resamples">
+<h3><code class="docutils literal notranslate"><span class="pre">n_resamples</span></code><a class="headerlink" href="#n-resamples" title="Link to this heading"></a></h3>
+<p>Controls only the p-value’s resolution and the interval’s Monte Carlo noise. It
+never touches <code class="docutils literal notranslate"><span class="pre">difference</span></code>, <code class="docutils literal notranslate"><span class="pre">baseline_mean</span></code>, <code class="docutils literal notranslate"><span class="pre">candidate_mean</span></code> or
+<code class="docutils literal notranslate"><span class="pre">n_nonzero</span></code>, which are computed from the data. So you can iterate cheaply
+and pay for precision once.</p>
+<p>At the worked example’s scale — 2,500 users, one model pair, four metrics:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p><code class="docutils literal notranslate"><span class="pre">n_resamples</span></code></p></th>
+<th class="head"><p>randomization</p></th>
+<th class="head"><p>bootstrap</p></th>
+<th class="head"><p>p resolution</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>999</p></td>
+<td><p>0.2 s</p></td>
+<td><p>0.1 s</p></td>
+<td><p>0.001</p></td>
+</tr>
+<tr class="row-odd"><td><p>9999</p></td>
+<td><p>1.7 s</p></td>
+<td><p>1.1 s</p></td>
+<td><p>0.0001</p></td>
+</tr>
+</tbody>
+</table>
+<p>Cost is linear in <code class="docutils literal notranslate"><span class="pre">B</span></code>, in users, and in the number of hypotheses. Use 999
+while iterating and the default 9999 for anything reported.</p>
+<p>Values of the form <code class="docutils literal notranslate"><span class="pre">10^k</span> <span class="pre">-</span> <span class="pre">1</span></code> are conventional because the p-value is
+<code class="docutils literal notranslate"><span class="pre">(1</span> <span class="pre">+</span> <span class="pre">extreme)</span> <span class="pre">/</span> <span class="pre">(B</span> <span class="pre">+</span> <span class="pre">1)</span></code>: with <code class="docutils literal notranslate"><span class="pre">B</span> <span class="pre">+</span> <span class="pre">1</span></code> a power of ten, p-values land on a
+clean decimal grid and the test achieves its nominal level exactly.</p>
+</section>
+<section id="test-method">
+<h3><code class="docutils literal notranslate"><span class="pre">test_method</span></code><a class="headerlink" href="#test-method" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;randomization&quot;</span></code> (default) — the sign-flipping test described above. Exact
+under its null and the expected choice in the retrieval literature, so it is
+one fewer thing to defend.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;bootstrap&quot;</span></code> — a null-centred bootstrap. Valid for large samples rather
+than exact, and roughly a third faster because it reuses the interval’s
+replicates.</p></li>
+</ul>
+<p>They agree closely. Use <code class="docutils literal notranslate"><span class="pre">&quot;bootstrap&quot;</span></code> while iterating if speed matters, and
+<code class="docutils literal notranslate"><span class="pre">&quot;randomization&quot;</span></code> for the reported numbers.</p>
+</section>
+<section id="test-method-why-not-a-t-test">
+<span id="stats-t-test"></span><h3><code class="docutils literal notranslate"><span class="pre">test_method</span></code>: why not a t-test?<a class="headerlink" href="#test-method-why-not-a-t-test" title="Link to this heading"></a></h3>
+<p>It is a fair question, and the answer is that you can — <code class="docutils literal notranslate"><span class="pre">test_method=&quot;t&quot;</span></code>
+runs a paired t-test, as a one-sample test on the same per-user differences.
+Smucker, Allan and Carterette compared both on retrieval data and found they
+agree closely, so this is not a case of the resampled test being obviously
+right and the familiar one wrong.</p>
+<p>The randomization test is the default because it avoids the normal
+approximation entirely wherever paired label exchangeability is defensible,
+and ranking differences — heavily tied, sharply peaked at zero, occasional large
+outliers — are exactly the data where relying on that approximation is least
+comfortable. Reach for the t-test when its null is the one you want, and when
+enough untied units make the approximation credible.</p>
+<p>Run both. On the worked example:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>metric                n_nonzero  tie_rate  randomization_p        t_p
+ndcg@100                   2495      0.2%           0.0001   2.11e-05
+calibrated_recall@20       1418     43.3%           0.0001   1.17e-11
+recall@20                  1418     43.3%           0.0001   1.18e-11
+mrr@20                     1009     59.6%           0.0001   6.82e-06
+</pre></div>
+</div>
+<p>Every randomization p-value is pinned at its floor; the t-test, having no floor,
+prints numbers far below it. <strong>That is not a reason to prefer it.</strong> Having no
+floor is a property of the procedure rather than evidence about the models, and
+choosing a test by which one prints the smaller number is how p-values stop
+meaning anything.
+They are the far tail of a normal approximation, where the guarantees are
+weakest. What the table really says is that all four differences clear any
+threshold either test could set, by a wide margin.</p>
+<p>Agreement between the two is reassuring. Disagreement has two possible causes,
+and neither is a reason to reach for <code class="docutils literal notranslate"><span class="pre">n_resamples</span></code>. One is that an
+approximation is strained, which the tie rate and the skew of the differences
+will tell you. The other is that <strong>they do not test the same null</strong>: the t-test
+asks whether the population mean difference is zero, while the randomization
+test asks whether the two labels are exchangeable within each user, which also
+implies the differences are symmetric about zero. A skewed distribution centred
+on zero satisfies the first and not the second.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>How far you can trust the t-test here is governed by <code class="docutils literal notranslate"><span class="pre">n_nonzero</span></code>, not
+<code class="docutils literal notranslate"><span class="pre">n_samples</span></code>. The Berry–Esseen bound on the normal approximation’s error
+scales like <span class="math notranslate nohighlight">\(1/\sqrt{n_{\text{nonzero}}}\)</span> for a difference
+distribution that is mostly zeros, and never better. Small <code class="docutils literal notranslate"><span class="pre">n_nonzero</span></code>
+therefore makes the approximation hard to justify from that bound — which is
+not proof it is wrong, only that the usual reassurance is unavailable. A
+large <code class="docutils literal notranslate"><span class="pre">n_nonzero</span></code> is not sufficient either: a badly skewed nonzero part can
+still spoil it.</p>
+</div>
+</section>
+<section id="alternative">
+<h3><code class="docutils literal notranslate"><span class="pre">alternative</span></code><a class="headerlink" href="#alternative" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;two-sided&quot;</span></code> (default) — is there any difference?</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;greater&quot;</span></code> — is the candidate better?</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;less&quot;</span></code> — is the candidate worse?</p></li>
+</ul>
+<p>One-sided tests are more powerful, but you must commit to the direction <strong>before
+seeing the data</strong>. Choosing <code class="docutils literal notranslate"><span class="pre">&quot;greater&quot;</span></code> after noticing your model won is not a
+statistical test. Use <code class="docutils literal notranslate"><span class="pre">&quot;two-sided&quot;</span></code> unless you have a pre-registered reason.</p>
+<p>The interval follows the alternative, so a one-sided test reports a one-sided
+interval. That removes one avoidable source of disagreement — a two-sided
+interval printed beside a one-sided test — but not all of it. A percentile
+bootstrap interval and a randomization test are not inverses of one another, so
+they can still occasionally disagree even pointing the same way at the same
+level.</p>
+</section>
+<section id="correction">
+<h3><code class="docutils literal notranslate"><span class="pre">correction</span></code><a class="headerlink" href="#correction" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;holm&quot;</span></code> (default) — sequential, uniformly more powerful than Bonferroni
+with the same guarantee.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;bonferroni&quot;</span></code> — multiplies every p-value by the number of hypotheses.
+Simpler to explain, more conservative.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">None</span></code> — no adjustment. Honest only when you genuinely have one hypothesis,
+in which case <a class="reference internal" href="api/statistics.html#compresso_recsys.stats.compare_pair" title="compresso_recsys.stats.compare_pair"><code class="xref py py-func docutils literal notranslate"><span class="pre">compare_pair()</span></code></a> is the better call.</p></li>
+</ul>
+<p>Holm is the default because these hypotheses are <strong>dependent</strong>: they are
+computed over overlapping users, and several metrics on one pair of models
+measure closely related things. Holm and Bonferroni control the
+family-wise error rate under arbitrary dependence. Procedures that assume
+independence, such as Benjamini–Hochberg, do not apply here without further
+argument and are deliberately not offered.</p>
+<p>Reducing the number of hypotheses is usually better statistics than reducing the
+correction. Nominating one primary metric in advance and reporting the rest
+descriptively costs nothing and pre-empts the accusation that you tested until
+something worked.</p>
+</section>
+</section>
+<section id="when-one-user-owns-several-rows">
+<span id="stats-repeated-rows"></span><h2>When one user owns several rows<a class="headerlink" href="#when-one-user-owns-several-rows" title="Link to this heading"></a></h2>
+<p>Everything above assumes one row per independent unit. Some evaluation
+protocols give a user more than one.</p>
+<p><code class="docutils literal notranslate"><span class="pre">build_recsys_checkpoint(split_mode=&quot;user_split&quot;,</span> <span class="pre">eval_draws=5)</span></code> splits each
+held-out user’s history into fold-in and scored parts five separate times, so
+2,500 users produce 12,500 rows. That is deliberate and worth doing: averaging a
+user’s score over several draws removes the noise of <em>which</em> items were held
+out, and on GoodBooks it gives intervals 35 to 42 percent narrower than a single
+draw. What it does not give is more independent observations. Five draws of one
+reader are still one reader.</p>
+<p><strong>You do not have to do anything about it.</strong> Comparison groups rows by
+<code class="docutils literal notranslate"><span class="pre">sample_ids</span></code>, so repeated identifiers mean one unit produced several rows.
+Each user is reduced to a single difference — the mean of their rows — and
+everything downstream works on those: the effect is their mean, the bootstrap
+resamples them, the randomization test flips their signs, the t-test tests them.
+One user is one observation however many rows the protocol produced, so a user
+evaluated five times is not weighted five times over. <code class="docutils literal notranslate"><span class="pre">n_units</span></code> reports how
+many there were, and equals <code class="docutils literal notranslate"><span class="pre">n_samples</span></code> when every row is its own.</p>
+<p>Had those rows been resampled as independent, every interval would have come out
+27 to 44 percent too narrow, with p-values understated to match.</p>
+<p>The one thing this needs from you is <strong>real identifiers</strong>. Without
+<code class="docutils literal notranslate"><span class="pre">sample_ids</span></code> the rows are numbered positionally, every row looks like its own
+user, and the repetition becomes invisible. Pass the identifiers you have, and
+read <code class="docutils literal notranslate"><span class="pre">n_units</span></code> against <code class="docutils literal notranslate"><span class="pre">n_samples</span></code> to see what the data actually contained.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The statistics literature calls this cluster sampling, and the references use
+that word. This guide says “unit” because <code class="xref py py-mod docutils literal notranslate"><span class="pre">compresso.clustering</span></code> means
+something unrelated — grouping items into cluster graphs.</p>
+</div>
+</section>
+<section id="what-the-methods-do-formally">
+<h2>What the methods do, formally<a class="headerlink" href="#what-the-methods-do-formally" title="Link to this heading"></a></h2>
+<p>Let <span class="math notranslate nohighlight">\(\mathcal{U}\)</span> be the <span class="math notranslate nohighlight">\(U\)</span> users with at least one relevant
+target, and <span class="math notranslate nohighlight">\(m_u^{(a)}\)</span> the metric value for user <span class="math notranslate nohighlight">\(u\)</span> under model
+<span class="math notranslate nohighlight">\(a\)</span>. Where a protocol gives user <span class="math notranslate nohighlight">\(u\)</span> several evaluation rows —
+<span class="math notranslate nohighlight">\(r_u\)</span> of them, with differences <span class="math notranslate nohighlight">\(d_{u1}, \ldots, d_{u r_u}\)</span> — that
+user is reduced to their own mean first, and the estimand is the mean over
+users:</p>
+<div class="math notranslate nohighlight">
+\[\bar d_u = \frac{1}{r_u} \sum_{j=1}^{r_u} d_{uj},
+\qquad
+\widehat{\Delta} = \frac{1}{U} \sum_{u=1}^{U} \bar d_u .\]</div>
+<p>With one row per user this is just <span class="math notranslate nohighlight">\(\bar d_u = m_u^{(b)} - m_u^{(a)}\)</span> and
+<span class="math notranslate nohighlight">\(\widehat{\Delta} = \widehat{M}^{(b)} - \widehat{M}^{(a)}\)</span>: the mean
+paired difference equals the difference of the reported aggregates, provided
+both models were evaluated on the same users. Weighting by rows instead would
+let the evaluation protocol decide which users count for more, and the two agree
+exactly when every <span class="math notranslate nohighlight">\(r_u\)</span> is the same.</p>
+<p>Every procedure below operates on <span class="math notranslate nohighlight">\(\bar d_1, \ldots, \bar d_U\)</span>, so they
+all estimate that same quantity.</p>
+<p><strong>Interval.</strong> For replicate <span class="math notranslate nohighlight">\(t\)</span>, draw indices
+<span class="math notranslate nohighlight">\(i_{t1}, \ldots, i_{tU}\)</span> uniformly with replacement from
+<span class="math notranslate nohighlight">\(\{1, \ldots, U\}\)</span> and compute</p>
+<div class="math notranslate nohighlight">
+\[\widehat{\Delta}^{*(t)} = \frac{1}{U} \sum_{j=1}^{U} \bar d_{i_{tj}} .\]</div>
+<p>The reported interval is the empirical
+<span class="math notranslate nohighlight">\([\alpha/2,\, 1-\alpha/2]\)</span> quantile range of those replicates.</p>
+<p><strong>Test.</strong> Under the null that the two models are interchangeable for each user,
+<span class="math notranslate nohighlight">\(\bar d_u\)</span> and <span class="math notranslate nohighlight">\(-\bar d_u\)</span> are equally likely. Draw signs
+<span class="math notranslate nohighlight">\(\varepsilon_{tu} \in \{-1, +1\}\)</span> uniformly, compute</p>
+<div class="math notranslate nohighlight">
+\[\widehat{\Delta}^{0*(t)} = \frac{1}{U} \sum_{u=1}^{U}
+\varepsilon_{tu} \bar d_u ,\]</div>
+<p>and report</p>
+<div class="math notranslate nohighlight">
+\[p = \frac{1 + \#\{t : |\widehat{\Delta}^{0*(t)}| \ge |\widehat{\Delta}|\}}{B + 1}.\]</div>
+<p>The added one in numerator and denominator counts the observed arrangement among
+the possibilities, which makes the test valid at finite <span class="math notranslate nohighlight">\(B\)</span> and is why
+<span class="math notranslate nohighlight">\(p\)</span> is never zero.</p>
+<p><strong>Correction.</strong> For <span class="math notranslate nohighlight">\(J\)</span> hypotheses with sorted p-values
+<span class="math notranslate nohighlight">\(p_{(1)} \le \cdots \le p_{(J)}\)</span>, Holm reports</p>
+<div class="math notranslate nohighlight">
+\[\widetilde{p}_{(i)} = \min\!\left(1,\;
+\max_{1 \le j \le i} \left[(J - j + 1)\, p_{(j)}\right]\right),\]</div>
+<p>restored to the original order. The running maximum ensures a hypothesis is
+never easier to reject than one with a smaller p-value.</p>
+</section>
+<section id="reporting-the-result">
+<h2>Reporting the result<a class="headerlink" href="#reporting-the-result" title="Link to this heading"></a></h2>
+<section id="methods">
+<h3>Methods<a class="headerlink" href="#methods" title="Link to this heading"></a></h3>
+<blockquote>
+<div><p>For each user with at least one relevant test item we computed a per-user
+ranking metric and report its macro average over those users. All models
+were evaluated on identical users and target sets.</p>
+<p>To compare a candidate model against a baseline we formed paired per-user
+differences and report their mean. Statistical significance was assessed
+with a paired two-sided randomization test: under the null hypothesis that
+the two systems are interchangeable for each user, the sign of every paired
+difference is arbitrary, so we drew B uniform sign assignments, recomputed
+the mean difference under each, and report the Monte Carlo p-value given by
+one plus the number of assignments at least as extreme as the observed
+difference, divided by B plus one (Smucker et al., 2007; Davison and
+Hinkley, 1997).</p>
+<p>Uncertainty in the effect size is reported as a percentile confidence
+interval from a paired user-level bootstrap using B bootstrap replicates
+(Efron, 1979). When testing several model and metric combinations together,
+p-values were adjusted with Holm’s sequential procedure, which controls the
+family-wise error rate under arbitrary dependence between hypotheses (Holm,
+1979), and significance was assessed at the family-wise level 0.05.</p>
+<p>These intervals quantify variation across evaluation users conditional on
+the fitted model instances. Variation across training seeds is reported
+separately.</p>
+</div></blockquote>
+</section>
+<section id="results">
+<h3>Results<a class="headerlink" href="#results" title="Link to this heading"></a></h3>
+<p>Report the effect size first, and give the reader everything needed to judge
+it without reading the code:</p>
+<blockquote>
+<div><p>ELSA improved <a class="reference external" href="mailto:nDCG&#37;&#52;&#48;100">nDCG<span>&#64;</span>100</a> over EASE by 0.0054 (95% paired-bootstrap confidence
+interval [0.0030, 0.0080], a relative gain of 1.1%; paired randomization
+test with 9,999 resamples, Holm-adjusted p = 0.0004, the minimum attainable
+at that resample count; n = 2,500 users, of whom 2,495 scored differently
+under the two models).</p>
+</div></blockquote>
+<p>Every number there does work. The effect size says how much. The interval says
+how precisely. The relative gain makes it comparable across metrics. The test
+and its resample count say how the p-value was produced and bound how small it
+could have been — which is why the sentence reports the adjusted value and names
+it as the floor, rather than writing <code class="docutils literal notranslate"><span class="pre">p</span> <span class="pre">&lt;</span> <span class="pre">0.001</span></code> and implying a bound the run
+cannot support. The two counts separate how many users were evaluated from how
+many the two models actually disagreed about.</p>
+</section>
+<section id="checklist">
+<h3>Checklist<a class="headerlink" href="#checklist" title="Link to this heading"></a></h3>
+<p>State all of these, every time:</p>
+<ol class="arabic simple">
+<li><p>the metric and cutoff, and its exact definition where more than one
+convention exists — <code class="docutils literal notranslate"><span class="pre">calibrated_recall&#64;k</span></code> and <code class="docutils literal notranslate"><span class="pre">map&#64;k</span></code> both normalize by
+<span class="math notranslate nohighlight">\(\min(k, |\mathcal{R}_u|)\)</span>, which is not what every paper means;</p></li>
+<li><p>the direction and magnitude of the difference, before any p-value;</p></li>
+<li><p>the confidence interval and its level;</p></li>
+<li><p>the sampling unit, with <code class="docutils literal notranslate"><span class="pre">n_samples</span></code>, <code class="docutils literal notranslate"><span class="pre">n_nonzero</span></code> and — when one user
+owns several rows — <code class="docutils literal notranslate"><span class="pre">n_units</span></code>;</p></li>
+<li><p>the test, the number of resamples, and whether p-values were adjusted;</p></li>
+<li><p>that the interval describes one trained model, and — for any stochastic
+model — the spread across seeds beside it, named as the separate quantity it
+is (<a class="reference internal" href="#stats-seeds"><span class="std std-ref">how to measure it</span></a>);</p></li>
+<li><p>which metric was primary, declared in advance.</p></li>
+</ol>
+<p>Avoid “the models are significantly different” without at least the first five.</p>
+</section>
+</section>
+<section id="references">
+<span id="stats-references"></span><h2>References<a class="headerlink" href="#references" title="Link to this heading"></a></h2>
+<p>The methods here are standard rather than novel, and citing them is part of
+making a comparison defensible. Copy-ready BibTeX for all four is in
+<a class="reference internal" href="citing.html"><span class="doc">Citing Compresso Recsys</span></a>.</p>
+<p><strong>The bootstrap.</strong> Efron introduced resampling with replacement as a general
+way to estimate the sampling distribution of a statistic. The confidence
+interval reported by <code class="xref py py-mod docutils literal notranslate"><span class="pre">compresso_recsys.stats</span></code> is the percentile form of
+that idea, applied to the mean paired difference.</p>
+<blockquote>
+<div><p>Efron, B. (1979). Bootstrap Methods: Another Look at the Jackknife.
+<em>The Annals of Statistics</em>, 7(1), 1–26.
+<a class="reference external" href="https://doi.org/10.1214/aos/1176344552">doi:10.1214/aos/1176344552</a></p>
+</div></blockquote>
+<p><strong>The evaluation protocol.</strong> Held-out users are scored under strong
+generalization: part of each user’s history is folded in to build their
+representation and the rest is scored against, in the 80/20 proportion Liang et
+al. describe. <code class="docutils literal notranslate"><span class="pre">eval_holdout_frac</span></code> is that scored share.</p>
+<blockquote>
+<div><p>Liang, D., Krishnan, R. G., Hoffman, M. D., &amp; Jebara, T. (2018). Variational
+Autoencoders for Collaborative Filtering. <em>Proceedings of the 2018 World Wide
+Web Conference (WWW ‘18)</em>, 689–698.
+<a class="reference external" href="https://doi.org/10.1145/3178876.3186150">doi:10.1145/3178876.3186150</a></p>
+</div></blockquote>
+<p><strong>The randomization test in retrieval evaluation.</strong> Smucker, Allan and
+Carterette compared the randomization test, the bootstrap, the t-test, the
+Wilcoxon signed-rank test and the sign test on retrieval data. They recommended
+the randomization test, which is why it is the default here — but they also
+found that the t-test <strong>agrees closely</strong> with it, and that the tests to avoid
+are Wilcoxon signed-rank and the sign test, which discard the magnitude of each
+difference. That is the citation behind both the default and the availability of
+<code class="docutils literal notranslate"><span class="pre">test_method=&quot;t&quot;</span></code>; see <a class="reference internal" href="#stats-t-test"><span class="std std-ref">test_method: why not a t-test?</span></a>.</p>
+<blockquote>
+<div><p>Smucker, M. D., Allan, J., &amp; Carterette, B. (2007). A Comparison of
+Statistical Significance Tests for Information Retrieval Evaluation.
+<em>Proceedings of the Sixteenth ACM Conference on Information and Knowledge
+Management (CIKM ‘07)</em>, 623–632.
+<a class="reference external" href="https://doi.org/10.1145/1321440.1321528">doi:10.1145/1321440.1321528</a></p>
+</div></blockquote>
+<p><strong>Why a Monte Carlo p-value is never zero.</strong> Phipson and Smyth show that
+computing a permutation p-value as the plain proportion of extreme resamples is
+invalid — it can report zero, which no p-value may be — and derive the
+<code class="docutils literal notranslate"><span class="pre">(1</span> <span class="pre">+</span> <span class="pre">extreme)</span> <span class="pre">/</span> <span class="pre">(B</span> <span class="pre">+</span> <span class="pre">1)</span></code> form used here, which is exact rather than a
+conservative patch. This is the reference for <a class="reference internal" href="#stats-traps"><span class="std std-ref">Five traps</span></a> on the floor.</p>
+<blockquote>
+<div><p>Phipson, B., &amp; Smyth, G. K. (2010). Permutation P-values Should Never Be
+Zero: Calculating Exact P-values When Permutations Are Randomly Drawn.
+<em>Statistical Applications in Genetics and Molecular Biology</em>, 9(1), Article 39.
+<a class="reference external" href="https://doi.org/10.2202/1544-6115.1585">doi:10.2202/1544-6115.1585</a></p>
+</div></blockquote>
+<p><strong>Multiple comparisons.</strong> Holm’s sequential procedure controls the family-wise
+error rate under arbitrary dependence between hypotheses, which is what makes
+it appropriate when comparisons are computed over overlapping users and several
+metrics on one pair of models measure closely related things.</p>
+<blockquote>
+<div><p>Holm, S. (1979). A Simple Sequentially Rejective Multiple Test Procedure.
+<em>Scandinavian Journal of Statistics</em>, 6(2), 65–70.</p>
+</div></blockquote>
+<p><strong>Monte Carlo p-values.</strong> Davison and Hinkley are the standard reference for
+the <code class="docutils literal notranslate"><span class="pre">(1</span> <span class="pre">+</span> <span class="pre">extreme)</span> <span class="pre">/</span> <span class="pre">(B</span> <span class="pre">+</span> <span class="pre">1)</span></code> form and for choosing <code class="docutils literal notranslate"><span class="pre">B</span></code> so that
+<code class="docutils literal notranslate"><span class="pre">alpha</span> <span class="pre">*</span> <span class="pre">(B</span> <span class="pre">+</span> <span class="pre">1)</span></code> is an integer — the reason the defaults are 9,999 rather
+than 10,000.</p>
+<blockquote>
+<div><p>Davison, A. C., &amp; Hinkley, D. V. (1997). <em>Bootstrap Methods and their
+Application</em>. Cambridge University Press.
+<a class="reference external" href="https://doi.org/10.1017/CBO9780511802843">doi:10.1017/CBO9780511802843</a></p>
+</div></blockquote>
+</section>
+<section id="see-also">
+<h2>See also<a class="headerlink" href="#see-also" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><a class="reference internal" href="api/statistics.html"><span class="doc">Statistics API</span></a> — the API reference for
+<code class="xref py py-mod docutils literal notranslate"><span class="pre">compresso_recsys.stats</span></code>.</p></li>
+<li><p><a class="reference internal" href="api/evaluation.html"><span class="doc">Ranking Evaluation API</span></a> — <a class="reference internal" href="api/evaluation.html#compresso_recsys.evaluation.EvaluationResult" title="compresso_recsys.evaluation.EvaluationResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">EvaluationResult</span></code></a>
+and the per-user values this guide depends on.</p></li>
+<li><p><a class="reference internal" href="citing.html"><span class="doc">Citing Compresso Recsys</span></a> — BibTeX for the works above and for the models being compared.</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="examples.html" class="btn btn-neutral float-left" title="Examples" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="citing.html" class="btn btn-neutral float-right" title="Citing Compresso Recsys" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

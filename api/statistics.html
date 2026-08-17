@@ -1,0 +1,560 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Statistics API &mdash; Compresso Recsys 0.2.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=938c9ccc"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="prev" title="Ranking Evaluation API" href="evaluation.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Compresso Recsys
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../installation.html#install-from-pypi">Install from PyPI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../installation.html#optional-extras">Optional Extras</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../installation.html#local-development">Local Development</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../installation.html#install-from-github">Install from GitHub</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../installation.html#build-the-documentation-locally">Build the Documentation Locally</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-started.html">Getting Started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started.html#basic-python-usage">Basic Python Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started.html#checkpoint-workflow">Checkpoint Workflow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started.html#what-goes-into-a-checkpoint">What Goes Into a Checkpoint</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started.html#split-modes">Split Modes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started.html#retrieval-metrics">Retrieval Metrics</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../quickstart.html#choose-a-split-mode">Choose a Split Mode</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../examples.html">Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../examples.html#dataset-loader">Dataset Loader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples.html#building-checkpoints">Building Checkpoints</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples.html#checkpoint-read-write">Checkpoint Read/Write</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples.html#evaluate-embeddings-from-python">Evaluate Embeddings From Python</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples.html#evaluate-model-predictions">Evaluate Model Predictions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples.html#train-teaser-for-cold-items">Train TEASER for Cold Items</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples.html#train-teaser-with-gradient-descent">Train TEASER with Gradient Descent</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples.html#serve-new-teaser-candidates">Serve New TEASER Candidates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples.html#train-and-evaluate-elsa">Train and Evaluate ELSA</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../statistical-comparison.html">Comparing Models Statistically</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../statistical-comparison.html#why-the-aggregates-are-not-enough">Why the aggregates are not enough</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../statistical-comparison.html#do-the-comparison">Do the comparison</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../statistical-comparison.html#a-complete-worked-example">A complete worked example</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../statistical-comparison.html#build-the-split">Build the split</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../statistical-comparison.html#train-both-models">Train both models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../statistical-comparison.html#evaluate-both-on-identical-users">Evaluate both on identical users</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../statistical-comparison.html#compare">Compare</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../statistical-comparison.html#reading-it">Reading it</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../statistical-comparison.html#reading-the-output">Reading the output</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../statistical-comparison.html#the-effect">The effect</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../statistical-comparison.html#how-precisely-you-know-it">How precisely you know it</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../statistical-comparison.html#how-often-the-two-models-tied">How often the two models tied</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../statistical-comparison.html#whether-it-could-be-chance">Whether it could be chance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../statistical-comparison.html#the-verdict">The verdict</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../statistical-comparison.html#five-traps">Five traps</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../statistical-comparison.html#p-values-have-a-floor">p-values have a floor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../statistical-comparison.html#ties-are-not-missing-data">Ties are not missing data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../statistical-comparison.html#the-interval-and-the-p-value-can-disagree">The interval and the p-value can disagree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../statistical-comparison.html#confidence-level-also-moves-the-significance-bar"><code class="docutils literal notranslate"><span class="pre">confidence_level</span></code> also moves the significance bar</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../statistical-comparison.html#one-trained-model-is-not-the-method">One trained model is not the method</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../statistical-comparison.html#choosing-the-settings">Choosing the settings</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../statistical-comparison.html#n-resamples"><code class="docutils literal notranslate"><span class="pre">n_resamples</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../statistical-comparison.html#test-method"><code class="docutils literal notranslate"><span class="pre">test_method</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../statistical-comparison.html#test-method-why-not-a-t-test"><code class="docutils literal notranslate"><span class="pre">test_method</span></code>: why not a t-test?</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../statistical-comparison.html#alternative"><code class="docutils literal notranslate"><span class="pre">alternative</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../statistical-comparison.html#correction"><code class="docutils literal notranslate"><span class="pre">correction</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../statistical-comparison.html#when-one-user-owns-several-rows">When one user owns several rows</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../statistical-comparison.html#what-the-methods-do-formally">What the methods do, formally</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../statistical-comparison.html#reporting-the-result">Reporting the result</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../statistical-comparison.html#methods">Methods</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../statistical-comparison.html#results">Results</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../statistical-comparison.html#checklist">Checklist</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../statistical-comparison.html#references">References</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../statistical-comparison.html#see-also">See also</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../citing.html">Citing Compresso Recsys</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../citing.html#compresso">Compresso</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../citing.html#ease">EASE</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../citing.html#teaser">TEASER</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../citing.html#elsa">ELSA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../citing.html#elsa-with-sampled-output-candidates">ELSA with sampled output candidates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../citing.html#compressed-elsa">Compressed ELSA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../citing.html#evaluation-protocol">Evaluation Protocol</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../citing.html#statistical-comparison">Statistical Comparison</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../cli-reference.html">Checkpoint CLI Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../cli-reference.html#amazon-reviews-2023">Amazon Reviews 2023</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../cli-reference.html#leave-last-out-checkpoint">Leave-Last-Out Checkpoint</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../cli-reference.html#temporal-checkpoint">Temporal Checkpoint</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../cli-reference.html#checkpoint-split-schema">Checkpoint Split Schema</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../cli-reference.html#builder-parameters">Builder Parameters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../cli-reference.html#supported-amazon-reviews-2023-datasets">Supported Amazon Reviews 2023 Datasets</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">API Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="compresso_recsys.html">Core API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="compresso_recsys.html#datasets">Datasets</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="compresso_recsys.html#compresso_recsys.SplitBundle"><code class="docutils literal notranslate"><span class="pre">SplitBundle</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="compresso_recsys.html#compresso_recsys.RecSysDataset"><code class="docutils literal notranslate"><span class="pre">RecSysDataset</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="compresso_recsys.html#compresso_recsys.Goodbooks"><code class="docutils literal notranslate"><span class="pre">Goodbooks</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="compresso_recsys.html#compresso_recsys.MovieLens1M"><code class="docutils literal notranslate"><span class="pre">MovieLens1M</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="compresso_recsys.html#compresso_recsys.MovieLens20M"><code class="docutils literal notranslate"><span class="pre">MovieLens20M</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="compresso_recsys.html#compresso_recsys.AmazonReviews2023"><code class="docutils literal notranslate"><span class="pre">AmazonReviews2023</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="compresso_recsys.html#checkpoint-helpers">Checkpoint Helpers</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="compresso_recsys.html#compresso_recsys.build_recsys_checkpoint"><code class="docutils literal notranslate"><span class="pre">build_recsys_checkpoint()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="compresso_recsys.html#compresso_recsys.update_checkpoint"><code class="docutils literal notranslate"><span class="pre">update_checkpoint()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="compresso_recsys.html#compresso_recsys.read_checkpoint"><code class="docutils literal notranslate"><span class="pre">read_checkpoint()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="compresso_recsys.html#compresso_recsys.load_manifest"><code class="docutils literal notranslate"><span class="pre">load_manifest()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="compresso_recsys.html#compresso_recsys.save_manifest"><code class="docutils literal notranslate"><span class="pre">save_manifest()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="compresso_recsys.html#compresso_recsys.update_stage_manifest"><code class="docutils literal notranslate"><span class="pre">update_stage_manifest()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="compresso_recsys.html#compresso_recsys.save_json"><code class="docutils literal notranslate"><span class="pre">save_json()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="compresso_recsys.html#compresso_recsys.load_json"><code class="docutils literal notranslate"><span class="pre">load_json()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="compresso_recsys.html#compresso_recsys.save_recsys_split"><code class="docutils literal notranslate"><span class="pre">save_recsys_split()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="compresso_recsys.html#compresso_recsys.load_recsys_split"><code class="docutils literal notranslate"><span class="pre">load_recsys_split()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="compresso_recsys.html#compresso_recsys.save_cluster_graph_stage"><code class="docutils literal notranslate"><span class="pre">save_cluster_graph_stage()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="compresso_recsys.html#compresso_recsys.load_cluster_graph_stage"><code class="docutils literal notranslate"><span class="pre">load_cluster_graph_stage()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html">Datasets API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="checkpoint.html">Checkpoint API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="checkpoint.html#checkpoint-contexts">Checkpoint Contexts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="checkpoint.html#manifest-and-json-helpers">Manifest and JSON Helpers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="checkpoint.html#split-and-cluster-stages">Split and Cluster Stages</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="checkpoint.html#item-partitions">Item partitions</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="models.html">Models API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="models.html#recommender-contract">Recommender Contract</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.Recommender"><code class="docutils literal notranslate"><span class="pre">Recommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.ColdStartRecommender"><code class="docutils literal notranslate"><span class="pre">ColdStartRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.ItemVocabulary"><code class="docutils literal notranslate"><span class="pre">ItemVocabulary</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="models.html#implementing-new-models">Implementing New Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.BaseCollaborativeRecommender"><code class="docutils literal notranslate"><span class="pre">BaseCollaborativeRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.BaseColdStartRecommender"><code class="docutils literal notranslate"><span class="pre">BaseColdStartRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="models.html#training-interaction-batches">Training Interaction Batches</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="models.html#transductive-models-in-expanding-catalogs">Transductive Models in Expanding Catalogs</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.WarmCatalogAdapter"><code class="docutils literal notranslate"><span class="pre">WarmCatalogAdapter</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="models.html#ease">EASE</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.EASEConfig"><code class="docutils literal notranslate"><span class="pre">EASEConfig</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.EASE"><code class="docutils literal notranslate"><span class="pre">EASE</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="models.html#elsa">ELSA</a></li>
+<li class="toctree-l3"><a class="reference internal" href="models.html#contentrecommender">ContentRecommender</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.ContentRecommenderConfig"><code class="docutils literal notranslate"><span class="pre">ContentRecommenderConfig</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.ContentRecommender"><code class="docutils literal notranslate"><span class="pre">ContentRecommender</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="models.html#teaser">TEASER</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.TEASERConfig"><code class="docutils literal notranslate"><span class="pre">TEASERConfig</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.TEASER"><code class="docutils literal notranslate"><span class="pre">TEASER</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.CandidateCatalog"><code class="docutils literal notranslate"><span class="pre">CandidateCatalog</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="models.html#teasergd">TEASERGD</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.TEASERGDConfig"><code class="docutils literal notranslate"><span class="pre">TEASERGDConfig</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.TEASERGD"><code class="docutils literal notranslate"><span class="pre">TEASERGD</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.TEASERGDTrainer"><code class="docutils literal notranslate"><span class="pre">TEASERGDTrainer</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="models.html#backend-performance">Backend Performance</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="retrieval.html">Retrieval API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="retrieval.html#holdout-builders">Holdout Builders</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="retrieval.html#compresso_recsys.retrieval.build_eval_holdout"><code class="docutils literal notranslate"><span class="pre">build_eval_holdout()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="retrieval.html#compresso_recsys.retrieval.build_item_cold_holdout"><code class="docutils literal notranslate"><span class="pre">build_item_cold_holdout()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="retrieval.html#compresso_recsys.retrieval.build_leave_last_out_holdout"><code class="docutils literal notranslate"><span class="pre">build_leave_last_out_holdout()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="retrieval.html#compresso_recsys.retrieval.build_temporal_holdout"><code class="docutils literal notranslate"><span class="pre">build_temporal_holdout()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="retrieval.html#embedding-evaluation">Embedding Evaluation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="retrieval.html#compresso_recsys.retrieval.evaluate_item_embeddings"><code class="docutils literal notranslate"><span class="pre">evaluate_item_embeddings()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="retrieval.html#compresso_recsys.retrieval.evaluate_item_embeddings_with_holdout"><code class="docutils literal notranslate"><span class="pre">evaluate_item_embeddings_with_holdout()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="evaluation.html">Ranking Evaluation API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="evaluation.html#predictions-and-targets">Predictions and Targets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="evaluation.html#evaluation-results">Evaluation Results</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="evaluation.html#compresso_recsys.evaluation.EvaluationResult"><code class="docutils literal notranslate"><span class="pre">EvaluationResult</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="evaluation.html#custom-metrics">Custom Metrics</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="evaluation.html#compresso_recsys.evaluation.evaluate_recommender"><code class="docutils literal notranslate"><span class="pre">evaluate_recommender()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="evaluation.html#compresso_recsys.evaluation.evaluate_ranked_predictions"><code class="docutils literal notranslate"><span class="pre">evaluate_ranked_predictions()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="evaluation.html#compresso_recsys.evaluation.RankingEvaluator"><code class="docutils literal notranslate"><span class="pre">RankingEvaluator</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="evaluation.html#metrics">Metrics</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="evaluation.html#default-metrics">Default Metrics</a></li>
+<li class="toctree-l4"><a class="reference internal" href="evaluation.html#optional-metrics">Optional Metrics</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Statistics API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#comparison-functions">Comparison Functions</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#compresso_recsys.stats.compare_models"><code class="docutils literal notranslate"><span class="pre">compare_models()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#compresso_recsys.stats.compare_pair"><code class="docutils literal notranslate"><span class="pre">compare_pair()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#results">Results</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#compresso_recsys.stats.PairwiseComparison"><code class="docutils literal notranslate"><span class="pre">PairwiseComparison</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#compresso_recsys.stats.ComparisonReport"><code class="docutils literal notranslate"><span class="pre">ComparisonReport</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#parameter-values">Parameter Values</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Compresso Recsys</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">API Reference</a></li>
+      <li class="breadcrumb-item active">Statistics API</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/api/statistics.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="statistics-api">
+<h1>Statistics API<a class="headerlink" href="#statistics-api" title="Link to this heading"></a></h1>
+<p>Paired comparison of evaluations produced by
+<code class="xref py py-mod docutils literal notranslate"><span class="pre">compresso_recsys.evaluation</span></code>. For an introduction, how to read the output
+and how to report it, see <a class="reference internal" href="../statistical-comparison.html"><span class="doc">Comparing Models Statistically</span></a>; this page is the
+reference.</p>
+<p>Every function here works on the paired per-user difference between two models
+evaluated on identical users, and requires results carrying per-user values.</p>
+<section id="comparison-functions">
+<h2>Comparison Functions<a class="headerlink" href="#comparison-functions" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="compresso_recsys.stats.compare_models">
+<span class="sig-prename descclassname"><span class="pre">compresso_recsys.stats.</span></span><span class="sig-name descname"><span class="pre">compare_models</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">results</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">metrics</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reference</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">confidence_level</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.95</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_resamples</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">9999</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alternative</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'two-sided'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">correction</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'holm'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'randomization'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">random_state</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resample_batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">64</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_progress</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/stats.html#compare_models"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.stats.compare_models" title="Link to this definition"></a></dt>
+<dd><p>Compare several models across one or more metrics in a single family.</p>
+<p>With <code class="docutils literal notranslate"><span class="pre">reference</span></code> set, every other model is compared against it. Without
+it, every unordered pair is compared in mapping insertion order, with the
+earlier model as baseline.</p>
+<p>The correction spans every pair and metric produced by the call, so calling
+this once with three metrics is not the same as calling it three times: the
+family is what the call generates.</p>
+<p><code class="docutils literal notranslate"><span class="pre">show_progress</span></code> draws a bar when tqdm is installed. Cost is linear in
+units and in the number of hypotheses – roughly a second per hypothesis
+per 25,000 units at the default resample count – so a large evaluation
+compared across several metrics and models can run for minutes. The bar
+counts hypotheses but advances within each one, so it still moves when a
+call produces only a single very slow comparison.</p>
+<p>Holm is the default because these hypotheses are dependent: they are
+computed over overlapping users, and several metrics on one pair of models
+measure closely related things. Holm controls the family-wise error rate
+under arbitrary dependence. Procedures that assume independence or positive
+dependence are not offered for that reason.</p>
+<p>Each hypothesis draws its own resamples, seeded from its metric and its
+pair of model names. Adding a metric, reordering <code class="docutils literal notranslate"><span class="pre">metrics</span></code>, or reordering
+<code class="docutils literal notranslate"><span class="pre">results</span></code> therefore cannot change a raw comparison that was already in
+the report. Adjusted p-values still move, because the family changed.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#compresso_recsys.stats.ComparisonReport" title="compresso_recsys.stats.ComparisonReport"><code class="xref py py-class docutils literal notranslate"><span class="pre">ComparisonReport</span></code></a></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>results</strong> (<em>Mapping</em><em>[</em><em>str</em><em>, </em><a class="reference internal" href="evaluation.html#compresso_recsys.evaluation.EvaluationResult" title="compresso_recsys.evaluation.EvaluationResult"><em>EvaluationResult</em></a><em>]</em>)</p></li>
+<li><p><strong>metrics</strong> (<em>str</em><em> | </em><em>Sequence</em><em>[</em><em>str</em><em>]</em>)</p></li>
+<li><p><strong>reference</strong> (<em>str</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>confidence_level</strong> (<em>float</em>)</p></li>
+<li><p><strong>n_resamples</strong> (<em>int</em>)</p></li>
+<li><p><strong>alternative</strong> (<em>Literal</em><em>[</em><em>'two-sided'</em><em>, </em><em>'greater'</em><em>, </em><em>'less'</em><em>]</em>)</p></li>
+<li><p><strong>correction</strong> (<em>Literal</em><em>[</em><em>'holm'</em><em>, </em><em>'bonferroni'</em><em>] </em><em>| </em><em>None</em>)</p></li>
+<li><p><strong>test_method</strong> (<em>Literal</em><em>[</em><em>'randomization'</em><em>, </em><em>'bootstrap'</em><em>, </em><em>'t'</em><em>]</em>)</p></li>
+<li><p><strong>random_state</strong> (<em>int</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>resample_batch_size</strong> (<em>int</em>)</p></li>
+<li><p><strong>show_progress</strong> (<em>bool</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="compresso_recsys.stats.compare_pair">
+<span class="sig-prename descclassname"><span class="pre">compresso_recsys.stats.</span></span><span class="sig-name descname"><span class="pre">compare_pair</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">baseline</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">candidate</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">metric</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">baseline_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'baseline'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">candidate_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'candidate'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">confidence_level</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.95</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_resamples</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">9999</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alternative</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'two-sided'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'randomization'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">random_state</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resample_batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">64</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_progress</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/stats.html#compare_pair"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.stats.compare_pair" title="Link to this definition"></a></dt>
+<dd><p>Compare one candidate against one baseline on one metric.</p>
+<p>The difference is <code class="docutils literal notranslate"><span class="pre">candidate</span> <span class="pre">-</span> <span class="pre">baseline</span></code>, so positive values favour the
+candidate. No multiplicity correction is applied: a single comparison is a
+single hypothesis, and <code class="docutils literal notranslate"><span class="pre">adjusted_p_value</span></code> equals <code class="docutils literal notranslate"><span class="pre">p_value</span></code>. Use
+<a class="reference internal" href="#compresso_recsys.stats.compare_models" title="compresso_recsys.stats.compare_models"><code class="xref py py-func docutils literal notranslate"><span class="pre">compare_models()</span></code></a> when testing more than one hypothesis together.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#compresso_recsys.stats.PairwiseComparison" title="compresso_recsys.stats.PairwiseComparison"><code class="xref py py-class docutils literal notranslate"><span class="pre">PairwiseComparison</span></code></a></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>baseline</strong> (<a class="reference internal" href="evaluation.html#compresso_recsys.evaluation.EvaluationResult" title="compresso_recsys.evaluation.EvaluationResult"><em>EvaluationResult</em></a>)</p></li>
+<li><p><strong>candidate</strong> (<a class="reference internal" href="evaluation.html#compresso_recsys.evaluation.EvaluationResult" title="compresso_recsys.evaluation.EvaluationResult"><em>EvaluationResult</em></a>)</p></li>
+<li><p><strong>metric</strong> (<em>str</em>)</p></li>
+<li><p><strong>baseline_name</strong> (<em>str</em>)</p></li>
+<li><p><strong>candidate_name</strong> (<em>str</em>)</p></li>
+<li><p><strong>confidence_level</strong> (<em>float</em>)</p></li>
+<li><p><strong>n_resamples</strong> (<em>int</em>)</p></li>
+<li><p><strong>alternative</strong> (<em>Literal</em><em>[</em><em>'two-sided'</em><em>, </em><em>'greater'</em><em>, </em><em>'less'</em><em>]</em>)</p></li>
+<li><p><strong>test_method</strong> (<em>Literal</em><em>[</em><em>'randomization'</em><em>, </em><em>'bootstrap'</em><em>, </em><em>'t'</em><em>]</em>)</p></li>
+<li><p><strong>random_state</strong> (<em>int</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>resample_batch_size</strong> (<em>int</em>)</p></li>
+<li><p><strong>show_progress</strong> (<em>bool</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="results">
+<h2>Results<a class="headerlink" href="#results" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="compresso_recsys.stats.PairwiseComparison">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">compresso_recsys.stats.</span></span><span class="sig-name descname"><span class="pre">PairwiseComparison</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">metric</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">baseline</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">candidate</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_samples</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_units</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_nonzero</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">baseline_mean</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">candidate_mean</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">difference</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">relative_difference</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bootstrap_standard_error</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ci_low</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ci_high</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">confidence_level</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p_value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">adjusted_p_value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">significant</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alternative</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_method</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interval_method</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_resamples</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">random_state</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/stats.html#PairwiseComparison"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.stats.PairwiseComparison" title="Link to this definition"></a></dt>
+<dd><p>One model-versus-model hypothesis for one metric.</p>
+<p><code class="docutils literal notranslate"><span class="pre">difference</span></code> is always <code class="docutils literal notranslate"><span class="pre">candidate</span> <span class="pre">-</span> <span class="pre">baseline</span></code>, so positive values favour
+the candidate.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>metric</strong> (<em>str</em>)</p></li>
+<li><p><strong>baseline</strong> (<em>str</em>)</p></li>
+<li><p><strong>candidate</strong> (<em>str</em>)</p></li>
+<li><p><strong>n_samples</strong> (<em>int</em>)</p></li>
+<li><p><strong>n_units</strong> (<em>int</em>)</p></li>
+<li><p><strong>n_nonzero</strong> (<em>int</em>)</p></li>
+<li><p><strong>baseline_mean</strong> (<em>float</em>)</p></li>
+<li><p><strong>candidate_mean</strong> (<em>float</em>)</p></li>
+<li><p><strong>difference</strong> (<em>float</em>)</p></li>
+<li><p><strong>relative_difference</strong> (<em>float</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>bootstrap_standard_error</strong> (<em>float</em>)</p></li>
+<li><p><strong>ci_low</strong> (<em>float</em>)</p></li>
+<li><p><strong>ci_high</strong> (<em>float</em>)</p></li>
+<li><p><strong>confidence_level</strong> (<em>float</em>)</p></li>
+<li><p><strong>p_value</strong> (<em>float</em>)</p></li>
+<li><p><strong>adjusted_p_value</strong> (<em>float</em>)</p></li>
+<li><p><strong>significant</strong> (<em>bool</em>)</p></li>
+<li><p><strong>alternative</strong> (<em>Literal</em><em>[</em><em>'two-sided'</em><em>, </em><em>'greater'</em><em>, </em><em>'less'</em><em>]</em>)</p></li>
+<li><p><strong>test_method</strong> (<em>Literal</em><em>[</em><em>'randomization'</em><em>, </em><em>'bootstrap'</em><em>, </em><em>'t'</em><em>]</em>)</p></li>
+<li><p><strong>interval_method</strong> (<em>str</em>)</p></li>
+<li><p><strong>n_resamples</strong> (<em>int</em>)</p></li>
+<li><p><strong>random_state</strong> (<em>int</em><em> | </em><em>None</em>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="compresso_recsys.stats.PairwiseComparison.tie_rate">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">tie_rate</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#compresso_recsys.stats.PairwiseComparison.tie_rate" title="Link to this definition"></a></dt>
+<dd><p>Fraction of units whose <strong>mean</strong> paired difference is exactly zero.</p>
+<p>With one row per user that means the two models scored them
+identically. With several, it means those rows cancelled: a user who
+gained on one draw and lost the same amount on another is tied here
+even though no single row was.</p>
+<p>High tie rates are normal for ranking metrics at small cutoffs and are
+not a defect. They say the two models come out level for that share of
+the population, which is itself a finding, and they are why
+<code class="docutils literal notranslate"><span class="pre">n_nonzero</span></code> is reported: it bounds how discrete the randomization
+test’s null distribution can be, since flipping the sign of a zero
+changes nothing. The estimate still rests on every unit.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="compresso_recsys.stats.PairwiseComparison.direction">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">direction</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><a class="headerlink" href="#compresso_recsys.stats.PairwiseComparison.direction" title="Link to this definition"></a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">'better'</span></code>, <code class="docutils literal notranslate"><span class="pre">'worse'</span></code> or <code class="docutils literal notranslate"><span class="pre">'inconclusive'</span></code>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.stats.PairwiseComparison.to_dict">
+<span class="sig-name descname"><span class="pre">to_dict</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/stats.html#PairwiseComparison.to_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.stats.PairwiseComparison.to_dict" title="Link to this definition"></a></dt>
+<dd><p>Return this comparison as a flat dictionary, including <code class="docutils literal notranslate"><span class="pre">direction</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="compresso_recsys.stats.ComparisonReport">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">compresso_recsys.stats.</span></span><span class="sig-name descname"><span class="pre">ComparisonReport</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">comparisons</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metrics</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_names</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reference</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">correction</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">confidence_level</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alternative</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_method</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_resamples</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">random_state</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/stats.html#ComparisonReport"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.stats.ComparisonReport" title="Link to this definition"></a></dt>
+<dd><p>Every hypothesis produced by one <a class="reference internal" href="#compresso_recsys.stats.compare_models" title="compresso_recsys.stats.compare_models"><code class="xref py py-func docutils literal notranslate"><span class="pre">compare_models()</span></code></a> call.</p>
+<p>The multiple-testing correction applies across the whole report, so a
+report is the unit of analysis rather than any single comparison in it.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>comparisons</strong> (<em>tuple</em><em>[</em><a class="reference internal" href="#compresso_recsys.stats.PairwiseComparison" title="compresso_recsys.stats.PairwiseComparison"><em>PairwiseComparison</em></a><em>, </em><em>...</em><em>]</em>)</p></li>
+<li><p><strong>metrics</strong> (<em>tuple</em><em>[</em><em>str</em><em>, </em><em>...</em><em>]</em>)</p></li>
+<li><p><strong>model_names</strong> (<em>tuple</em><em>[</em><em>str</em><em>, </em><em>...</em><em>]</em>)</p></li>
+<li><p><strong>reference</strong> (<em>str</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>correction</strong> (<em>Literal</em><em>[</em><em>'holm'</em><em>, </em><em>'bonferroni'</em><em>] </em><em>| </em><em>None</em>)</p></li>
+<li><p><strong>confidence_level</strong> (<em>float</em>)</p></li>
+<li><p><strong>alternative</strong> (<em>Literal</em><em>[</em><em>'two-sided'</em><em>, </em><em>'greater'</em><em>, </em><em>'less'</em><em>]</em>)</p></li>
+<li><p><strong>test_method</strong> (<em>Literal</em><em>[</em><em>'randomization'</em><em>, </em><em>'bootstrap'</em><em>, </em><em>'t'</em><em>]</em>)</p></li>
+<li><p><strong>n_resamples</strong> (<em>int</em>)</p></li>
+<li><p><strong>random_state</strong> (<em>int</em><em> | </em><em>None</em>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.stats.ComparisonReport.to_frame">
+<span class="sig-name descname"><span class="pre">to_frame</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/stats.html#ComparisonReport.to_frame"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.stats.ComparisonReport.to_frame" title="Link to this definition"></a></dt>
+<dd><p>Return one row per hypothesis with a fixed column order.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="parameter-values">
+<h2>Parameter Values<a class="headerlink" href="#parameter-values" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">alternative</span></code></dt><dd><p><code class="docutils literal notranslate"><span class="pre">&quot;two-sided&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;greater&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;less&quot;</span></code>. Selects the question being
+asked and the orientation of the reported interval.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">correction</span></code></dt><dd><p><code class="docutils literal notranslate"><span class="pre">&quot;holm&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;bonferroni&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">None</span></code>. Applied across every pair and
+metric produced by one <a class="reference internal" href="#compresso_recsys.stats.compare_models" title="compresso_recsys.stats.compare_models"><code class="xref py py-func docutils literal notranslate"><span class="pre">compare_models()</span></code></a> call.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">test_method</span></code></dt><dd><p><code class="docutils literal notranslate"><span class="pre">&quot;randomization&quot;</span></code> for the paired sign-flip test, or <code class="docutils literal notranslate"><span class="pre">&quot;bootstrap&quot;</span></code> for the
+null-centred bootstrap.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">n_resamples</span></code></dt><dd><p>Number of resampling replicates. The smallest achievable p-value is
+<code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">/</span> <span class="pre">(n_resamples</span> <span class="pre">+</span> <span class="pre">1)</span></code>; with <code class="docutils literal notranslate"><span class="pre">J</span></code> hypotheses the smallest achievable
+adjusted p-value is <code class="docutils literal notranslate"><span class="pre">J</span> <span class="pre">/</span> <span class="pre">(n_resamples</span> <span class="pre">+</span> <span class="pre">1)</span></code>.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">confidence_level</span></code></dt><dd><p>Interval level, and through <code class="docutils literal notranslate"><span class="pre">alpha</span> <span class="pre">=</span> <span class="pre">1</span> <span class="pre">-</span> <span class="pre">confidence_level</span></code> the significance
+threshold as well.</p>
+</dd>
+</dl>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="evaluation.html" class="btn btn-neutral float-left" title="Ranking Evaluation API" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>compresso_recsys.metrics &mdash; Compresso Recsys 0.1.2 documentation</title>
+  <title>compresso_recsys.metrics &mdash; Compresso Recsys 0.2.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
 
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=92734c54"></script>
+      <script src="../../_static/documentation_options.js?v=938c9ccc"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/js/theme.js"></script>
@@ -76,6 +76,53 @@
 <li class="toctree-l2"><a class="reference internal" href="../../examples.html#train-and-evaluate-elsa">Train and Evaluate ELSA</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../../statistical-comparison.html">Comparing Models Statistically</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../statistical-comparison.html#why-the-aggregates-are-not-enough">Why the aggregates are not enough</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../statistical-comparison.html#do-the-comparison">Do the comparison</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../statistical-comparison.html#a-complete-worked-example">A complete worked example</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#build-the-split">Build the split</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#train-both-models">Train both models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#evaluate-both-on-identical-users">Evaluate both on identical users</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#compare">Compare</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#reading-it">Reading it</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../statistical-comparison.html#reading-the-output">Reading the output</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#the-effect">The effect</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#how-precisely-you-know-it">How precisely you know it</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#how-often-the-two-models-tied">How often the two models tied</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#whether-it-could-be-chance">Whether it could be chance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#the-verdict">The verdict</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../statistical-comparison.html#five-traps">Five traps</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#p-values-have-a-floor">p-values have a floor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#ties-are-not-missing-data">Ties are not missing data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#the-interval-and-the-p-value-can-disagree">The interval and the p-value can disagree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#confidence-level-also-moves-the-significance-bar"><code class="docutils literal notranslate"><span class="pre">confidence_level</span></code> also moves the significance bar</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#one-trained-model-is-not-the-method">One trained model is not the method</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../statistical-comparison.html#choosing-the-settings">Choosing the settings</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#n-resamples"><code class="docutils literal notranslate"><span class="pre">n_resamples</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#test-method"><code class="docutils literal notranslate"><span class="pre">test_method</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#test-method-why-not-a-t-test"><code class="docutils literal notranslate"><span class="pre">test_method</span></code>: why not a t-test?</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#alternative"><code class="docutils literal notranslate"><span class="pre">alternative</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#correction"><code class="docutils literal notranslate"><span class="pre">correction</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../statistical-comparison.html#when-one-user-owns-several-rows">When one user owns several rows</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../statistical-comparison.html#what-the-methods-do-formally">What the methods do, formally</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../statistical-comparison.html#reporting-the-result">Reporting the result</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#methods">Methods</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#results">Results</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#checklist">Checklist</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../statistical-comparison.html#references">References</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../statistical-comparison.html#see-also">See also</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="../../citing.html">Citing Compresso Recsys</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../citing.html#compresso">Compresso</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../citing.html#ease">EASE</a></li>
@@ -83,6 +130,8 @@
 <li class="toctree-l2"><a class="reference internal" href="../../citing.html#elsa">ELSA</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../citing.html#elsa-with-sampled-output-candidates">ELSA with sampled output candidates</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../citing.html#compressed-elsa">Compressed ELSA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../citing.html#evaluation-protocol">Evaluation Protocol</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../citing.html#statistical-comparison">Statistical Comparison</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../cli-reference.html">Checkpoint CLI Reference</a><ul>
@@ -196,7 +245,12 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/evaluation.html">Ranking Evaluation API</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../api/evaluation.html#predictions-and-targets">Predictions and Targets</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/evaluation.html#predictions-and-targets">Predictions and Targets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/evaluation.html#evaluation-results">Evaluation Results</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/evaluation.html#compresso_recsys.evaluation.EvaluationResult"><code class="docutils literal notranslate"><span class="pre">EvaluationResult</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/evaluation.html#custom-metrics">Custom Metrics</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../api/evaluation.html#compresso_recsys.evaluation.evaluate_recommender"><code class="docutils literal notranslate"><span class="pre">evaluate_recommender()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/evaluation.html#compresso_recsys.evaluation.evaluate_ranked_predictions"><code class="docutils literal notranslate"><span class="pre">evaluate_ranked_predictions()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/evaluation.html#compresso_recsys.evaluation.RankingEvaluator"><code class="docutils literal notranslate"><span class="pre">RankingEvaluator</span></code></a></li>
@@ -207,6 +261,20 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/evaluation.html#optional-metrics">Optional Metrics</a></li>
 </ul>
 </li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/statistics.html">Statistics API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/statistics.html#comparison-functions">Comparison Functions</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/statistics.html#compresso_recsys.stats.compare_models"><code class="docutils literal notranslate"><span class="pre">compare_models()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/statistics.html#compresso_recsys.stats.compare_pair"><code class="docutils literal notranslate"><span class="pre">compare_pair()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/statistics.html#results">Results</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/statistics.html#compresso_recsys.stats.PairwiseComparison"><code class="docutils literal notranslate"><span class="pre">PairwiseComparison</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/statistics.html#compresso_recsys.stats.ComparisonReport"><code class="docutils literal notranslate"><span class="pre">ComparisonReport</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/statistics.html#parameter-values">Parameter Values</a></li>
 </ul>
 </li>
 </ul>
@@ -249,22 +317,22 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">compresso</span><span class="w"> </span><span class="kn">import</span> <span class="n">SRPTensor</span>
 
 <span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
-    <span class="s2">&quot;CalibratedRecall&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;HitRate&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;MAP&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;MRR&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;NDCG&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;Precision&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;Recall&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;RankingBatch&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;RankingMetric&quot;</span><span class="p">,</span>
+    <span class="s2">"CalibratedRecall"</span><span class="p">,</span>
+    <span class="s2">"HitRate"</span><span class="p">,</span>
+    <span class="s2">"MAP"</span><span class="p">,</span>
+    <span class="s2">"MRR"</span><span class="p">,</span>
+    <span class="s2">"NDCG"</span><span class="p">,</span>
+    <span class="s2">"Precision"</span><span class="p">,</span>
+    <span class="s2">"Recall"</span><span class="p">,</span>
+    <span class="s2">"RankingBatch"</span><span class="p">,</span>
+    <span class="s2">"RankingMetric"</span><span class="p">,</span>
 <span class="p">]</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_normalize_cutoffs</span><span class="p">(</span><span class="n">cutoffs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
     <span class="n">values</span> <span class="o">=</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">cutoffs</span><span class="p">),)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">cutoffs</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="k">else</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">cutoffs</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">values</span> <span class="ow">or</span> <span class="nb">any</span><span class="p">(</span><span class="n">k</span> <span class="o">&lt;</span> <span class="mi">1</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">values</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;cutoffs must contain at least one positive integer&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"cutoffs must contain at least one positive integer"</span><span class="p">)</span>
     <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">values</span><span class="p">)))</span>
 
 
@@ -272,12 +340,12 @@
 <a class="viewcode-back" href="../../api/evaluation.html#compresso_recsys.metrics.RankingBatch">[docs]</a>
 <span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">RankingBatch</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Shared vectorized inputs for ranking metrics.</span>
+<span class="w">    </span><span class="sd">"""Shared vectorized inputs for ranking metrics.</span>
 
 <span class="sd">    ``hits[row, rank]`` records whether the item at that prediction rank is</span>
 <span class="sd">    relevant. ``target_counts`` contains the number of relevant items per row.</span>
 <span class="sd">    Metric implementations can therefore stay independent of CSR matching.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="n">predictions</span><span class="p">:</span> <span class="n">SRPTensor</span>
     <span class="n">hits</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
@@ -285,57 +353,72 @@
 
     <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">hits</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="n">torch</span><span class="o">.</span><span class="n">bool</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">hits</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;hits must be a 2D boolean tensor&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"hits must be a 2D boolean tensor"</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_counts</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="n">torch</span><span class="o">.</span><span class="n">long</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_counts</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;target_counts must be a 1D torch.long tensor&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"target_counts must be a 1D torch.long tensor"</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">hits</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">predictions</span><span class="o">.</span><span class="n">rows</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;hits rows must match prediction rows&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"hits rows must match prediction rows"</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_counts</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">predictions</span><span class="o">.</span><span class="n">rows</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;target_counts rows must match prediction rows&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"target_counts rows must match prediction rows"</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">hits</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">predictions</span><span class="o">.</span><span class="n">k</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;hits cannot contain more ranks than predictions&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"hits cannot contain more ranks than predictions"</span><span class="p">)</span>
         <span class="k">if</span> <span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">hits</span><span class="o">.</span><span class="n">device</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">predictions</span><span class="o">.</span><span class="n">device</span>
             <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_counts</span><span class="o">.</span><span class="n">device</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">predictions</span><span class="o">.</span><span class="n">device</span>
         <span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;ranking batch tensors must be on the prediction device&quot;</span><span class="p">)</span></div>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"ranking batch tensors must be on the prediction device"</span><span class="p">)</span></div>
 
 
 
 <div class="viewcode-block" id="RankingMetric">
 <a class="viewcode-back" href="../../api/evaluation.html#compresso_recsys.metrics.RankingMetric">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">RankingMetric</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Abstract streaming metric over ranked recommendation batches.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Abstract streaming metric over ranked recommendation batches."""</span>
 
     <span class="nd">@property</span>
     <span class="nd">@abstractmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">required_k</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Largest recommendation rank needed by this metric.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Largest recommendation rank needed by this metric."""</span>
 
     <span class="nd">@property</span>
     <span class="nd">@abstractmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">result_keys</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Metric keys returned by :meth:`compute`.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Metric keys returned by :meth:`compute`."""</span>
 
 <div class="viewcode-block" id="RankingMetric.reset">
 <a class="viewcode-back" href="../../api/evaluation.html#compresso_recsys.metrics.RankingMetric.reset">[docs]</a>
     <span class="nd">@abstractmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Clear accumulated metric state.&quot;&quot;&quot;</span></div>
+<span class="w">        </span><span class="sd">"""Clear accumulated metric state."""</span></div>
 
 
 <div class="viewcode-block" id="RankingMetric.update">
 <a class="viewcode-back" href="../../api/evaluation.html#compresso_recsys.metrics.RankingMetric.update">[docs]</a>
     <span class="nd">@abstractmethod</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">:</span> <span class="n">RankingBatch</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Accumulate one ranking batch.&quot;&quot;&quot;</span></div>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">:</span> <span class="n">RankingBatch</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Accumulate one ranking batch and return its per-row values.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        torch.Tensor</span>
+<span class="sd">            Floating-point tensor of shape</span>
+<span class="sd">            ``(batch.predictions.rows, len(result_keys))``, with column ``i``</span>
+<span class="sd">            holding the per-row value behind ``result_keys[i]``. Rows whose</span>
+<span class="sd">            ``target_counts`` is zero are excluded from the aggregate but must</span>
+<span class="sd">            still occupy a row here, so the evaluator can align values with</span>
+<span class="sd">            sample identifiers before filtering.</span>
+
+<span class="sd">            Returning the values rather than only accumulating them lets</span>
+<span class="sd">            :class:`~compresso_recsys.evaluation.RankingEvaluator` retain</span>
+<span class="sd">            per-user observations without computing every metric twice.</span>
+<span class="sd">        """</span></div>
 
 
 <div class="viewcode-block" id="RankingMetric.compute">
 <a class="viewcode-back" href="../../api/evaluation.html#compresso_recsys.metrics.RankingMetric.compute">[docs]</a>
     <span class="nd">@abstractmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return aggregated metric values.&quot;&quot;&quot;</span></div>
+<span class="w">        </span><span class="sd">"""Return aggregated metric values."""</span></div>
 </div>
 
 
@@ -353,24 +436,31 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">result_keys</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
-        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">result_prefix</span><span class="si">}</span><span class="s2">@</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cutoffs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">result_prefix</span><span class="si">}</span><span class="s2">@</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">"</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cutoffs</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_sums</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cutoffs</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_count</span> <span class="o">=</span> <span class="mi">0</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">:</span> <span class="n">RankingBatch</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">:</span> <span class="n">RankingBatch</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">batch</span><span class="o">.</span><span class="n">hits</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">required_k</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> requires predictions through rank </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">required_k</span><span class="si">}</span><span class="s2">, &quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;got </span><span class="si">{</span><span class="n">batch</span><span class="o">.</span><span class="n">hits</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> requires predictions through rank </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">required_k</span><span class="si">}</span><span class="s2">, "</span>
+                <span class="sa">f</span><span class="s2">"got </span><span class="si">{</span><span class="n">batch</span><span class="o">.</span><span class="n">hits</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span>
             <span class="p">)</span>
+        <span class="c1"># Values are computed for every row, including rows with no targets,</span>
+        <span class="c1"># so the caller can align them with sample identifiers. Each subclass</span>
+        <span class="c1"># guards its denominator, so those rows are finite rather than NaN.</span>
+        <span class="n">values</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch_values</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
         <span class="n">valid</span> <span class="o">=</span> <span class="n">batch</span><span class="o">.</span><span class="n">target_counts</span> <span class="o">&gt;</span> <span class="mi">0</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">bool</span><span class="p">(</span><span class="n">valid</span><span class="o">.</span><span class="n">any</span><span class="p">()):</span>
-            <span class="k">return</span>
-        <span class="n">values</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_batch_values</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_sums</span> <span class="o">+=</span> <span class="n">values</span><span class="p">[</span><span class="n">valid</span><span class="p">]</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="s2">&quot;cpu&quot;</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_count</span> <span class="o">+=</span> <span class="nb">int</span><span class="p">(</span><span class="n">valid</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
+        <span class="k">if</span> <span class="nb">bool</span><span class="p">(</span><span class="n">valid</span><span class="o">.</span><span class="n">any</span><span class="p">()):</span>
+            <span class="c1"># Move to the host before widening. A single .to(device=..., dtype=...)</span>
+            <span class="c1"># asks the source device for the cast, and MPS has no float64, so</span>
+            <span class="c1"># evaluating any model on an Apple GPU would fail here.</span>
+            <span class="n">kept</span> <span class="o">=</span> <span class="n">values</span><span class="p">[</span><span class="n">valid</span><span class="p">]</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_sums</span> <span class="o">+=</span> <span class="n">kept</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_count</span> <span class="o">+=</span> <span class="nb">int</span><span class="p">(</span><span class="n">valid</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
+        <span class="k">return</span> <span class="n">values</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_count</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
@@ -379,18 +469,27 @@
         <span class="k">return</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">result_keys</span><span class="p">,</span> <span class="n">means</span><span class="o">.</span><span class="n">tolist</span><span class="p">())}</span>
 
     <span class="nd">@abstractmethod</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">_batch_values</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">:</span> <span class="n">RankingBatch</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return per-row values with shape ``(rows, len(cutoffs))``.&quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">batch_values</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">:</span> <span class="n">RankingBatch</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Return per-row values with shape ``(rows, len(cutoffs))``."""</span>
 
 
 <div class="viewcode-block" id="CalibratedRecall">
 <a class="viewcode-back" href="../../api/evaluation.html#compresso_recsys.metrics.CalibratedRecall">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">CalibratedRecall</span><span class="p">(</span><span class="n">_MeanAtCutoffsMetric</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Recall normalized by ``min(k, number of relevant targets)``.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Recall normalized by ``min(k, number of relevant targets)``.</span>
 
-    <span class="n">result_prefix</span> <span class="o">=</span> <span class="s2">&quot;recall&quot;</span>
+<span class="sd">    Reported as ``calibrated_recall@k``. The truncated denominator mirrors the</span>
+<span class="sd">    ideal ranking used by :class:`NDCG`, so a user with more relevant items than</span>
+<span class="sd">    ``k`` can still reach 1.0. It is greater than or equal to :class:`Recall`</span>
+<span class="sd">    for every user, with equality exactly when a user has at most ``k``</span>
+<span class="sd">    relevant items, so the two are not interchangeable in a results table.</span>
+<span class="sd">    """</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_batch_values</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">:</span> <span class="n">RankingBatch</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+    <span class="n">result_prefix</span> <span class="o">=</span> <span class="s2">"calibrated_recall"</span>
+
+<div class="viewcode-block" id="CalibratedRecall.batch_values">
+<a class="viewcode-back" href="../../api/evaluation.html#compresso_recsys.metrics.CalibratedRecall.batch_values">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">batch_values</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">:</span> <span class="n">RankingBatch</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
         <span class="n">cutoff_indices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
             <span class="p">[</span><span class="n">k</span> <span class="o">-</span> <span class="mi">1</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cutoffs</span><span class="p">],</span>
             <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">,</span>
@@ -401,17 +500,26 @@
         <span class="n">cutoffs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cutoffs</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">batch</span><span class="o">.</span><span class="n">hits</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
         <span class="n">denominators</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">batch</span><span class="o">.</span><span class="n">target_counts</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">cutoffs</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:])</span><span class="o">.</span><span class="n">clamp_min</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">hits_at_k</span> <span class="o">/</span> <span class="n">denominators</span></div>
+</div>
 
 
 
 <div class="viewcode-block" id="Recall">
 <a class="viewcode-back" href="../../api/evaluation.html#compresso_recsys.metrics.Recall">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Recall</span><span class="p">(</span><span class="n">_MeanAtCutoffsMetric</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Standard recall normalized by the total number of relevant targets.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Recall normalized by the total number of relevant targets.</span>
 
-    <span class="n">result_prefix</span> <span class="o">=</span> <span class="s2">&quot;standard_recall&quot;</span>
+<span class="sd">    Reported as ``recall@k``. This is the usual definition, so it is the one to</span>
+<span class="sd">    use when comparing against published numbers unless that work states it</span>
+<span class="sd">    truncates the denominator. It cannot exceed ``k / (number of relevant</span>
+<span class="sd">    targets)``, so users with many relevant items cap below 1.0.</span>
+<span class="sd">    """</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_batch_values</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">:</span> <span class="n">RankingBatch</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+    <span class="n">result_prefix</span> <span class="o">=</span> <span class="s2">"recall"</span>
+
+<div class="viewcode-block" id="Recall.batch_values">
+<a class="viewcode-back" href="../../api/evaluation.html#compresso_recsys.metrics.Recall.batch_values">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">batch_values</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">:</span> <span class="n">RankingBatch</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
         <span class="n">cutoff_indices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
             <span class="p">[</span><span class="n">k</span> <span class="o">-</span> <span class="mi">1</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cutoffs</span><span class="p">],</span>
             <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">,</span>
@@ -420,17 +528,20 @@
         <span class="n">cumulative_hits</span> <span class="o">=</span> <span class="n">batch</span><span class="o">.</span><span class="n">hits</span><span class="p">[:,</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">required_k</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
         <span class="n">hits_at_k</span> <span class="o">=</span> <span class="n">cumulative_hits</span><span class="o">.</span><span class="n">index_select</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">cutoff_indices</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">hits_at_k</span> <span class="o">/</span> <span class="n">batch</span><span class="o">.</span><span class="n">target_counts</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span><span class="o">.</span><span class="n">clamp_min</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span></div>
+</div>
 
 
 
 <div class="viewcode-block" id="Precision">
 <a class="viewcode-back" href="../../api/evaluation.html#compresso_recsys.metrics.Precision">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Precision</span><span class="p">(</span><span class="n">_MeanAtCutoffsMetric</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Fraction of the top-k predictions that are relevant.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Fraction of the top-k predictions that are relevant."""</span>
 
-    <span class="n">result_prefix</span> <span class="o">=</span> <span class="s2">&quot;precision&quot;</span>
+    <span class="n">result_prefix</span> <span class="o">=</span> <span class="s2">"precision"</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_batch_values</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">:</span> <span class="n">RankingBatch</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<div class="viewcode-block" id="Precision.batch_values">
+<a class="viewcode-back" href="../../api/evaluation.html#compresso_recsys.metrics.Precision.batch_values">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">batch_values</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">:</span> <span class="n">RankingBatch</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
         <span class="n">cutoff_indices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
             <span class="p">[</span><span class="n">k</span> <span class="o">-</span> <span class="mi">1</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cutoffs</span><span class="p">],</span>
             <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">,</span>
@@ -444,17 +555,20 @@
             <span class="n">device</span><span class="o">=</span><span class="n">batch</span><span class="o">.</span><span class="n">hits</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="k">return</span> <span class="n">hits_at_k</span> <span class="o">/</span> <span class="n">cutoffs</span></div>
+</div>
 
 
 
 <div class="viewcode-block" id="HitRate">
 <a class="viewcode-back" href="../../api/evaluation.html#compresso_recsys.metrics.HitRate">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">HitRate</span><span class="p">(</span><span class="n">_MeanAtCutoffsMetric</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Whether at least one relevant item occurs in the top-k predictions.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Whether at least one relevant item occurs in the top-k predictions."""</span>
 
-    <span class="n">result_prefix</span> <span class="o">=</span> <span class="s2">&quot;hit_rate&quot;</span>
+    <span class="n">result_prefix</span> <span class="o">=</span> <span class="s2">"hit_rate"</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_batch_values</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">:</span> <span class="n">RankingBatch</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<div class="viewcode-block" id="HitRate.batch_values">
+<a class="viewcode-back" href="../../api/evaluation.html#compresso_recsys.metrics.HitRate.batch_values">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">batch_values</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">:</span> <span class="n">RankingBatch</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
         <span class="n">cutoff_indices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
             <span class="p">[</span><span class="n">k</span> <span class="o">-</span> <span class="mi">1</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cutoffs</span><span class="p">],</span>
             <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">,</span>
@@ -463,17 +577,20 @@
         <span class="n">cumulative_hits</span> <span class="o">=</span> <span class="n">batch</span><span class="o">.</span><span class="n">hits</span><span class="p">[:,</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">required_k</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
         <span class="n">hits_at_k</span> <span class="o">=</span> <span class="n">cumulative_hits</span><span class="o">.</span><span class="n">index_select</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">cutoff_indices</span><span class="p">)</span>
         <span class="k">return</span> <span class="p">(</span><span class="n">hits_at_k</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span></div>
+</div>
 
 
 
 <div class="viewcode-block" id="MRR">
 <a class="viewcode-back" href="../../api/evaluation.html#compresso_recsys.metrics.MRR">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">MRR</span><span class="p">(</span><span class="n">_MeanAtCutoffsMetric</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Mean reciprocal rank of the first relevant prediction up to each cutoff.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Mean reciprocal rank of the first relevant prediction up to each cutoff."""</span>
 
-    <span class="n">result_prefix</span> <span class="o">=</span> <span class="s2">&quot;mrr&quot;</span>
+    <span class="n">result_prefix</span> <span class="o">=</span> <span class="s2">"mrr"</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_batch_values</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">:</span> <span class="n">RankingBatch</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<div class="viewcode-block" id="MRR.batch_values">
+<a class="viewcode-back" href="../../api/evaluation.html#compresso_recsys.metrics.MRR.batch_values">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">batch_values</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">:</span> <span class="n">RankingBatch</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
         <span class="n">ranks</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span>
             <span class="mi">1</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">required_k</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
@@ -488,17 +605,20 @@
             <span class="n">device</span><span class="o">=</span><span class="n">batch</span><span class="o">.</span><span class="n">hits</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="k">return</span> <span class="n">reciprocal_rank_curve</span><span class="o">.</span><span class="n">index_select</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">cutoff_indices</span><span class="p">)</span></div>
+</div>
 
 
 
 <div class="viewcode-block" id="MAP">
 <a class="viewcode-back" href="../../api/evaluation.html#compresso_recsys.metrics.MAP">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">MAP</span><span class="p">(</span><span class="n">_MeanAtCutoffsMetric</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Mean average precision with binary relevance at each cutoff.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Mean average precision with binary relevance at each cutoff."""</span>
 
-    <span class="n">result_prefix</span> <span class="o">=</span> <span class="s2">&quot;map&quot;</span>
+    <span class="n">result_prefix</span> <span class="o">=</span> <span class="s2">"map"</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_batch_values</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">:</span> <span class="n">RankingBatch</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<div class="viewcode-block" id="MAP.batch_values">
+<a class="viewcode-back" href="../../api/evaluation.html#compresso_recsys.metrics.MAP.batch_values">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">batch_values</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">:</span> <span class="n">RankingBatch</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
         <span class="n">hits</span> <span class="o">=</span> <span class="n">batch</span><span class="o">.</span><span class="n">hits</span><span class="p">[:,</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">required_k</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
         <span class="n">ranks</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span>
             <span class="mi">1</span><span class="p">,</span>
@@ -520,17 +640,20 @@
         <span class="n">cutoffs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cutoffs</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">batch</span><span class="o">.</span><span class="n">hits</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
         <span class="n">denominators</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">batch</span><span class="o">.</span><span class="n">target_counts</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">cutoffs</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:])</span><span class="o">.</span><span class="n">clamp_min</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">precision_sums</span> <span class="o">/</span> <span class="n">denominators</span></div>
+</div>
 
 
 
 <div class="viewcode-block" id="NDCG">
 <a class="viewcode-back" href="../../api/evaluation.html#compresso_recsys.metrics.NDCG">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">NDCG</span><span class="p">(</span><span class="n">_MeanAtCutoffsMetric</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Binary-relevance normalized discounted cumulative gain.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Binary-relevance normalized discounted cumulative gain."""</span>
 
-    <span class="n">result_prefix</span> <span class="o">=</span> <span class="s2">&quot;ndcg&quot;</span>
+    <span class="n">result_prefix</span> <span class="o">=</span> <span class="s2">"ndcg"</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_batch_values</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">:</span> <span class="n">RankingBatch</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<div class="viewcode-block" id="NDCG.batch_values">
+<a class="viewcode-back" href="../../api/evaluation.html#compresso_recsys.metrics.NDCG.batch_values">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">batch_values</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">:</span> <span class="n">RankingBatch</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
         <span class="n">ranks</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span>
             <span class="mi">2</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">required_k</span> <span class="o">+</span> <span class="mi">2</span><span class="p">,</span>
@@ -552,6 +675,7 @@
         <span class="n">ideal_curve</span> <span class="o">=</span> <span class="n">discounts</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
         <span class="n">idcg</span> <span class="o">=</span> <span class="n">ideal_curve</span><span class="p">[(</span><span class="n">ideal_lengths</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">clamp_min</span><span class="p">(</span><span class="mi">0</span><span class="p">)]</span>
         <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">ideal_lengths</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="n">dcg</span> <span class="o">/</span> <span class="n">idcg</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">dcg</span><span class="p">))</span></div>
+</div>
 
 </pre></div>
 

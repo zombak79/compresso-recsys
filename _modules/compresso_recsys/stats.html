@@ -1,0 +1,1354 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>compresso_recsys.stats &mdash; Compresso Recsys 0.2.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=938c9ccc"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Compresso Recsys
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../installation.html#install-from-pypi">Install from PyPI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../installation.html#optional-extras">Optional Extras</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../installation.html#local-development">Local Development</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../installation.html#install-from-github">Install from GitHub</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../installation.html#build-the-documentation-locally">Build the Documentation Locally</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-started.html">Getting Started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started.html#basic-python-usage">Basic Python Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started.html#checkpoint-workflow">Checkpoint Workflow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started.html#what-goes-into-a-checkpoint">What Goes Into a Checkpoint</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started.html#split-modes">Split Modes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started.html#retrieval-metrics">Retrieval Metrics</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../quickstart.html">Quickstart</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../quickstart.html#choose-a-split-mode">Choose a Split Mode</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../examples.html">Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../examples.html#dataset-loader">Dataset Loader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples.html#building-checkpoints">Building Checkpoints</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples.html#checkpoint-read-write">Checkpoint Read/Write</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples.html#evaluate-embeddings-from-python">Evaluate Embeddings From Python</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples.html#evaluate-model-predictions">Evaluate Model Predictions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples.html#train-teaser-for-cold-items">Train TEASER for Cold Items</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples.html#train-teaser-with-gradient-descent">Train TEASER with Gradient Descent</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples.html#serve-new-teaser-candidates">Serve New TEASER Candidates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples.html#train-and-evaluate-elsa">Train and Evaluate ELSA</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../statistical-comparison.html">Comparing Models Statistically</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../statistical-comparison.html#why-the-aggregates-are-not-enough">Why the aggregates are not enough</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../statistical-comparison.html#do-the-comparison">Do the comparison</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../statistical-comparison.html#a-complete-worked-example">A complete worked example</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#build-the-split">Build the split</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#train-both-models">Train both models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#evaluate-both-on-identical-users">Evaluate both on identical users</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#compare">Compare</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#reading-it">Reading it</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../statistical-comparison.html#reading-the-output">Reading the output</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#the-effect">The effect</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#how-precisely-you-know-it">How precisely you know it</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#how-often-the-two-models-tied">How often the two models tied</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#whether-it-could-be-chance">Whether it could be chance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#the-verdict">The verdict</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../statistical-comparison.html#five-traps">Five traps</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#p-values-have-a-floor">p-values have a floor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#ties-are-not-missing-data">Ties are not missing data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#the-interval-and-the-p-value-can-disagree">The interval and the p-value can disagree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#confidence-level-also-moves-the-significance-bar"><code class="docutils literal notranslate"><span class="pre">confidence_level</span></code> also moves the significance bar</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#one-trained-model-is-not-the-method">One trained model is not the method</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../statistical-comparison.html#choosing-the-settings">Choosing the settings</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#n-resamples"><code class="docutils literal notranslate"><span class="pre">n_resamples</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#test-method"><code class="docutils literal notranslate"><span class="pre">test_method</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#test-method-why-not-a-t-test"><code class="docutils literal notranslate"><span class="pre">test_method</span></code>: why not a t-test?</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#alternative"><code class="docutils literal notranslate"><span class="pre">alternative</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#correction"><code class="docutils literal notranslate"><span class="pre">correction</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../statistical-comparison.html#when-one-user-owns-several-rows">When one user owns several rows</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../statistical-comparison.html#what-the-methods-do-formally">What the methods do, formally</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../statistical-comparison.html#reporting-the-result">Reporting the result</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#methods">Methods</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#results">Results</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../statistical-comparison.html#checklist">Checklist</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../statistical-comparison.html#references">References</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../statistical-comparison.html#see-also">See also</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../citing.html">Citing Compresso Recsys</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../citing.html#compresso">Compresso</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../citing.html#ease">EASE</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../citing.html#teaser">TEASER</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../citing.html#elsa">ELSA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../citing.html#elsa-with-sampled-output-candidates">ELSA with sampled output candidates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../citing.html#compressed-elsa">Compressed ELSA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../citing.html#evaluation-protocol">Evaluation Protocol</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../citing.html#statistical-comparison">Statistical Comparison</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../cli-reference.html">Checkpoint CLI Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../cli-reference.html#amazon-reviews-2023">Amazon Reviews 2023</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../cli-reference.html#leave-last-out-checkpoint">Leave-Last-Out Checkpoint</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../cli-reference.html#temporal-checkpoint">Temporal Checkpoint</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../cli-reference.html#checkpoint-split-schema">Checkpoint Split Schema</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../cli-reference.html#builder-parameters">Builder Parameters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../cli-reference.html#supported-amazon-reviews-2023-datasets">Supported Amazon Reviews 2023 Datasets</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../api/index.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../api/compresso_recsys.html">Core API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/compresso_recsys.html#datasets">Datasets</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/compresso_recsys.html#compresso_recsys.SplitBundle"><code class="docutils literal notranslate"><span class="pre">SplitBundle</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/compresso_recsys.html#compresso_recsys.RecSysDataset"><code class="docutils literal notranslate"><span class="pre">RecSysDataset</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/compresso_recsys.html#compresso_recsys.Goodbooks"><code class="docutils literal notranslate"><span class="pre">Goodbooks</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/compresso_recsys.html#compresso_recsys.MovieLens1M"><code class="docutils literal notranslate"><span class="pre">MovieLens1M</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/compresso_recsys.html#compresso_recsys.MovieLens20M"><code class="docutils literal notranslate"><span class="pre">MovieLens20M</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/compresso_recsys.html#compresso_recsys.AmazonReviews2023"><code class="docutils literal notranslate"><span class="pre">AmazonReviews2023</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/compresso_recsys.html#checkpoint-helpers">Checkpoint Helpers</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/compresso_recsys.html#compresso_recsys.build_recsys_checkpoint"><code class="docutils literal notranslate"><span class="pre">build_recsys_checkpoint()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/compresso_recsys.html#compresso_recsys.update_checkpoint"><code class="docutils literal notranslate"><span class="pre">update_checkpoint()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/compresso_recsys.html#compresso_recsys.read_checkpoint"><code class="docutils literal notranslate"><span class="pre">read_checkpoint()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/compresso_recsys.html#compresso_recsys.load_manifest"><code class="docutils literal notranslate"><span class="pre">load_manifest()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/compresso_recsys.html#compresso_recsys.save_manifest"><code class="docutils literal notranslate"><span class="pre">save_manifest()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/compresso_recsys.html#compresso_recsys.update_stage_manifest"><code class="docutils literal notranslate"><span class="pre">update_stage_manifest()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/compresso_recsys.html#compresso_recsys.save_json"><code class="docutils literal notranslate"><span class="pre">save_json()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/compresso_recsys.html#compresso_recsys.load_json"><code class="docutils literal notranslate"><span class="pre">load_json()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/compresso_recsys.html#compresso_recsys.save_recsys_split"><code class="docutils literal notranslate"><span class="pre">save_recsys_split()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/compresso_recsys.html#compresso_recsys.load_recsys_split"><code class="docutils literal notranslate"><span class="pre">load_recsys_split()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/compresso_recsys.html#compresso_recsys.save_cluster_graph_stage"><code class="docutils literal notranslate"><span class="pre">save_cluster_graph_stage()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/compresso_recsys.html#compresso_recsys.load_cluster_graph_stage"><code class="docutils literal notranslate"><span class="pre">load_cluster_graph_stage()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/datasets.html">Datasets API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/checkpoint.html">Checkpoint API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/checkpoint.html#checkpoint-contexts">Checkpoint Contexts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/checkpoint.html#manifest-and-json-helpers">Manifest and JSON Helpers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/checkpoint.html#split-and-cluster-stages">Split and Cluster Stages</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/checkpoint.html#item-partitions">Item partitions</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/models.html">Models API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models.html#recommender-contract">Recommender Contract</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.Recommender"><code class="docutils literal notranslate"><span class="pre">Recommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.ColdStartRecommender"><code class="docutils literal notranslate"><span class="pre">ColdStartRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.ItemVocabulary"><code class="docutils literal notranslate"><span class="pre">ItemVocabulary</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models.html#implementing-new-models">Implementing New Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.BaseCollaborativeRecommender"><code class="docutils literal notranslate"><span class="pre">BaseCollaborativeRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.BaseColdStartRecommender"><code class="docutils literal notranslate"><span class="pre">BaseColdStartRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#training-interaction-batches">Training Interaction Batches</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models.html#transductive-models-in-expanding-catalogs">Transductive Models in Expanding Catalogs</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.WarmCatalogAdapter"><code class="docutils literal notranslate"><span class="pre">WarmCatalogAdapter</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models.html#ease">EASE</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.EASEConfig"><code class="docutils literal notranslate"><span class="pre">EASEConfig</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.EASE"><code class="docutils literal notranslate"><span class="pre">EASE</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models.html#elsa">ELSA</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models.html#contentrecommender">ContentRecommender</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.ContentRecommenderConfig"><code class="docutils literal notranslate"><span class="pre">ContentRecommenderConfig</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.ContentRecommender"><code class="docutils literal notranslate"><span class="pre">ContentRecommender</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models.html#teaser">TEASER</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.TEASERConfig"><code class="docutils literal notranslate"><span class="pre">TEASERConfig</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.TEASER"><code class="docutils literal notranslate"><span class="pre">TEASER</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.CandidateCatalog"><code class="docutils literal notranslate"><span class="pre">CandidateCatalog</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models.html#teasergd">TEASERGD</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.TEASERGDConfig"><code class="docutils literal notranslate"><span class="pre">TEASERGDConfig</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.TEASERGD"><code class="docutils literal notranslate"><span class="pre">TEASERGD</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.TEASERGDTrainer"><code class="docutils literal notranslate"><span class="pre">TEASERGDTrainer</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#backend-performance">Backend Performance</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/retrieval.html">Retrieval API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/retrieval.html#holdout-builders">Holdout Builders</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/retrieval.html#compresso_recsys.retrieval.build_eval_holdout"><code class="docutils literal notranslate"><span class="pre">build_eval_holdout()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/retrieval.html#compresso_recsys.retrieval.build_item_cold_holdout"><code class="docutils literal notranslate"><span class="pre">build_item_cold_holdout()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/retrieval.html#compresso_recsys.retrieval.build_leave_last_out_holdout"><code class="docutils literal notranslate"><span class="pre">build_leave_last_out_holdout()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/retrieval.html#compresso_recsys.retrieval.build_temporal_holdout"><code class="docutils literal notranslate"><span class="pre">build_temporal_holdout()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/retrieval.html#embedding-evaluation">Embedding Evaluation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/retrieval.html#compresso_recsys.retrieval.evaluate_item_embeddings"><code class="docutils literal notranslate"><span class="pre">evaluate_item_embeddings()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/retrieval.html#compresso_recsys.retrieval.evaluate_item_embeddings_with_holdout"><code class="docutils literal notranslate"><span class="pre">evaluate_item_embeddings_with_holdout()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/evaluation.html">Ranking Evaluation API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/evaluation.html#predictions-and-targets">Predictions and Targets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/evaluation.html#evaluation-results">Evaluation Results</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/evaluation.html#compresso_recsys.evaluation.EvaluationResult"><code class="docutils literal notranslate"><span class="pre">EvaluationResult</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/evaluation.html#custom-metrics">Custom Metrics</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/evaluation.html#compresso_recsys.evaluation.evaluate_recommender"><code class="docutils literal notranslate"><span class="pre">evaluate_recommender()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/evaluation.html#compresso_recsys.evaluation.evaluate_ranked_predictions"><code class="docutils literal notranslate"><span class="pre">evaluate_ranked_predictions()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/evaluation.html#compresso_recsys.evaluation.RankingEvaluator"><code class="docutils literal notranslate"><span class="pre">RankingEvaluator</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/evaluation.html#metrics">Metrics</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/evaluation.html#default-metrics">Default Metrics</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/evaluation.html#optional-metrics">Optional Metrics</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/statistics.html">Statistics API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/statistics.html#comparison-functions">Comparison Functions</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/statistics.html#compresso_recsys.stats.compare_models"><code class="docutils literal notranslate"><span class="pre">compare_models()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/statistics.html#compresso_recsys.stats.compare_pair"><code class="docutils literal notranslate"><span class="pre">compare_pair()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/statistics.html#results">Results</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/statistics.html#compresso_recsys.stats.PairwiseComparison"><code class="docutils literal notranslate"><span class="pre">PairwiseComparison</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/statistics.html#compresso_recsys.stats.ComparisonReport"><code class="docutils literal notranslate"><span class="pre">ComparisonReport</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/statistics.html#parameter-values">Parameter Values</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Compresso Recsys</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">compresso_recsys.stats</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for compresso_recsys.stats</h1><div class="highlight"><pre>
+<span></span><span class="sd">"""Paired statistical comparison of recommender evaluations.</span>
+
+<span class="sd">Two models evaluated on the same users can be compared far more precisely than</span>
+<span class="sd">their aggregate means suggest, because most of the variation between users is</span>
+<span class="sd">shared. Everything here works on the paired per-user difference</span>
+
+<span class="sd">.. math::</span>
+
+<span class="sd">    d_u = m_u^{(b)} - m_u^{(a)},</span>
+
+<span class="sd">and never resamples the two models independently.</span>
+
+<span class="sd">Two procedures, each doing the job it is best at:</span>
+
+<span class="sd">* **Effect size** — a paired bootstrap over users gives a confidence interval</span>
+<span class="sd">  for the mean difference. This is the primary output; report it.</span>
+<span class="sd">* **Hypothesis test** — a paired sign-flip randomization test gives the</span>
+<span class="sd">  p-value. Its null is *paired label exchangeability*: swapping which model</span>
+<span class="sd">  produced which score, independently for each user, leaves the joint</span>
+<span class="sd">  distribution unchanged. Under it the sign of every paired difference is</span>
+<span class="sd">  arbitrary, so the test is exact up to Monte Carlo error. That assumes no</span>
+<span class="sd">  parametric family, which is not the same as assuming nothing — exchangeability</span>
+<span class="sd">  is a real assumption, and it requires that users are the independent units</span>
+<span class="sd">  being resampled. It is the default in the information-retrieval evaluation</span>
+<span class="sd">  literature.</span>
+
+<span class="sd">``test_method="t"`` runs a paired t-test instead, as a one-sample test on the</span>
+<span class="sd">same differences. Smucker, Allan and Carterette found the two agree closely on</span>
+<span class="sd">retrieval data, so it is a familiar cross-check.</span>
+
+<span class="sd">The randomization test is the default because it avoids the normal</span>
+<span class="sd">approximation entirely wherever paired-label exchangeability is defensible.</span>
+<span class="sd">Choose the t-test when its null is the one you want -- a zero population mean</span>
+<span class="sd">difference, without the symmetry that exchangeability additionally implies --</span>
+<span class="sd">and when enough untied units make the normal approximation credible. Not</span>
+<span class="sd">because it prints a smaller number: having no Monte Carlo floor is a property</span>
+<span class="sd">of the procedure, not evidence about the models.</span>
+
+<span class="sd">Every procedure works on one difference per independent unit. When a protocol</span>
+<span class="sd">gives a user several evaluation rows, that user is first reduced to the mean of</span>
+<span class="sd">their rows, so one user is one observation however many rows they produced.</span>
+<span class="sd">``n_samples`` counts rows, ``n_units`` counts users, and they are equal whenever</span>
+<span class="sd">each row is its own unit.</span>
+
+<span class="sd">Ranking differences are dominated by exact ties: for most users both models</span>
+<span class="sd">return the same items and the difference is zero. Every comparison therefore</span>
+<span class="sd">reports ``n_nonzero`` and ``tie_rate`` over units.</span>
+
+<span class="sd">Tied users are not spare. They carry no *sign* information — flipping the sign</span>
+<span class="sd">of a zero changes nothing, so ``n_nonzero`` alone governs the combinatorial</span>
+<span class="sd">support of the randomization test. But they are part of the empirical</span>
+<span class="sd">population, and the mean difference and the paired bootstrap interval are</span>
+<span class="sd">computed over all ``n_units`` of them. Thirty users who all differ by +1 and</span>
+<span class="sd">ten thousand users of whom thirty differ by +1 share an ``n_nonzero`` and</span>
+<span class="sd">describe entirely different systems.</span>
+
+<span class="sd">Inference here is conditional on the fitted models. It answers whether an</span>
+<span class="sd">advantage is stable across resampled users, not whether it survives retraining</span>
+<span class="sd">with a different seed. Report seed variation separately.</span>
+<span class="sd">"""</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">hashlib</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Sequence</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">contextlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">contextmanager</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Literal</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy.stats</span><span class="w"> </span><span class="kn">import</span> <span class="n">ttest_1samp</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.evaluation</span><span class="w"> </span><span class="kn">import</span> <span class="n">EvaluationResult</span>
+
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>  <span class="c1"># pragma: no cover - import cycle only matters for typing</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">"ComparisonReport"</span><span class="p">,</span>
+    <span class="s2">"PairwiseComparison"</span><span class="p">,</span>
+    <span class="s2">"compare_models"</span><span class="p">,</span>
+    <span class="s2">"compare_pair"</span><span class="p">,</span>
+<span class="p">]</span>
+
+<span class="n">Alternative</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"two-sided"</span><span class="p">,</span> <span class="s2">"greater"</span><span class="p">,</span> <span class="s2">"less"</span><span class="p">]</span>
+<span class="n">Correction</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"holm"</span><span class="p">,</span> <span class="s2">"bonferroni"</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
+<span class="n">TestMethod</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"randomization"</span><span class="p">,</span> <span class="s2">"bootstrap"</span><span class="p">,</span> <span class="s2">"t"</span><span class="p">]</span>
+
+<span class="c1">#: Chunks of random draws are bounded by element count rather than by replicate</span>
+<span class="c1">#: count, because a chunk is ``batch * n`` wide. Bounding replicates alone would</span>
+<span class="c1">#: allocate gigabytes once ``n`` reaches the millions.</span>
+<span class="n">MAX_CHUNK_ELEMENTS</span> <span class="o">=</span> <span class="mi">8_000_000</span>
+
+<span class="c1">#: Below this many untied users the empirical difference distribution is too</span>
+<span class="c1">#: discrete for a percentile interval to be read literally, and the comparison</span>
+<span class="c1">#: warns. This bounds the *shape* of the resampled distribution, not the amount</span>
+<span class="c1">#: of data behind the estimate, which is always ``n_units``.</span>
+<span class="n">MIN_NONZERO_SAMPLES</span> <span class="o">=</span> <span class="mi">30</span>
+
+<span class="n">_ZERO_TOLERANCE</span> <span class="o">=</span> <span class="mf">1e-12</span>
+
+<span class="n">_FRAME_COLUMNS</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s2">"metric"</span><span class="p">,</span>
+    <span class="s2">"baseline"</span><span class="p">,</span>
+    <span class="s2">"candidate"</span><span class="p">,</span>
+    <span class="s2">"n_samples"</span><span class="p">,</span>
+    <span class="s2">"n_units"</span><span class="p">,</span>
+    <span class="s2">"n_nonzero"</span><span class="p">,</span>
+    <span class="s2">"tie_rate"</span><span class="p">,</span>
+    <span class="s2">"baseline_mean"</span><span class="p">,</span>
+    <span class="s2">"candidate_mean"</span><span class="p">,</span>
+    <span class="s2">"difference"</span><span class="p">,</span>
+    <span class="s2">"relative_difference"</span><span class="p">,</span>
+    <span class="s2">"ci_low"</span><span class="p">,</span>
+    <span class="s2">"ci_high"</span><span class="p">,</span>
+    <span class="s2">"confidence_level"</span><span class="p">,</span>
+    <span class="s2">"bootstrap_standard_error"</span><span class="p">,</span>
+    <span class="s2">"p_value"</span><span class="p">,</span>
+    <span class="s2">"adjusted_p_value"</span><span class="p">,</span>
+    <span class="s2">"significant"</span><span class="p">,</span>
+    <span class="s2">"direction"</span><span class="p">,</span>
+    <span class="s2">"alternative"</span><span class="p">,</span>
+    <span class="s2">"test_method"</span><span class="p">,</span>
+    <span class="s2">"interval_method"</span><span class="p">,</span>
+    <span class="s2">"n_resamples"</span><span class="p">,</span>
+    <span class="s2">"random_state"</span><span class="p">,</span>
+<span class="p">)</span>
+
+
+<div class="viewcode-block" id="PairwiseComparison">
+<a class="viewcode-back" href="../../api/statistics.html#compresso_recsys.stats.PairwiseComparison">[docs]</a>
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">PairwiseComparison</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""One model-versus-model hypothesis for one metric.</span>
+
+<span class="sd">    ``difference`` is always ``candidate - baseline``, so positive values favour</span>
+<span class="sd">    the candidate.</span>
+<span class="sd">    """</span>
+
+    <span class="n">metric</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">baseline</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">candidate</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">n_samples</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">n_units</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">n_nonzero</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">baseline_mean</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">candidate_mean</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">difference</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">relative_difference</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span>
+    <span class="n">bootstrap_standard_error</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">ci_low</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">ci_high</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">confidence_level</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">p_value</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">adjusted_p_value</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">significant</span><span class="p">:</span> <span class="nb">bool</span>
+    <span class="n">alternative</span><span class="p">:</span> <span class="n">Alternative</span>
+    <span class="n">test_method</span><span class="p">:</span> <span class="n">TestMethod</span>
+    <span class="n">interval_method</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">n_resamples</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">random_state</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">tie_rate</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Fraction of units whose **mean** paired difference is exactly zero.</span>
+
+<span class="sd">        With one row per user that means the two models scored them</span>
+<span class="sd">        identically. With several, it means those rows cancelled: a user who</span>
+<span class="sd">        gained on one draw and lost the same amount on another is tied here</span>
+<span class="sd">        even though no single row was.</span>
+
+<span class="sd">        High tie rates are normal for ranking metrics at small cutoffs and are</span>
+<span class="sd">        not a defect. They say the two models come out level for that share of</span>
+<span class="sd">        the population, which is itself a finding, and they are why</span>
+<span class="sd">        ``n_nonzero`` is reported: it bounds how discrete the randomization</span>
+<span class="sd">        test's null distribution can be, since flipping the sign of a zero</span>
+<span class="sd">        changes nothing. The estimate still rests on every unit.</span>
+<span class="sd">        """</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_units</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mf">0.0</span>
+        <span class="k">return</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_nonzero</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_units</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">direction</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""``'better'``, ``'worse'`` or ``'inconclusive'``."""</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">significant</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s2">"inconclusive"</span>
+        <span class="k">return</span> <span class="s2">"better"</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">difference</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="s2">"worse"</span>
+
+<div class="viewcode-block" id="PairwiseComparison.to_dict">
+<a class="viewcode-back" href="../../api/statistics.html#compresso_recsys.stats.PairwiseComparison.to_dict">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">"""Return this comparison as a flat dictionary, including ``direction``."""</span>
+        <span class="k">return</span> <span class="p">{</span><span class="n">column</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">column</span><span class="p">)</span> <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">_FRAME_COLUMNS</span><span class="p">}</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="ComparisonReport">
+<a class="viewcode-back" href="../../api/statistics.html#compresso_recsys.stats.ComparisonReport">[docs]</a>
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ComparisonReport</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Every hypothesis produced by one :func:`compare_models` call.</span>
+
+<span class="sd">    The multiple-testing correction applies across the whole report, so a</span>
+<span class="sd">    report is the unit of analysis rather than any single comparison in it.</span>
+<span class="sd">    """</span>
+
+    <span class="n">comparisons</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">PairwiseComparison</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+    <span class="n">metrics</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+    <span class="n">model_names</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+    <span class="n">reference</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span>
+    <span class="n">correction</span><span class="p">:</span> <span class="n">Correction</span>
+    <span class="n">confidence_level</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">alternative</span><span class="p">:</span> <span class="n">Alternative</span>
+    <span class="n">test_method</span><span class="p">:</span> <span class="n">TestMethod</span>
+    <span class="n">n_resamples</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">random_state</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">comparisons</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">comparisons</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ComparisonReport.to_frame">
+<a class="viewcode-back" href="../../api/statistics.html#compresso_recsys.stats.ComparisonReport.to_frame">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_frame</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"pd.DataFrame"</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Return one row per hypothesis with a fixed column order."""</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+
+        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">comparison</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span> <span class="k">for</span> <span class="n">comparison</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">comparisons</span><span class="p">],</span>
+            <span class="n">columns</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">_FRAME_COLUMNS</span><span class="p">),</span>
+        <span class="p">)</span></div>
+</div>
+
+
+
+<span class="nd">@contextmanager</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_progress</span><span class="p">(</span><span class="n">enabled</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">total</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">desc</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Yield a callable advancing a bar by fractions of a hypothesis, or ``None``.</span>
+
+<span class="sd">    Counting hypotheses alone would leave the slowest shape unserved: one metric</span>
+<span class="sd">    on one pair of models over a million users takes about half a minute and</span>
+<span class="sd">    would show ``0/1`` for all of it. Counting resample chunks alone would give</span>
+<span class="sd">    a number nobody can size. So the unit is the hypothesis and the advance is</span>
+<span class="sd">    fractional, which reads sensibly whether a call produces one of them or</span>
+<span class="sd">    fifty.</span>
+
+<span class="sd">    tqdm is imported here rather than required, matching the rest of the</span>
+<span class="sd">    package: without it the work still runs, silently.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">enabled</span><span class="p">:</span>
+        <span class="k">yield</span> <span class="kc">None</span>
+        <span class="k">return</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">tqdm.auto</span><span class="w"> </span><span class="kn">import</span> <span class="n">tqdm</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>  <span class="c1"># pragma: no cover - optional display helper</span>
+        <span class="k">yield</span> <span class="kc">None</span>
+        <span class="k">return</span>
+    <span class="c1"># The count is fractional because a hypothesis advances in pieces, so it</span>
+    <span class="c1"># needs an explicit precision: tqdm's default renders float counts in full</span>
+    <span class="c1"># and prints things like 7.54405440544057/8.0. One decimal says "part way</span>
+    <span class="c1"># through the eighth" and nothing more.</span>
+    <span class="n">bar</span> <span class="o">=</span> <span class="n">tqdm</span><span class="p">(</span>
+        <span class="n">total</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">total</span><span class="p">),</span>
+        <span class="n">desc</span><span class="o">=</span><span class="n">desc</span><span class="p">,</span>
+        <span class="n">bar_format</span><span class="o">=</span><span class="p">(</span>
+            <span class="s2">"</span><span class="si">{desc}</span><span class="s2">: </span><span class="si">{percentage:3.0f}</span><span class="s2">%|</span><span class="si">{bar}</span><span class="s2">| "</span>
+            <span class="s2">"</span><span class="si">{n:.1f}</span><span class="s2">/</span><span class="si">{total:.0f}</span><span class="s2"> [</span><span class="si">{elapsed}</span><span class="s2">&lt;</span><span class="si">{remaining}</span><span class="s2">]"</span>
+        <span class="p">),</span>
+    <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="n">amount</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># Callers advance by fractions obtained through division, which need</span>
+        <span class="c1"># not sum to a whole number. Owning the bar means owning the invariant</span>
+        <span class="c1"># that it never runs past its own total, so callers can do the</span>
+        <span class="c1"># arithmetic that reads naturally and leave the edge here.</span>
+        <span class="n">room</span> <span class="o">=</span> <span class="n">bar</span><span class="o">.</span><span class="n">total</span> <span class="o">-</span> <span class="n">bar</span><span class="o">.</span><span class="n">n</span>
+        <span class="k">if</span> <span class="n">amount</span> <span class="o">&gt;</span> <span class="n">room</span><span class="p">:</span>
+            <span class="n">amount</span> <span class="o">=</span> <span class="n">room</span>
+        <span class="k">if</span> <span class="n">amount</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="n">bar</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">amount</span><span class="p">)</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">yield</span> <span class="n">update</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">bar</span><span class="o">.</span><span class="n">n</span> <span class="o">=</span> <span class="n">bar</span><span class="o">.</span><span class="n">total</span>
+        <span class="n">bar</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_base_entropy</span><span class="p">(</span><span class="n">random_state</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Entropy every hypothesis in one call derives its seeds from.</span>
+
+<span class="sd">    ``random_state=None`` asks for a nondeterministic run. Feeding it straight</span>
+<span class="sd">    into the derivation below would hash the string ``"None"`` into a fixed</span>
+<span class="sd">    value and silently make the call reproducible, so draw fresh operating</span>
+<span class="sd">    system entropy once here instead. Hypotheses stay order-invariant within</span>
+<span class="sd">    the call, and the call stays nondeterministic across runs.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">random_state</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">SeedSequence</span><span class="p">()</span><span class="o">.</span><span class="n">entropy</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">random_state</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_hypothesis_streams</span><span class="p">(</span>
+    <span class="n">base_entropy</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">metric</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">baseline_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">candidate_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">Generator</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">Generator</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Independent generators for the interval and for the test.</span>
+
+<span class="sd">    Seeds are derived from the identity of the hypothesis rather than taken</span>
+<span class="sd">    from a position in a shared stream. A comparison therefore draws the same</span>
+<span class="sd">    resamples no matter what else the report contains, or in what order:</span>
+<span class="sd">    adding a metric or reordering the model mapping cannot perturb a result</span>
+<span class="sd">    that was already there.</span>
+
+<span class="sd">    Model names are sorted, so reversing a pair reuses its draws. The reported</span>
+<span class="sd">    difference and interval then mirror exactly rather than picking up</span>
+<span class="sd">    unrelated resampling noise. Orientation itself still follows insertion</span>
+<span class="sd">    order; only the seed is canonical.</span>
+
+<span class="sd">    Each component is length-prefixed before hashing, so no combination of</span>
+<span class="sd">    names and metrics can collide by running into its neighbour. blake2b</span>
+<span class="sd">    rather than :func:`hash`: string hashing is salted per process, and a seed</span>
+<span class="sd">    that changed between runs would be worse than the ordering it fixes.</span>
+
+<span class="sd">    The two generators are spawned from that seed rather than drawn in turn.</span>
+<span class="sd">    Sharing one would make the confidence interval depend on ``test_method``,</span>
+<span class="sd">    since the randomization test consumes draws the bootstrap test does not.</span>
+<span class="sd">    """</span>
+    <span class="n">digest</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">blake2b</span><span class="p">(</span><span class="n">digest_size</span><span class="o">=</span><span class="mi">32</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">part</span> <span class="ow">in</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">base_entropy</span><span class="p">),</span> <span class="n">metric</span><span class="p">,</span> <span class="o">*</span><span class="nb">sorted</span><span class="p">((</span><span class="n">baseline_name</span><span class="p">,</span> <span class="n">candidate_name</span><span class="p">))):</span>
+        <span class="n">encoded</span> <span class="o">=</span> <span class="n">part</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">"utf-8"</span><span class="p">)</span>
+        <span class="n">digest</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">encoded</span><span class="p">)</span><span class="o">.</span><span class="n">to_bytes</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="s2">"big"</span><span class="p">))</span>
+        <span class="n">digest</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">encoded</span><span class="p">)</span>
+    <span class="n">seed</span> <span class="o">=</span> <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">digest</span><span class="o">.</span><span class="n">digest</span><span class="p">(),</span> <span class="s2">"big"</span><span class="p">)</span>
+    <span class="n">interval</span><span class="p">,</span> <span class="n">test</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">SeedSequence</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">interval</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">test</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_validate_common</span><span class="p">(</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">confidence_level</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">n_resamples</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">alternative</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">test_method</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">resample_batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="mf">0.0</span> <span class="o">&lt;</span> <span class="n">confidence_level</span> <span class="o">&lt;</span> <span class="mf">1.0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"confidence_level must be strictly between 0 and 1"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">n_resamples</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"n_resamples must be &gt;= 1"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">alternative</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">"two-sided"</span><span class="p">,</span> <span class="s2">"greater"</span><span class="p">,</span> <span class="s2">"less"</span><span class="p">}:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"unknown alternative: </span><span class="si">{</span><span class="n">alternative</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">test_method</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">"randomization"</span><span class="p">,</span> <span class="s2">"bootstrap"</span><span class="p">,</span> <span class="s2">"t"</span><span class="p">}:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"unknown test_method: </span><span class="si">{</span><span class="n">test_method</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">resample_batch_size</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"resample_batch_size must be &gt;= 1"</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_paired_values</span><span class="p">(</span>
+    <span class="n">baseline</span><span class="p">:</span> <span class="n">EvaluationResult</span><span class="p">,</span>
+    <span class="n">candidate</span><span class="p">:</span> <span class="n">EvaluationResult</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">metric</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">baseline_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">candidate_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Return aligned per-user arrays and how their rows group into units.</span>
+
+<span class="sd">    Refuses anything that is not paired. The third element groups rows that</span>
+<span class="sd">    share an identifier, or is ``None`` when every row is its own unit.</span>
+<span class="sd">    """</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">result</span> <span class="ow">in</span> <span class="p">((</span><span class="n">baseline_name</span><span class="p">,</span> <span class="n">baseline</span><span class="p">),</span> <span class="p">(</span><span class="n">candidate_name</span><span class="p">,</span> <span class="n">candidate</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">EvaluationResult</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> must be an EvaluationResult"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">per_user</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> was evaluated with collect_per_user=False, so it holds no "</span>
+                <span class="s2">"per-user values; paired comparison needs them"</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">metric</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">result</span><span class="o">.</span><span class="n">per_user</span><span class="p">:</span>
+            <span class="n">available</span> <span class="o">=</span> <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">per_user</span><span class="p">))</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> has no metric </span><span class="si">{</span><span class="n">metric</span><span class="si">!r}</span><span class="s2">; available: </span><span class="si">{</span><span class="n">available</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="n">left</span><span class="p">,</span> <span class="n">right</span> <span class="o">=</span> <span class="n">baseline</span><span class="o">.</span><span class="n">sample_ids</span><span class="p">,</span> <span class="n">candidate</span><span class="o">.</span><span class="n">sample_ids</span>
+    <span class="k">assert</span> <span class="n">left</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">right</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>  <span class="c1"># implied by per_user</span>
+    <span class="k">if</span> <span class="n">left</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">right</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">array_equal</span><span class="p">(</span><span class="n">left</span><span class="p">,</span> <span class="n">right</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">baseline_name</span><span class="si">}</span><span class="s2"> and </span><span class="si">{</span><span class="n">candidate_name</span><span class="si">}</span><span class="s2"> were not evaluated on the same "</span>
+            <span class="s2">"samples in the same order. Paired analysis compares each evaluation "</span>
+            <span class="s2">"unit against itself, so sample_ids must match exactly, including "</span>
+            <span class="s2">"order. Re-evaluate both models on identical rows rather than "</span>
+            <span class="s2">"reordering or intersecting after the fact."</span>
+        <span class="p">)</span>
+
+    <span class="c1"># Matching identifiers say the same users were scored. They cannot say the</span>
+    <span class="c1"># users were scored against the same relevant items, which is the other half</span>
+    <span class="c1"># of what pairing assumes and the half a positional identifier hides</span>
+    <span class="c1"># completely: two evaluations on unrelated datasets both number their rows</span>
+    <span class="c1"># from zero.</span>
+    <span class="n">left_print</span> <span class="o">=</span> <span class="n">baseline</span><span class="o">.</span><span class="n">target_fingerprint</span>
+    <span class="n">right_print</span> <span class="o">=</span> <span class="n">candidate</span><span class="o">.</span><span class="n">target_fingerprint</span>
+    <span class="k">if</span> <span class="n">left_print</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">right_print</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">baseline_name</span><span class="si">}</span><span class="s2"> or </span><span class="si">{</span><span class="n">candidate_name</span><span class="si">}</span><span class="s2"> carries no target fingerprint, "</span>
+            <span class="s2">"so the comparison cannot confirm both models were scored against "</span>
+            <span class="s2">"the same relevant items. Results built by hand rather than by an "</span>
+            <span class="s2">"evaluator are unverifiable this way; check the pairing yourself."</span><span class="p">,</span>
+            <span class="ne">RuntimeWarning</span><span class="p">,</span>
+            <span class="n">stacklevel</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">elif</span> <span class="n">left_print</span> <span class="o">!=</span> <span class="n">right_print</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">baseline_name</span><span class="si">}</span><span class="s2"> and </span><span class="si">{</span><span class="n">candidate_name</span><span class="si">}</span><span class="s2"> were evaluated against "</span>
+            <span class="s2">"different target matrices. Their sample_ids match, so this would "</span>
+            <span class="s2">"otherwise have paired users who were scored on different relevant "</span>
+            <span class="s2">"items. Re-evaluate both models against the same targets."</span>
+        <span class="p">)</span>
+
+    <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">baseline</span><span class="o">.</span><span class="n">per_user</span><span class="p">[</span><span class="n">metric</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">candidate</span><span class="o">.</span><span class="n">per_user</span><span class="p">[</span><span class="n">metric</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"per-user arrays for </span><span class="si">{</span><span class="n">metric</span><span class="si">!r}</span><span class="s2"> differ in length: "</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> vs </span><span class="si">{</span><span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"paired comparison needs at least 2 evaluable samples, got </span><span class="si">{</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">y</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"per-user values for </span><span class="si">{</span><span class="n">metric</span><span class="si">!r}</span><span class="s2"> contain non-finite entries"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">_unit_codes</span><span class="p">(</span><span class="n">left</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_effective_batch</span><span class="p">(</span><span class="n">requested</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Bound a chunk by total elements, not by replicate count."""</span>
+    <span class="k">return</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">requested</span><span class="p">),</span> <span class="n">MAX_CHUNK_ELEMENTS</span> <span class="o">//</span> <span class="nb">max</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">n</span><span class="p">),</span> <span class="mi">1</span><span class="p">)))</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_bootstrap_means</span><span class="p">(</span>
+    <span class="n">d</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">n_resamples</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">rng</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">Generator</span><span class="p">,</span>
+    <span class="n">resample_batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">progress</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">float</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Mean of ``d`` over ``n_resamples`` resamples of its rows, with replacement."""</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">n_resamples</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+    <span class="n">step</span> <span class="o">=</span> <span class="n">_effective_batch</span><span class="p">(</span><span class="n">resample_batch_size</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">start</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">n_resamples</span><span class="p">,</span> <span class="n">step</span><span class="p">):</span>
+        <span class="n">size</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">step</span><span class="p">,</span> <span class="n">n_resamples</span> <span class="o">-</span> <span class="n">start</span><span class="p">)</span>
+        <span class="n">indices</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span>
+        <span class="n">out</span><span class="p">[</span><span class="n">start</span> <span class="p">:</span> <span class="n">start</span> <span class="o">+</span> <span class="n">size</span><span class="p">]</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="n">indices</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">progress</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">progress</span><span class="p">(</span><span class="n">size</span> <span class="o">/</span> <span class="n">n_resamples</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">out</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_randomization_means</span><span class="p">(</span>
+    <span class="n">d</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">n_resamples</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">rng</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">Generator</span><span class="p">,</span>
+    <span class="n">resample_batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">progress</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">float</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Mean of ``d`` under ``n_resamples`` uniform sign assignments."""</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">n_resamples</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+    <span class="n">step</span> <span class="o">=</span> <span class="n">_effective_batch</span><span class="p">(</span><span class="n">resample_batch_size</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">start</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">n_resamples</span><span class="p">,</span> <span class="n">step</span><span class="p">):</span>
+        <span class="n">size</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">step</span><span class="p">,</span> <span class="n">n_resamples</span> <span class="o">-</span> <span class="n">start</span><span class="p">)</span>
+        <span class="c1"># int8 signs cost an eighth of float64 and give identical products.</span>
+        <span class="n">signs</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">n</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int8</span><span class="p">)</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="n">out</span><span class="p">[</span><span class="n">start</span> <span class="p">:</span> <span class="n">start</span> <span class="o">+</span> <span class="n">size</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">signs</span> <span class="o">*</span> <span class="n">d</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">progress</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">progress</span><span class="p">(</span><span class="n">size</span> <span class="o">/</span> <span class="n">n_resamples</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">out</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_unit_codes</span><span class="p">(</span><span class="n">sample_ids</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Group rows by identifier, or ``None`` when every row is its own unit.</span>
+
+<span class="sd">    Repeated identifiers mean one evaluation unit produced several rows.</span>
+<span class="sd">    :func:`compresso_recsys.retrieval.build_eval_holdout` does exactly that at</span>
+<span class="sd">    its default ``eval_draws=5``: each user is split into fold-in and scored</span>
+<span class="sd">    parts five times, so 2,500 users produce 12,500 rows. Those rows are not</span>
+<span class="sd">    independent, and resampling them as though they were understates the</span>
+<span class="sd">    interval by the square root of the design effect -- on GoodBooks, an</span>
+<span class="sd">    interval 27 to 44 percent too narrow.</span>
+
+<span class="sd">    Returning ``None`` when every row is its own unit lets the ordinary</span>
+<span class="sd">    row-level paths run unchanged, so results for the common case are</span>
+<span class="sd">    bit-for-bit what they were before repeated rows were handled at all.</span>
+
+<span class="sd">    The statistics literature calls this cluster sampling, and the references</span>
+<span class="sd">    use that word. It is avoided here because :mod:`compresso.clustering` means</span>
+<span class="sd">    something entirely unrelated -- grouping items into cluster graphs -- and</span>
+<span class="sd">    one of the two had to give.</span>
+<span class="sd">    """</span>
+    <span class="n">codes</span><span class="p">,</span> <span class="n">inverse</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">sample_ids</span><span class="p">,</span> <span class="n">return_inverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">n_units</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">codes</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">n_units</span> <span class="o">==</span> <span class="n">sample_ids</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="k">return</span> <span class="n">inverse</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span> <span class="n">n_units</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_unit_sums</span><span class="p">(</span><span class="n">d</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">codes</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">n_units</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Total paired difference per unit."""</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">bincount</span><span class="p">(</span><span class="n">codes</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">d</span><span class="p">,</span> <span class="n">minlength</span><span class="o">=</span><span class="n">n_units</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_monte_carlo_p</span><span class="p">(</span>
+    <span class="n">null_statistics</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">observed</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">alternative</span><span class="p">:</span> <span class="n">Alternative</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Finite-sample Monte Carlo p-value, never zero and never above one."""</span>
+    <span class="k">if</span> <span class="n">alternative</span> <span class="o">==</span> <span class="s2">"two-sided"</span><span class="p">:</span>
+        <span class="n">extreme</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">null_statistics</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">observed</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">alternative</span> <span class="o">==</span> <span class="s2">"greater"</span><span class="p">:</span>
+        <span class="n">extreme</span> <span class="o">=</span> <span class="n">null_statistics</span> <span class="o">&gt;=</span> <span class="n">observed</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">extreme</span> <span class="o">=</span> <span class="n">null_statistics</span> <span class="o">&lt;=</span> <span class="n">observed</span>
+    <span class="k">return</span> <span class="nb">float</span><span class="p">((</span><span class="mi">1</span> <span class="o">+</span> <span class="nb">int</span><span class="p">(</span><span class="n">extreme</span><span class="o">.</span><span class="n">sum</span><span class="p">()))</span> <span class="o">/</span> <span class="p">(</span><span class="n">null_statistics</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_t_test_p</span><span class="p">(</span>
+    <span class="n">d</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">difference</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">alternative</span><span class="p">:</span> <span class="n">Alternative</span><span class="p">,</span>
+    <span class="n">metric</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Paired t-test, as a one-sample test on the paired differences.</span>
+
+<span class="sd">    One-sample on ``d`` rather than ``ttest_rel(y, x)``. The two are</span>
+<span class="sd">    mathematically identical, but the bootstrap and the randomization test both</span>
+<span class="sd">    consume the same ``d``, and letting this derive its own would mean any</span>
+<span class="sd">    precision divergence surfaced as the three methods disagreeing about</span>
+<span class="sd">    statistics rather than about floating point. ``d`` holds one value per</span>
+<span class="sd">    independent unit, so when a user owns several rows this is already their</span>
+<span class="sd">    mean and all three methods test the same estimand.</span>
+
+<span class="sd">    Unlike the resampled tests this has no Monte Carlo floor, so it can report</span>
+<span class="sd">    p-values far below ``1 / (n_resamples + 1)``. Treat those with the caution</span>
+<span class="sd">    any far-tail normal approximation deserves: the Berry-Esseen bound on the</span>
+<span class="sd">    error of the approximation is governed by the number of *untied* units, and</span>
+<span class="sd">    is loose.</span>
+
+<span class="sd">    Note also that the two tests do not share a null. This one asks whether the</span>
+<span class="sd">    population mean difference is zero; the randomization test asks whether the</span>
+<span class="sd">    two model labels are exchangeable within each user, which additionally</span>
+<span class="sd">    implies the differences are symmetric about zero. Exchangeability is the</span>
+<span class="sd">    stronger assumption, so a disagreement between them can reflect the nulls</span>
+<span class="sd">    differing rather than an approximation being strained -- a skewed difference</span>
+<span class="sd">    distribution centred on zero satisfies one and not the other.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">ptp</span><span class="p">(</span><span class="n">d</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="c1"># Zero sample variance: the t statistic is 0/0 or x/0, and scipy</span>
+        <span class="c1"># returns nan or exactly zero. All differences equal means there is</span>
+        <span class="c1"># nothing to estimate a standard error from.</span>
+        <span class="k">if</span> <span class="n">difference</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mf">1.0</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">metric</span><span class="si">!r}</span><span class="s2">: every paired difference is identical, so the t "</span>
+            <span class="sa">f</span><span class="s2">"statistic is undefined -- there is no sample variance to divide "</span>
+            <span class="sa">f</span><span class="s2">"by. scipy would return exactly 0.0, which is a verdict the test "</span>
+            <span class="sa">f</span><span class="s2">"cannot support. Use test_method='randomization', which is exact "</span>
+            <span class="sa">f</span><span class="s2">"here and reports its resolution floor."</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">ttest_1samp</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">alternative</span><span class="o">=</span><span class="n">alternative</span><span class="p">)</span><span class="o">.</span><span class="n">pvalue</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_interval</span><span class="p">(</span>
+    <span class="n">bootstrap_means</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">confidence_level</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">alternative</span><span class="p">:</span> <span class="n">Alternative</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Percentile interval oriented to match the alternative.</span>
+
+<span class="sd">    A one-sided test beside a two-sided interval can report a significant</span>
+<span class="sd">    result next to an interval containing zero, so the orientation follows.</span>
+<span class="sd">    """</span>
+    <span class="n">alpha</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">confidence_level</span>
+    <span class="k">if</span> <span class="n">alternative</span> <span class="o">==</span> <span class="s2">"two-sided"</span><span class="p">:</span>
+        <span class="n">low</span><span class="p">,</span> <span class="n">high</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">quantile</span><span class="p">(</span><span class="n">bootstrap_means</span><span class="p">,</span> <span class="p">[</span><span class="n">alpha</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">alpha</span> <span class="o">/</span> <span class="mi">2</span><span class="p">])</span>
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">low</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="n">high</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">alternative</span> <span class="o">==</span> <span class="s2">"greater"</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">quantile</span><span class="p">(</span><span class="n">bootstrap_means</span><span class="p">,</span> <span class="n">alpha</span><span class="p">)),</span> <span class="nb">float</span><span class="p">(</span><span class="s2">"inf"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="s2">"-inf"</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">quantile</span><span class="p">(</span><span class="n">bootstrap_means</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">alpha</span><span class="p">))</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_adjust</span><span class="p">(</span><span class="n">p_values</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">correction</span><span class="p">:</span> <span class="n">Correction</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Family-wise adjustment across every hypothesis in one report."""</span>
+    <span class="k">if</span> <span class="n">correction</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">p_values</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">n_hypotheses</span> <span class="o">=</span> <span class="n">p_values</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">correction</span> <span class="o">==</span> <span class="s2">"bonferroni"</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">n_hypotheses</span> <span class="o">*</span> <span class="n">p_values</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">correction</span> <span class="o">!=</span> <span class="s2">"holm"</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"unknown correction: </span><span class="si">{</span><span class="n">correction</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="n">order</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">p_values</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s2">"stable"</span><span class="p">)</span>
+    <span class="n">scaled</span> <span class="o">=</span> <span class="p">(</span><span class="n">n_hypotheses</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n_hypotheses</span><span class="p">))</span> <span class="o">*</span> <span class="n">p_values</span><span class="p">[</span><span class="n">order</span><span class="p">]</span>
+    <span class="n">adjusted_sorted</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="o">.</span><span class="n">accumulate</span><span class="p">(</span><span class="n">scaled</span><span class="p">))</span>
+    <span class="n">adjusted</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">adjusted_sorted</span><span class="p">)</span>
+    <span class="n">adjusted</span><span class="p">[</span><span class="n">order</span><span class="p">]</span> <span class="o">=</span> <span class="n">adjusted_sorted</span>
+    <span class="k">return</span> <span class="n">adjusted</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_compare_arrays</span><span class="p">(</span>
+    <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">y</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">metric</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">baseline_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">candidate_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">confidence_level</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">n_resamples</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">alternative</span><span class="p">:</span> <span class="n">Alternative</span><span class="p">,</span>
+    <span class="n">test_method</span><span class="p">:</span> <span class="n">TestMethod</span><span class="p">,</span>
+    <span class="n">interval_rng</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">Generator</span><span class="p">,</span>
+    <span class="n">test_rng</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">Generator</span><span class="p">,</span>
+    <span class="n">random_state</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">resample_batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">units</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">progress</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">float</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PairwiseComparison</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Compare two aligned per-user arrays. Raw p-value only; adjust later."""</span>
+    <span class="n">rows</span> <span class="o">=</span> <span class="n">y</span> <span class="o">-</span> <span class="n">x</span>
+    <span class="n">n_samples</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">rows</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="c1"># Everything downstream works on one difference per independent unit. When</span>
+    <span class="c1"># a user owns several rows, that is their mean, and the estimand is the</span>
+    <span class="c1"># mean over users rather than over rows -- a user evaluated five times is</span>
+    <span class="c1"># one user, not five, and weighting by row count would let the protocol</span>
+    <span class="c1"># decide whose opinion counts more. With equal row counts the two coincide</span>
+    <span class="c1"># exactly; with unequal ones only this version answers the question the</span>
+    <span class="c1"># rest of the module is asking.</span>
+    <span class="k">if</span> <span class="n">units</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">n_units</span> <span class="o">=</span> <span class="n">n_samples</span>
+        <span class="n">d</span><span class="p">,</span> <span class="n">unit_x</span><span class="p">,</span> <span class="n">unit_y</span> <span class="o">=</span> <span class="n">rows</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">codes</span><span class="p">,</span> <span class="n">n_units</span> <span class="o">=</span> <span class="n">units</span>
+        <span class="n">counts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">bincount</span><span class="p">(</span><span class="n">codes</span><span class="p">,</span> <span class="n">minlength</span><span class="o">=</span><span class="n">n_units</span><span class="p">)</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="n">_unit_sums</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">codes</span><span class="p">,</span> <span class="n">n_units</span><span class="p">)</span> <span class="o">/</span> <span class="n">counts</span>
+        <span class="n">unit_x</span> <span class="o">=</span> <span class="n">_unit_sums</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">codes</span><span class="p">,</span> <span class="n">n_units</span><span class="p">)</span> <span class="o">/</span> <span class="n">counts</span>
+        <span class="n">unit_y</span> <span class="o">=</span> <span class="n">_unit_sums</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">codes</span><span class="p">,</span> <span class="n">n_units</span><span class="p">)</span> <span class="o">/</span> <span class="n">counts</span>
+
+    <span class="n">n_nonzero</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">count_nonzero</span><span class="p">(</span><span class="n">d</span><span class="p">))</span>
+    <span class="n">baseline_mean</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">unit_x</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">))</span>
+    <span class="n">candidate_mean</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">unit_y</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">))</span>
+    <span class="c1"># Averaging is linear, so this identity survives the reduction above.</span>
+    <span class="n">difference</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">))</span>
+
+    <span class="n">relative_difference</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="kc">None</span>
+        <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">baseline_mean</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">_ZERO_TOLERANCE</span>
+        <span class="k">else</span> <span class="nb">float</span><span class="p">(</span><span class="n">difference</span> <span class="o">/</span> <span class="nb">abs</span><span class="p">(</span><span class="n">baseline_mean</span><span class="p">))</span>
+    <span class="p">)</span>
+
+    <span class="c1"># One hypothesis is worth 1.0 on the bar, divided evenly between the</span>
+    <span class="c1"># resampling passes it will make. The interval always resamples; the</span>
+    <span class="c1"># randomization test resamples a second time, while the bootstrap test</span>
+    <span class="c1"># reuses those replicates and the t-test needs none.</span>
+    <span class="n">passes</span> <span class="o">=</span> <span class="mi">2</span> <span class="k">if</span> <span class="n">test_method</span> <span class="o">==</span> <span class="s2">"randomization"</span> <span class="k">else</span> <span class="mi">1</span>
+
+    <span class="n">advance</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">float</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">progress</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">given</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">advance</span><span class="p">(</span><span class="n">fraction</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">nonlocal</span> <span class="n">given</span>
+            <span class="n">step</span> <span class="o">=</span> <span class="n">fraction</span> <span class="o">/</span> <span class="n">passes</span>
+            <span class="n">given</span> <span class="o">+=</span> <span class="n">step</span>
+            <span class="n">progress</span><span class="p">(</span><span class="n">step</span><span class="p">)</span>
+
+    <span class="n">bootstrap_means</span> <span class="o">=</span> <span class="n">_bootstrap_means</span><span class="p">(</span>
+        <span class="n">d</span><span class="p">,</span>
+        <span class="n">n_resamples</span><span class="o">=</span><span class="n">n_resamples</span><span class="p">,</span>
+        <span class="n">rng</span><span class="o">=</span><span class="n">interval_rng</span><span class="p">,</span>
+        <span class="n">resample_batch_size</span><span class="o">=</span><span class="n">resample_batch_size</span><span class="p">,</span>
+        <span class="n">progress</span><span class="o">=</span><span class="n">advance</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">ci_low</span><span class="p">,</span> <span class="n">ci_high</span> <span class="o">=</span> <span class="n">_interval</span><span class="p">(</span>
+        <span class="n">bootstrap_means</span><span class="p">,</span>
+        <span class="n">confidence_level</span><span class="o">=</span><span class="n">confidence_level</span><span class="p">,</span>
+        <span class="n">alternative</span><span class="o">=</span><span class="n">alternative</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">standard_error</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="nb">float</span><span class="p">(</span><span class="n">bootstrap_means</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">ddof</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span> <span class="k">if</span> <span class="n">n_resamples</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="nb">float</span><span class="p">(</span><span class="s2">"nan"</span><span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">test_method</span> <span class="o">==</span> <span class="s2">"t"</span><span class="p">:</span>
+        <span class="c1"># Deterministic: test_rng is deliberately left unconsumed. Seeds are</span>
+        <span class="c1"># derived per hypothesis, so that cannot shift any other comparison.</span>
+        <span class="c1"># The interval above is still resampled, so this does not make the</span>
+        <span class="c1"># call RNG-free.</span>
+        <span class="n">p_value</span> <span class="o">=</span> <span class="n">_t_test_p</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">difference</span><span class="p">,</span> <span class="n">alternative</span><span class="o">=</span><span class="n">alternative</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="n">metric</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">test_method</span> <span class="o">==</span> <span class="s2">"randomization"</span><span class="p">:</span>
+            <span class="n">null_statistics</span> <span class="o">=</span> <span class="n">_randomization_means</span><span class="p">(</span>
+                <span class="n">d</span><span class="p">,</span>
+                <span class="n">n_resamples</span><span class="o">=</span><span class="n">n_resamples</span><span class="p">,</span>
+                <span class="n">rng</span><span class="o">=</span><span class="n">test_rng</span><span class="p">,</span>
+                <span class="n">resample_batch_size</span><span class="o">=</span><span class="n">resample_batch_size</span><span class="p">,</span>
+                <span class="n">progress</span><span class="o">=</span><span class="n">advance</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Resampling the centered differences is an exact shift of the</span>
+            <span class="c1"># ordinary bootstrap, so the replicates above already contain the</span>
+            <span class="c1"># null statistic.</span>
+            <span class="n">null_statistics</span> <span class="o">=</span> <span class="n">bootstrap_means</span> <span class="o">-</span> <span class="n">difference</span>
+
+        <span class="n">p_value</span> <span class="o">=</span> <span class="n">_monte_carlo_p</span><span class="p">(</span><span class="n">null_statistics</span><span class="p">,</span> <span class="n">difference</span><span class="p">,</span> <span class="n">alternative</span><span class="o">=</span><span class="n">alternative</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">progress</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># Land on a whole hypothesis whatever the chunk arithmetic did.</span>
+        <span class="n">progress</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">given</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">n_nonzero</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="c1"># Not the low-count case. The two models scored every user identically,</span>
+        <span class="c1"># so difference 0, interval [0, 0] and p 1 are exactly right rather</span>
+        <span class="c1"># than degraded, and saying "few observations" would misdescribe them.</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">metric</span><span class="si">!r}</span><span class="s2">: every one of the </span><span class="si">{</span><span class="n">n_units</span><span class="si">}</span><span class="s2"> units has a mean paired "</span>
+            <span class="sa">f</span><span class="s2">"difference of exactly zero, so there is nothing to resample. "</span>
+            <span class="sa">f</span><span class="s2">"The difference, "</span>
+            <span class="sa">f</span><span class="s2">"interval and p-value are exact, not estimated."</span><span class="p">,</span>
+            <span class="ne">RuntimeWarning</span><span class="p">,</span>
+            <span class="n">stacklevel</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">elif</span> <span class="n">n_nonzero</span> <span class="o">&lt;</span> <span class="n">MIN_NONZERO_SAMPLES</span><span class="p">:</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">metric</span><span class="si">!r}</span><span class="s2">: only </span><span class="si">{</span><span class="n">n_nonzero</span><span class="si">}</span><span class="s2"> of </span><span class="si">{</span><span class="n">n_units</span><span class="si">}</span><span class="s2"> units have a nonzero "</span>
+            <span class="sa">f</span><span class="s2">"paired difference, so the empirical difference distribution is "</span>
+            <span class="sa">f</span><span class="s2">"highly discrete and the percentile interval lands on few distinct "</span>
+            <span class="sa">f</span><span class="s2">"values. Interpret it cautiously. The estimate itself still uses "</span>
+            <span class="sa">f</span><span class="s2">"all </span><span class="si">{</span><span class="n">n_units</span><span class="si">}</span><span class="s2"> units."</span><span class="p">,</span>
+            <span class="ne">RuntimeWarning</span><span class="p">,</span>
+            <span class="n">stacklevel</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">PairwiseComparison</span><span class="p">(</span>
+        <span class="n">metric</span><span class="o">=</span><span class="n">metric</span><span class="p">,</span>
+        <span class="n">baseline</span><span class="o">=</span><span class="n">baseline_name</span><span class="p">,</span>
+        <span class="n">candidate</span><span class="o">=</span><span class="n">candidate_name</span><span class="p">,</span>
+        <span class="n">n_samples</span><span class="o">=</span><span class="n">n_samples</span><span class="p">,</span>
+        <span class="n">n_units</span><span class="o">=</span><span class="n">n_units</span><span class="p">,</span>
+        <span class="n">n_nonzero</span><span class="o">=</span><span class="n">n_nonzero</span><span class="p">,</span>
+        <span class="n">baseline_mean</span><span class="o">=</span><span class="n">baseline_mean</span><span class="p">,</span>
+        <span class="n">candidate_mean</span><span class="o">=</span><span class="n">candidate_mean</span><span class="p">,</span>
+        <span class="n">difference</span><span class="o">=</span><span class="n">difference</span><span class="p">,</span>
+        <span class="n">relative_difference</span><span class="o">=</span><span class="n">relative_difference</span><span class="p">,</span>
+        <span class="n">bootstrap_standard_error</span><span class="o">=</span><span class="n">standard_error</span><span class="p">,</span>
+        <span class="n">ci_low</span><span class="o">=</span><span class="n">ci_low</span><span class="p">,</span>
+        <span class="n">ci_high</span><span class="o">=</span><span class="n">ci_high</span><span class="p">,</span>
+        <span class="n">confidence_level</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">confidence_level</span><span class="p">),</span>
+        <span class="n">p_value</span><span class="o">=</span><span class="n">p_value</span><span class="p">,</span>
+        <span class="n">adjusted_p_value</span><span class="o">=</span><span class="n">p_value</span><span class="p">,</span>
+        <span class="n">significant</span><span class="o">=</span><span class="n">p_value</span> <span class="o">&lt;=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">confidence_level</span><span class="p">,</span>
+        <span class="n">alternative</span><span class="o">=</span><span class="n">alternative</span><span class="p">,</span>
+        <span class="n">test_method</span><span class="o">=</span><span class="n">test_method</span><span class="p">,</span>
+        <span class="n">interval_method</span><span class="o">=</span><span class="s2">"percentile"</span><span class="p">,</span>
+        <span class="n">n_resamples</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">n_resamples</span><span class="p">),</span>
+        <span class="n">random_state</span><span class="o">=</span><span class="n">random_state</span><span class="p">,</span>
+    <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_with_adjusted</span><span class="p">(</span>
+    <span class="n">comparison</span><span class="p">:</span> <span class="n">PairwiseComparison</span><span class="p">,</span>
+    <span class="n">adjusted</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PairwiseComparison</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">replace</span>
+
+    <span class="k">return</span> <span class="n">replace</span><span class="p">(</span>
+        <span class="n">comparison</span><span class="p">,</span>
+        <span class="n">adjusted_p_value</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">adjusted</span><span class="p">),</span>
+        <span class="c1"># Monte Carlo p-values are discrete multiples of 1/(B+1), so equality</span>
+        <span class="c1"># with alpha is attainable and the convention rejects there.</span>
+        <span class="n">significant</span><span class="o">=</span><span class="nb">bool</span><span class="p">(</span><span class="n">adjusted</span> <span class="o">&lt;=</span> <span class="n">alpha</span><span class="p">),</span>
+    <span class="p">)</span>
+
+
+<div class="viewcode-block" id="compare_pair">
+<a class="viewcode-back" href="../../api/statistics.html#compresso_recsys.stats.compare_pair">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">compare_pair</span><span class="p">(</span>
+    <span class="n">baseline</span><span class="p">:</span> <span class="n">EvaluationResult</span><span class="p">,</span>
+    <span class="n">candidate</span><span class="p">:</span> <span class="n">EvaluationResult</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">metric</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">baseline_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"baseline"</span><span class="p">,</span>
+    <span class="n">candidate_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"candidate"</span><span class="p">,</span>
+    <span class="n">confidence_level</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.95</span><span class="p">,</span>
+    <span class="n">n_resamples</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">9_999</span><span class="p">,</span>
+    <span class="n">alternative</span><span class="p">:</span> <span class="n">Alternative</span> <span class="o">=</span> <span class="s2">"two-sided"</span><span class="p">,</span>
+    <span class="n">test_method</span><span class="p">:</span> <span class="n">TestMethod</span> <span class="o">=</span> <span class="s2">"randomization"</span><span class="p">,</span>
+    <span class="n">random_state</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="n">resample_batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">64</span><span class="p">,</span>
+    <span class="n">show_progress</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PairwiseComparison</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Compare one candidate against one baseline on one metric.</span>
+
+<span class="sd">    The difference is ``candidate - baseline``, so positive values favour the</span>
+<span class="sd">    candidate. No multiplicity correction is applied: a single comparison is a</span>
+<span class="sd">    single hypothesis, and ``adjusted_p_value`` equals ``p_value``. Use</span>
+<span class="sd">    :func:`compare_models` when testing more than one hypothesis together.</span>
+<span class="sd">    """</span>
+    <span class="n">_validate_common</span><span class="p">(</span>
+        <span class="n">confidence_level</span><span class="o">=</span><span class="n">confidence_level</span><span class="p">,</span>
+        <span class="n">n_resamples</span><span class="o">=</span><span class="n">n_resamples</span><span class="p">,</span>
+        <span class="n">alternative</span><span class="o">=</span><span class="n">alternative</span><span class="p">,</span>
+        <span class="n">test_method</span><span class="o">=</span><span class="n">test_method</span><span class="p">,</span>
+        <span class="n">resample_batch_size</span><span class="o">=</span><span class="n">resample_batch_size</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">units</span> <span class="o">=</span> <span class="n">_paired_values</span><span class="p">(</span>
+        <span class="n">baseline</span><span class="p">,</span>
+        <span class="n">candidate</span><span class="p">,</span>
+        <span class="n">metric</span><span class="o">=</span><span class="n">metric</span><span class="p">,</span>
+        <span class="n">baseline_name</span><span class="o">=</span><span class="n">baseline_name</span><span class="p">,</span>
+        <span class="n">candidate_name</span><span class="o">=</span><span class="n">candidate_name</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">interval_rng</span><span class="p">,</span> <span class="n">test_rng</span> <span class="o">=</span> <span class="n">_hypothesis_streams</span><span class="p">(</span>
+        <span class="n">_base_entropy</span><span class="p">(</span><span class="n">random_state</span><span class="p">),</span>
+        <span class="n">metric</span><span class="o">=</span><span class="n">metric</span><span class="p">,</span>
+        <span class="n">baseline_name</span><span class="o">=</span><span class="n">baseline_name</span><span class="p">,</span>
+        <span class="n">candidate_name</span><span class="o">=</span><span class="n">candidate_name</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">with</span> <span class="n">_progress</span><span class="p">(</span><span class="n">show_progress</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"comparing </span><span class="si">{</span><span class="n">metric</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span> <span class="k">as</span> <span class="n">advance</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">_compare_arrays</span><span class="p">(</span>
+            <span class="n">x</span><span class="p">,</span>
+            <span class="n">y</span><span class="p">,</span>
+            <span class="n">metric</span><span class="o">=</span><span class="n">metric</span><span class="p">,</span>
+            <span class="n">baseline_name</span><span class="o">=</span><span class="n">baseline_name</span><span class="p">,</span>
+            <span class="n">candidate_name</span><span class="o">=</span><span class="n">candidate_name</span><span class="p">,</span>
+            <span class="n">confidence_level</span><span class="o">=</span><span class="n">confidence_level</span><span class="p">,</span>
+            <span class="n">n_resamples</span><span class="o">=</span><span class="n">n_resamples</span><span class="p">,</span>
+            <span class="n">alternative</span><span class="o">=</span><span class="n">alternative</span><span class="p">,</span>
+            <span class="n">test_method</span><span class="o">=</span><span class="n">test_method</span><span class="p">,</span>
+            <span class="n">interval_rng</span><span class="o">=</span><span class="n">interval_rng</span><span class="p">,</span>
+            <span class="n">test_rng</span><span class="o">=</span><span class="n">test_rng</span><span class="p">,</span>
+            <span class="n">random_state</span><span class="o">=</span><span class="n">random_state</span><span class="p">,</span>
+            <span class="n">resample_batch_size</span><span class="o">=</span><span class="n">resample_batch_size</span><span class="p">,</span>
+            <span class="n">units</span><span class="o">=</span><span class="n">units</span><span class="p">,</span>
+            <span class="n">progress</span><span class="o">=</span><span class="n">advance</span><span class="p">,</span>
+            <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="compare_models">
+<a class="viewcode-back" href="../../api/statistics.html#compresso_recsys.stats.compare_models">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">compare_models</span><span class="p">(</span>
+    <span class="n">results</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">EvaluationResult</span><span class="p">],</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">metrics</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">reference</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">confidence_level</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.95</span><span class="p">,</span>
+    <span class="n">n_resamples</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">9_999</span><span class="p">,</span>
+    <span class="n">alternative</span><span class="p">:</span> <span class="n">Alternative</span> <span class="o">=</span> <span class="s2">"two-sided"</span><span class="p">,</span>
+    <span class="n">correction</span><span class="p">:</span> <span class="n">Correction</span> <span class="o">=</span> <span class="s2">"holm"</span><span class="p">,</span>
+    <span class="n">test_method</span><span class="p">:</span> <span class="n">TestMethod</span> <span class="o">=</span> <span class="s2">"randomization"</span><span class="p">,</span>
+    <span class="n">random_state</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="n">resample_batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">64</span><span class="p">,</span>
+    <span class="n">show_progress</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ComparisonReport</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Compare several models across one or more metrics in a single family.</span>
+
+<span class="sd">    With ``reference`` set, every other model is compared against it. Without</span>
+<span class="sd">    it, every unordered pair is compared in mapping insertion order, with the</span>
+<span class="sd">    earlier model as baseline.</span>
+
+<span class="sd">    The correction spans every pair and metric produced by the call, so calling</span>
+<span class="sd">    this once with three metrics is not the same as calling it three times: the</span>
+<span class="sd">    family is what the call generates.</span>
+
+<span class="sd">    ``show_progress`` draws a bar when tqdm is installed. Cost is linear in</span>
+<span class="sd">    units and in the number of hypotheses -- roughly a second per hypothesis</span>
+<span class="sd">    per 25,000 units at the default resample count -- so a large evaluation</span>
+<span class="sd">    compared across several metrics and models can run for minutes. The bar</span>
+<span class="sd">    counts hypotheses but advances within each one, so it still moves when a</span>
+<span class="sd">    call produces only a single very slow comparison.</span>
+
+<span class="sd">    Holm is the default because these hypotheses are dependent: they are</span>
+<span class="sd">    computed over overlapping users, and several metrics on one pair of models</span>
+<span class="sd">    measure closely related things. Holm controls the family-wise error rate</span>
+<span class="sd">    under arbitrary dependence. Procedures that assume independence or positive</span>
+<span class="sd">    dependence are not offered for that reason.</span>
+
+<span class="sd">    Each hypothesis draws its own resamples, seeded from its metric and its</span>
+<span class="sd">    pair of model names. Adding a metric, reordering ``metrics``, or reordering</span>
+<span class="sd">    ``results`` therefore cannot change a raw comparison that was already in</span>
+<span class="sd">    the report. Adjusted p-values still move, because the family changed.</span>
+<span class="sd">    """</span>
+    <span class="n">_validate_common</span><span class="p">(</span>
+        <span class="n">confidence_level</span><span class="o">=</span><span class="n">confidence_level</span><span class="p">,</span>
+        <span class="n">n_resamples</span><span class="o">=</span><span class="n">n_resamples</span><span class="p">,</span>
+        <span class="n">alternative</span><span class="o">=</span><span class="n">alternative</span><span class="p">,</span>
+        <span class="n">test_method</span><span class="o">=</span><span class="n">test_method</span><span class="p">,</span>
+        <span class="n">resample_batch_size</span><span class="o">=</span><span class="n">resample_batch_size</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">correction</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">"holm"</span><span class="p">,</span> <span class="s2">"bonferroni"</span><span class="p">,</span> <span class="kc">None</span><span class="p">}:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"unknown correction: </span><span class="si">{</span><span class="n">correction</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="n">names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">names</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">names</span><span class="p">)):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"model names must be unique"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">names</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"compare_models needs at least two models"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">reference</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">reference</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"reference </span><span class="si">{</span><span class="n">reference</span><span class="si">!r}</span><span class="s2"> is not among the models"</span><span class="p">)</span>
+
+    <span class="n">metric_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">metrics</span><span class="p">]</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">metrics</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">else</span> <span class="nb">list</span><span class="p">(</span><span class="n">metrics</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">metric_names</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"metrics must contain at least one metric name"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">metric_names</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">metric_names</span><span class="p">)):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"metrics must be unique"</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">reference</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">alternative</span> <span class="o">!=</span> <span class="s2">"two-sided"</span><span class="p">:</span>
+            <span class="c1"># Without a reference, direction comes from mapping insertion order,</span>
+            <span class="c1"># which is a cosmetic detail for a two-sided test and the entire</span>
+            <span class="c1"># hypothesis for a one-sided one: reordering the dict would silently</span>
+            <span class="c1"># test the opposite claim.</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"alternative=</span><span class="si">{</span><span class="n">alternative</span><span class="si">!r}</span><span class="s2"> is directional, so the comparison "</span>
+                <span class="s2">"must say which model is the baseline. Pass reference=..., or "</span>
+                <span class="s2">"use alternative='two-sided'."</span>
+            <span class="p">)</span>
+        <span class="n">pairs</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">(</span><span class="n">names</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">names</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">names</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">names</span><span class="p">))</span>
+        <span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">pairs</span> <span class="o">=</span> <span class="p">[(</span><span class="n">reference</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">names</span> <span class="k">if</span> <span class="n">name</span> <span class="o">!=</span> <span class="n">reference</span><span class="p">]</span>
+
+    <span class="c1"># Seeds are derived per hypothesis rather than drawn from a running</span>
+    <span class="c1"># stream, so a comparison is a function of its own identity and not of its</span>
+    <span class="c1"># position in the report. Resolve the entropy once here: with</span>
+    <span class="c1"># random_state=None every hypothesis must share one nondeterministic draw,</span>
+    <span class="c1"># not make its own.</span>
+    <span class="n">base_entropy</span> <span class="o">=</span> <span class="n">_base_entropy</span><span class="p">(</span><span class="n">random_state</span><span class="p">)</span>
+    <span class="n">comparisons</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">PairwiseComparison</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">total</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">metric_names</span><span class="p">)</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">pairs</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">_progress</span><span class="p">(</span><span class="n">show_progress</span><span class="p">,</span> <span class="n">total</span><span class="p">,</span> <span class="s2">"comparing"</span><span class="p">)</span> <span class="k">as</span> <span class="n">advance</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">metric</span> <span class="ow">in</span> <span class="n">metric_names</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">baseline_name</span><span class="p">,</span> <span class="n">candidate_name</span> <span class="ow">in</span> <span class="n">pairs</span><span class="p">:</span>
+                <span class="n">interval_rng</span><span class="p">,</span> <span class="n">test_rng</span> <span class="o">=</span> <span class="n">_hypothesis_streams</span><span class="p">(</span>
+                    <span class="n">base_entropy</span><span class="p">,</span>
+                    <span class="n">metric</span><span class="o">=</span><span class="n">metric</span><span class="p">,</span>
+                    <span class="n">baseline_name</span><span class="o">=</span><span class="n">baseline_name</span><span class="p">,</span>
+                    <span class="n">candidate_name</span><span class="o">=</span><span class="n">candidate_name</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">units</span> <span class="o">=</span> <span class="n">_paired_values</span><span class="p">(</span>
+                    <span class="n">results</span><span class="p">[</span><span class="n">baseline_name</span><span class="p">],</span>
+                    <span class="n">results</span><span class="p">[</span><span class="n">candidate_name</span><span class="p">],</span>
+                    <span class="n">metric</span><span class="o">=</span><span class="n">metric</span><span class="p">,</span>
+                    <span class="n">baseline_name</span><span class="o">=</span><span class="n">baseline_name</span><span class="p">,</span>
+                    <span class="n">candidate_name</span><span class="o">=</span><span class="n">candidate_name</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">comparisons</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="n">_compare_arrays</span><span class="p">(</span>
+                        <span class="n">x</span><span class="p">,</span>
+                        <span class="n">y</span><span class="p">,</span>
+                        <span class="n">metric</span><span class="o">=</span><span class="n">metric</span><span class="p">,</span>
+                        <span class="n">baseline_name</span><span class="o">=</span><span class="n">baseline_name</span><span class="p">,</span>
+                        <span class="n">candidate_name</span><span class="o">=</span><span class="n">candidate_name</span><span class="p">,</span>
+                        <span class="n">confidence_level</span><span class="o">=</span><span class="n">confidence_level</span><span class="p">,</span>
+                        <span class="n">n_resamples</span><span class="o">=</span><span class="n">n_resamples</span><span class="p">,</span>
+                        <span class="n">alternative</span><span class="o">=</span><span class="n">alternative</span><span class="p">,</span>
+                        <span class="n">test_method</span><span class="o">=</span><span class="n">test_method</span><span class="p">,</span>
+                        <span class="n">interval_rng</span><span class="o">=</span><span class="n">interval_rng</span><span class="p">,</span>
+                        <span class="n">test_rng</span><span class="o">=</span><span class="n">test_rng</span><span class="p">,</span>
+                        <span class="n">random_state</span><span class="o">=</span><span class="n">random_state</span><span class="p">,</span>
+                        <span class="n">resample_batch_size</span><span class="o">=</span><span class="n">resample_batch_size</span><span class="p">,</span>
+                        <span class="n">units</span><span class="o">=</span><span class="n">units</span><span class="p">,</span>
+                        <span class="n">progress</span><span class="o">=</span><span class="n">advance</span><span class="p">,</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+
+    <span class="n">alpha</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">confidence_level</span>
+    <span class="n">adjusted</span> <span class="o">=</span> <span class="n">_adjust</span><span class="p">(</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">c</span><span class="o">.</span><span class="n">p_value</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">comparisons</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">),</span>
+        <span class="n">correction</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">comparisons</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">_with_adjusted</span><span class="p">(</span><span class="n">comparison</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">alpha</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">comparison</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">comparisons</span><span class="p">,</span> <span class="n">adjusted</span><span class="p">)</span>
+    <span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">ComparisonReport</span><span class="p">(</span>
+        <span class="n">comparisons</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">comparisons</span><span class="p">),</span>
+        <span class="n">metrics</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">metric_names</span><span class="p">),</span>
+        <span class="n">model_names</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">names</span><span class="p">),</span>
+        <span class="n">reference</span><span class="o">=</span><span class="n">reference</span><span class="p">,</span>
+        <span class="n">correction</span><span class="o">=</span><span class="n">correction</span><span class="p">,</span>
+        <span class="n">confidence_level</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">confidence_level</span><span class="p">),</span>
+        <span class="n">alternative</span><span class="o">=</span><span class="n">alternative</span><span class="p">,</span>
+        <span class="n">test_method</span><span class="o">=</span><span class="n">test_method</span><span class="p">,</span>
+        <span class="n">n_resamples</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">n_resamples</span><span class="p">),</span>
+        <span class="n">random_state</span><span class="o">=</span><span class="n">random_state</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
