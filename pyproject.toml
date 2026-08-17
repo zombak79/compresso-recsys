@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "compresso-recsys"
-version = "0.1.2"
+version = "0.2.0"
 description = "Recommender-system experiments and checkpoint pipelines for Compresso"
 readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.10"
@@ -80,6 +80,7 @@ Homepage = "https://github.com/zombak79/compresso-recsys"
 Documentation = "https://zombak79.github.io/compresso-recsys/"
 Repository = "https://github.com/zombak79/compresso-recsys"
 Issues = "https://github.com/zombak79/compresso-recsys/issues"
+Changelog = "https://github.com/zombak79/compresso-recsys/blob/main/CHANGELOG.md"
 
 [project.scripts]
 compresso-recsys-build-checkpoint = "compresso_recsys.scripts.build_checkpoint:main"
