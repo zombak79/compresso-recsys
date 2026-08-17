@@ -42,6 +42,11 @@ depends on, and two evaluation-protocol corrections found while validating it.
 - `eval_holdout_frac` on `build_recsys_checkpoint`, `build_eval_holdout` and
   `evaluate_item_embeddings`: the share of each held-out user's history scored
   against, the rest being the fold-in history the model sees.
+- `show_progress` on `compare_pair` and `compare_models`, drawing a tqdm bar
+  when the package is installed. Cost is linear in units and hypotheses, so a
+  large evaluation compared across several metrics and models runs for minutes.
+  The bar counts hypotheses but advances within each one, so it still moves when
+  a call produces a single slow comparison.
 - `docs/statistical-comparison`, a guide assuming no statistics background,
   built around a reproducible EASE versus ELSA comparison on GoodBooks.
 - Citations for the four statistical methods and for the evaluation protocol

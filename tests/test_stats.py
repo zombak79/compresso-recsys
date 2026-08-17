@@ -1327,3 +1327,72 @@ def test_tie_rate_counts_tied_users_not_tied_rows():
     assert comparison.n_units == 2
     assert comparison.n_nonzero == 1
     assert comparison.tie_rate == pytest.approx(0.5)
+
+
+# --------------------------------------------------------------------------
+# progress reporting
+# --------------------------------------------------------------------------
+
+
+def test_show_progress_does_not_change_any_result():
+    """It is display only, so every number must be identical either way."""
+    models = _two_models()
+    kwargs = {"metrics": ["m1", "m2"], "reference": "EASE",
+              "n_resamples": 499, "random_state": 4}
+
+    quiet = compare_models(models, **kwargs)
+    loud = compare_models(models, show_progress=True, **kwargs)
+
+    assert [c.to_dict() for c in quiet] == [c.to_dict() for c in loud]
+
+
+@pytest.mark.parametrize("test_method", ["randomization", "bootstrap", "t"])
+def test_progress_advances_exactly_one_per_hypothesis(test_method):
+    """Fractional within a hypothesis, exactly whole across it, every method."""
+    from compresso_recsys.stats import (
+        _compare_arrays, _hypothesis_streams, _paired_values,
+    )
+
+    models = _two_models()
+    x, y, units = _paired_values(
+        models["EASE"], models["ELSA"], metric="m1",
+        baseline_name="EASE", candidate_name="ELSA",
+    )
+    interval_rng, test_rng = _hypothesis_streams(
+        0, metric="m1", baseline_name="EASE", candidate_name="ELSA"
+    )
+    seen: list[float] = []
+
+    _compare_arrays(
+        x, y, metric="m1", baseline_name="EASE", candidate_name="ELSA",
+        confidence_level=0.95, n_resamples=499, alternative="two-sided",
+        test_method=test_method, interval_rng=interval_rng, test_rng=test_rng,
+        random_state=0, resample_batch_size=8, units=units,
+        progress=seen.append,
+    )
+
+    assert sum(seen) == pytest.approx(1.0, abs=1e-12)
+    assert sum(seen) <= 1.0, "overshooting pushes tqdm past its own total"
+    assert len([s for s in seen if s > 0]) > 1, "reported one lump, not progress"
+
+
+def test_progress_is_silent_without_tqdm(monkeypatch):
+    """The work still runs when the optional dependency is absent."""
+    import builtins
+
+    real_import = builtins.__import__
+
+    def no_tqdm(name, *args, **kwargs):
+        if name.startswith("tqdm"):
+            raise ImportError("no tqdm")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", no_tqdm)
+
+    comparison = compare_pair(
+        _result(np.random.default_rng(90).random(N)),
+        _result(np.random.default_rng(91).random(N)),
+        metric=METRIC, n_resamples=99, show_progress=True,
+    )
+
+    assert comparison.n_samples == N

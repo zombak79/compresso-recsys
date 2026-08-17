@@ -63,7 +63,8 @@ from __future__ import annotations
 
 import hashlib
 import warnings
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
+from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Literal
 
@@ -223,6 +224,48 @@ class ComparisonReport:
             [comparison.to_dict() for comparison in self.comparisons],
             columns=list(_FRAME_COLUMNS),
         )
+
+
+@contextmanager
+def _progress(enabled: bool, total: int, desc: str):
+    """Yield a callable advancing a bar by fractions of a hypothesis, or ``None``.
+
+    Counting hypotheses alone would leave the slowest shape unserved: one metric
+    on one pair of models over a million users takes about half a minute and
+    would show ``0/1`` for all of it. Counting resample chunks alone would give
+    a number nobody can size. So the unit is the hypothesis and the advance is
+    fractional, which reads sensibly whether a call produces one of them or
+    fifty.
+
+    tqdm is imported here rather than required, matching the rest of the
+    package: without it the work still runs, silently.
+    """
+    if not enabled:
+        yield None
+        return
+    try:
+        from tqdm.auto import tqdm
+    except Exception:  # pragma: no cover - optional display helper
+        yield None
+        return
+    bar = tqdm(total=float(total), desc=desc, unit="hyp")
+
+    def update(amount: float) -> None:
+        # Callers advance by fractions obtained through division, which need
+        # not sum to a whole number. Owning the bar means owning the invariant
+        # that it never runs past its own total, so callers can do the
+        # arithmetic that reads naturally and leave the edge here.
+        room = bar.total - bar.n
+        if amount > room:
+            amount = room
+        if amount > 0.0:
+            bar.update(amount)
+
+    try:
+        yield update
+    finally:
+        bar.n = bar.total
+        bar.close()
 
 
 def _base_entropy(random_state: int | None) -> int:
@@ -385,6 +428,7 @@ def _bootstrap_means(
     n_resamples: int,
     rng: np.random.Generator,
     resample_batch_size: int,
+    progress: Callable[[float], None] | None = None,
 ) -> np.ndarray:
     """Mean of ``d`` over ``n_resamples`` resamples of its rows, with replacement."""
     n = d.shape[0]
@@ -394,6 +438,8 @@ def _bootstrap_means(
         size = min(step, n_resamples - start)
         indices = rng.integers(0, n, size=(size, n))
         out[start : start + size] = d[indices].mean(axis=1)
+        if progress is not None:
+            progress(size / n_resamples)
     return out
 
 
@@ -403,6 +449,7 @@ def _randomization_means(
     n_resamples: int,
     rng: np.random.Generator,
     resample_batch_size: int,
+    progress: Callable[[float], None] | None = None,
 ) -> np.ndarray:
     """Mean of ``d`` under ``n_resamples`` uniform sign assignments."""
     n = d.shape[0]
@@ -413,6 +460,8 @@ def _randomization_means(
         # int8 signs cost an eighth of float64 and give identical products.
         signs = rng.integers(0, 2, size=(size, n), dtype=np.int8) * 2 - 1
         out[start : start + size] = (signs * d).mean(axis=1)
+        if progress is not None:
+            progress(size / n_resamples)
     return out
 
 
@@ -564,6 +613,7 @@ def _compare_arrays(
     random_state: int | None,
     resample_batch_size: int,
     units: tuple[np.ndarray, int] | None,
+    progress: Callable[[float], None] | None = None,
 ) -> PairwiseComparison:
     """Compare two aligned per-user arrays. Raw p-value only; adjust later."""
     rows = y - x
@@ -598,11 +648,28 @@ def _compare_arrays(
         else float(difference / abs(baseline_mean))
     )
 
+    # One hypothesis is worth 1.0 on the bar, divided evenly between the
+    # resampling passes it will make. The interval always resamples; the
+    # randomization test resamples a second time, while the bootstrap test
+    # reuses those replicates and the t-test needs none.
+    passes = 2 if test_method == "randomization" else 1
+
+    advance: Callable[[float], None] | None = None
+    if progress is not None:
+        given = 0.0
+
+        def advance(fraction: float) -> None:
+            nonlocal given
+            step = fraction / passes
+            given += step
+            progress(step)
+
     bootstrap_means = _bootstrap_means(
         d,
         n_resamples=n_resamples,
         rng=interval_rng,
         resample_batch_size=resample_batch_size,
+        progress=advance,
     )
     ci_low, ci_high = _interval(
         bootstrap_means,
@@ -626,7 +693,8 @@ def _compare_arrays(
                 n_resamples=n_resamples,
                 rng=test_rng,
                 resample_batch_size=resample_batch_size,
-            )
+                progress=advance,
+        )
         else:
             # Resampling the centered differences is an exact shift of the
             # ordinary bootstrap, so the replicates above already contain the
@@ -634,6 +702,10 @@ def _compare_arrays(
             null_statistics = bootstrap_means - difference
 
         p_value = _monte_carlo_p(null_statistics, difference, alternative=alternative)
+
+    if progress is not None:
+        # Land on a whole hypothesis whatever the chunk arithmetic did.
+        progress(max(0.0, 1.0 - given))
 
     if n_nonzero == 0:
         # Not the low-count case. The two models scored every user identically,
@@ -713,6 +785,7 @@ def compare_pair(
     test_method: TestMethod = "randomization",
     random_state: int | None = 0,
     resample_batch_size: int = 64,
+    show_progress: bool = False,
 ) -> PairwiseComparison:
     """Compare one candidate against one baseline on one metric.
 
@@ -741,22 +814,24 @@ def compare_pair(
         baseline_name=baseline_name,
         candidate_name=candidate_name,
     )
-    return _compare_arrays(
-        x,
-        y,
-        metric=metric,
-        baseline_name=baseline_name,
-        candidate_name=candidate_name,
-        confidence_level=confidence_level,
-        n_resamples=n_resamples,
-        alternative=alternative,
-        test_method=test_method,
-        interval_rng=interval_rng,
-        test_rng=test_rng,
-        random_state=random_state,
-        resample_batch_size=resample_batch_size,
-        units=units,
-    )
+    with _progress(show_progress, 1, f"comparing {metric}") as advance:
+        return _compare_arrays(
+            x,
+            y,
+            metric=metric,
+            baseline_name=baseline_name,
+            candidate_name=candidate_name,
+            confidence_level=confidence_level,
+            n_resamples=n_resamples,
+            alternative=alternative,
+            test_method=test_method,
+            interval_rng=interval_rng,
+            test_rng=test_rng,
+            random_state=random_state,
+            resample_batch_size=resample_batch_size,
+            units=units,
+            progress=advance,
+            )
 
 
 def compare_models(
@@ -771,6 +846,7 @@ def compare_models(
     test_method: TestMethod = "randomization",
     random_state: int | None = 0,
     resample_batch_size: int = 64,
+    show_progress: bool = False,
 ) -> ComparisonReport:
     """Compare several models across one or more metrics in a single family.
 
@@ -781,6 +857,13 @@ def compare_models(
     The correction spans every pair and metric produced by the call, so calling
     this once with three metrics is not the same as calling it three times: the
     family is what the call generates.
+
+    ``show_progress`` draws a bar when tqdm is installed. Cost is linear in
+    units and in the number of hypotheses -- roughly a second per hypothesis
+    per 25,000 units at the default resample count -- so a large evaluation
+    compared across several metrics and models can run for minutes. The bar
+    counts hypotheses but advances within each one, so it still moves when a
+    call produces only a single very slow comparison.
 
     Holm is the default because these hypotheses are dependent: they are
     computed over overlapping users, and several metrics on one pair of models
@@ -843,39 +926,42 @@ def compare_models(
     # not make its own.
     base_entropy = _base_entropy(random_state)
     comparisons: list[PairwiseComparison] = []
-    for metric in metric_names:
-        for baseline_name, candidate_name in pairs:
-            interval_rng, test_rng = _hypothesis_streams(
-                base_entropy,
-                metric=metric,
-                baseline_name=baseline_name,
-                candidate_name=candidate_name,
-            )
-            x, y, units = _paired_values(
-                results[baseline_name],
-                results[candidate_name],
-                metric=metric,
-                baseline_name=baseline_name,
-                candidate_name=candidate_name,
-            )
-            comparisons.append(
-                _compare_arrays(
-                    x,
-                    y,
+    total = len(metric_names) * len(pairs)
+    with _progress(show_progress, total, "comparing") as advance:
+        for metric in metric_names:
+            for baseline_name, candidate_name in pairs:
+                interval_rng, test_rng = _hypothesis_streams(
+                    base_entropy,
                     metric=metric,
                     baseline_name=baseline_name,
                     candidate_name=candidate_name,
-                    confidence_level=confidence_level,
-                    n_resamples=n_resamples,
-                    alternative=alternative,
-                    test_method=test_method,
-                    interval_rng=interval_rng,
-                    test_rng=test_rng,
-                    random_state=random_state,
-                    resample_batch_size=resample_batch_size,
-                    units=units,
                 )
-            )
+                x, y, units = _paired_values(
+                    results[baseline_name],
+                    results[candidate_name],
+                    metric=metric,
+                    baseline_name=baseline_name,
+                    candidate_name=candidate_name,
+                )
+                comparisons.append(
+                    _compare_arrays(
+                        x,
+                        y,
+                        metric=metric,
+                        baseline_name=baseline_name,
+                        candidate_name=candidate_name,
+                        confidence_level=confidence_level,
+                        n_resamples=n_resamples,
+                        alternative=alternative,
+                        test_method=test_method,
+                        interval_rng=interval_rng,
+                        test_rng=test_rng,
+                        random_state=random_state,
+                        resample_batch_size=resample_batch_size,
+                        units=units,
+                        progress=advance,
+                    )
+                )
 
     alpha = 1.0 - confidence_level
     adjusted = _adjust(
