@@ -248,7 +248,18 @@ def _progress(enabled: bool, total: int, desc: str):
     except Exception:  # pragma: no cover - optional display helper
         yield None
         return
-    bar = tqdm(total=float(total), desc=desc, unit="hyp")
+    # The count is fractional because a hypothesis advances in pieces, so it
+    # needs an explicit precision: tqdm's default renders float counts in full
+    # and prints things like 7.54405440544057/8.0. One decimal says "part way
+    # through the eighth" and nothing more.
+    bar = tqdm(
+        total=float(total),
+        desc=desc,
+        bar_format=(
+            "{desc}: {percentage:3.0f}%|{bar}| "
+            "{n:.1f}/{total:.0f} [{elapsed}<{remaining}]"
+        ),
+    )
 
     def update(amount: float) -> None:
         # Callers advance by fractions obtained through division, which need
