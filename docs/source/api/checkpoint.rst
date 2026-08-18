@@ -71,6 +71,12 @@ items out, the latter yields an empty selection that fails much later and far
 from its cause. ``has_item_partitions`` in the split metadata tells you whether
 a split partitions items at all.
 
+Chronological split modes additionally store sequence views —
+``x_train_sequences`` and ``{stage}_source_sequences`` — holding the same events
+as the matrices in order, with duplicates preserved. They load as ``None`` for
+``user_split`` and ``item_split``, and for any checkpoint built before sequences
+existed.
+
 .. autofunction:: compresso_recsys.checkpoint.save_recsys_split
    :no-index:
 

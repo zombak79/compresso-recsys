@@ -14,6 +14,12 @@ from compresso.clustering import load_cluster_graph, save_cluster_graph
 from compresso.clustering.types import SparseClusterSet
 from scipy.sparse import csr_matrix, load_npz, save_npz
 
+from compresso_recsys.sequences import (
+    ItemSequences,
+    load_item_sequences,
+    save_item_sequences,
+)
+
 
 MANIFEST_NAME = "manifest.json"
 SPLIT_DIR = "data"
@@ -41,6 +47,11 @@ def _as_obj_array(xs: list[np.ndarray]) -> np.ndarray:
 
 def _read_obj_array(x: np.ndarray) -> list[np.ndarray]:
     return [np.asarray(v, dtype=np.int64) for v in x.tolist()]
+
+
+def _load_optional_sequences(path: Path) -> ItemSequences | None:
+    """Read sequences if the checkpoint has them, else ``None``."""
+    return load_item_sequences(path) if path.exists() else None
 
 
 def _indices_to_csr(rows: list[np.ndarray], *, n_cols: int) -> csr_matrix:
@@ -170,6 +181,10 @@ def save_recsys_split(
     train_item_indices: np.ndarray | None = None,
     val_item_indices: np.ndarray | None = None,
     test_item_indices: np.ndarray | None = None,
+    x_train_sequences: ItemSequences | None = None,
+    train_source_sequences: ItemSequences | None = None,
+    val_source_sequences: ItemSequences | None = None,
+    test_source_sequences: ItemSequences | None = None,
     entity_tag_matrix: csr_matrix | None = None,
     tag_names: np.ndarray | list[str] | None = None,
     entity_metadata: pd.DataFrame | None = None,
@@ -205,6 +220,29 @@ def save_recsys_split(
     asymmetric training on those modes can partition ``x_train`` itself, under
     its own seed, and own that choice. The same absence of an ordering is why
     sequences exist only for the chronological modes.
+
+    Sequence views
+    --------------
+    ``x_train_sequences`` and ``{stage}_source_sequences`` carry the same events
+    as their matrix counterparts, in chronological order and with duplicates
+    kept. A matrix row is a set; a sequence row is a history. Targets have no
+    sequence view because a ranking target is a set — order is irrelevant to
+    every metric — so ``{stage}_target_matrix`` serves both model families.
+
+    They are written only when the split mode produced them, which means the
+    chronological modes. ``user_split`` and ``item_split`` have no ordering to
+    preserve, and the same absence that makes their training partition arbitrary
+    (above) makes a sequence meaningless.
+
+    Loading a checkpoint without them yields ``None`` rather than an error. A
+    checkpoint that predates sequences, or comes from a non-chronological mode, is
+    still complete for every matrix model, so refusing it would break working
+    setups over a field they never touch. A sequential model fails later, where
+    the message can name the split mode that would have produced them.
+
+    A sequence whose ``n_items`` disagrees with the catalog is refused: the two
+    views must share a column space or a model scores one item and is credited
+    for another.
 
     Item partitions
     ---------------
@@ -310,6 +348,22 @@ def save_recsys_split(
     save_npz(data_dir / "test_target_matrix.npz", test_target_matrix.tocsr())
     # Backward-compatible training matrix; temporal checkpoints store the
     # source/target union here while retaining each side separately above.
+    for name, sequences in (
+        ("x_train_sequences", x_train_sequences),
+        ("train_source_sequences", train_source_sequences),
+        ("val_source_sequences", val_source_sequences),
+        ("test_source_sequences", test_source_sequences),
+    ):
+        if sequences is None:
+            continue
+        if sequences.n_items != len(item_ids):
+            raise ValueError(
+                f"{name} spans {sequences.n_items} items but the catalog has "
+                f"{len(item_ids)}; the sequence and matrix views must share a "
+                "column space"
+            )
+        save_item_sequences(data_dir / f"{name}.npz", sequences)
+
     save_npz(data_dir / "train_matrix.npz", x_train.tocsr())
     np.save(data_dir / "train_item_ids.npy", train_item_ids)
     np.save(data_dir / "val_item_ids.npy", val_item_ids)
@@ -461,6 +515,24 @@ def load_recsys_split(root: str | Path) -> dict[str, Any]:
         ),
         "val_item_indices": _load_optional_int_array(val_item_indices_path),
         "test_item_indices": _load_optional_int_array(test_item_indices_path),
+        # ``None`` when the split mode has no ordering to preserve, and when a
+        # checkpoint predates sequences entirely. Both are legitimate: a
+        # checkpoint without them is still complete for every matrix model, so
+        # refusing to load one would break working setups over a field they never
+        # touch. A sequential model fails later, where the message can name the
+        # split mode that would have produced them.
+        "x_train_sequences": _load_optional_sequences(
+            root / SPLIT_DIR / "x_train_sequences.npz"
+        ),
+        "train_source_sequences": _load_optional_sequences(
+            root / SPLIT_DIR / "train_source_sequences.npz"
+        ),
+        "val_source_sequences": _load_optional_sequences(
+            root / SPLIT_DIR / "val_source_sequences.npz"
+        ),
+        "test_source_sequences": _load_optional_sequences(
+            root / SPLIT_DIR / "test_source_sequences.npz"
+        ),
         "entity_tag_matrix": load_npz(tags_path).tocsr() if tags_path.exists() else None,
         "tag_names": np.load(tag_names_path, allow_pickle=False) if tag_names_path.exists() else None,
         "entity_metadata": pd.read_csv(metadata_path, dtype={"item_id": str}) if metadata_path.exists() else None,

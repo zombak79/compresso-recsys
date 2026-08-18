@@ -237,3 +237,75 @@ def test_sequences_never_contain_the_held_out_targets():
         history = set(train_window.row(row).tolist())
         assert int(val_target[0]) not in history
         assert int(test_target[0]) not in history
+
+
+# --------------------------------------------------------------------------
+# persistence
+# --------------------------------------------------------------------------
+
+
+def _save_and_load(tmp_path, payload, **overrides):
+    from compresso_recsys.checkpoint import load_recsys_split, save_recsys_split
+
+    kwargs = dict(
+        item_ids=payload["item_ids"],
+        x_train=payload["x_train"],
+        train_source_matrix=payload["train_source_matrix"],
+        train_target_matrix=payload["train_target_matrix"],
+        val_source_indices=payload["val_holdout"]["source_indices"],
+        val_target_indices=payload["val_holdout"]["target_indices"],
+        test_source_indices=payload["test_holdout"]["source_indices"],
+        test_target_indices=payload["test_holdout"]["target_indices"],
+        **{key: payload.get(key) for key in SEQUENCE_KEYS},
+    )
+    kwargs.update(overrides)
+    save_recsys_split(tmp_path, **kwargs)
+    return load_recsys_split(tmp_path)
+
+
+def test_sequences_round_trip_through_a_checkpoint(tmp_path):
+    payload = _llo(_events([f"i{j}" for j in range(9)]))
+
+    loaded = _save_and_load(tmp_path, payload)
+
+    for key in SEQUENCE_KEYS:
+        original, restored = payload[key], loaded[key]
+        assert restored is not None, key
+        assert restored.values.tolist() == original.values.tolist(), key
+        assert restored.indptr.tolist() == original.indptr.tolist(), key
+        assert restored.n_items == original.n_items, key
+
+
+def test_a_checkpoint_without_sequences_still_loads(tmp_path):
+    """Every matrix model is unaffected, so refusing would break working setups."""
+    payload = _llo(_events([f"i{j}" for j in range(9)]))
+
+    loaded = _save_and_load(
+        tmp_path, payload, **{key: None for key in SEQUENCE_KEYS}
+    )
+
+    assert all(loaded[key] is None for key in SEQUENCE_KEYS)
+    assert loaded["x_train"].shape == payload["x_train"].shape
+
+
+def test_saving_refuses_a_sequence_from_a_different_column_space(tmp_path):
+    """The two views must agree on the catalog, or a model scores the wrong items."""
+    payload = _llo(_events([f"i{j}" for j in range(9)]))
+    wrong = ItemSequences.from_rows([[0]], n_items=payload["x_train"].shape[1] + 5)
+
+    with pytest.raises(ValueError, match="share a\n?\\s*column space"):
+        _save_and_load(tmp_path, payload, x_train_sequences=wrong)
+
+
+def test_persisted_stage_lengths_differ_by_one_event_per_user(tmp_path):
+    """Each stage adds exactly one interaction per user, so the totals say so."""
+    payload = _llo(_events([f"i{j}" for j in range(9)]))
+    loaded = _save_and_load(tmp_path, payload)
+
+    users = loaded["x_train_sequences"].n_rows
+    train = loaded["train_source_sequences"].values.size
+    window = loaded["x_train_sequences"].values.size
+    test = loaded["test_source_sequences"].values.size
+
+    assert window - train == users
+    assert test - window == users

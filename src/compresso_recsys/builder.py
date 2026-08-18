@@ -1315,6 +1315,10 @@ def _build_recsys_checkpoint_from_args(args) -> Path:
                 val_target_indices=val_holdout["target_indices"],
                 test_source_indices=test_holdout["source_indices"],
                 test_target_indices=test_holdout["target_indices"],
+                x_train_sequences=split_payload.get("x_train_sequences"),
+                train_source_sequences=split_payload.get("train_source_sequences"),
+                val_source_sequences=split_payload.get("val_source_sequences"),
+                test_source_sequences=split_payload.get("test_source_sequences"),
                 train_source_matrix=split_payload.get("train_source_matrix"),
                 train_target_matrix=split_payload.get("train_target_matrix"),
                 val_source_matrix=split_payload.get("val_source_matrix"),
@@ -1360,6 +1364,19 @@ def _build_recsys_checkpoint_from_args(args) -> Path:
                     "n_test_eval_rows": int(len(test_holdout["source_indices"])),
                     "n_val_eval_users": _distinct_eval_users(val_holdout),
                     "n_test_eval_users": _distinct_eval_users(test_holdout),
+                    # Listed only when the split mode produced them, so the
+                    # registry says what a checkpoint holds rather than what the
+                    # format allows.
+                    "sequence_files": {
+                        name: f"data/{name}.npz"
+                        for name in (
+                            "x_train_sequences",
+                            "train_source_sequences",
+                            "val_source_sequences",
+                            "test_source_sequences",
+                        )
+                        if split_payload.get(name) is not None
+                    },
                     "split_files": {
                         "train_source_matrix": "data/train_source_matrix.npz",
                         "train_target_matrix": "data/train_target_matrix.npz",

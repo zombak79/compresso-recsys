@@ -39,6 +39,13 @@ change.
   Rows may be empty and carry no identity, matching how `csr_matrix` sources are
   already aligned. Exported alongside `save_item_sequences` and
   `load_item_sequences`.
+- Sequence views are persisted and loaded. A checkpoint from a chronological
+  split mode now stores `x_train_sequences` and `{stage}_source_sequences`
+  alongside the matrices, and the manifest lists only the ones that mode
+  produced. Loading a checkpoint without them yields `None`, so anything built
+  before sequences existed — or by a non-chronological mode — still loads
+  complete for every matrix model. Saving refuses a sequence whose catalog
+  disagrees with `item_ids`, since the two views must share a column space.
 - The chronological split modes build sequence and matrix views of the same
   events in one pass. `leave_last_out` and `temporal` payloads now carry
   `x_train_sequences`, `train_source_sequences`, `val_source_sequences` and
