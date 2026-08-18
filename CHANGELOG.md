@@ -32,6 +32,13 @@ change.
 
 ### Added
 
+- `ItemSequences`, a chronological interaction history: catalog indices in order
+  with duplicates preserved, and nothing else. No padding, no `MASK`/`PAD`/`BOS`,
+  no maximum length, no truncation — tokenisation is a modelling decision that
+  models disagree about, so it happens in trainers rather than the checkpoint.
+  Rows may be empty and carry no identity, matching how `csr_matrix` sources are
+  already aligned. Exported alongside `save_item_sequences` and
+  `load_item_sequences`.
 - `save_recsys_split` enforces `x_train = train_source_matrix ∪
   train_target_matrix` and refuses a checkpoint whose training keys disagree.
   The relationship was already true of every split mode but nothing checked it,
