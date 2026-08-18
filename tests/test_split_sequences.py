@@ -10,6 +10,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 import pytest
+from scipy.sparse import csr_matrix
 
 from compresso_recsys.builder import (
     _build_args,

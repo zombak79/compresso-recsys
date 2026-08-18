@@ -45,7 +45,9 @@ change.
   produced. Loading a checkpoint without them yields `None`, so anything built
   before sequences existed — or by a non-chronological mode — still loads
   complete for every matrix model. Saving refuses a sequence whose catalog
-  disagrees with `item_ids`, since the two views must share a column space.
+  disagrees with its own stage's item IDs, since the two views must share a
+  column space — per stage, because temporal windows each have their own
+  catalog.
 - The chronological split modes build sequence and matrix views of the same
   events in one pass. `leave_last_out` and `temporal` payloads now carry
   `x_train_sequences`, `train_source_sequences`, `val_source_sequences` and

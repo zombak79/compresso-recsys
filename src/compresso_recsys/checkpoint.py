@@ -240,9 +240,11 @@ def save_recsys_split(
     setups over a field they never touch. A sequential model fails later, where
     the message can name the split mode that would have produced them.
 
-    A sequence whose ``n_items`` disagrees with the catalog is refused: the two
-    views must share a column space or a model scores one item and is credited
-    for another.
+    A sequence whose ``n_items`` disagrees with **its own stage's** item IDs is
+    refused: the two views must share a column space or a model scores one item
+    and is credited for another. Per stage rather than globally, because temporal
+    windows each have their own catalog — it grows window by window — which is the
+    same allowance the matrix check above makes.
 
     Item partitions
     ---------------
@@ -348,19 +350,23 @@ def save_recsys_split(
     save_npz(data_dir / "test_target_matrix.npz", test_target_matrix.tocsr())
     # Backward-compatible training matrix; temporal checkpoints store the
     # source/target union here while retaining each side separately above.
-    for name, sequences in (
-        ("x_train_sequences", x_train_sequences),
-        ("train_source_sequences", train_source_sequences),
-        ("val_source_sequences", val_source_sequences),
-        ("test_source_sequences", test_source_sequences),
-    ):
+    # Each sequence is checked against its own stage's item IDs, not the global
+    # catalog. Temporal stages have different column spaces -- the catalog grows
+    # window by window -- which is exactly what the matrix check above allows for.
+    sequence_stages = (
+        ("x_train_sequences", x_train_sequences, "train", train_item_ids),
+        ("train_source_sequences", train_source_sequences, "train", train_item_ids),
+        ("val_source_sequences", val_source_sequences, "validation", val_item_ids),
+        ("test_source_sequences", test_source_sequences, "test", test_item_ids),
+    )
+    for name, sequences, stage, stage_item_ids in sequence_stages:
         if sequences is None:
             continue
-        if sequences.n_items != len(item_ids):
+        if sequences.n_items != len(stage_item_ids):
             raise ValueError(
-                f"{name} spans {sequences.n_items} items but the catalog has "
-                f"{len(item_ids)}; the sequence and matrix views must share a "
-                "column space"
+                f"{name} spans {sequences.n_items} items but the {stage} stage "
+                f"has {len(stage_item_ids)}; a sequence and the matrix beside it "
+                "must share a column space"
             )
         save_item_sequences(data_dir / f"{name}.npz", sequences)
 
