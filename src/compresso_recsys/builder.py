@@ -17,6 +17,7 @@ from compresso_recsys.checkpoint import (
     update_checkpoint,
 )
 from compresso_recsys.datasets import AmazonReviews2023, Goodbooks, MovieLens1M, MovieLens20M
+from compresso_recsys.sequences import ItemSequences
 from compresso_recsys.retrieval import (
     LEAVE_LAST_OUT_MIN_HISTORY,
     LEAVE_LAST_OUT_STAGES,
@@ -636,13 +637,19 @@ def _build_leave_last_out_split(args, proc_df):
         )
 
     stages: dict[str, dict[str, list[np.ndarray]]] = {}
+    ordered_sources: dict[str, list[np.ndarray]] = {}
     for stage in LEAVE_LAST_OUT_STAGES:
-        sources, targets = [], []
+        sources, targets, in_order = [], [], []
         for history in histories:
             source, target = leave_last_out_stage_slices(history, stage)
+            # Two views of the same events, taken in one pass: the matrix wants a
+            # set, the sequence wants the order. Deriving one from the other later
+            # is impossible in the direction that matters.
             sources.append(np.unique(source))
             targets.append(np.unique(target))
+            in_order.append(source)
         stages[stage] = {"source_indices": sources, "target_indices": targets}
+        ordered_sources[stage] = in_order
 
     n_items = len(item_ids)
     train_source = _indices_to_csr(stages["train"]["source_indices"], n_cols=n_items)
@@ -650,7 +657,6 @@ def _build_leave_last_out_split(args, proc_df):
     # The same relationship temporal uses: the training window is the pair's
     # union, and a symmetric model trains on that.
     x_train = train_source.maximum(train_target).tocsr()
-
     # Items first seen in each phase, exactly as the temporal stages compute it.
     def _observed(stage: str) -> np.ndarray:
         rows = stages[stage]["source_indices"] + stages[stage]["target_indices"]
@@ -661,6 +667,23 @@ def _build_leave_last_out_split(args, proc_df):
     test_item_indices = np.setdiff1d(
         _observed("test"), np.union1d(train_item_indices, val_item_indices)
     )
+
+    # The training window in order, which is what a sequential model trains on:
+    # it shifts internally, so handing over only the source would discard the
+    # last transition the matrix pair encodes explicitly.
+    train_window = [history[:-2] for history in histories]
+    sequences = {
+        "x_train_sequences": ItemSequences.from_rows(train_window, n_items=n_items),
+        "train_source_sequences": ItemSequences.from_rows(
+            ordered_sources["train"], n_items=n_items
+        ),
+        "val_source_sequences": ItemSequences.from_rows(
+            ordered_sources["val"], n_items=n_items
+        ),
+        "test_source_sequences": ItemSequences.from_rows(
+            ordered_sources["test"], n_items=n_items
+        ),
+    }
 
     holdouts = {
         stage: {
@@ -677,6 +700,7 @@ def _build_leave_last_out_split(args, proc_df):
         "x_train": x_train,
         "train_source_matrix": train_source,
         "train_target_matrix": train_target,
+        **sequences,
         "val_holdout": holdouts["val"],
         "test_holdout": holdouts["test"],
         "train_holdout": holdouts["train"],
@@ -801,6 +825,44 @@ def _filter_temporal_pair(
     return source, target, user_ids, item_ids, stats
 
 
+def _sequences_from_temporal_codes(
+    *,
+    event_mask: np.ndarray,
+    global_user_codes: np.ndarray,
+    global_item_codes: np.ndarray,
+    timestamps: np.ndarray,
+    user_lookup: np.ndarray,
+    item_lookup: np.ndarray,
+    n_rows: int,
+    n_items: int,
+) -> ItemSequences:
+    """Chronological histories for the events a mask selects.
+
+    The matrix twin of this drops order and merges duplicates; both read the same
+    masked events, so the two views describe the same interactions rather than
+    two things that happen to look alike.
+
+    Sorting is by ``(row, timestamp)`` with a stable kind, so events sharing a
+    timestamp keep the order the source data gave them rather than an arbitrary
+    one.
+    """
+    if n_rows == 0:
+        return ItemSequences.from_rows([], n_items=n_items)
+
+    rows = user_lookup[global_user_codes[event_mask]]
+    cols = item_lookup[global_item_codes[event_mask]]
+    times = timestamps[event_mask]
+    keep = (rows >= 0) & (cols >= 0)
+    rows, cols, times = rows[keep], cols[keep], times[keep]
+
+    order = np.lexsort((times, rows))
+    rows, cols = rows[order], cols[order]
+
+    counts = np.bincount(rows, minlength=n_rows)
+    indptr = np.concatenate(([0], np.cumsum(counts)))
+    return ItemSequences(values=cols, indptr=indptr, n_items=n_items)
+
+
 def _matrix_from_temporal_codes(
     *,
     event_mask: np.ndarray,
@@ -882,6 +944,7 @@ def _build_temporal_stage(
     global_user_ids: np.ndarray,
     global_item_ids: np.ndarray,
     values: np.ndarray,
+    timestamps: np.ndarray,
     inherited_item_codes: np.ndarray,
     args,
     stage: str,
@@ -955,9 +1018,37 @@ def _build_temporal_stage(
     stats["initial_users"] = initial_users
     stats["prefiltered_users"] = int(len(user_codes))
     retained_item_codes = pd.Index(global_item_ids).get_indexer(item_ids)
+
+    # _filter_temporal_pair drops users and items, so the lookups built above no
+    # longer describe the returned matrices. Rebuild them from what survived, or
+    # the sequence rows would address a row space the matrices no longer have.
+    retained_user_codes = pd.Index(global_user_ids).get_indexer(user_ids)
+    final_user_lookup = np.full(len(global_user_ids), -1, dtype=np.int64)
+    final_user_lookup[retained_user_codes] = np.arange(len(user_ids), dtype=np.int64)
+    final_item_lookup = np.full(len(global_item_ids), -1, dtype=np.int64)
+    final_item_lookup[retained_item_codes] = np.arange(len(item_ids), dtype=np.int64)
+
+    def _stage_sequences(mask: np.ndarray) -> ItemSequences:
+        return _sequences_from_temporal_codes(
+            event_mask=mask,
+            global_user_codes=global_user_codes,
+            global_item_codes=global_item_codes,
+            timestamps=timestamps,
+            user_lookup=final_user_lookup,
+            item_lookup=final_item_lookup,
+            n_rows=len(user_ids),
+            n_items=len(item_ids),
+        )
+
     return {
         "source": source,
         "target": target,
+        "source_sequences": _stage_sequences(source_mask),
+        # The stage's whole window, source and target together. Each stage is
+        # filtered independently, so a window sequence taken from a later stage
+        # would address a different row and column space than this stage's
+        # matrices.
+        "window_sequences": _stage_sequences(source_mask | target_mask),
         "user_ids": user_ids,
         "item_ids": item_ids,
         "item_codes": retained_item_codes.astype(np.int64, copy=False),
@@ -1009,6 +1100,7 @@ def _build_temporal_split(args, proc_df, progress: _CheckpointProgress | None = 
         global_user_ids=global_user_ids,
         global_item_ids=global_item_ids,
         values=values,
+        timestamps=timestamps,
         inherited_item_codes=np.asarray([], dtype=np.int64),
         args=args,
         stage="train",
@@ -1024,6 +1116,7 @@ def _build_temporal_split(args, proc_df, progress: _CheckpointProgress | None = 
         global_user_ids=global_user_ids,
         global_item_ids=global_item_ids,
         values=values,
+        timestamps=timestamps,
         inherited_item_codes=train_stage["item_codes"],
         args=args,
         stage="validation",
@@ -1038,6 +1131,7 @@ def _build_temporal_split(args, proc_df, progress: _CheckpointProgress | None = 
         global_user_ids=global_user_ids,
         global_item_ids=global_item_ids,
         values=values,
+        timestamps=timestamps,
         inherited_item_codes=val_stage["item_codes"],
         args=args,
         stage="test",
@@ -1054,6 +1148,19 @@ def _build_temporal_split(args, proc_df, progress: _CheckpointProgress | None = 
     test_target = test_stage["target"]
     x_train = train_source.maximum(train_target).tocsr()
 
+    # The training window in order. For both chronological modes the validation
+    # source is that same window, so these two agree exactly, mirroring x_train
+    # and val_source_matrix on the matrix side.
+    sequences = {
+        # x_train is the train stage's window, so its sequence must come from the
+        # same stage: val_stage covers the same events but in its own filtered
+        # row and column space.
+        "x_train_sequences": train_stage["window_sequences"],
+        "train_source_sequences": train_stage["source_sequences"],
+        "val_source_sequences": val_stage["source_sequences"],
+        "test_source_sequences": test_stage["source_sequences"],
+    }
+
     train_count = len(train_item_ids)
     val_count = len(val_item_ids)
     test_count = len(test_item_ids)
@@ -1065,6 +1172,7 @@ def _build_temporal_split(args, proc_df, progress: _CheckpointProgress | None = 
         "x_train": x_train,
         "train_source_matrix": train_source,
         "train_target_matrix": train_target,
+        **sequences,
         "val_source_matrix": val_source,
         "val_target_matrix": val_target,
         "test_source_matrix": test_source,

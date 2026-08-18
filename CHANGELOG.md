@@ -39,6 +39,12 @@ change.
   Rows may be empty and carry no identity, matching how `csr_matrix` sources are
   already aligned. Exported alongside `save_item_sequences` and
   `load_item_sequences`.
+- The chronological split modes build sequence and matrix views of the same
+  events in one pass. `leave_last_out` and `temporal` payloads now carry
+  `x_train_sequences`, `train_source_sequences`, `val_source_sequences` and
+  `test_source_sequences`; `user_split` and `item_split` carry none, having no
+  ordering to preserve. Each sequence addresses the same rows and columns as the
+  matrix it accompanies.
 - `save_recsys_split` enforces `x_train = train_source_matrix ∪
   train_target_matrix` and refuses a checkpoint whose training keys disagree.
   The relationship was already true of every split mode but nothing checked it,

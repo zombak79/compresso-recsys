@@ -194,8 +194,12 @@ class ItemSequences:
 
 
 def save_item_sequences(path: str | Path, sequences: ItemSequences) -> None:
-    """Write sequences to a single ``.npz``."""
-    np.savez(
+    """Write sequences to a single compressed ``.npz``.
+
+    Compressed to match ``scipy.sparse.save_npz``, which the matrix views already
+    use: a checkpoint should not store one view cheaply and the other expensively.
+    """
+    np.savez_compressed(
         Path(path),
         values=sequences.values,
         indptr=sequences.indptr,
