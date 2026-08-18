@@ -624,16 +624,36 @@ def _build_leave_last_out_split(args, proc_df):
     data means the partitions come out empty and on sparse data means they hold
     the genuinely new items.
     """
+    # Every support argument has to reach the protocol or be refused outright.
+    # min_target_items cannot: each stage holds out exactly one item, so a
+    # request for more is a request this split cannot fill.
+    if int(args.min_target_items) > 1:
+        raise ValueError(
+            "leave_last_out holds out exactly one item per stage, so "
+            f"min_target_items must be 1, got {args.min_target_items}"
+        )
+    # The floor of four is structural: one source item plus three stage targets.
+    # Above it, min_user_support drops short users outright, and min_source_items
+    # lengthens the training source, which costs three more interactions.
+    # min_user_support is resolved from the dataset spec by the main build
+    # path, so it is still None when a split builder is called directly.
+    user_support = 0 if args.min_user_support is None else int(args.min_user_support)
+    min_history = max(
+        LEAVE_LAST_OUT_MIN_HISTORY,
+        user_support,
+        int(args.min_source_items) + 3,
+    )
+
     item_ids = np.array(sorted(proc_df["item_id"].astype(str).unique()))
     histories, user_ids = leave_last_out_histories(
         item_ids=item_ids,
         interactions=proc_df,
-        min_history=LEAVE_LAST_OUT_MIN_HISTORY,
+        min_history=min_history,
     )
     if len(user_ids) == 0:
         raise ValueError(
-            f"leave_last_out needs users with at least "
-            f"{LEAVE_LAST_OUT_MIN_HISTORY} interactions; none qualified"
+            f"leave_last_out needs users with at least {min_history} "
+            "interactions; none qualified"
         )
 
     stages: dict[str, dict[str, list[np.ndarray]]] = {}
@@ -720,7 +740,7 @@ def _build_leave_last_out_split(args, proc_df):
                 "globally future-blind: another user's training interactions may "
                 "post-date this user's test target."
             ),
-            "min_history": LEAVE_LAST_OUT_MIN_HISTORY,
+            "min_history": int(min_history),
             "eligible_users": int(len(user_ids)),
             "new_val_items": int(val_item_indices.size),
             "new_test_items": int(test_item_indices.size),

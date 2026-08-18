@@ -402,3 +402,51 @@ def test_save_refuses_a_training_pair_that_disagrees_with_x_train():
                 test_source_indices=[np.array([0])] * n,
                 test_target_indices=[np.array([1])] * n,
             )
+
+
+# --------------------------------------------------------------------------
+# leave_last_out honours the support arguments, or refuses them
+# --------------------------------------------------------------------------
+
+
+def _llo_events(n_events: int, n_users: int = 6) -> pd.DataFrame:
+    return pd.DataFrame([
+        {"user_id": f"u{u}", "item_id": f"i{(u + t) % 12}", "value": 1.0,
+         "timestamp": 100 + t}
+        for u in range(n_users)
+        for t in range(n_events)
+    ])
+
+
+@pytest.mark.parametrize(
+    ("overrides", "expected_min_history"),
+    [
+        ({}, 4),                              # structural floor
+        ({"min_user_support": 10}, 10),        # drop short users outright
+        ({"min_source_items": 5}, 8),          # a longer source costs three targets
+        ({"min_user_support": 6, "min_source_items": 9}, 12),   # the stricter wins
+    ],
+)
+def test_support_arguments_reach_the_minimum_history(overrides, expected_min_history):
+    """They were silently ignored once; the floor must be derived, not hardcoded."""
+    payload = _build_leave_last_out_split(_llo_args(**overrides), _llo_events(14))
+
+    assert payload["extra_metadata"]["min_history"] == expected_min_history
+
+
+def test_min_user_support_actually_drops_users():
+    mixed = pd.concat([_llo_events(12, n_users=3),
+                       _llo_events(5, n_users=1).assign(user_id="short")])
+
+    payload = _build_leave_last_out_split(
+        _llo_args(min_user_support=10), mixed
+    )
+
+    assert "short" not in payload["train_user_ids"].tolist()
+    assert payload["extra_metadata"]["eligible_users"] == 3
+
+
+def test_min_target_items_above_one_is_refused_not_ignored():
+    """Each stage holds out exactly one item, so more cannot be delivered."""
+    with pytest.raises(ValueError, match="exactly one item per stage"):
+        _build_leave_last_out_split(_llo_args(min_target_items=2), _llo_events(14))

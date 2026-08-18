@@ -55,6 +55,11 @@ change.
 
 ### Changed
 
+- **Breaking.** `leave_last_out` derives its minimum history from the support
+  arguments rather than hardcoding it: the structural floor of four, raised by
+  `min_user_support`, and by `min_source_items` plus the three stage targets.
+  `min_target_items` above 1 is refused, since each stage holds out exactly one
+  item. The rewritten protocol had briefly ignored all three.
 - **Breaking.** `leave_last_out` requires at least four interactions per user,
   up from two, so every stage has a non-empty source and target. Results from
   this split mode change; checkpoints built before this release are not
