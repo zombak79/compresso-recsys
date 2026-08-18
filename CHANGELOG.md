@@ -39,6 +39,20 @@ change.
   Rows may be empty and carry no identity, matching how `csr_matrix` sources are
   already aligned. Exported alongside `save_item_sequences` and
   `load_item_sequences`.
+- `BaseSequentialRecommender` and the `SequentialRecommender` protocol, parallel
+  to their matrix siblings rather than derived from them. `predict_on_batch`
+  reads an `ItemSequences` and returns an `SRPTensor`, so everything downstream
+  is unchanged. `fit` is deliberately outside the contract: trainers keep the
+  existing `SomeTrainer(config).fit(data)` shape and the fitted model owes only
+  prediction. The base assumes neither that the history vocabulary equals the
+  candidate catalog, nor that a truncating encoder may recommend what it did not
+  read — `exclude_seen` masks the whole history either way.
+- `evaluate_recommender` accepts either source type. Its batching loop asks a
+  source only for its row count and a row slice, so one adapter covers
+  `csr_matrix` and `ItemSequences` answers natively. Nothing downstream of
+  `predict_on_batch` knows which was given, which is what lets a sequential model
+  and a matrix model appear in one `compare_models` call with no
+  statistics-side changes.
 - Sequence views are persisted and loaded. A checkpoint from a chronological
   split mode now stores `x_train_sequences` and `{stage}_source_sequences`
   alongside the matrices, and the manifest lists only the ones that mode

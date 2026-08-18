@@ -1,6 +1,11 @@
 """Collaborative-filtering models."""
 
-from .base import BaseCollaborativeRecommender, Recommender
+from .base import (
+    BaseCollaborativeRecommender,
+    BaseSequentialRecommender,
+    Recommender,
+    SequentialRecommender,
+)
 from .batching import (
     InteractionBatch,
     InteractionBatchSampler,
@@ -28,6 +33,7 @@ from .teaser_gd import TEASERGD, TEASERGDConfig, TEASERGDTrainer
 __all__ = [
     "BaseColdStartRecommender",
     "BaseCollaborativeRecommender",
+    "BaseSequentialRecommender",
     "CompressedELSA",
     "CandidateCatalog",
     "ColdStartRecommender",
@@ -40,6 +46,7 @@ __all__ = [
     "ELSAConfig",
     "ELSATrainer",
     "Recommender",
+    "SequentialRecommender",
     "ItemVocabulary",
     "InteractionBatch",
     "InteractionBatchSampler",

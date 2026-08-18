@@ -7,9 +7,15 @@ import torch
 from scipy.sparse import csr_matrix
 
 from compresso import SRPTensor
+from compresso_recsys.sequences import ItemSequences
 from compresso_recsys.models._validation import canonical_csr
 
-__all__ = ["BaseCollaborativeRecommender", "Recommender"]
+__all__ = [
+    "BaseCollaborativeRecommender",
+    "BaseSequentialRecommender",
+    "Recommender",
+    "SequentialRecommender",
+]
 
 
 @runtime_checkable
@@ -126,4 +132,134 @@ class BaseCollaborativeRecommender(ABC):
             vals=torch.vstack(values),
             shape=source.shape,
             validate=False,
+        )
+
+
+@runtime_checkable
+class SequentialRecommender(Protocol):
+    """A fitted recommender that ranks from chronological histories.
+
+    The same contract as :class:`Recommender` with a different source type. Kept
+    structural, like its sibling, so a model satisfies it by having the method
+    rather than by inheriting anything.
+    """
+
+    def predict_on_batch(
+        self,
+        source: ItemSequences,
+        *,
+        k: int,
+        exclude_seen: bool = True,
+    ) -> SRPTensor:
+        """Return top-``k`` predictions, optionally excluding source items."""
+
+
+class BaseSequentialRecommender(ABC):
+    """Reusable base for recommenders that read chronological histories.
+
+    Parallel to :class:`BaseCollaborativeRecommender` rather than derived from
+    it. The two differ only in how a user's history arrives — a CSR row of items
+    interacted with, or an ordered history that keeps repeats — and crossing that
+    with cold-start capability in the type hierarchy would give four classes for
+    two ideas. Candidate capability is composed instead: a model that scores
+    unseen items owns a catalog rather than inheriting one.
+
+    Implementors provide :attr:`is_fitted`, :attr:`n_items`, and
+    :meth:`predict_on_batch`. ``fit`` is deliberately absent from the contract:
+    trainers follow the package's existing shape, where
+    ``SomeTrainer(config).fit(data)`` returns a fitted model and the model owes
+    only the prediction contract.
+
+    Two properties this base is careful not to assume.
+
+    **The source vocabulary need not equal the candidate catalog.**
+    :attr:`n_items` describes what can be *scored*. A history may be expressed
+    over a different, usually smaller, vocabulary — a truncated context, a
+    hashed one — and a cold-capable model scores candidates that never appear in
+    any history at all. Nothing here compares the two.
+
+    **Truncation is not exclusion.** ``exclude_seen=True`` must mask every item
+    in the *full* history handed to it, even where the encoder reads only a
+    suffix. A model that attends to the last 200 interactions must still refuse
+    to recommend the 201st.
+    """
+
+    @property
+    @abstractmethod
+    def is_fitted(self) -> bool:
+        """Whether the model is ready for prediction."""
+
+    @property
+    @abstractmethod
+    def n_items(self) -> int | None:
+        """Number of scoreable candidates, or ``None`` before fitting."""
+
+    @abstractmethod
+    def predict_on_batch(
+        self,
+        source: ItemSequences,
+        *,
+        k: int,
+        exclude_seen: bool = True,
+    ) -> SRPTensor:
+        """Return ranked predictions for one batch of histories."""
+
+    def _prepare_source(self, source: ItemSequences) -> ItemSequences:
+        """Check a batch of histories against the fitted model."""
+        if not self.is_fitted or self.n_items is None:
+            raise RuntimeError(
+                f"{type(self).__name__} must be fitted before prediction"
+            )
+        if not isinstance(source, ItemSequences):
+            raise TypeError(
+                f"{type(self).__name__} predicts from ItemSequences, got "
+                f"{type(source).__name__}"
+            )
+        return source
+
+    def predict(
+        self,
+        source: ItemSequences,
+        *,
+        k: int = 100,
+        batch_size: int = 1024,
+        exclude_seen: bool = True,
+        show_progress: bool = False,
+    ) -> SRPTensor:
+        """Predict all histories by repeatedly calling ``predict_on_batch``."""
+        source = self._prepare_source(source)
+        if batch_size < 1:
+            raise ValueError("batch_size must be >= 1")
+        if not 1 <= int(k) <= self.n_items:
+            raise ValueError(f"k must be in [1, {self.n_items}], got {k}")
+
+        columns: list[torch.Tensor] = []
+        values: list[torch.Tensor] = []
+        starts = range(0, source.n_rows, batch_size)
+        if show_progress:
+            try:
+                from tqdm.auto import tqdm
+
+                starts = tqdm(starts, desc=f"{type(self).__name__} predict@{k}")
+            except Exception:  # pragma: no cover - optional display helper
+                pass
+        for start in starts:
+            result = self.predict_on_batch(
+                source.take_rows(start, start + batch_size),
+                k=k,
+                exclude_seen=exclude_seen,
+            )
+            if result.cols_total != self.n_items:
+                raise ValueError(
+                    "predict_on_batch() item count must match the candidate catalog"
+                )
+            columns.append(result.cols)
+            values.append(result.vals)
+
+        if not columns:
+            return self.predict_on_batch(source, k=k, exclude_seen=exclude_seen)
+        return SRPTensor(
+            cols=torch.vstack(columns),
+            vals=torch.vstack(values),
+            shape=(source.n_rows, self.n_items),
         )

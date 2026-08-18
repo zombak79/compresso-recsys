@@ -120,6 +120,7 @@ def test_submodule_public_apis_are_intentional():
         models: {
             "BaseColdStartRecommender",
             "BaseCollaborativeRecommender",
+            "BaseSequentialRecommender",
             "CandidateCatalog",
             "ColdStartRecommender",
             "CompressedELSA",
@@ -136,6 +137,7 @@ def test_submodule_public_apis_are_intentional():
             "InteractionBatchSampler",
             "dense_training_target",
             "Recommender",
+            "SequentialRecommender",
             "TEASER",
             "TEASERConfig",
             "TEASERGD",
