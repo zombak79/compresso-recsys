@@ -1,5 +1,6 @@
 """Collaborative-filtering models."""
 
+from .sequence_batching import SequenceBatcher
 from .base import (
     BaseCollaborativeRecommender,
     BaseSequentialRecommender,
@@ -46,6 +47,7 @@ __all__ = [
     "ELSAConfig",
     "ELSATrainer",
     "Recommender",
+    "SequenceBatcher",
     "SequentialRecommender",
     "ItemVocabulary",
     "InteractionBatch",

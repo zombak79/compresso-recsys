@@ -137,6 +137,7 @@ def test_submodule_public_apis_are_intentional():
             "InteractionBatchSampler",
             "dense_training_target",
             "Recommender",
+            "SequenceBatcher",
             "SequentialRecommender",
             "TEASER",
             "TEASERConfig",
