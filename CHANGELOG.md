@@ -87,6 +87,13 @@ change.
   history including the part `max_length` truncated away.
 - `ItemSequences.select_rows`, the non-contiguous counterpart to `take_rows`,
   which is what shuffling a training set needs.
+- An end-to-end test spanning one `leave_last_out` build, a checkpoint round
+  trip, both model families and one `compare_models` call. The signal is one
+  only order carries: users read windows of a cycle, so the two candidates
+  outside a window are indistinguishable by co-occurrence and only the direction
+  of time separates them. EASE places the target in its top 5 for every user and
+  then puts the *past* neighbour first for 108 of 120 — the sequential model is
+  credited with fixing exactly that, and nothing else.
 - `docs/api/sequences` and a sequential section of `docs/api/models`, covering
   what a sequence holds and deliberately does not, which split modes produce
   one, the sequential contract and base, the vocabulary layout, and why
