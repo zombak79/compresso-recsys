@@ -22,6 +22,7 @@ from scipy.sparse import csr_matrix, hstack, issparse, isspmatrix_csr, vstack
 from compresso import SRPTensor
 from compresso_recsys.models._validation import canonical_csr
 from compresso_recsys.models.base import Recommender
+from compresso_recsys.sequences import ItemSequences
 
 __all__ = [
     "BaseColdStartRecommender",
@@ -313,10 +314,33 @@ class WarmCatalogAdapter:
     """Expose a fixed-catalog recommender in a larger identified catalog.
 
     The wrapped model continues to consume and rank only its training items.
-    :meth:`align_source` selects those columns from an interaction matrix over
-    the expanded catalog, while :meth:`predict_on_batch` remaps the resulting
-    ranked columns back into that catalog. Cold candidates remain valid target
-    items but can never be emitted by the wrapped model.
+    :meth:`align_source` expresses a source over the expanded catalog in the
+    fitted item space, while :meth:`predict_on_batch` remaps the resulting ranked
+    columns back into that catalog. Cold candidates remain valid target items but
+    can never be emitted by the wrapped model.
+
+    Either source representation is accepted, because the projection is the same
+    operation on both: a ``csr_matrix`` keeps the fitted columns, and an
+    :class:`~compresso_recsys.ItemSequences` keeps the fitted items of each
+    history, in order. Rows survive either way, so a user whose history is
+    entirely cold becomes an empty row rather than disappearing, and the
+    alignment stays row-aligned with the targets.
+
+    This is mandatory whenever the model's item space is narrower than the
+    evaluation catalog, which the ``temporal`` split mode guarantees by
+    construction. It is also worth reaching for under ``leave_last_out``, where
+    the catalogs do match but items whose every occurrence falls in a held-out
+    tail are still absent from training -- and the model families do not treat
+    such columns alike. A softmax next-item objective pushes every non-target
+    logit down on every step, and a never-trained item is never a target, so it
+    is buried: on MovieLens-1M such items land at the 95th rank percentile for
+    :class:`~compresso_recsys.models.SimpleRNNTrainer` against the 60th for
+    :class:`~compresso_recsys.models.ELSATrainer`, which leaves them near their
+    initialization. Neither number is about recommendation quality, so a
+    comparison spanning both families is sounder with the cold items made
+    unreachable for each. Whether it matters is a question about the data rather
+    than the protocol: count the evaluation rows whose target is absent from
+    training before deciding.
 
     Parameters
     ----------
@@ -364,11 +388,19 @@ class WarmCatalogAdapter:
             count=train_vocabulary.n_items,
         )
         train_to_catalog.setflags(write=False)
+        # The inverse, for projecting a catalog-space source down to the fitted
+        # space. -1 marks an item the model never saw.
+        catalog_to_train = np.full(catalog_vocabulary.n_items, -1, dtype=np.int64)
+        catalog_to_train[train_to_catalog] = np.arange(
+            train_vocabulary.n_items, dtype=np.int64
+        )
+        catalog_to_train.setflags(write=False)
 
         self.model = model
         self.train_item_ids = train_vocabulary.item_ids
         self.catalog_item_ids = catalog_vocabulary.item_ids
         self.train_to_catalog = train_to_catalog
+        self.catalog_to_train = catalog_to_train
         self.catalog_size = catalog_vocabulary.n_items
         self._identity_alignment = np.array_equal(
             self.train_item_ids,
@@ -377,8 +409,15 @@ class WarmCatalogAdapter:
         self._mapping_lock = RLock()
         self._mapping_by_device: dict[torch.device, torch.Tensor] = {}
 
-    def align_source(self, source: csr_matrix) -> csr_matrix:
-        """Select training-item columns from an expanded-catalog CSR matrix."""
+    def align_source(
+        self, source: csr_matrix | ItemSequences
+    ) -> csr_matrix | ItemSequences:
+        """Project an expanded-catalog source into the fitted item space.
+
+        Returns the same representation it was given.
+        """
+        if isinstance(source, ItemSequences):
+            return self._align_sequences(source)
         source = canonical_csr(source, name="source")
         if source.shape[1] != self.catalog_size:
             raise ValueError(
@@ -388,6 +427,26 @@ class WarmCatalogAdapter:
         if self._identity_alignment:
             return source
         return source[:, self.train_to_catalog].tocsr()
+
+    def _align_sequences(self, source: ItemSequences) -> ItemSequences:
+        """Keep each history's fitted items, in order, dropping the cold ones."""
+        if source.n_items != self.catalog_size:
+            raise ValueError(
+                f"source spans {source.n_items} items, but catalog_item_ids has "
+                f"{self.catalog_size} entries"
+            )
+        if self._identity_alignment:
+            return source
+        mapped = self.catalog_to_train[source.values]
+        keep = mapped >= 0
+        # The number of kept values before each original offset is exactly the
+        # new offset, so one prefix sum rebases every row at once.
+        prefix = np.concatenate(([0], np.cumsum(keep, dtype=np.int64)))
+        return ItemSequences(
+            values=mapped[keep],
+            indptr=prefix[source.indptr],
+            n_items=int(self.train_item_ids.size),
+        )
 
     def _mapping_on(self, device: torch.device) -> torch.Tensor:
         with self._mapping_lock:
@@ -403,16 +462,20 @@ class WarmCatalogAdapter:
 
     def predict_on_batch(
         self,
-        source: csr_matrix,
+        source: csr_matrix | ItemSequences,
         *,
         k: int,
         exclude_seen: bool = True,
     ) -> SRPTensor:
         """Predict warm items and express their columns in the full catalog."""
-        source = canonical_csr(source, name="source")
-        if source.shape[1] != len(self.train_item_ids):
+        if isinstance(source, ItemSequences):
+            n_rows, n_items = source.n_rows, source.n_items
+        else:
+            source = canonical_csr(source, name="source")
+            n_rows, n_items = source.shape
+        if n_items != len(self.train_item_ids):
             raise ValueError(
-                f"source has {source.shape[1]} items, but train_item_ids has "
+                f"source has {n_items} items, but train_item_ids has "
                 f"{len(self.train_item_ids)} entries; call align_source() first"
             )
         predictions = self.model.predict_on_batch(
@@ -422,7 +485,7 @@ class WarmCatalogAdapter:
         )
         if not isinstance(predictions, SRPTensor):
             raise TypeError("model.predict_on_batch() must return an SRPTensor")
-        if predictions.rows != source.shape[0]:
+        if predictions.rows != n_rows:
             raise ValueError(
                 "model prediction rows must match the source rows"
             )

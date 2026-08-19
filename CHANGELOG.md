@@ -99,6 +99,26 @@ change.
   through `snapshot()` rather than forwarded properties, so several reads cannot
   straddle a concurrent republish. `on_publish` notifies the owner while the lock
   is held, which is how a model drops caches derived from the previous snapshot.
+- `WarmCatalogAdapter` accepts an `ItemSequences` source as well as a
+  `csr_matrix`, returning whichever it was given. Without it the `temporal` split
+  mode and sequential models could not meet: every temporal stage has its own
+  expanding catalog, so a model fitted on the training window cannot even accept
+  a test source, and the matrix side had an adapter while the sequence side had
+  none. One class rather than two, because the projection is one operation on two
+  views — keep the fitted columns, or keep each history's fitted items in order —
+  and the vocabulary validation, index mapping, identity fast path and
+  device-cached remap are shared verbatim. Rows survive either way, so a user
+  whose history is entirely cold becomes an empty row rather than disappearing,
+  which is what keeps an aligned source row-aligned with its targets.
+  Also documented is when to reach for it outside `temporal`: under
+  `leave_last_out` the catalogs match, but items whose every occurrence falls in
+  a held-out tail are still absent from training, and the model families do not
+  bury such columns alike. A softmax next-item objective pushes down every
+  non-target logit, and a never-trained item is never a target, so SimpleRNN
+  ranks them at the 95th percentile on MovieLens-1M where ELSA leaves them at the
+  60th. Neither figure is about recommendation quality, so a cross-family
+  comparison is sounder with both models wrapped — when the data warrants it,
+  which on MovieLens-1M it does not: 3 of 6,033 rows.
 - `ItemSequences.select_rows`, the non-contiguous counterpart to `take_rows`,
   which is what shuffling a training set needs.
 - An end-to-end test spanning one `leave_last_out` build, a checkpoint round

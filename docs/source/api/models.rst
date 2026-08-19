@@ -163,12 +163,21 @@ Transductive Models in Expanding Catalogs
 -----------------------------------------
 
 :class:`compresso_recsys.models.WarmCatalogAdapter` evaluates a fixed-catalog
-model such as EASE or ELSA against a larger validation or test catalog. It
-selects the fitted warm columns from the stage source matrix and remaps warm
+model such as EASE, ELSA or SimpleRNN against a larger validation or test
+catalog. It projects the stage source into the fitted item space and remaps warm
 prediction indices into the expanded target space. Cold targets remain part of
 the metric calculation, but the wrapped transductive model cannot recommend
 them. This makes the result directly comparable with a cold-start model on the
 same users and targets while preserving the transductive model's limitation.
+
+Either source representation works, because the projection is one operation on
+two views: a ``csr_matrix`` keeps the fitted columns, and an
+:class:`compresso_recsys.ItemSequences` keeps each history's fitted items in
+order, repeats intact. Rows survive either way -- a user whose history is
+entirely cold becomes an empty row rather than disappearing -- which is what
+keeps the aligned source row-aligned with the targets. That single class is what
+lets a matrix model and a sequential model be compared on the ``temporal`` split
+mode at all, since every stage there has its own catalog.
 
 The item IDs supplied to the adapter define both column orders, so evaluation
 does not depend on warm items occupying a catalog prefix:
@@ -192,9 +201,81 @@ does not depend on warm items occupying a catalog prefix:
        batch_size=1024,
    )
 
+A sequential model is wrapped the same way, and returns the representation it
+was given:
+
+.. code-block:: python
+
+   adapted_rnn = WarmCatalogAdapter(
+       rnn,
+       train_item_ids=split["train_item_ids"],
+       catalog_item_ids=split["test_item_ids"],
+   )
+
+   result = evaluate_recommender(
+       adapted_rnn,
+       source=adapted_rnn.align_source(split["test_source_sequences"]),
+       targets=split["test_target_matrix"],
+       metrics=metrics,
+   )
+
 The input to :meth:`~compresso_recsys.models.WarmCatalogAdapter.align_source`
 must use the exact column order declared by ``catalog_item_ids``. Construct a
 separate adapter for validation when its catalog differs from the test catalog.
+
+When to Reach for It Outside ``temporal``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Under ``temporal`` the adapter is mandatory: stage catalogs expand, so a model
+fitted on the training window cannot even accept a test source. Under
+``leave_last_out`` the catalogs match and nothing forces the issue -- but items
+whose every occurrence falls in a held-out tail are still absent from training,
+and **the model families do not treat such columns alike.**
+
+A softmax next-item objective pushes down every non-target logit at every step.
+An item that never appears in training is never a target, so it collects only
+downward pressure. A reconstruction objective has no such term and leaves the
+item near its initialization. Measured on MovieLens-1M under ``leave_last_out``,
+ranking the full catalog for 300 test users:
+
+.. list-table:: Rank percentile of never-trained items
+   :header-rows: 1
+   :widths: 30 30
+
+   * - Model
+     - Percentile
+   * - ELSA
+     - 60th
+   * - SimpleRNN
+     - 95th
+
+A random item would sit at the 50th. Neither figure says anything about
+recommendation quality, so a comparison spanning both families is sounder with
+the cold items made unreachable for each -- which is what wrapping both models
+does.
+
+Whether it matters is a question about the data rather than the protocol. On
+MovieLens-1M only 3 of 6,033 test users have a never-trained target, so the bias
+cannot move a metric. On a sparse catalog the share grows. Count first:
+
+.. code-block:: python
+
+   never_trained = np.flatnonzero(
+       np.asarray(split["x_train"].sum(axis=0)).ravel() == 0
+   )
+   cold = set(never_trained.tolist())
+   targets = split["test_target_matrix"]
+   affected = sum(
+       1
+       for row in range(targets.shape[0])
+       if cold & set(targets[row].indices.tolist())
+   )
+   print(f"{affected} of {targets.shape[0]} rows have a never-trained target")
+
+Note that ``leave_last_out`` sets ``train_item_ids`` to the whole catalog, since
+that mode does not partition items. The warm subset is
+``split["item_ids"][split["train_item_indices"]]``, and passing it is what makes
+the adapter do anything at all in that mode.
 
 .. autoclass:: compresso_recsys.models.WarmCatalogAdapter
    :members:
