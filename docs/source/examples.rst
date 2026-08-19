@@ -385,7 +385,7 @@ allowlist contains registered IDs; it does not rebuild or copy the catalog:
 
 .. code-block:: python
 
-   catalog = model.candidates
+   catalog = model.candidates.snapshot()
    predictions = model.predict(
        model.align_source(source, item_ids=source_item_ids),
        k=100,

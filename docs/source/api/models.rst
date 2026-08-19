@@ -58,17 +58,23 @@ base then supplies ``predict`` with bounded batching and optional progress.
 
 Use :class:`compresso_recsys.models.BaseColdStartRecommender` when source items
 are fixed by fitting but identified candidates can be rebuilt or updated from
-features. Subclass constructors must call ``super().__init__()``. After fitting
-the source encoder, call ``_install_feature_catalog`` once with the fitted
-source IDs and initial candidate features. The inherited catalog methods then
-validate later features against that feature space and preserve stable IDs.
-``predict_on_batch`` can call ``_resolve_candidate_selection`` to resolve an
-optional candidate allowlist while keeping returned :class:`compresso.SRPTensor`
-columns in the complete catalog space.
+features, and the source is a ``csr_matrix``. Subclass constructors must call
+``super().__init__()``. After fitting the source encoder, call
+``self.candidates.install(...)`` once with the fitted source IDs and initial
+candidate features. Later changes then validate features against that feature
+space and preserve stable IDs. ``predict_on_batch`` can call
+``self.candidates.resolve_selection(...)`` to resolve an optional candidate
+allowlist while keeping returned :class:`compresso.SRPTensor` columns in the
+complete catalog space.
+
+The catalog lifecycle is *owned* rather than inherited -- see
+:ref:`the-owned-candidate-catalog` below -- which is why this base is only about
+reading a matrix. The methods on it are a facade over
+``self.candidates``, kept because they are the documented model surface.
 
 .. autoclass:: compresso_recsys.models.BaseColdStartRecommender
    :members:
-   :private-members: _install_feature_catalog, _prepare_source, _resolve_candidate_selection
+   :private-members: _prepare_source
 
 Use :class:`compresso_recsys.models.BaseSequentialRecommender` for a model that
 reads ordered histories. It is parallel to
@@ -348,6 +354,61 @@ See :doc:`../citing` for the original TEASER paper.
    :inherited-members:
 
 .. autoclass:: compresso_recsys.models.CandidateCatalog
+   :members:
+
+.. _the-owned-candidate-catalog:
+
+The Owned Candidate Catalog
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+:class:`compresso_recsys.models.CandidateCatalog` is an immutable snapshot.
+:class:`compresso_recsys.models.MutableCandidateCatalog` is the lifecycle around
+it: the lock, the current snapshot, the fitted source vocabulary, and the
+operations that publish, extend, shrink and align against them.
+
+While that lifecycle lived on a base class, "cold-capable" and "inherits
+:class:`compresso_recsys.models.BaseColdStartRecommender`" were the same
+statement. Adding a second axis -- a model that reads ordered histories rather
+than a matrix -- would then have forced a choice between multiple inheritance and
+a fourth base class, for two independent ideas. An owned object removes the
+choice: a model holds one, whichever base it derives from.
+
+Composition rather than a mixin, because the state is what decides it. A mixin
+would not encapsulate these attributes; it would install them on whatever class
+it is mixed into, six of them public. Two stateful mixins both initialising
+through ``super().__init__()`` is where MRO ordering and private-name collisions
+live. An owned object has its own ``__init__``, its own lock and its own tests,
+and a model could hold two if that ever made sense.
+
+.. code-block:: python
+
+   class SequentialContentRNN(BaseSequentialRecommender):
+       def __init__(self) -> None:
+           self.candidates = MutableCandidateCatalog()
+
+       def fit(self, sequences, item_features, *, item_ids):
+           ...
+           self.candidates.install(...)
+           return self
+
+       def predict_on_batch(self, source, *, k, exclude_seen=True):
+           catalog = self.candidates.snapshot()
+
+Reads go through :meth:`~compresso_recsys.models.MutableCandidateCatalog.snapshot`
+rather than through forwarded properties, deliberately. A snapshot is a
+consistent view: several reads off one snapshot cannot straddle a concurrent
+republish, which forwarding ``item_ids``, ``rows_for`` and ``ids_for``
+separately would silently allow. ``n_items`` is the one convenience, because
+"how many candidates are there" needs an answer before installation, which a
+snapshot cannot give.
+
+``on_publish`` is called with each new snapshot while the lock is held, and is
+how an owner drops caches derived from the previous one. The six fitted
+``source_*`` attributes live on the catalog, so a model's fitted source
+vocabulary is ``model.candidates.source_item_ids`` rather than
+``model.source_item_ids_``.
+
+.. autoclass:: compresso_recsys.models.MutableCandidateCatalog
    :members:
 
 TEASERGD

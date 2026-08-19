@@ -145,7 +145,7 @@ class ContentRecommender(BaseColdStartRecommender):
         ).contiguous()
         self._candidate_cache = None
 
-        self._install_feature_catalog(
+        self.candidates.install(
             source_item_ids=ids,
             source_popularity=np.zeros(ids.shape[0], dtype=self.cfg.dtype),
             n_input_features=int(features.shape[1]),
@@ -216,7 +216,7 @@ class ContentRecommender(BaseColdStartRecommender):
     ) -> SRPTensor:
         """Predict ranked top-``k`` items for one source batch."""
         source = self._prepare_source(source)
-        selection = self._resolve_candidate_selection(candidate_ids)
+        selection = self.candidates.resolve_selection(candidate_ids)
         n_candidates = int(selection.rows.size)
         if not 1 <= int(k) <= n_candidates:
             raise ValueError(f"k must be in [1, {n_candidates}], got {k}")

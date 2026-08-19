@@ -4,7 +4,15 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from threading import RLock
 from types import MappingProxyType
-from typing import Hashable, Literal, Mapping, Protocol, Sequence, runtime_checkable
+from typing import (
+    Callable,
+    Hashable,
+    Literal,
+    Mapping,
+    Protocol,
+    Sequence,
+    runtime_checkable,
+)
 
 import numpy as np
 import pandas as pd
@@ -20,11 +28,17 @@ __all__ = [
     "CandidateCatalog",
     "ColdStartRecommender",
     "ItemVocabulary",
+    "MutableCandidateCatalog",
     "WarmCatalogAdapter",
 ]
 
 ItemFeatures = csr_matrix | SRPTensor | np.ndarray | torch.Tensor
 CandidateConflict = Literal["error", "replace", "ignore"]
+
+_NOT_INSTALLED = (
+    "no candidate catalog is installed: the model has not been fitted, or "
+    "install() was never called on the catalog"
+)
 
 
 def canonical_item_ids(
@@ -518,195 +532,118 @@ def _make_catalog(
     )
 
 
-@runtime_checkable
-class ColdStartRecommender(Recommender, Protocol):
-    """Recommender with distinct identified source and candidate spaces."""
+class MutableCandidateCatalog:
+    """The lifecycle around a :class:`CandidateCatalog`, as an owned object.
 
-    source_vocabulary_: ItemVocabulary | None
+    :class:`CandidateCatalog` is an immutable snapshot and needs nothing. What
+    used to be stuck inside :class:`BaseColdStartRecommender` was the *lifecycle*
+    around it: the lock, the current snapshot, the fitted source vocabulary, and
+    the dozen methods that publish, extend, shrink and align against them.
 
-    @property
-    def candidates(self) -> CandidateCatalog: ...
+    While that lived on a base class, "cold-capable" meant "inherits
+    :class:`BaseColdStartRecommender`". Adding a second axis -- a model that reads
+    ordered histories rather than a matrix -- then forced a choice between
+    multiple inheritance and a fourth base class for two independent ideas. An
+    owned object removes the choice: any model can hold one.
 
-    def align_source(
-        self,
-        source: csr_matrix,
-        *,
-        item_ids: Sequence[Hashable] | np.ndarray,
-    ) -> csr_matrix: ...
+    Composition rather than a mixin, because the state is what decides it. A mixin
+    would not encapsulate these attributes, it would install them on whatever
+    class it is mixed into -- and two stateful mixins initialising through
+    ``super().__init__()`` is where MRO pain lives. This has its own
+    ``__init__``, its own lock and its own tests, and a model could own two if
+    that ever made sense::
 
-    def build_candidates(
-        self,
-        *,
-        item_ids: Sequence[Hashable] | np.ndarray,
-        item_features: ItemFeatures,
-        metadata: pd.DataFrame | None = None,
-        feature_space_id: str | None = None,
-    ) -> CandidateCatalog: ...
+        class SequentialContentRNN(BaseSequentialRecommender):
+            def __init__(self) -> None:
+                self.candidates = MutableCandidateCatalog()
 
-    def update_candidates(
-        self,
-        *,
-        item_ids: Sequence[Hashable] | np.ndarray,
-        item_features: ItemFeatures,
-        metadata: pd.DataFrame | None = None,
-        on_conflict: CandidateConflict = "error",
-        feature_space_id: str | None = None,
-    ) -> CandidateCatalog: ...
+            def predict_on_batch(self, source, *, k, exclude_seen=True):
+                catalog = self.candidates.snapshot()
 
-    def remove_candidates(
-        self,
-        item_ids: Sequence[Hashable] | np.ndarray,
-        *,
-        missing: Literal["error", "ignore"] = "error",
-    ) -> CandidateCatalog: ...
+    Reads go through :meth:`snapshot`, deliberately, rather than through
+    forwarded properties. A snapshot is a consistent view: several reads off one
+    snapshot cannot straddle a concurrent republish, which forwarding
+    ``n_items``, ``item_ids`` and ``rows_for`` separately would silently allow.
 
-
-class BaseColdStartRecommender(ABC):
-    """Reusable base for feature-driven cold-start recommenders.
-
-    Subclasses implement :meth:`fit`, :attr:`is_fitted`, and
-    :meth:`predict_on_batch`. The base owns the fitted source vocabulary and
-    provides atomic candidate catalog replacement, updates, removal, stable-ID
-    source alignment, metadata handling, and feature-space validation.
-
-    Subclass constructors must call ``super().__init__()``. During fitting,
-    call :meth:`_install_feature_catalog` after learning the source encoder to
-    publish the initial candidate catalog.
+    ``on_publish`` is called with each new snapshot while the lock is held, which
+    is how an owner drops caches derived from the previous one.
     """
 
-    def __init__(self) -> None:
-        self._init_feature_catalog_state()
+    def __init__(
+        self,
+        *,
+        on_publish: Callable[[CandidateCatalog], None] | None = None,
+    ) -> None:
+        self._on_publish = on_publish
+        self._lock = RLock()
+        self._snapshot: CandidateCatalog | None = None
+        self._source_vocabulary: ItemVocabulary | None = None
+        self._source_item_ids: np.ndarray | None = None
+        self._source_id_to_row: Mapping[Hashable, int] | None = None
+        self._source_popularity: np.ndarray | None = None
+        self._feature_space_id: str | None = None
+        self._n_input_features: int | None = None
+        self._dtype: np.dtype | None = None
+        self._include_popularity = False
+
+    # -- reading ------------------------------------------------------------
 
     @property
-    @abstractmethod
-    def is_fitted(self) -> bool:
-        """Whether the model is ready for prediction."""
+    def is_installed(self) -> bool:
+        """Whether a catalog has been published yet."""
+        return self._snapshot is not None
 
-    @abstractmethod
-    def fit(
-        self,
-        interactions: csr_matrix,
-        item_features: ItemFeatures,
-        **kwargs,
-    ) -> BaseColdStartRecommender:
-        """Fit a source encoder and publish the initial candidate catalog."""
+    def snapshot(self) -> CandidateCatalog:
+        """The current immutable snapshot.
 
-    @abstractmethod
-    def predict_on_batch(
-        self,
-        source: csr_matrix,
-        *,
-        k: int,
-        exclude_seen: bool = True,
-        candidate_ids: Sequence[Hashable] | np.ndarray | None = None,
-    ) -> SRPTensor:
-        """Return ranked predictions against the current candidate catalog."""
-
-    def _prepare_source(self, source: csr_matrix) -> csr_matrix:
-        """Validate source columns against the fitted source vocabulary."""
-        if not self.is_fitted or self.source_vocabulary_ is None:
-            raise RuntimeError(
-                f"{type(self).__name__} must be fitted before prediction"
-            )
-        source = canonical_csr(source, name="source")
-        if source.shape[1] != self.source_vocabulary_.n_items:
-            raise ValueError(
-                f"source has {source.shape[1]} items, but "
-                f"{type(self).__name__} was fitted with "
-                f"{self.source_vocabulary_.n_items} source items"
-            )
-        return source
-
-    def predict(
-        self,
-        source: csr_matrix,
-        *,
-        k: int = 100,
-        batch_size: int = 1024,
-        exclude_seen: bool = True,
-        candidate_ids: Sequence[Hashable] | np.ndarray | None = None,
-        show_progress: bool = False,
-    ) -> SRPTensor:
-        """Predict all source rows by repeatedly calling ``predict_on_batch``."""
-        source = self._prepare_source(source)
-        if batch_size < 1:
-            raise ValueError("batch_size must be >= 1")
-        catalog = self.candidates
-        selected_items = (
-            catalog.n_items
-            if candidate_ids is None
-            else catalog.rows_for(candidate_ids).size
-        )
-        if not 1 <= int(k) <= selected_items:
-            raise ValueError(f"k must be in [1, {selected_items}], got {k}")
-
-        columns: list[torch.Tensor] = []
-        values: list[torch.Tensor] = []
-        starts = range(0, source.shape[0], batch_size)
-        if show_progress:
-            try:
-                from tqdm.auto import tqdm
-
-                starts = tqdm(
-                    starts,
-                    desc=f"{type(self).__name__} predict@{k}",
-                )
-            except Exception:  # pragma: no cover - optional display helper
-                pass
-        for start in starts:
-            result = self.predict_on_batch(
-                source[start : start + batch_size],
-                k=k,
-                exclude_seen=exclude_seen,
-                candidate_ids=candidate_ids,
-            )
-            if result.cols_total != catalog.n_items:
-                raise ValueError(
-                    "predict_on_batch() item count must match the candidate catalog"
-                )
-            columns.append(result.cols)
-            values.append(result.vals)
-
-        if not columns:
-            return self.predict_on_batch(
-                source,
-                k=k,
-                exclude_seen=exclude_seen,
-                candidate_ids=candidate_ids,
-            )
-        return SRPTensor(
-            cols=torch.vstack(columns),
-            vals=torch.vstack(values),
-            shape=(source.shape[0], catalog.n_items),
-            validate=False,
-        )
-
-    def _init_feature_catalog_state(self) -> None:
-        self._catalog_lock = RLock()
-        self._candidates: CandidateCatalog | None = None
-        self.source_vocabulary_: ItemVocabulary | None = None
-        self.source_item_ids_: np.ndarray | None = None
-        self.source_id_to_row_: Mapping[Hashable, int] | None = None
-        self.source_popularity_: np.ndarray | None = None
-        self.feature_space_id_: str | None = None
-        self.n_input_features_: int | None = None
-        self._feature_catalog_dtype: np.dtype | None = None
-        self._feature_catalog_include_popularity = False
-
-    @property
-    def candidates(self) -> CandidateCatalog:
-        """Current immutable candidate-catalog snapshot."""
-        catalog = self._candidates
+        Take one and read every field off it, rather than reading fields off
+        this object one at a time: only the snapshot is guaranteed internally
+        consistent against a concurrent :meth:`build`, :meth:`update` or
+        :meth:`remove`.
+        """
+        catalog = self._snapshot
         if catalog is None:
-            raise RuntimeError("model must be fitted before accessing candidates")
+            raise RuntimeError(_NOT_INSTALLED)
         return catalog
 
     @property
-    def n_candidates_(self) -> int | None:
-        """Number of current candidates, or ``None`` before fitting."""
-        return None if self._candidates is None else self._candidates.n_items
+    def n_items(self) -> int | None:
+        """Number of current candidates, or ``None`` before installation."""
+        return None if self._snapshot is None else self._snapshot.n_items
 
-    def _install_feature_catalog(
+    @property
+    def source_vocabulary(self) -> ItemVocabulary | None:
+        """Item space a source matrix must be expressed over."""
+        return self._source_vocabulary
+
+    @property
+    def source_item_ids(self) -> np.ndarray | None:
+        """Stable IDs of the fitted source items, in column order."""
+        return self._source_item_ids
+
+    @property
+    def source_id_to_row(self) -> Mapping[Hashable, int] | None:
+        """Source item ID to source column."""
+        return self._source_id_to_row
+
+    @property
+    def source_popularity(self) -> np.ndarray | None:
+        """Per-source-item popularity recorded at installation."""
+        return self._source_popularity
+
+    @property
+    def feature_space_id(self) -> str | None:
+        """Identifier of the feature space, when one was declared."""
+        return self._feature_space_id
+
+    @property
+    def n_input_features(self) -> int | None:
+        """Feature columns every candidate must supply."""
+        return self._n_input_features
+
+    # -- lifecycle ----------------------------------------------------------
+
+    def install(
         self,
         *,
         source_item_ids: np.ndarray,
@@ -729,72 +666,73 @@ class BaseColdStartRecommender(ABC):
             feature_space_id=feature_space_id,
             version=1,
         )
-        self.source_vocabulary_ = vocabulary
-        self.source_item_ids_ = vocabulary.item_ids
-        self.source_id_to_row_ = vocabulary.id_to_row
-        self.source_popularity_ = popularity
-        self.feature_space_id_ = feature_space_id
-        self.n_input_features_ = int(n_input_features)
-        self._feature_catalog_dtype = np.dtype(dtype)
-        self._feature_catalog_include_popularity = bool(include_popularity)
-        with self._catalog_lock:
-            self._candidates = catalog
-            self._on_catalog_published(catalog)
+        self._source_vocabulary = vocabulary
+        self._source_item_ids = vocabulary.item_ids
+        self._source_id_to_row = vocabulary.id_to_row
+        self._source_popularity = popularity
+        self._feature_space_id = feature_space_id
+        self._n_input_features = int(n_input_features)
+        self._dtype = np.dtype(dtype)
+        self._include_popularity = bool(include_popularity)
+        with self._lock:
+            self._snapshot = catalog
+            self._notify(catalog)
         return catalog
+    def _notify(self, catalog: CandidateCatalog) -> None:
+        """Tell the owner a new snapshot is live, so it can drop stale caches."""
+        if self._on_publish is not None:
+            self._on_publish(catalog)
 
-    def _on_catalog_published(self, catalog: CandidateCatalog) -> None:
-        pass
-
-    def _prepare_catalog_features(
+    def _prepare_features(
         self,
         item_ids: np.ndarray,
         item_features: ItemFeatures,
     ) -> csr_matrix | np.ndarray:
         if (
-            self.n_input_features_ is None
-            or self.source_id_to_row_ is None
-            or self.source_popularity_ is None
-            or self._feature_catalog_dtype is None
+            self._n_input_features is None
+            or self._source_id_to_row is None
+            or self._source_popularity is None
+            or self._dtype is None
         ):
-            raise RuntimeError("model must be fitted before changing candidates")
+            raise RuntimeError(_NOT_INSTALLED)
         features = canonical_item_features(
             item_features,
-            dtype=self._feature_catalog_dtype,
+            dtype=self._dtype,
         )
         if features.shape[0] != item_ids.size:
             raise ValueError(
                 f"item_features has {features.shape[0]} rows, but item_ids "
                 f"has {item_ids.size} entries"
             )
-        if features.shape[1] != self.n_input_features_:
+        if features.shape[1] != self._n_input_features:
             raise ValueError(
                 f"item_features has {features.shape[1]} columns, but the model "
-                f"was fitted with {self.n_input_features_} input features"
+                f"was fitted with {self._n_input_features} input features"
             )
-        if self._feature_catalog_include_popularity:
-            popularity = np.zeros(item_ids.size, dtype=self._feature_catalog_dtype)
+        if self._include_popularity:
+            popularity = np.zeros(item_ids.size, dtype=self._dtype)
             for row, item_id in enumerate(item_ids.tolist()):
-                source_row = self.source_id_to_row_.get(item_id)
+                source_row = self._source_id_to_row.get(item_id)
                 if source_row is not None:
-                    popularity[row] = self.source_popularity_[source_row]
+                    popularity[row] = self._source_popularity[source_row]
             features = append_column(features, popularity)
         return features
 
-    def _resolve_catalog_feature_space_id(
+    def _resolve_feature_space_id(
         self,
         feature_space_id: str | None,
     ) -> str | None:
         resolved = canonical_feature_space_id(feature_space_id)
         if resolved is None:
-            return self.feature_space_id_
-        if resolved != self.feature_space_id_:
+            return self._feature_space_id
+        if resolved != self._feature_space_id:
             raise ValueError(
                 "feature_space_id must match the feature space used to fit the "
                 "model; set feature_space_id during fit to enable this check"
             )
         return resolved
 
-    def build_candidates(
+    def build(
         self,
         *,
         item_ids: Sequence[Hashable] | np.ndarray,
@@ -805,10 +743,10 @@ class BaseColdStartRecommender(ABC):
         """Add or update candidates and atomically publish a new snapshot."""
         ids = canonical_item_ids(item_ids)
         candidate_metadata = canonical_metadata(metadata, item_ids=ids)
-        features = self._prepare_catalog_features(ids, item_features)
-        resolved_space = self._resolve_catalog_feature_space_id(feature_space_id)
-        with self._catalog_lock:
-            current = self.candidates
+        features = self._prepare_features(ids, item_features)
+        resolved_space = self._resolve_feature_space_id(feature_space_id)
+        with self._lock:
+            current = self.snapshot()
             catalog = _make_catalog(
                 item_ids=ids,
                 item_features=features,
@@ -816,11 +754,11 @@ class BaseColdStartRecommender(ABC):
                 feature_space_id=resolved_space,
                 version=current.version + 1,
             )
-            self._candidates = catalog
-            self._on_catalog_published(catalog)
+            self._snapshot = catalog
+            self._notify(catalog)
         return catalog
 
-    def update_candidates(
+    def update(
         self,
         *,
         item_ids: Sequence[Hashable] | np.ndarray,
@@ -834,10 +772,10 @@ class BaseColdStartRecommender(ABC):
             raise ValueError("on_conflict must be 'error', 'replace', or 'ignore'")
         ids = canonical_item_ids(item_ids)
         incoming_metadata = canonical_metadata(metadata, item_ids=ids)
-        incoming_features = self._prepare_catalog_features(ids, item_features)
-        resolved_space = self._resolve_catalog_feature_space_id(feature_space_id)
-        with self._catalog_lock:
-            current = self.candidates
+        incoming_features = self._prepare_features(ids, item_features)
+        resolved_space = self._resolve_feature_space_id(feature_space_id)
+        with self._lock:
+            current = self.snapshot()
             conflicts = np.array(
                 [item_id in current.id_to_row for item_id in ids.tolist()],
                 dtype=bool,
@@ -884,8 +822,8 @@ class BaseColdStartRecommender(ABC):
                 feature_space_id=resolved_space,
                 version=current.version + 1,
             )
-            self._candidates = catalog
-            self._on_catalog_published(catalog)
+            self._snapshot = catalog
+            self._notify(catalog)
         return catalog
 
     @staticmethod
@@ -935,7 +873,7 @@ class BaseColdStartRecommender(ABC):
             ].to_numpy()
         return result.reset_index(drop=True)
 
-    def remove_candidates(
+    def remove(
         self,
         item_ids: Sequence[Hashable] | np.ndarray,
         *,
@@ -944,8 +882,8 @@ class BaseColdStartRecommender(ABC):
         if missing not in {"error", "ignore"}:
             raise ValueError("missing must be 'error' or 'ignore'")
         ids = canonical_item_ids(item_ids)
-        with self._catalog_lock:
-            current = self.candidates
+        with self._lock:
+            current = self.snapshot()
             unknown = [
                 item_id for item_id in ids.tolist() if item_id not in current.id_to_row
             ]
@@ -975,8 +913,8 @@ class BaseColdStartRecommender(ABC):
                 feature_space_id=current.feature_space_id,
                 version=current.version + 1,
             )
-            self._candidates = catalog
-            self._on_catalog_published(catalog)
+            self._snapshot = catalog
+            self._notify(catalog)
         return catalog
 
     def align_source(
@@ -986,15 +924,15 @@ class BaseColdStartRecommender(ABC):
         item_ids: Sequence[Hashable] | np.ndarray,
     ) -> csr_matrix:
         """Align external sparse columns to the fitted source vocabulary."""
-        if self.source_vocabulary_ is None:
-            raise RuntimeError("model must be fitted before aligning source data")
-        return self.source_vocabulary_.align_csr(source, item_ids=item_ids)
+        if self._source_vocabulary is None:
+            raise RuntimeError(_NOT_INSTALLED)
+        return self._source_vocabulary.align_csr(source, item_ids=item_ids)
 
-    def _resolve_candidate_selection(
+    def resolve_selection(
         self,
         candidate_ids: Sequence[Hashable] | np.ndarray | None,
     ) -> CandidateSelection:
-        catalog = self.candidates
+        catalog = self.snapshot()
         rows = (
             np.arange(catalog.n_items, dtype=np.int64)
             if candidate_ids is None
@@ -1005,14 +943,14 @@ class BaseColdStartRecommender(ABC):
             if rows.size == catalog.n_items
             else take_features(catalog.item_features, rows)
         )
-        assert self.source_item_ids_ is not None
+        assert self._source_item_ids is not None
         source_to_candidate = np.fromiter(
             (
                 catalog.id_to_row.get(item_id, -1)
-                for item_id in self.source_item_ids_.tolist()
+                for item_id in self._source_item_ids.tolist()
             ),
             dtype=np.int64,
-            count=self.source_item_ids_.size,
+            count=self._source_item_ids.size,
         )
         candidate_to_local = np.full(catalog.n_items, -1, dtype=np.int64)
         candidate_to_local[rows] = np.arange(rows.size, dtype=np.int64)
@@ -1023,6 +961,238 @@ class BaseColdStartRecommender(ABC):
             source_to_candidate=source_to_candidate,
             candidate_to_local=candidate_to_local,
         )
+
+
+@runtime_checkable
+class ColdStartRecommender(Recommender, Protocol):
+    """Recommender with distinct identified source and candidate spaces.
+
+    The source vocabulary is no longer a member here: it lives on the catalog
+    the model owns, reachable as ``model.candidates.source_vocabulary``.
+    """
+
+    @property
+    def candidates(self) -> MutableCandidateCatalog: ...
+
+    def align_source(
+        self,
+        source: csr_matrix,
+        *,
+        item_ids: Sequence[Hashable] | np.ndarray,
+    ) -> csr_matrix: ...
+
+    def build_candidates(
+        self,
+        *,
+        item_ids: Sequence[Hashable] | np.ndarray,
+        item_features: ItemFeatures,
+        metadata: pd.DataFrame | None = None,
+        feature_space_id: str | None = None,
+    ) -> CandidateCatalog: ...
+
+    def update_candidates(
+        self,
+        *,
+        item_ids: Sequence[Hashable] | np.ndarray,
+        item_features: ItemFeatures,
+        metadata: pd.DataFrame | None = None,
+        on_conflict: CandidateConflict = "error",
+        feature_space_id: str | None = None,
+    ) -> CandidateCatalog: ...
+
+    def remove_candidates(
+        self,
+        item_ids: Sequence[Hashable] | np.ndarray,
+        *,
+        missing: Literal["error", "ignore"] = "error",
+    ) -> CandidateCatalog: ...
+
+
+class BaseColdStartRecommender(ABC):
+    """Reusable base for feature-driven cold-start recommenders that read a matrix.
+
+    Subclasses implement :meth:`fit`, :attr:`is_fitted`, and
+    :meth:`predict_on_batch`. The catalog lifecycle is *owned* rather than
+    inherited: :attr:`candidates` is a :class:`MutableCandidateCatalog` holding
+    the fitted source vocabulary, the current snapshot and the operations over
+    them. The methods below are a facade over it, kept because they are the
+    documented model surface.
+
+    That composition is why this class is only about reading a ``csr_matrix``
+    source. A cold-capable model that reads ordered histories owns the same
+    catalog from :class:`~compresso_recsys.models.BaseSequentialRecommender`
+    instead, rather than needing a fourth base class or multiple inheritance.
+
+    Subclass constructors must call ``super().__init__()``. During fitting, call
+    ``self.candidates.install(...)`` after learning the source encoder to publish
+    the initial catalog.
+    """
+
+    def __init__(self) -> None:
+        # The hook is passed in rather than discovered, so the catalog notifies
+        # its owner without knowing what an owner is.
+        self.candidates = MutableCandidateCatalog(
+            on_publish=self._on_catalog_published
+        )
+
+    @property
+    @abstractmethod
+    def is_fitted(self) -> bool:
+        """Whether the model is ready for prediction."""
+
+    @abstractmethod
+    def fit(
+        self,
+        interactions: csr_matrix,
+        item_features: ItemFeatures,
+        **kwargs,
+    ) -> BaseColdStartRecommender:
+        """Fit a source encoder and publish the initial candidate catalog."""
+
+    @abstractmethod
+    def predict_on_batch(
+        self,
+        source: csr_matrix,
+        *,
+        k: int,
+        exclude_seen: bool = True,
+        candidate_ids: Sequence[Hashable] | np.ndarray | None = None,
+    ) -> SRPTensor:
+        """Return ranked predictions against the current candidate catalog."""
+
+    def _prepare_source(self, source: csr_matrix) -> csr_matrix:
+        """Validate source columns against the fitted source vocabulary."""
+        vocabulary = self.candidates.source_vocabulary
+        if not self.is_fitted or vocabulary is None:
+            raise RuntimeError(
+                f"{type(self).__name__} must be fitted before prediction"
+            )
+        source = canonical_csr(source, name="source")
+        if source.shape[1] != vocabulary.n_items:
+            raise ValueError(
+                f"source has {source.shape[1]} items, but "
+                f"{type(self).__name__} was fitted with "
+                f"{vocabulary.n_items} source items"
+            )
+        return source
+
+    def predict(
+        self,
+        source: csr_matrix,
+        *,
+        k: int = 100,
+        batch_size: int = 1024,
+        exclude_seen: bool = True,
+        candidate_ids: Sequence[Hashable] | np.ndarray | None = None,
+        show_progress: bool = False,
+    ) -> SRPTensor:
+        """Predict all source rows by repeatedly calling ``predict_on_batch``."""
+        source = self._prepare_source(source)
+        if batch_size < 1:
+            raise ValueError("batch_size must be >= 1")
+        catalog = self.candidates.snapshot()
+        selected_items = (
+            catalog.n_items
+            if candidate_ids is None
+            else catalog.rows_for(candidate_ids).size
+        )
+        if not 1 <= int(k) <= selected_items:
+            raise ValueError(f"k must be in [1, {selected_items}], got {k}")
+
+        columns: list[torch.Tensor] = []
+        values: list[torch.Tensor] = []
+        starts = range(0, source.shape[0], batch_size)
+        if show_progress:
+            try:
+                from tqdm.auto import tqdm
+
+                starts = tqdm(
+                    starts,
+                    desc=f"{type(self).__name__} predict@{k}",
+                )
+            except Exception:  # pragma: no cover - optional display helper
+                pass
+        for start in starts:
+            result = self.predict_on_batch(
+                source[start : start + batch_size],
+                k=k,
+                exclude_seen=exclude_seen,
+                candidate_ids=candidate_ids,
+            )
+            if result.cols_total != catalog.n_items:
+                raise ValueError(
+                    "predict_on_batch() item count must match the candidate catalog"
+                )
+            columns.append(result.cols)
+            values.append(result.vals)
+
+        if not columns:
+            return self.predict_on_batch(
+                source,
+                k=k,
+                exclude_seen=exclude_seen,
+                candidate_ids=candidate_ids,
+            )
+        return SRPTensor(
+            cols=torch.vstack(columns),
+            vals=torch.vstack(values),
+            shape=(source.shape[0], catalog.n_items),
+            validate=False,
+        )
+    def _on_catalog_published(self, catalog: CandidateCatalog) -> None:
+        """Called with each new snapshot, for dropping caches derived from it."""
+
+    def build_candidates(
+        self,
+        *,
+        item_ids: Sequence[Hashable] | np.ndarray,
+        item_features: ItemFeatures,
+        metadata: pd.DataFrame | None = None,
+        feature_space_id: str | None = None,
+    ) -> CandidateCatalog:
+        """Atomically replace the complete candidate catalog."""
+        return self.candidates.build(
+            item_ids=item_ids,
+            item_features=item_features,
+            metadata=metadata,
+            feature_space_id=feature_space_id,
+        )
+
+    def update_candidates(
+        self,
+        *,
+        item_ids: Sequence[Hashable] | np.ndarray,
+        item_features: ItemFeatures,
+        metadata: pd.DataFrame | None = None,
+        on_conflict: CandidateConflict = "error",
+        feature_space_id: str | None = None,
+    ) -> CandidateCatalog:
+        """Add or update candidates and atomically publish a new snapshot."""
+        return self.candidates.update(
+            item_ids=item_ids,
+            item_features=item_features,
+            metadata=metadata,
+            on_conflict=on_conflict,
+            feature_space_id=feature_space_id,
+        )
+
+    def remove_candidates(
+        self,
+        item_ids: Sequence[Hashable] | np.ndarray,
+        *,
+        missing: Literal["error", "ignore"] = "error",
+    ) -> CandidateCatalog:
+        """Remove registered candidates and publish a new snapshot."""
+        return self.candidates.remove(item_ids, missing=missing)
+
+    def align_source(
+        self,
+        source: csr_matrix,
+        *,
+        item_ids: Sequence[Hashable] | np.ndarray,
+    ) -> csr_matrix:
+        """Align external sparse columns to the fitted source vocabulary."""
+        return self.candidates.align_source(source, item_ids=item_ids)
 
 
 class _LinearFeatureRecommenderMixin(BaseColdStartRecommender):
@@ -1164,7 +1334,7 @@ class _LinearFeatureRecommenderMixin(BaseColdStartRecommender):
     ) -> SRPTensor:
         """Predict ranked top-``k`` items for one source batch."""
         source = self._prepare_source(source)
-        selection = self._resolve_candidate_selection(candidate_ids)
+        selection = self.candidates.resolve_selection(candidate_ids)
         return self._predict_prepared_batch(
             source,
             k=k,
@@ -1190,7 +1360,7 @@ class _LinearFeatureRecommenderMixin(BaseColdStartRecommender):
         source = self._prepare_source(source)
         if batch_size < 1:
             raise ValueError("batch_size must be >= 1")
-        selection = self._resolve_candidate_selection(candidate_ids)
+        selection = self.candidates.resolve_selection(candidate_ids)
         if not 1 <= int(k) <= selection.rows.size:
             raise ValueError(f"k must be in [1, {selection.rows.size}], got {k}")
 

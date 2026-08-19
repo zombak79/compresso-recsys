@@ -85,6 +85,20 @@ change.
   row's own final state rather than the last column, which under right padding
   would score most users from a pad embedding; `exclude_seen` masks the whole
   history including the part `max_length` truncated away.
+- `MutableCandidateCatalog`, the candidate-catalog lifecycle as an owned object:
+  the lock, the current snapshot, the fitted source vocabulary, and the
+  operations that publish, extend, shrink and align against them.
+  `CandidateCatalog` was always a standalone immutable snapshot; what was stuck
+  inside `BaseColdStartRecommender` was the lifecycle around it, which made
+  "cold-capable" and "inherits that base" the same statement. Adding the
+  sequential axis would then have forced multiple inheritance or a fourth base
+  class for two independent ideas. Composition rather than a mixin, because the
+  state is what decides it: a mixin would install nine attributes on whatever
+  class it is mixed into, six of them public, and two stateful mixins
+  initialising through `super().__init__()` is where MRO pain lives. Reads go
+  through `snapshot()` rather than forwarded properties, so several reads cannot
+  straddle a concurrent republish. `on_publish` notifies the owner while the lock
+  is held, which is how a model drops caches derived from the previous snapshot.
 - `ItemSequences.select_rows`, the non-contiguous counterpart to `take_rows`,
   which is what shuffling a training set needs.
 - An end-to-end test spanning one `leave_last_out` build, a checkpoint round
@@ -108,6 +122,26 @@ change.
 
 ### Changed
 
+- **Breaking.** The six fitted `source_*_` attributes moved onto the owned
+  catalog: `model.source_item_ids_` is now `model.candidates.source_item_ids`,
+  and likewise for `source_vocabulary_`, `source_id_to_row_`,
+  `source_popularity_`, `feature_space_id_` and `n_input_features_`. No
+  forwarding properties — that would give one piece of state two names for the
+  sake of a convention.
+- **Breaking.** `model.candidates` is the `MutableCandidateCatalog`, not a
+  snapshot. Reading a field off it becomes `model.candidates.snapshot().n_items`.
+  `n_items` is the one convenience kept directly on the holder, because it must
+  answer before a catalog is installed. `n_candidates_` is removed in its favour.
+- **Breaking.** `_install_feature_catalog` and `_resolve_candidate_selection` are
+  gone from `BaseColdStartRecommender`; a subclass calls
+  `self.candidates.install(...)` and `self.candidates.resolve_selection(...)`.
+  `build_candidates`, `update_candidates`, `remove_candidates` and
+  `align_source` are unchanged on the model, now as a facade over the owned
+  catalog.
+- **Breaking.** The `ColdStartRecommender` protocol no longer requires a
+  `source_vocabulary_` member, and its `candidates` is now a
+  `MutableCandidateCatalog`. Structural checks against it are unaffected
+  otherwise.
 - **Breaking.** `leave_last_out` derives its minimum history from the support
   arguments rather than hardcoding it: the structural floor of four, raised by
   `min_user_support`, and by `min_source_items` plus the three stage targets.

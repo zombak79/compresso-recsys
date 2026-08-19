@@ -17,6 +17,7 @@ from .cold_start import (
     CandidateCatalog,
     ColdStartRecommender,
     ItemVocabulary,
+    MutableCandidateCatalog,
     WarmCatalogAdapter,
 )
 from .content import ContentRecommender, ContentRecommenderConfig
@@ -54,6 +55,7 @@ __all__ = [
     "SimpleRNNTrainer",
     "SequentialRecommender",
     "ItemVocabulary",
+    "MutableCandidateCatalog",
     "InteractionBatch",
     "InteractionBatchSampler",
     "dense_training_target",

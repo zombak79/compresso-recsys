@@ -133,6 +133,7 @@ def test_submodule_public_apis_are_intentional():
             "ELSAConfig",
             "ELSATrainer",
             "ItemVocabulary",
+            "MutableCandidateCatalog",
             "InteractionBatch",
             "InteractionBatchSampler",
             "dense_training_target",

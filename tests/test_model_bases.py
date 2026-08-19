@@ -78,7 +78,7 @@ class _ContentModel(BaseColdStartRecommender):
         if interactions.shape[1] != len(item_ids):
             raise ValueError("interactions and item_ids must have matching items")
         self.source_features_ = features.copy()
-        self._install_feature_catalog(
+        self.candidates.install(
             source_item_ids=item_ids,
             source_popularity=np.zeros(len(item_ids), dtype=np.float32),
             n_input_features=features.shape[1],
@@ -100,7 +100,7 @@ class _ContentModel(BaseColdStartRecommender):
     ) -> SRPTensor:
         source = self._prepare_source(source)
         assert self.source_features_ is not None
-        selection = self._resolve_candidate_selection(candidate_ids)
+        selection = self.candidates.resolve_selection(candidate_ids)
         profiles = np.asarray(source @ self.source_features_)
         scores = profiles @ np.asarray(selection.features).T
         if exclude_seen:
@@ -118,7 +118,7 @@ class _ContentModel(BaseColdStartRecommender):
         return SRPTensor(
             cols=catalog_rows[local.cols],
             vals=local.vals,
-            shape=(source.shape[0], self.candidates.n_items),
+            shape=(source.shape[0], self.candidates.snapshot().n_items),
         )
 
 
@@ -166,7 +166,7 @@ def test_cold_start_base_supplies_catalog_lifecycle_and_batched_predict():
     )
 
     assert predictions.shape == (2, 3)
-    assert model.candidates.item_ids.tolist() == ["a", "b", "cold"]
+    assert model.candidates.snapshot().item_ids.tolist() == ["a", "b", "cold"]
     assert predictions.cols[:, 0].tolist() == [2, 2]
 
 

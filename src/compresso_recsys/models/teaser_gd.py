@@ -554,7 +554,7 @@ class TEASERGDTrainer(BaseColdStartRecommender):
         self.n_items_ = n_items
         self.n_features_ = int(training_features.shape[1])
         self.history = []
-        self._install_feature_catalog(
+        self.candidates.install(
             source_item_ids=resolved_ids,
             source_popularity=source_popularity,
             n_input_features=int(features.shape[1]),
@@ -860,7 +860,7 @@ class TEASERGDTrainer(BaseColdStartRecommender):
     ) -> SRPTensor:
         """Predict one batch against the current or restricted catalog."""
         source = self._prepare_source(source)
-        selection = self._resolve_candidate_selection(candidate_ids)
+        selection = self.candidates.resolve_selection(candidate_ids)
         return self._predict_prepared_batch(
             source,
             k=k,
@@ -883,7 +883,7 @@ class TEASERGDTrainer(BaseColdStartRecommender):
         source = self._prepare_source(source)
         if batch_size < 1:
             raise ValueError("batch_size must be >= 1")
-        selection = self._resolve_candidate_selection(candidate_ids)
+        selection = self.candidates.resolve_selection(candidate_ids)
         candidate_features = self._selection_tensor(selection)
         columns: list[torch.Tensor] = []
         values: list[torch.Tensor] = []
