@@ -26,6 +26,18 @@ updated independently.
 .. autoclass:: compresso_recsys.models.ItemVocabulary
    :members:
 
+Models that read chronological histories implement
+:class:`compresso_recsys.models.SequentialRecommender` instead. It is the same
+one-method contract, differing only in what a source is: an
+:class:`compresso_recsys.ItemSequences` rather than a ``csr_matrix``.
+:func:`compresso_recsys.evaluation.evaluate_recommender` accepts either, asking a
+source only for its row count and a row slice, so a sequential model and a matrix
+model can appear in one :func:`compresso_recsys.stats.compare_models` call with
+no statistics-side changes.
+
+.. autoclass:: compresso_recsys.models.SequentialRecommender
+   :members:
+
 Implementing New Models
 -----------------------
 
@@ -57,6 +69,32 @@ columns in the complete catalog space.
 .. autoclass:: compresso_recsys.models.BaseColdStartRecommender
    :members:
    :private-members: _install_feature_catalog, _prepare_source, _resolve_candidate_selection
+
+Use :class:`compresso_recsys.models.BaseSequentialRecommender` for a model that
+reads ordered histories. It is parallel to
+:class:`compresso_recsys.models.BaseCollaborativeRecommender` rather than derived
+from it, because crossing the two source representations with cold-start
+capability in the type hierarchy would give four classes for two ideas. Candidate
+capability is composed instead: a model that scores unseen items owns a catalog
+rather than inheriting one. Implement ``is_fitted``, ``n_items`` and
+``predict_on_batch``; the base supplies ``predict`` with bounded batching over
+row slices.
+
+``fit`` is deliberately outside the contract. Trainers keep the package's
+existing ``SomeTrainer(config).fit(data)`` shape and a fitted model owes only
+prediction.
+
+The base is careful not to assume two things. ``n_items`` describes what can be
+*scored*, which need not be the vocabulary a history is expressed over — a
+truncated or hashed context, or a cold-capable model scoring items that appear in
+no history at all. And truncation is not exclusion: ``exclude_seen=True`` must
+mask every item in the *full* history handed to it, even where the encoder reads
+only a suffix. A model attending to the last 200 interactions must still refuse
+to recommend the 201st.
+
+.. autoclass:: compresso_recsys.models.BaseSequentialRecommender
+   :members:
+   :private-members: _prepare_source
 
 Training Interaction Batches
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -440,4 +478,143 @@ the training device.
    :members:
 
 .. autoclass:: compresso_recsys.models.ELSATrainer
+   :members:
+
+Sequential Models
+-----------------
+
+Batching Histories
+~~~~~~~~~~~~~~~~~~
+
+:class:`compresso_recsys.ItemSequences` holds no padding, no special tokens and no
+length limit, because those are modelling decisions. Several of them are the
+*same* across sequential architectures, though, and re-deriving them per model is
+how off-by-one bugs get in.
+:class:`compresso_recsys.models.SequenceBatcher` owns exactly the shared part:
+where special tokens live in the vocabulary, how a ragged batch becomes a dense
+tensor, which positions are real, and how far back to look.
+
+The vocabulary puts the catalog first and appends special tokens::
+
+   catalog index i  ->  token i          (the identity)
+   "pad"            ->  token n_items
+   "mask"           ->  token n_items + 1
+
+That ordering exists so **catalog token ids never move**. Reserving ids at the
+front, as text models do, would mean introducing a second special token shifts
+every item by one and invalidates any model already trained. Appending instead
+keeps ``logits[..., :n_items]`` the catalog scores under any future vocabulary,
+which :meth:`~compresso_recsys.models.SequenceBatcher.catalog_logits` states
+where it is relied on.
+
+``pad_side`` is the setting architectures genuinely disagree about. With
+``"right"`` the content comes first: an RNN reads to each row's own final
+position, so trailing padding costs nothing. With ``"left"`` the newest
+interaction sits at a fixed index, which is what a causal transformer wants so
+that prediction always reads position ``-1``. ``max_length`` truncates to the
+**most recent** interactions, the only sensible direction, since a context window
+is a claim about recency rather than about where a history happened to start.
+
+:meth:`~compresso_recsys.models.SequenceBatcher.final_positions` and
+:meth:`~compresso_recsys.models.SequenceBatcher.gather_final` exist for the single
+easiest thing to get wrong. Under right padding the last *column* is padding for
+every row shorter than the batch maximum, so reading ``states[:, -1]`` silently
+scores most users from a pad embedding — and agrees with itself at
+``batch_size=1``, where every row fills its own batch, which is what makes the bug
+survive casual testing. Empty rows report position 0, which is padding; pair the
+position with :meth:`~compresso_recsys.models.SequenceBatcher.has_history` rather
+than trusting it alone.
+
+What the batcher deliberately does not own is a training objective. A next-item
+shift, a masked-position target and sampled negatives differ between
+architectures, and a component with three mutually exclusive modes is not an
+abstraction. Those stay in trainers.
+
+.. code-block:: python
+
+   from compresso_recsys.models import SequenceBatcher
+
+   batcher = SequenceBatcher(n_items=3295, max_length=200, pad_side="right")
+   tokens, mask = batcher.encode(split["test_source_sequences"], device="cuda")
+   states = model(tokens)                        # (rows, length, hidden)
+   final = batcher.gather_final(states, mask)    # (rows, hidden)
+
+.. autoclass:: compresso_recsys.models.SequenceBatcher
+   :members:
+
+SimpleRNN
+~~~~~~~~~
+
+SimpleRNN is a GRU or LSTM trained on next-item cross entropy at every position,
+one training example per user. It is the smallest model that actually uses order,
+which makes it the baseline a transformer has to beat before its extra machinery
+has earned anything.
+
+Training reads each history left to right and predicts the following item::
+
+   tokens   [a, b, c, PAD, PAD]      mask   [T, T, T, F, F]
+   inputs   [a, b, c, PAD]
+   targets  [b, c, PAD, PAD]         valid  [T, T, F, F]
+
+Under right padding, ``mask[:, 1:]`` is exactly the set of positions whose target
+is a real item, so no arithmetic over lengths is needed and padding can never
+become a target. The head scores ``n_items`` rather than the full vocabulary: a
+special token is never a target, so an output column for it could only learn to be
+wrong, and a shift bug raises an index error instead of scoring plausibly.
+
+A history of one interaction yields no training example, since a next-item target
+needs a preceding item. Such rows remain predictable, and an entirely empty
+history yields the state after a single pad — identical for every empty row, so
+effectively a learned prior.
+
+``history`` records the mean loss per epoch alongside the number of positions it
+was averaged over. That count is worth reading rather than assuming: it is
+``sum(min(length, max_length) - 1)``, so it reports what truncation costs. On
+MovieLens-1M under ``leave_last_out``, the default ``max_length=200`` puts 697 of
+6,033 users over the window and drops 80k of 543k training positions.
+
+Tied embeddings, learning-rate schedules, early stopping and sampled softmax are
+all deliberately absent. This is a baseline, and each of those is a separate
+claim that deserves to be measured on its own.
+
+.. code-block:: python
+
+   from compresso_recsys.evaluation import evaluate_recommender
+   from compresso_recsys.metrics import CalibratedRecall, NDCG
+   from compresso_recsys.models import SimpleRNNConfig, SimpleRNNTrainer
+
+   model = SimpleRNNTrainer(
+       SimpleRNNConfig(
+           rnn_type="gru",
+           embedding_dim=64,
+           hidden_dim=128,
+           epochs=8,
+           batch_size=256,
+           lr=3e-3,
+           max_length=200,
+       )
+   ).fit(split["x_train_sequences"])
+
+   result = evaluate_recommender(
+       model,
+       source=split["test_source_sequences"],
+       targets=split["test_target_matrix"],
+       metrics=[CalibratedRecall(20), NDCG(20)],
+       batch_size=512,
+   )
+
+On MovieLens-1M with ``min_value_to_keep=4.0`` under ``leave_last_out``, that
+configuration reaches ``ndcg@20 = 0.132`` against ``0.070`` for EASE at
+``l2=200``. The gap is expected rather than impressive: the protocol scores one
+held-out final interaction per user, and EASE has no notion of recency to bring to
+it. The loss is still falling at the eighth epoch, so the number is a
+verification that the wiring works, not a tuned result.
+
+.. autoclass:: compresso_recsys.models.SimpleRNNConfig
+   :members:
+
+.. autoclass:: compresso_recsys.models.SimpleRNN
+   :members:
+
+.. autoclass:: compresso_recsys.models.SimpleRNNTrainer
    :members:

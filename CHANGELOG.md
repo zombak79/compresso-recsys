@@ -87,6 +87,10 @@ change.
   history including the part `max_length` truncated away.
 - `ItemSequences.select_rows`, the non-contiguous counterpart to `take_rows`,
   which is what shuffling a training set needs.
+- `docs/api/sequences` and a sequential section of `docs/api/models`, covering
+  what a sequence holds and deliberately does not, which split modes produce
+  one, the sequential contract and base, the vocabulary layout, and why
+  prediction reads a gathered final position rather than the last column.
 - `save_recsys_split` enforces `x_train = train_source_matrix ∪
   train_target_matrix` and refuses a checkpoint whose training keys disagree.
   The relationship was already true of every split mode but nothing checked it,

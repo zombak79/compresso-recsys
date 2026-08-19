@@ -171,7 +171,7 @@ class SimpleRNNTrainer(BaseSequentialRecommender):
         )
         result = evaluate_recommender(
             model, source=split["test_source_sequences"],
-            targets=split["test_holdout"], metrics=[NDCG(20)],
+            targets=split["test_target_matrix"], metrics=[NDCG(20)],
         )
 
     Users with fewer than two interactions contribute no training example, since
@@ -179,6 +179,12 @@ class SimpleRNNTrainer(BaseSequentialRecommender):
     history the model can read yields its state, and an empty history yields the
     state after a single pad, which is the same for every empty row and therefore
     a learned popularity-like prior.
+
+    :attr:`history` records one entry per epoch carrying the mean loss and the
+    number of positions it was averaged over. That count is worth reading rather
+    than assuming: it is ``sum(min(length, max_length) - 1)``, so it shows what
+    truncation costs. On MovieLens-1M with the default ``max_length=200``, 697 of
+    6,033 users exceed the window and 80k of 543k training positions are dropped.
     """
 
     def __init__(self, config: SimpleRNNConfig | None = None) -> None:
