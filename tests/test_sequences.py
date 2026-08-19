@@ -206,3 +206,26 @@ def test_empty_round_trips(tmp_path):
 
     assert loaded.n_rows == 0
     assert loaded.n_items == 4
+
+
+def test_select_rows_takes_a_non_contiguous_selection_in_order():
+    """What shuffling a training set needs, which take_rows cannot express."""
+    s = _seqs([[1], [2, 3], [4, 5, 6], [7]])
+
+    picked = s.select_rows([2, 0, 3])
+
+    assert picked.n_rows == 3
+    assert [picked.row(i).tolist() for i in range(3)] == [[4, 5, 6], [1], [7]]
+    assert picked.n_items == s.n_items
+
+
+def test_select_rows_may_repeat_and_may_be_empty():
+    s = _seqs([[1], [2, 3]])
+
+    assert [s.select_rows([1, 1]).row(i).tolist() for i in range(2)] == [[2, 3], [2, 3]]
+    assert s.select_rows([]).n_rows == 0
+
+
+def test_select_rows_refuses_an_out_of_range_index():
+    with pytest.raises(IndexError, match=r"must lie in \[0, 2\)"):
+        _seqs([[1], [2]]).select_rows([0, 5])

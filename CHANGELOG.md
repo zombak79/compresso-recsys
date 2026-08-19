@@ -68,6 +68,25 @@ change.
   `test_source_sequences`; `user_split` and `item_split` carry none, having no
   ordering to preserve. Each sequence addresses the same rows and columns as the
   matrix it accompanies.
+- `SequenceBatcher`, the encoding step shared by sequential architectures:
+  where special tokens live in the vocabulary, how a ragged batch becomes a
+  dense tensor, which positions are real, and how far back to look. Catalog ids
+  are the identity and special tokens are appended, so adding a second special
+  token cannot shift items out from under an already-trained model.
+  `pad_side="right"` suits an RNN reading to each row's own final position and
+  `"left"` a causal transformer reading position `-1`; `max_length` truncates to
+  the most recent interactions. It deliberately owns no training objective —
+  next-item shift, masked positions and sampled negatives differ per
+  architecture and stay in trainers.
+- `SimpleRNN`, `SimpleRNNConfig` and `SimpleRNNTrainer`: a GRU or LSTM trained
+  on next-item cross entropy at every position, one example per user. The
+  smallest model that actually uses order, and so the baseline a transformer has
+  to beat before its extra machinery has earned anything. Prediction reads each
+  row's own final state rather than the last column, which under right padding
+  would score most users from a pad embedding; `exclude_seen` masks the whole
+  history including the part `max_length` truncated away.
+- `ItemSequences.select_rows`, the non-contiguous counterpart to `take_rows`,
+  which is what shuffling a training set needs.
 - `save_recsys_split` enforces `x_train = train_source_matrix ∪
   train_target_matrix` and refuses a checkpoint whose training keys disagree.
   The relationship was already true of every split mode but nothing checked it,

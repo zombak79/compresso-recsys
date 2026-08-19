@@ -176,6 +176,22 @@ class ItemSequences:
             n_items=self.n_items,
         )
 
+    def select_rows(self, indices: np.ndarray | list[int]) -> "ItemSequences":
+        """Rows named by ``indices``, in the order given.
+
+        The counterpart to :meth:`take_rows` for a non-contiguous selection,
+        which is what shuffling a training set needs.
+        """
+        wanted = np.asarray(indices, dtype=_INDEX_DTYPE).ravel()
+        if wanted.size and (wanted.min() < 0 or wanted.max() >= self.n_rows):
+            raise IndexError(
+                f"row indices must lie in [0, {self.n_rows}), got range "
+                f"[{int(wanted.min())}, {int(wanted.max())}]"
+            )
+        return ItemSequences.from_rows(
+            [self.row(int(index)) for index in wanted], n_items=self.n_items
+        )
+
     def __getitem__(self, key: slice) -> "ItemSequences":
         if not isinstance(key, slice):
             raise TypeError(

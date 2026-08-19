@@ -28,6 +28,7 @@ from .elsa import (
     ELSAConfig,
     ELSATrainer,
 )
+from .simple_rnn import SimpleRNN, SimpleRNNConfig, SimpleRNNTrainer
 from .teaser import TEASER, TEASERConfig
 from .teaser_gd import TEASERGD, TEASERGDConfig, TEASERGDTrainer
 
@@ -48,6 +49,9 @@ __all__ = [
     "ELSATrainer",
     "Recommender",
     "SequenceBatcher",
+    "SimpleRNN",
+    "SimpleRNNConfig",
+    "SimpleRNNTrainer",
     "SequentialRecommender",
     "ItemVocabulary",
     "InteractionBatch",
