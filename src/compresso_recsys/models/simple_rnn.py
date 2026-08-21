@@ -180,8 +180,8 @@ class SimpleRNNTrainer(BaseSequentialRecommender):
     state after a single pad, which is the same for every empty row and therefore
     a learned popularity-like prior.
 
-    :attr:`history` records one entry per epoch carrying the mean loss and the
-    number of positions it was averaged over. That count is worth reading rather
+    :attr:`history` records one entry per epoch, numbered from one as ELSA's is,
+    carrying the mean loss and the number of positions it was averaged over. That count is worth reading rather
     than assuming: it is ``sum(min(length, max_length) - 1)``, so it shows what
     truncation costs. On MovieLens-1M with the default ``max_length=200``, 697 of
     6,033 users exceed the window and 80k of 543k training positions are dropped.
@@ -256,13 +256,25 @@ class SimpleRNNTrainer(BaseSequentialRecommender):
         n_rows = sequences.n_rows
         batch_size = self.cfg.batch_size
         starts = range(0, n_rows, batch_size)
-        bar = _progress_bar(
-            self.cfg.show_progress, self.cfg.epochs * len(starts), "training"
+        # Two bars, as ELSA draws them: epochs outside, batches inside. The
+        # inner bar is created once and rewound per epoch rather than a finished
+        # one being left behind for each.
+        epoch_iter = _progress(
+            self.cfg.show_progress,
+            range(1, self.cfg.epochs + 1),
+            total=self.cfg.epochs,
+            desc="SimpleRNN fit",
+        )
+        batch_bar = _progress_bar(
+            self.cfg.show_progress, total=len(starts), desc="SimpleRNN epoch 1"
         )
         try:
-            for epoch in range(self.cfg.epochs):
+            for epoch in epoch_iter:
                 self.model.train()
                 order = rng.permutation(n_rows)
+                if batch_bar is not None:
+                    batch_bar.reset(total=len(starts))
+                    batch_bar.set_description(f"SimpleRNN epoch {epoch}")
                 loss_sum, positions = 0.0, 0
                 for start in starts:
                     batch = sequences.select_rows(order[start : start + batch_size])
@@ -271,8 +283,8 @@ class SimpleRNNTrainer(BaseSequentialRecommender):
                         batch_loss, batch_positions = step
                         loss_sum += batch_loss * batch_positions
                         positions += batch_positions
-                    if bar is not None:
-                        bar.update(1)
+                    if batch_bar is not None:
+                        batch_bar.update(1)
                 mean_loss = loss_sum / positions if positions else float("nan")
                 self.history.append(
                     {
@@ -281,11 +293,15 @@ class SimpleRNNTrainer(BaseSequentialRecommender):
                         "positions": float(positions),
                     }
                 )
-                if bar is not None:
-                    bar.set_postfix(loss=f"{mean_loss:.4f}")
+                if hasattr(epoch_iter, "set_postfix"):
+                    # Loss only: positions is fixed by the data and the context
+                    # window, so it belongs in history rather than on a live bar.
+                    epoch_iter.set_postfix({"loss": f"{mean_loss:.4f}"})
         finally:
-            if bar is not None:
-                bar.close()
+            if batch_bar is not None:
+                batch_bar.close()
+            if hasattr(epoch_iter, "close"):
+                epoch_iter.close()
 
         return self
 
@@ -375,12 +391,26 @@ class SimpleRNNTrainer(BaseSequentialRecommender):
         ] = -torch.inf
 
 
-def _progress_bar(enabled: bool, total: int, desc: str):
-    """A tqdm bar when asked for and available, otherwise nothing."""
-    if not enabled:
-        return None
+def _tqdm():
+    """The tqdm class, or ``None`` when it is not installed."""
     try:
         from tqdm.auto import tqdm
     except ImportError:  # pragma: no cover - optional dependency
+        return None
+    return tqdm
+
+
+def _progress(enabled: bool, iterable, *, total: int, desc: str):
+    """Wrap an iterable in a bar, or hand it back untouched."""
+    tqdm = _tqdm()
+    if not enabled or tqdm is None:
+        return iterable
+    return tqdm(iterable, total=total, desc=desc)
+
+
+def _progress_bar(enabled: bool, *, total: int, desc: str):
+    """A bar to drive by hand, or ``None`` when progress is unavailable."""
+    tqdm = _tqdm()
+    if not enabled or tqdm is None:
         return None
     return tqdm(total=total, desc=desc)

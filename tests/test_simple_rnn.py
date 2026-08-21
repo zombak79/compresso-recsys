@@ -193,8 +193,9 @@ def test_training_records_a_loss_per_epoch_and_reduces_it():
     losses = [record["loss"] for record in trainer.history]
 
     assert len(losses) == 40
+    # One-based, as ELSA's history is, so it agrees with the "epoch N" bar.
     assert [record["epoch"] for record in trainer.history] == [
-        float(i) for i in range(40)
+        float(i) for i in range(1, 41)
     ]
     assert losses[-1] < losses[0], losses[:3] + losses[-3:]
     # A cycle is fully determined by its last item, so the objective is
