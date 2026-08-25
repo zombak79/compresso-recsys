@@ -23,9 +23,11 @@ would score most users from a pad embedding. Prediction goes through
 :meth:`~compresso_recsys.models.sequence_batching.SequenceBatcher.gather_final`,
 which reads each row's own last real position.
 
-**Truncation is not exclusion.** ``max_length`` bounds what the encoder reads,
-not what the model may recommend: ``exclude_seen`` masks the whole history,
-including the part truncation dropped.
+**Truncation is not exclusion.** The batcher's ``max_length`` bounds what the
+encoder reads, not what the model may recommend: ``exclude_seen`` masks the whole
+history, including the part truncation dropped -- and, since a history may span a
+wider catalog than the model was fitted on, including nothing it could not have
+scored anyway.
 
 Tied embeddings, learning-rate schedules, early stopping and sampled softmax are
 all deliberately absent. This is a baseline, and every one of those is a
@@ -47,6 +49,7 @@ from compresso_recsys.sequences import ItemSequences
 
 from .base import BaseSequentialRecommender
 from .sequence_batching import SequenceBatcher
+from .tokenizer import ItemTokenizer
 
 __all__ = ["SimpleRNN", "SimpleRNNConfig", "SimpleRNNTrainer"]
 
@@ -58,13 +61,7 @@ OptimizerName = Literal["NAdam", "AdamW"]
 class SimpleRNNConfig:
     """Configuration for :class:`SimpleRNNTrainer`.
 
-    ``max_length`` bounds how far back the encoder reads, keeping cost per user
-    constant on datasets where a handful of users have thousands of
-    interactions. It is a claim about the model's memory only — the default of
-    200 follows the sequential-recommendation literature, and ``None`` reads
-    every history in full.
-
-    ``dropout`` is applied to the states before scoring, and additionally
+``dropout`` is applied to the states before scoring, and additionally
     between recurrent layers when ``num_layers > 1``. A single-layer RNN has no
     between-layer position to apply it, which is PyTorch's own behaviour rather
     than a choice made here.
@@ -75,7 +72,6 @@ class SimpleRNNConfig:
     hidden_dim: int = 256
     num_layers: int = 1
     dropout: float = 0.0
-    max_length: int | None = 200
     batch_size: int = 256
     epochs: int = 10
     lr: float = 1e-3
@@ -100,11 +96,6 @@ class SimpleRNNConfig:
             raise ValueError(f"dropout must be in [0, 1), got {self.dropout}")
         if self.lr <= 0.0:
             raise ValueError(f"lr must be > 0, got {self.lr}")
-        if self.max_length is not None and self.max_length < 2:
-            raise ValueError(
-                "max_length must be >= 2 when set, since a next-item objective "
-                f"needs two positions to form one example, got {self.max_length}"
-            )
 
 
 class SimpleRNN(nn.Module):
@@ -174,6 +165,20 @@ class SimpleRNNTrainer(BaseSequentialRecommender):
             targets=split["test_target_matrix"], metrics=[NDCG(20)],
         )
 
+    The encoder is a *parameter*, not something ``fit`` invents. Passing one is
+    how you change the context window, the padding side, or the vocabulary --
+    including giving it an ``unk`` slot so a later split stage's unseen items
+    become a token rather than an error::
+
+        batcher = SequenceBatcher(
+            ItemTokenizer(n_items, item_ids=split["train_item_ids"]),
+            max_length=50,
+        )
+        model = SimpleRNNTrainer(SimpleRNNConfig(), batcher).fit(sequences)
+
+    Without one, ``fit`` builds a default over the training catalog with
+    :attr:`DEFAULT_MAX_LENGTH` and right padding.
+
     Users with fewer than two interactions contribute no training example, since
     a next-item target needs a preceding item. They are still predictable: a
     history the model can read yields its state, and an empty history yields the
@@ -181,18 +186,26 @@ class SimpleRNNTrainer(BaseSequentialRecommender):
     a learned popularity-like prior.
 
     :attr:`history` records one entry per epoch, numbered from one as ELSA's is,
-    carrying the mean loss and the number of positions it was averaged over. That count is worth reading rather
-    than assuming: it is ``sum(min(length, max_length) - 1)``, so it shows what
-    truncation costs. On MovieLens-1M with the default ``max_length=200``, 697 of
-    6,033 users exceed the window and 80k of 543k training positions are dropped.
+    carrying the mean loss and the number of positions it was averaged over. That
+    count is worth reading rather than assuming: it is
+    ``sum(min(length, batcher.max_length) - 1)``, so it shows what truncation
+    costs. On MovieLens-1M at the default window of 200, 697 of 6,033 users
+    exceed it and 80k of 543k training positions are dropped.
     """
 
-    def __init__(self, config: SimpleRNNConfig | None = None) -> None:
+    #: Context window used when ``fit`` has to build its own batcher.
+    DEFAULT_MAX_LENGTH = 200
+
+    def __init__(
+        self,
+        config: SimpleRNNConfig | None = None,
+        batcher: SequenceBatcher | None = None,
+    ) -> None:
         self.cfg = config or SimpleRNNConfig()
         self.device = torch.device(self.cfg.device)
         self.history: list[dict[str, float]] = []
         self.model: SimpleRNN | None = None
-        self.batcher: SequenceBatcher | None = None
+        self.batcher = batcher
         self._n_items: int | None = None
 
     # -- contract -----------------------------------------------------------
@@ -226,23 +239,25 @@ class SimpleRNNTrainer(BaseSequentialRecommender):
         torch.manual_seed(int(self.cfg.seed))
         rng = np.random.default_rng(int(self.cfg.seed))
 
-        self._n_items = sequences.n_items
-        self.batcher = SequenceBatcher(
-            n_items=sequences.n_items,
-            max_length=self.cfg.max_length,
+        if self.batcher is None:
             # Right padding: an RNN reads to each row's own final position, so
             # trailing padding costs nothing and the shift below stays simple.
-            pad_side="right",
-        )
+            self.batcher = SequenceBatcher(
+                ItemTokenizer(sequences.n_items),
+                max_length=self.DEFAULT_MAX_LENGTH,
+                pad_side="right",
+            )
+        tokenizer = self.batcher.tokenizer
+        self._n_items = tokenizer.n_items
         self.model = SimpleRNN(
-            vocab_size=self.batcher.vocab_size,
-            n_items=sequences.n_items,
+            vocab_size=tokenizer.vocab_size,
+            n_items=tokenizer.n_items,
             embedding_dim=self.cfg.embedding_dim,
             hidden_dim=self.cfg.hidden_dim,
             num_layers=self.cfg.num_layers,
             dropout=self.cfg.dropout,
             rnn_type=self.cfg.rnn_type,
-            pad_id=self.batcher.pad_id,
+            pad_id=tokenizer.pad_id,
         ).to(self.device)
 
         optimizer = getattr(torch.optim, self.cfg.optimizer)(
@@ -318,10 +333,17 @@ class SimpleRNNTrainer(BaseSequentialRecommender):
             # Every row in this batch holds at most one item.
             return None
 
-        # Next-item shift. Under right padding, mask[:, 1:] is exactly the set
-        # of positions whose target is a real item, so no separate arithmetic
-        # over lengths is needed and padding can never become a target.
-        inputs, targets, valid = tokens[:, :-1], tokens[:, 1:], mask[:, 1:]
+        # Next-item shift. The head is indexed by catalog position while the
+        # tokens carry the vocabulary offset, so targets are decoded back --
+        # the one place besides encode() where the offset appears at all.
+        offset = self.batcher.tokenizer.n_reserved
+        inputs = tokens[:, :-1]
+        target_tokens = tokens[:, 1:]
+        targets = target_tokens - offset
+        # A real item, and one this vocabulary can name. Padding is excluded by
+        # the mask; UNK is excluded by the offset test, because "predict an item
+        # I cannot identify" is not a question with an answer.
+        valid = mask[:, 1:] & (target_tokens >= offset)
         n_positions = int(valid.sum())
         if n_positions == 0:
             return None
@@ -374,20 +396,29 @@ class SimpleRNNTrainer(BaseSequentialRecommender):
         return SRPTensor(cols=cols, vals=vals, shape=(rows, n_items))
 
     def _mask_seen(self, logits: torch.Tensor, source: ItemSequences) -> None:
-        """Forbid every item in the *full* history, truncated part included."""
+        """Forbid every item in the *full* history, truncated part included.
+
+        Logits are indexed by catalog position, and a history may span a wider
+        catalog than this model was fitted on -- a later split stage does exactly
+        that. Items beyond the fitted catalog are dropped from the mask rather
+        than clipped: they were never scoreable, so there is nothing to forbid.
+        """
         if source.values.size == 0:
             return
+        n_items = int(logits.shape[1])
         # The flat values are already the concatenation of every history, so one
         # scatter covers the batch. np.array copies, both because the buffers are
         # read-only and because torch.from_numpy would otherwise share them.
         rows = np.repeat(np.arange(source.n_rows), source.row_lengths)
+        cols = np.array(source.values, dtype=np.int64)
+        scoreable = cols < n_items
+        if not scoreable.all():
+            rows, cols = rows[scoreable], cols[scoreable]
+        if cols.size == 0:
+            return
         logits[
             torch.as_tensor(rows, dtype=torch.long, device=logits.device),
-            torch.as_tensor(
-                np.array(source.values, dtype=np.int64),
-                dtype=torch.long,
-                device=logits.device,
-            ),
+            torch.as_tensor(cols, dtype=torch.long, device=logits.device),
         ] = -torch.inf
 
 

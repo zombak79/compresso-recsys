@@ -4,11 +4,13 @@ import numpy as np
 import pytest
 import torch
 
+from compresso_recsys.models.sequence_batching import SequenceBatcher
 from compresso_recsys.models.simple_rnn import (
     SimpleRNN,
     SimpleRNNConfig,
     SimpleRNNTrainer,
 )
+from compresso_recsys.models.tokenizer import ItemTokenizer
 from compresso_recsys.sequences import ItemSequences
 
 N_ITEMS = 8
@@ -58,7 +60,6 @@ def _fast_config(**overrides):
         ({"epochs": 0}, "epochs must be >= 1"),
         ({"dropout": 1.0}, r"dropout must be in \[0, 1\)"),
         ({"lr": 0.0}, "lr must be > 0"),
-        ({"max_length": 1}, "max_length must be >= 2"),
     ],
 )
 def test_invalid_configuration_is_refused(kwargs, message):
@@ -66,8 +67,14 @@ def test_invalid_configuration_is_refused(kwargs, message):
         SimpleRNNConfig(**kwargs)
 
 
-def test_max_length_may_be_disabled():
-    assert SimpleRNNConfig(max_length=None).max_length is None
+def test_the_context_window_is_the_batchers_business_not_the_configs():
+    """The complaint this restructuring answers: max_length is block_size.
+
+    It sizes what the encoder reads, so it belongs beside the model that reads
+    it -- not fused into a config that also describes the network.
+    """
+    assert not hasattr(SimpleRNNConfig(), "max_length")
+    assert SequenceBatcher(ItemTokenizer(N_ITEMS), max_length=None).max_length is None
 
 
 # --------------------------------------------------------------------------
@@ -143,7 +150,8 @@ def test_fit_returns_the_trainer_and_reports_the_catalog():
     assert fitted is trainer
     assert trainer.is_fitted
     assert trainer.n_items == N_ITEMS
-    assert trainer.batcher is not None and trainer.batcher.n_items == N_ITEMS
+    assert trainer.batcher is not None
+    assert trainer.batcher.tokenizer.n_items == N_ITEMS
 
 
 def test_before_fitting_nothing_is_claimed():
@@ -217,9 +225,10 @@ def test_refitting_starts_the_history_over():
 # --------------------------------------------------------------------------
 
 
-def _fitted_on_cycle(**overrides):
+def _fitted_on_cycle(max_length=None, **overrides):
     config = _fast_config(epochs=60, lr=0.02, batch_size=48, **overrides)
-    return SimpleRNNTrainer(config).fit(_seqs(_cycle_rows()))
+    batcher = SequenceBatcher(ItemTokenizer(N_ITEMS), max_length=max_length)
+    return SimpleRNNTrainer(config, batcher).fit(_seqs(_cycle_rows()))
 
 
 @pytest.mark.parametrize("rnn_type", ["gru", "lstm"])

@@ -625,61 +625,118 @@ the training device.
 Sequential Models
 -----------------
 
-Batching Histories
-~~~~~~~~~~~~~~~~~~
+Tokenizing Histories
+~~~~~~~~~~~~~~~~~~~~
 
-:class:`compresso_recsys.ItemSequences` holds no padding, no special tokens and no
-length limit, because those are modelling decisions. Several of them are the
-*same* across sequential architectures, though, and re-deriving them per model is
-how off-by-one bugs get in.
-:class:`compresso_recsys.models.SequenceBatcher` owns exactly the shared part:
-where special tokens live in the vocabulary, how a ragged batch becomes a dense
-tensor, which positions are real, and how far back to look.
+:class:`compresso_recsys.ItemSequences` holds catalog indices and nothing else —
+no padding, no special tokens, no length limit — because those are modelling
+decisions. Two components add them back, and they are separate on purpose.
 
-The vocabulary puts the catalog first and appends special tokens::
+:class:`compresso_recsys.models.ItemTokenizer` owns the **vocabulary**: which
+token an item is, and what an item the model has never seen becomes.
+:class:`compresso_recsys.models.SequenceBatcher` owns **ragged-to-dense**: how
+far back to read, where the padding goes, and which positions are real.
 
-   catalog index i  ->  token i          (the identity)
-   "pad"            ->  token n_items
-   "mask"           ->  token n_items + 1
+They are split because they have different lifetimes. A vocabulary is a property
+of the dataset and outlives any model. ``max_length`` is a property of the
+*model* — it is ``block_size`` under another name, and it sizes a transformer's
+positional embedding — so one tokenizer can serve two models that read different
+amounts of history. Fusing them gives one object two owners, which shows up as
+the same number written into two configs and a runtime check to keep them honest.
 
-That ordering exists so **catalog token ids never move**. Reserving ids at the
-front, as text models do, would mean introducing a second special token shifts
-every item by one and invalidates any model already trained. Appending instead
-keeps ``logits[..., :n_items]`` the catalog scores under any future vocabulary,
-which :meth:`~compresso_recsys.models.SequenceBatcher.catalog_logits` states
-where it is relied on.
+Vocabulary layout puts the specials first::
 
-``pad_side`` is the setting architectures genuinely disagree about. With
-``"right"`` the content comes first: an RNN reads to each row's own final
-position, so trailing padding costs nothing. With ``"left"`` the newest
-interaction sits at a fixed index, which is what a causal transformer wants so
-that prediction always reads position ``-1``. ``max_length`` truncates to the
-**most recent** interactions, the only sensible direction, since a context window
-is a claim about recency rather than about where a history happened to start.
+   0 .. n_reserved-1        specials -- named, or reserved for later
+   n_reserved .. vocab-1    catalog item i  ->  token  i + n_reserved
 
+That ordering is chosen because **catalog growth appends**. Stage catalogs nest
+by prefix, a cold-start catalog grows by appending, and an incremental fit
+extends the embedding table at the end — where a ``cat`` splices the optimizer
+state correctly. Reserving ids at the back instead would place each new item
+exactly where the specials sit, turning every extension into a permutation of the
+parameter *and* its momentum; a wrong permutation attaches one item's history to
+a special token without raising.
+
+Front-loading has one cost: introducing a special later would shift every item.
+``n_reserved`` removes it. Name the specials you use, reserve a few more, and a
+token added later lands in the reserve while every trained id stays put — for the
+price of a few embedding rows that never receive a gradient.
+
+The offset stops at the tokenizer. A model's head is ``n_items`` wide and indexed
+by catalog position, so predictions leave in the same space as the target matrix,
+the metrics and the item IDs, and nothing downstream of a model sees a token id.
+The one other place it appears is a next-item objective, which decodes its
+targets back with ``tokens - n_reserved``.
+
+An item outside the catalog becomes ``unk``, keeping its position. That matters
+more than it sounds: a later split stage genuinely contains items the model was
+not fitted on, and *dropping* them instead would join their neighbours as though
+they had been consecutive. On a temporal MovieLens-1M split that fabricates 21%
+of all adjacencies across every row and costs about 9% of ndcg@20. A vocabulary
+built without ``unk`` cannot express such an item and raises rather than guesses.
+
+``pad_side`` defaults to ``"right"``, which suits a causal model and not only an
+RNN: with padding after the content, a causal mask already excludes every pad, so
+training needs no attention mask at all — only a loss mask. Left padding puts
+pads *before* real tokens and buys a fixed read position that
 :meth:`~compresso_recsys.models.SequenceBatcher.final_positions` and
-:meth:`~compresso_recsys.models.SequenceBatcher.gather_final` exist for the single
-easiest thing to get wrong. Under right padding the last *column* is padding for
-every row shorter than the batch maximum, so reading ``states[:, -1]`` silently
-scores most users from a pad embedding — and agrees with itself at
-``batch_size=1``, where every row fills its own batch, which is what makes the bug
-survive casual testing. Empty rows report position 0, which is padding; pair the
-position with :meth:`~compresso_recsys.models.SequenceBatcher.has_history` rather
-than trusting it alone.
+:meth:`~compresso_recsys.models.SequenceBatcher.gather_final` already provide.
+``max_length`` truncates to the **most recent** interactions, the only sensible
+direction, since a context window is a claim about recency rather than about
+where a history happened to start.
 
-What the batcher deliberately does not own is a training objective. A next-item
-shift, a masked-position target and sampled negatives differ between
-architectures, and a component with three mutually exclusive modes is not an
-abstraction. Those stay in trainers.
+Those two reading helpers exist for the single easiest thing to get wrong. Under
+right padding the last *column* is padding for every row shorter than the batch
+maximum, so reading ``states[:, -1]`` silently scores most users from a pad
+embedding — and agrees with itself at ``batch_size=1``, where every row fills its
+own batch, which is what lets the bug survive casual testing. Empty rows report
+position 0, which is padding; pair the position with
+:meth:`~compresso_recsys.models.SequenceBatcher.has_history`.
+
+Neither component owns a training objective. A next-item shift, a masked-position
+target and sampled negatives differ between architectures, and a component with
+three mutually exclusive modes is not an abstraction. Nor does either apply
+*corruption*: injecting ``unk`` or selecting ``mask`` positions is stochastic, and
+keeping ``encode`` a pure function of its input is what lets a test assert that
+batching cannot change a prediction. Both live in trainers.
 
 .. code-block:: python
 
-   from compresso_recsys.models import SequenceBatcher
+   from compresso_recsys.models import ItemTokenizer, SequenceBatcher
 
-   batcher = SequenceBatcher(n_items=3295, max_length=200, pad_side="right")
+   tokenizer = ItemTokenizer(
+       n_items=1085,
+       special_tokens={"pad": 0, "unk": 1},
+       n_reserved=4,                       # room for mask, cls, later
+       item_ids=split["train_item_ids"],   # optional; enables the ID path
+   )
+   batcher = SequenceBatcher(tokenizer, max_length=200, pad_side="right")
+
+   # A later stage may be wider than the tokenizer; unknown items become unk.
    tokens, mask = batcher.encode(split["test_source_sequences"], device="cuda")
    states = model(tokens)                        # (rows, length, hidden)
    final = batcher.gather_final(states, mask)    # (rows, hidden)
+
+Bring Your Own Vocabulary
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:class:`compresso_recsys.models.ItemTokenizer` is a convenience. What
+:class:`compresso_recsys.models.SequenceBatcher` actually depends on is
+:class:`compresso_recsys.models.Tokenizer`, a two-member structural protocol —
+``pad_id`` and ``encode_indices`` — so a custom vocabulary qualifies by having
+them rather than by inheriting anything, exactly as
+:class:`compresso_recsys.models.Recommender` works.
+
+``encode_indices`` must return one token per value, in order. The batcher
+computes each destination before it maps anything, so a vocabulary that expands
+one item into several tokens — semantic IDs from a residual-quantised autoencoder,
+say — cannot be used with it and needs its own batcher.
+
+.. autoclass:: compresso_recsys.models.Tokenizer
+   :members:
+
+.. autoclass:: compresso_recsys.models.ItemTokenizer
+   :members:
 
 .. autoclass:: compresso_recsys.models.SequenceBatcher
    :members:

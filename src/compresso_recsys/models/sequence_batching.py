@@ -1,38 +1,35 @@
-"""Turning histories into tensors, without deciding what a model does with them.
+"""Ragged histories into dense tensors, without deciding what a model does next.
 
-:class:`~compresso_recsys.sequences.ItemSequences` deliberately holds no padding,
-no special tokens and no length limit, because those are modelling decisions. But
-several of those decisions are the *same* across sequential architectures, and
-re-deriving them per model is how off-by-one bugs get in.
+:class:`~compresso_recsys.models.ItemTokenizer` owns the vocabulary — which token
+an item is, and what an unknown item becomes. :class:`SequenceBatcher` owns the
+other half: how far back to read, where the padding goes, and which positions of
+the resulting rectangle are real.
 
-:class:`SequenceBatcher` owns exactly the shared part: where special tokens live
-in the vocabulary, how a ragged batch becomes a dense tensor, which positions are
-real, and how far back to look. What it deliberately does not own is the training
-objective — a next-item shift, a masked-position target, sampled negatives — since
-those differ between architectures and a component with three mutually exclusive
-modes is not an abstraction.
+The two are separate because they have different lifetimes. A vocabulary is a
+property of the dataset and outlives any particular model. ``max_length`` is a
+property of the *model* — it is ``block_size`` under another name, and it sizes a
+transformer's positional embedding — so a single tokenizer can serve two models
+that read different amounts of history. Fusing them means one object with two
+owners, which shows up as the same number written in two configs and a runtime
+check to keep them honest.
 
-Vocabulary layout puts the catalog first and special tokens after it::
-
-    catalog index i  ->  token i          (the identity)
-    "pad"            ->  token n_items
-    "mask"           ->  token n_items + 1
-
-That ordering is chosen so **catalog token ids never move**. Reserving ids at the
-front, as text models do, would mean adding a second special token shifts every
-item by one and invalidates any model already trained. Appending instead keeps
-``logits[..., :n_items]`` the catalog scores under any future vocabulary.
+What this deliberately does not own is the training objective. A next-item shift,
+a masked-position target and sampled negatives differ between architectures, and
+a component with three mutually exclusive modes is not an abstraction. Those live
+in trainers.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Literal
 
 import numpy as np
 import torch
 
 from compresso_recsys.sequences import ItemSequences
+
+from .tokenizer import Tokenizer
 
 __all__ = ["SequenceBatcher"]
 
@@ -43,28 +40,32 @@ PadSide = Literal["right", "left"]
 class SequenceBatcher:
     """Encodes ragged histories into dense token tensors.
 
-    ``pad_side`` says where the padding goes, which is the setting architectures
-    actually disagree about:
+    The tokenizer is positional because it is a collaborator rather than an
+    option: without a vocabulary there is nothing to encode.
 
-    * ``"right"`` — content first, padding after. An RNN reads to each row's own
-      final position, so trailing padding costs nothing.
-    * ``"left"`` — padding first, content last. A causal transformer wants the
-      newest interaction at a fixed index, so that prediction always reads
-      position ``-1``.
+    ``pad_side`` defaults to ``"right"``, which is the better default for a
+    causal model and not only for an RNN. With padding after the content, a
+    causal mask already excludes every pad, so training needs no attention mask
+    at all — only a loss mask. Left padding puts pads *before* real tokens, so
+    causal attention would read them unless masked explicitly, and it buys a
+    fixed read position that :meth:`final_positions` and :meth:`gather_final`
+    already provide.
 
-    ``max_length`` truncates to the **most recent** interactions, which is the
-    only sensible direction: a context window is a claim about recency, not about
+    ``max_length`` truncates to the **most recent** interactions, the only
+    sensible direction: a context window is a claim about recency, not about
     where a history happened to start.
     """
 
-    n_items: int
+    tokenizer: Tokenizer
     max_length: int | None = None
     pad_side: PadSide = "right"
-    special_tokens: tuple[str, ...] = ("pad",)
 
     def __post_init__(self) -> None:
-        if self.n_items < 1:
-            raise ValueError(f"n_items must be >= 1, got {self.n_items}")
+        if not isinstance(self.tokenizer, Tokenizer):
+            raise TypeError(
+                "tokenizer must provide pad_id and encode_indices, got "
+                f"{type(self.tokenizer).__name__}"
+            )
         if self.max_length is not None and self.max_length < 1:
             raise ValueError(
                 f"max_length must be >= 1 when set, got {self.max_length}"
@@ -73,44 +74,11 @@ class SequenceBatcher:
             raise ValueError(
                 f"pad_side must be 'right' or 'left', got {self.pad_side!r}"
             )
-        if "pad" not in self.special_tokens:
-            raise ValueError("special_tokens must include 'pad'")
-        if len(set(self.special_tokens)) != len(self.special_tokens):
-            raise ValueError("special_tokens must be unique")
-
-    # -- vocabulary ---------------------------------------------------------
-
-    @property
-    def vocab_size(self) -> int:
-        """Embedding rows needed: the catalog plus the special tokens."""
-        return self.n_items + len(self.special_tokens)
-
-    def token_id(self, name: str) -> int:
-        """Token id of a special token."""
-        try:
-            return self.n_items + self.special_tokens.index(name)
-        except ValueError:
-            raise KeyError(
-                f"{name!r} is not a special token; have {self.special_tokens}"
-            ) from None
 
     @property
     def pad_id(self) -> int:
-        """Token id used for padding, suitable for ``Embedding(padding_idx=...)``."""
-        return self.token_id("pad")
-
-    def catalog_logits(self, logits: torch.Tensor) -> torch.Tensor:
-        """Drop the special-token columns, leaving one score per catalog item.
-
-        A no-op slice, named so the invariant that catalog ids are the identity
-        is stated where it is relied on rather than assumed.
-        """
-        if logits.shape[-1] < self.n_items:
-            raise ValueError(
-                f"logits last dimension is {logits.shape[-1]}, which is smaller "
-                f"than the catalog ({self.n_items})"
-            )
-        return logits[..., : self.n_items]
+        """Convenience passthrough, since every caller of :meth:`encode` wants it."""
+        return self.tokenizer.pad_id
 
     # -- batching -----------------------------------------------------------
 
@@ -122,32 +90,33 @@ class SequenceBatcher:
     ) -> tuple[torch.Tensor, torch.Tensor]:
         """Return ``(tokens, mask)`` for a batch of histories.
 
-        ``tokens`` is ``(rows, length)`` of ``int64``, padded with :attr:`pad_id`.
-        ``mask`` is ``(rows, length)`` of ``bool``, true where a token came from a
-        history rather than from padding.
+        ``tokens`` is ``(rows, length)`` of ``int64`` holding token ids, padded
+        with the tokenizer's ``pad_id``. ``mask`` is ``(rows, length)`` of
+        ``bool``, true where a token came from a history rather than from
+        padding.
 
         ``length`` is the longest history in the batch after truncation, floored
         at one so the shape stays usable when every row is empty.
-        """
-        if sequences.n_items > self.n_items:
-            raise ValueError(
-                f"sequences span {sequences.n_items} items but this batcher was "
-                f"built for {self.n_items}"
-            )
 
+        Nothing here inspects the catalog. A history may span a wider item space
+        than the tokenizer covers — which is the normal case for a later split
+        stage — and the tokenizer decides what those values become.
+        """
         lengths = self.truncated_lengths(sequences)
         rows = sequences.n_rows
         width = max(1, int(lengths.max()) if lengths.size else 1)
 
-        tokens = np.full((rows, width), self.pad_id, dtype=np.int64)
+        tokens = np.full((rows, width), self.tokenizer.pad_id, dtype=np.int64)
         mask = np.zeros((rows, width), dtype=bool)
+        # A row at a time. Measured at 0.06% of a training step on MovieLens-1M,
+        # against 1.7x for a fully vectorised gather, so the readable form wins.
         for row in range(rows):
             length = int(lengths[row])
             if length == 0:
                 continue
             # Truncation keeps the tail, so a context window means "the most
             # recent N" rather than "the first N".
-            history = sequences.row(row)[-length:]
+            history = self.tokenizer.encode_indices(sequences.row(row)[-length:])
             if self.pad_side == "right":
                 tokens[row, :length] = history
                 mask[row, :length] = True
@@ -167,13 +136,16 @@ class SequenceBatcher:
             return lengths
         return np.minimum(lengths, self.max_length)
 
+    # -- reading the result -------------------------------------------------
+
     def final_positions(self, mask: torch.Tensor) -> torch.Tensor:
         """Index of each row's last real token.
 
         The state a model reads for prediction, and the single easiest thing to
         get wrong: with right padding the last column is padding for every row
         shorter than the batch maximum, so reading ``[:, -1]`` silently scores
-        from a pad embedding.
+        from a pad embedding — and agrees with itself at ``batch_size=1``, where
+        every row fills its own batch, which is what lets the bug survive.
 
         Empty rows report 0, which is padding. Pair this with :meth:`has_history`
         rather than trusting the position alone.

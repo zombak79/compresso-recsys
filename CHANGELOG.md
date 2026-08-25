@@ -78,13 +78,49 @@ change.
   the most recent interactions. It deliberately owns no training objective —
   next-item shift, masked positions and sampled negatives differ per
   architecture and stay in trainers.
+- `ItemTokenizer` and the `Tokenizer` protocol, splitting the vocabulary out of
+  `SequenceBatcher`. Specials now come **first** and the catalog is offset after
+  them, because catalog growth is what actually happens: stage catalogs nest by
+  prefix, cold-start catalogs append, and an incremental fit extends the
+  embedding table at the end — where a `cat` splices optimizer state correctly
+  instead of permuting it, and a wrong permutation would attach one item's
+  momentum to a special token without raising. `n_reserved` removes
+  front-loading's one cost, so a special added later lands in a reserved slot and
+  no trained id moves. The offset stops at the tokenizer: a model's head is
+  `n_items` wide and catalog-indexed, so predictions leave in the same space as
+  the target matrix and the metrics.
+  An item outside the catalog becomes `unk` and keeps its position, which is the
+  fix for a real defect — dropping it instead joins its neighbours as though they
+  had been consecutive, fabricating 21% of all adjacencies on a temporal
+  MovieLens-1M split, across every row, at a cost of about 9% of ndcg@20. A
+  vocabulary built without `unk` raises rather than guesses. IDs are an optional
+  presentation layer: `encode_indices`/`encode_ids`/`decode_indices`/`decode_ids`
+  are explicit, `encode` dispatches on dtype, and integer `item_ids` are refused
+  because they would make that dispatch ambiguous. `to_dict`/`from_dict` persist
+  the vocabulary with the weights, including `item_ids` by default, since serving
+  is why they exist.
+- `SequenceBatcher` now takes a tokenizer and owns only ragged-to-dense: padding,
+  truncation, and reading the result. The two are separate because they have
+  different lifetimes — a vocabulary belongs to the dataset, while `max_length`
+  is `block_size` under another name and belongs to the model, so one tokenizer
+  can serve two models that read different amounts of history. `pad_side` still
+  defaults to `"right"`, now documented as the better default for a *causal*
+  model too: pads sit after every real token, so a causal mask already excludes
+  them and training needs no attention mask, only a loss mask. `catalog_logits`
+  is gone, unnecessary once the head is catalog-width.
 - `SimpleRNN`, `SimpleRNNConfig` and `SimpleRNNTrainer`: a GRU or LSTM trained
   on next-item cross entropy at every position, one example per user. The
   smallest model that actually uses order, and so the baseline a transformer has
   to beat before its extra machinery has earned anything. Prediction reads each
   row's own final state rather than the last column, which under right padding
   would score most users from a pad embedding; `exclude_seen` masks the whole
-  history including the part `max_length` truncated away.
+  history including the part truncation dropped. The encoder is a constructor
+  parameter rather than something `fit` invents, so the context window, the
+  padding side and the vocabulary are all replaceable — and `max_length` left
+  `SimpleRNNConfig`, since it describes what the encoder reads rather than the
+  network. Its next-item objective decodes targets with `tokens - n_reserved` and
+  excludes `unk` from them, because "predict the item I cannot identify" is not a
+  question with an answer.
 - `MutableCandidateCatalog`, the candidate-catalog lifecycle as an owned object:
   the lock, the current snapshot, the fitted source vocabulary, and the
   operations that publish, extend, shrink and align against them.

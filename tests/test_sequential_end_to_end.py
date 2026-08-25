@@ -32,6 +32,8 @@ from compresso_recsys.metrics import CalibratedRecall, NDCG
 from compresso_recsys.models import (
     EASE,
     EASEConfig,
+    ItemTokenizer,
+    SequenceBatcher,
     SimpleRNNConfig,
     SimpleRNNTrainer,
 )
@@ -104,10 +106,10 @@ def results(split):
             epochs=40,
             batch_size=32,
             lr=0.01,
-            max_length=None,
             show_progress=False,
             seed=0,
-        )
+        ),
+        SequenceBatcher(ItemTokenizer(N_ITEMS), max_length=None),
     ).fit(split["x_train_sequences"])
     matrix = EASE(EASEConfig(l2=1.0)).fit(split["x_train"])
 

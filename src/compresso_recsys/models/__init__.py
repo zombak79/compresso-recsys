@@ -1,6 +1,7 @@
 """Collaborative-filtering models."""
 
 from .sequence_batching import SequenceBatcher
+from .tokenizer import ItemTokenizer, Tokenizer
 from .base import (
     BaseCollaborativeRecommender,
     BaseSequentialRecommender,
@@ -54,6 +55,8 @@ __all__ = [
     "SimpleRNNConfig",
     "SimpleRNNTrainer",
     "SequentialRecommender",
+    "Tokenizer",
+    "ItemTokenizer",
     "ItemVocabulary",
     "MutableCandidateCatalog",
     "InteractionBatch",
