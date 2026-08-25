@@ -135,8 +135,27 @@ change.
   through `snapshot()` rather than forwarded properties, so several reads cannot
   straddle a concurrent republish. `on_publish` notifies the owner while the lock
   is held, which is how a model drops caches derived from the previous snapshot.
-- `WarmCatalogAdapter` accepts an `ItemSequences` source as well as a
-  `csr_matrix`, returning whichever it was given. Without it the `temporal` split
+- `SimpleRNNConfig.unk_dropout`, replacing that fraction of *input* positions
+  with the tokenizer's `unk` token during training. Non-zero by default, because
+  otherwise `unk` is never trained at all: the training vocabulary *is* the
+  training window, so an out-of-catalog item cannot occur until evaluation and
+  the embedding row would still sit at its initialisation when a quarter of a
+  temporal test history needs it. Applied after the next-item shift and never to
+  the targets, so a corrupted position teaches "an item was here you cannot
+  identify, predict the next one anyway" rather than costing a training example.
+  Padding is never eligible, or `unk` and `pad` would come to mean the same
+  thing. Measured on a temporal MovieLens-1M stage with 26% out-of-catalog test
+  histories: `ndcg@20` is 0.090 at rate zero, 0.113 at 0.05 and 0.121 at 0.25 —
+  and rate zero scores no better than deleting the unknown items outright, so
+  representing them and training them are one change, not two.
+- `WarmCatalogAdapter` accepts an `ItemSequences` source, unaligned, and widens
+  its prediction columns. It no longer *projects* histories: `align_source`
+  refuses a sequence and says why, since a model's tokenizer maps an
+  out-of-catalog index to `unk` in place, and dropping those items instead joined
+  their neighbours as though they had been consecutive. The matrix path still
+  projects, because a CSR row has no adjacency to corrupt and a set model has no
+  `unk` to fall back on. Only the output widening is shared, and it stays
+  necessary: the evaluator requires prediction width to match the targets. Without it the `temporal` split
   mode and sequential models could not meet: every temporal stage has its own
   expanding catalog, so a model fitted on the training window cannot even accept
   a test source, and the matrix side had an adapter while the sequence side had

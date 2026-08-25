@@ -388,19 +388,11 @@ class WarmCatalogAdapter:
             count=train_vocabulary.n_items,
         )
         train_to_catalog.setflags(write=False)
-        # The inverse, for projecting a catalog-space source down to the fitted
-        # space. -1 marks an item the model never saw.
-        catalog_to_train = np.full(catalog_vocabulary.n_items, -1, dtype=np.int64)
-        catalog_to_train[train_to_catalog] = np.arange(
-            train_vocabulary.n_items, dtype=np.int64
-        )
-        catalog_to_train.setflags(write=False)
 
         self.model = model
         self.train_item_ids = train_vocabulary.item_ids
         self.catalog_item_ids = catalog_vocabulary.item_ids
         self.train_to_catalog = train_to_catalog
-        self.catalog_to_train = catalog_to_train
         self.catalog_size = catalog_vocabulary.n_items
         self._identity_alignment = np.array_equal(
             self.train_item_ids,
@@ -409,15 +401,23 @@ class WarmCatalogAdapter:
         self._mapping_lock = RLock()
         self._mapping_by_device: dict[torch.device, torch.Tensor] = {}
 
-    def align_source(
-        self, source: csr_matrix | ItemSequences
-    ) -> csr_matrix | ItemSequences:
-        """Project an expanded-catalog source into the fitted item space.
+    def align_source(self, source: csr_matrix) -> csr_matrix:
+        """Select the fitted training-item columns from an expanded-catalog matrix.
 
-        Returns the same representation it was given.
+        Matrices only. A history needs no alignment: a sequential model's
+        tokenizer maps an out-of-catalog index to its own ``unk`` token, keeping
+        the position, and *projecting* one instead would delete interior events
+        and thereby assert transitions that never happened. Pass sequences
+        straight to :meth:`predict_on_batch`.
         """
         if isinstance(source, ItemSequences):
-            return self._align_sequences(source)
+            raise TypeError(
+                "sequences need no alignment: a model's tokenizer turns an "
+                "out-of-catalog index into its own 'unk' token, in place. "
+                "Dropping those items instead would join their neighbours as if "
+                "they had been consecutive. Pass the sequences to "
+                "predict_on_batch() directly"
+            )
         source = canonical_csr(source, name="source")
         if source.shape[1] != self.catalog_size:
             raise ValueError(
@@ -427,26 +427,6 @@ class WarmCatalogAdapter:
         if self._identity_alignment:
             return source
         return source[:, self.train_to_catalog].tocsr()
-
-    def _align_sequences(self, source: ItemSequences) -> ItemSequences:
-        """Keep each history's fitted items, in order, dropping the cold ones."""
-        if source.n_items != self.catalog_size:
-            raise ValueError(
-                f"source spans {source.n_items} items, but catalog_item_ids has "
-                f"{self.catalog_size} entries"
-            )
-        if self._identity_alignment:
-            return source
-        mapped = self.catalog_to_train[source.values]
-        keep = mapped >= 0
-        # The number of kept values before each original offset is exactly the
-        # new offset, so one prefix sum rebases every row at once.
-        prefix = np.concatenate(([0], np.cumsum(keep, dtype=np.int64)))
-        return ItemSequences(
-            values=mapped[keep],
-            indptr=prefix[source.indptr],
-            n_items=int(self.train_item_ids.size),
-        )
 
     def _mapping_on(self, device: torch.device) -> torch.Tensor:
         with self._mapping_lock:
@@ -469,15 +449,23 @@ class WarmCatalogAdapter:
     ) -> SRPTensor:
         """Predict warm items and express their columns in the full catalog."""
         if isinstance(source, ItemSequences):
+            # Unaligned by design: the model's tokenizer decides what an
+            # out-of-catalog index becomes, so a history arrives in catalog
+            # space and only the prediction columns need widening.
             n_rows, n_items = source.n_rows, source.n_items
+            if n_items != self.catalog_size:
+                raise ValueError(
+                    f"source spans {n_items} items, but catalog_item_ids has "
+                    f"{self.catalog_size} entries"
+                )
         else:
             source = canonical_csr(source, name="source")
             n_rows, n_items = source.shape
-        if n_items != len(self.train_item_ids):
-            raise ValueError(
-                f"source has {n_items} items, but train_item_ids has "
-                f"{len(self.train_item_ids)} entries; call align_source() first"
-            )
+            if n_items != len(self.train_item_ids):
+                raise ValueError(
+                    f"source has {n_items} items, but train_item_ids has "
+                    f"{len(self.train_item_ids)} entries; call align_source() first"
+                )
         predictions = self.model.predict_on_batch(
             source,
             k=k,

@@ -153,9 +153,9 @@ def test_adapter_ids_and_mapping_are_immutable():
 # --------------------------------------------------------------------------
 # sequence sources
 #
-# The projection is the same operation on either representation, so these tests
-# are mostly about the two paths agreeing. Where they cannot agree exactly -- a
-# CSR row is a set, a history is ordered -- the tests say which property holds.
+# The adapter no longer projects histories. A sequential model's tokenizer turns
+# an out-of-catalog index into its own unk token, in place, so only the
+# prediction columns still need widening.
 # --------------------------------------------------------------------------
 
 
@@ -165,9 +165,11 @@ class _FixedWarmSequenceModel:
     def __init__(self, *, n_items: int = 3) -> None:
         self.n_items = n_items
         self.seen_lengths: list[int] | None = None
+        self.seen_width: int | None = None
 
     def predict_on_batch(self, source, *, k, exclude_seen=True):
         self.seen_lengths = source.row_lengths.tolist()
+        self.seen_width = source.n_items
         ranking = torch.tensor([0, 2, 1], dtype=torch.long)[:k]
         return SRPTensor(
             cols=ranking.expand(source.n_rows, -1).clone(),
@@ -190,134 +192,84 @@ def _catalog_sequences(rows) -> ItemSequences:
     return ItemSequences.from_rows(rows, n_items=4)
 
 
-def test_aligning_a_history_keeps_the_fitted_items_in_order():
-    """Catalog order is a, cold-x, c, b; fitted order is b, a, c."""
+def test_aligning_a_history_is_refused_and_says_why():
+    """The bug this removal fixes, stated where someone would hit it.
+
+    Projecting a history deleted interior events, which joined their neighbours
+    as though they had been consecutive.
+    """
     adapter = _sequence_adapter()
 
-    aligned = adapter.align_source(_catalog_sequences([[0, 1, 2, 3]]))
-
-    assert isinstance(aligned, ItemSequences)
-    assert aligned.n_items == 3
-    # warm-a -> 1, cold-x dropped, warm-c -> 2, warm-b -> 0.
-    assert aligned.row(0).tolist() == [1, 2, 0]
+    with pytest.raises(TypeError, match="sequences need no alignment"):
+        adapter.align_source(_catalog_sequences([[0, 1, 2]]))
 
 
-def test_aligning_a_history_preserves_order_and_repeats():
-    """The two things the matrix path cannot express, so they are pinned here."""
-    adapter = _sequence_adapter()
-
-    aligned = adapter.align_source(_catalog_sequences([[3, 0, 3, 1, 0]]))
-
-    # warm-b, warm-a, warm-b, (cold dropped), warm-a
-    assert aligned.row(0).tolist() == [0, 1, 0, 1]
-
-
-def test_the_two_source_paths_agree_on_rows_width_and_warm_content():
-    rows = [[0, 1, 2, 3], [1], [], [3, 3, 0]]
-    adapter = _sequence_adapter()
-    sequences = _catalog_sequences(rows)
-    lengths = [len(row) for row in rows]
-    matrix = csr_matrix(
-        (
-            np.ones(sum(lengths), dtype=np.float32),
-            (np.repeat(np.arange(len(rows)), lengths), np.concatenate([*rows, []])),
-        ),
-        shape=(len(rows), 4),
-    )
-
-    aligned_sequences = adapter.align_source(sequences)
-    aligned_matrix = adapter.align_source(matrix)
-
-    assert aligned_sequences.n_rows == aligned_matrix.shape[0] == len(rows)
-    assert aligned_sequences.n_items == aligned_matrix.shape[1] == 3
-    for row in range(len(rows)):
-        assert set(aligned_sequences.row(row).tolist()) == set(
-            aligned_matrix[row].indices.tolist()
-        ), row
-
-
-def test_an_entirely_cold_history_becomes_an_empty_row_not_a_missing_one():
-    """Row alignment against the targets is what makes evaluation valid."""
-    adapter = _sequence_adapter()
-
-    aligned = adapter.align_source(_catalog_sequences([[1], [0], [1, 1]]))
-
-    assert aligned.n_rows == 3
-    assert aligned.row(0).size == 0
-    assert aligned.row(2).size == 0
-    assert aligned.row(1).tolist() == [1]
-
-
-def test_an_already_aligned_sequence_source_is_returned_unchanged():
-    adapter = WarmCatalogAdapter(
-        _FixedWarmSequenceModel(),
-        train_item_ids=["a", "b", "c"],
-        catalog_item_ids=["a", "b", "c"],
-    )
-    sequences = ItemSequences.from_rows([[0, 2, 1]], n_items=3)
-
-    assert adapter.align_source(sequences) is sequences
-
-
-def test_aligning_a_sequence_over_the_wrong_catalog_is_refused():
-    adapter = _sequence_adapter()
-
-    with pytest.raises(ValueError, match="spans 7 items"):
-        adapter.align_source(ItemSequences.from_rows([[0]], n_items=7))
-
-
-def test_predicting_from_sequences_remaps_columns_into_the_catalog():
+def test_a_history_reaches_the_model_whole():
+    """Nothing is dropped, so no adjacency is invented."""
     model = _FixedWarmSequenceModel()
     adapter = _sequence_adapter(model)
-    aligned = adapter.align_source(_catalog_sequences([[0, 1, 2], [3]]))
+    rows = [[0, 1, 2, 3], [1], []]
 
-    predictions = adapter.predict_on_batch(aligned, k=3)
+    adapter.predict_on_batch(_catalog_sequences(rows), k=3)
+
+    assert model.seen_lengths == [4, 1, 0]
+    assert model.seen_width == 4, "the model reads catalog space, not fitted space"
+
+
+def test_predicting_from_sequences_still_widens_the_columns():
+    """The one job left: the evaluator requires the target width."""
+    adapter = _sequence_adapter()
+
+    predictions = adapter.predict_on_batch(_catalog_sequences([[0, 1], [3]]), k=3)
 
     assert predictions.cols_total == 4
     # Fitted ranking b, c, a maps to catalog rows 3, 2, 0.
     assert predictions.cols[0].tolist() == [3, 2, 0]
-    # The cold item cannot be emitted at all.
+    # The cold item is still unreachable, because the model cannot score it.
     assert 1 not in predictions.cols.flatten().tolist()
-    # The model saw the projected history, two of three events for row 0.
-    assert model.seen_lengths == [2, 1]
 
 
-def test_predicting_from_an_unaligned_sequence_source_is_refused():
+def test_a_sequence_over_the_wrong_catalog_is_refused():
     adapter = _sequence_adapter()
 
-    with pytest.raises(ValueError, match="call align_source"):
-        adapter.predict_on_batch(_catalog_sequences([[0, 2]]), k=2)
+    with pytest.raises(ValueError, match="spans 7 items"):
+        adapter.predict_on_batch(ItemSequences.from_rows([[0]], n_items=7), k=2)
 
 
-def test_the_catalog_to_train_mapping_marks_cold_items():
+def test_the_matrix_path_still_projects_because_a_row_is_a_set():
+    """Dropping cold columns is correct for a matrix and wrong for a history.
+
+    A CSR row has no adjacency to corrupt, and a set model has no unk to fall
+    back on, so the projection stays exactly where it belongs.
+    """
     adapter = _sequence_adapter()
+    # Catalog order is warm-a, cold-x, warm-c, warm-b; this row holds the first,
+    # the cold one, and the last.
+    matrix = csr_matrix(np.asarray([[1, 1, 0, 1]], dtype=np.float32))
 
-    # Catalog a, cold-x, c, b against fitted b, a, c.
-    assert adapter.catalog_to_train.tolist() == [1, -1, 2, 0]
-    with pytest.raises(ValueError, match="read-only"):
-        adapter.catalog_to_train[0] = 9
+    aligned = adapter.align_source(matrix)
+
+    assert aligned.shape == (1, 3)
+    # Fitted order is warm-b, warm-a, warm-c: both warm items survive, in fitted
+    # positions, and cold-x is gone with nothing standing in for it.
+    assert sorted(aligned[0].indices.tolist()) == [0, 1]
 
 
 def test_a_sequential_model_evaluates_through_the_adapter():
     """The combination that could not run before: temporal plus a sequence model."""
     adapter = _sequence_adapter()
-    sequences = _catalog_sequences([[0, 1], [2, 3]])
-    # Targets live in the catalog space, cold column included.
     targets = csr_matrix(
-        (
-            np.ones(2, dtype=np.float32),
-            (np.arange(2), np.array([3, 1])),
-        ),
+        (np.ones(2, dtype=np.float32), (np.arange(2), np.array([3, 1]))),
         shape=(2, 4),
     )
 
     result = evaluate_recommender(
         adapter,
-        source=adapter.align_source(sequences),
+        source=_catalog_sequences([[0, 1], [2, 3]]),
         targets=targets,
         metrics=[CalibratedRecall(2)],
     )
 
     # Row 0 wants warm-b, which the model ranks first. Row 1 wants the cold item,
-    # which is unreachable by construction, so the pair averages to one half.
+    # unreachable by construction, so the pair averages to one half.
     assert result["calibrated_recall@2"] == pytest.approx(0.5)

@@ -421,3 +421,100 @@ def test_it_evaluates_through_the_standard_entry_point():
 
     assert result.n_scored_rows == 3
     assert result["ndcg@1"] == pytest.approx(1.0)
+
+
+# --------------------------------------------------------------------------
+# unk dropout
+#
+# A rate of 1.0 would make these deterministic but is refused as degenerate, so
+# the assertions are the ones that hold for any draw.
+# --------------------------------------------------------------------------
+
+
+def test_unk_dropout_is_refused_outside_zero_to_one():
+    with pytest.raises(ValueError, match=r"unk_dropout must be in \[0, 1\)"):
+        SimpleRNNConfig(unk_dropout=1.0)
+
+
+def test_unk_dropout_never_touches_padding():
+    """Or the model would learn that unk and pad mean the same thing."""
+    trainer = SimpleRNNTrainer(_fast_config(unk_dropout=0.9))
+    trainer.fit(_seqs([[1, 2, 3], [4], []]))
+    tokens, mask = trainer.batcher.encode(_seqs([[1, 2, 3], [4], []]))
+
+    corrupted = trainer._with_unk_dropout(tokens, mask)
+
+    assert corrupted[~mask].tolist() == tokens[~mask].tolist()
+
+
+def test_a_changed_position_becomes_unk_and_nothing_else():
+    trainer = SimpleRNNTrainer(_fast_config(unk_dropout=0.9))
+    trainer.fit(_seqs([[1, 2, 3]]))
+    unk = trainer.batcher.tokenizer.unk_id
+    tokens, mask = trainer.batcher.encode(_seqs(_cycle_rows(16)))
+
+    corrupted = trainer._with_unk_dropout(tokens, mask)
+    changed = corrupted != tokens
+
+    assert changed.any(), "a rate of 0.9 over 16 rows should change something"
+    assert (corrupted[changed] == unk).all()
+
+
+def test_unk_dropout_leaves_the_targets_alone():
+    """The point of corrupting after the shift: no training example is lost.
+
+    Corrupting before it would turn those positions into unk targets, which the
+    objective excludes, so the signal would be discarded instead of used.
+    """
+    rows = [[1, 2, 3], [4, 5]]
+    clean = SimpleRNNTrainer(_fast_config(unk_dropout=0.0)).fit(_seqs(rows))
+    noisy = SimpleRNNTrainer(_fast_config(unk_dropout=0.9)).fit(_seqs(rows))
+
+    assert noisy.history[0]["positions"] == clean.history[0]["positions"] == 3.0
+
+
+def test_zero_dropout_changes_nothing():
+    trainer = SimpleRNNTrainer(_fast_config(unk_dropout=0.0))
+    trainer.fit(_seqs([[1, 2, 3]]))
+    tokens, mask = trainer.batcher.encode(_seqs([[1, 2, 3]]))
+
+    assert trainer._with_unk_dropout(tokens, mask).tolist() == tokens.tolist()
+
+
+def test_a_vocabulary_without_unk_ignores_the_rate():
+    batcher = SequenceBatcher(ItemTokenizer(N_ITEMS, special_tokens={"pad": 0}))
+    trainer = SimpleRNNTrainer(_fast_config(unk_dropout=0.9), batcher)
+    trainer.fit(_seqs(_cycle_rows(16)))
+    tokens, mask = batcher.encode(_seqs([[1, 2, 3]]))
+
+    assert batcher.tokenizer.unk_id is None
+    assert trainer._with_unk_dropout(tokens, mask).tolist() == tokens.tolist()
+
+
+def test_the_unk_embedding_is_only_trained_if_it_is_injected():
+    """The trap this closes.
+
+    An embedding row's gradient comes only from positions holding it, and the
+    training vocabulary *is* the training window -- so without injection unk
+    never appears, and its row is still at initialisation when a temporal test
+    history needs it.
+    """
+    rows = _cycle_rows()
+
+    def unk_row(rate):
+        model = SimpleRNNTrainer(
+            _fast_config(epochs=6, lr=0.02, unk_dropout=rate)
+        ).fit(_seqs(rows))
+        unk = model.batcher.tokenizer.unk_id
+        return model.model.embedding.weight[unk].detach().clone(), model
+
+    injected, _ = unk_row(0.3)
+    never, model = unk_row(0.0)
+
+    # Same seed, same initialisation -- so any difference is training.
+    assert not torch.allclose(injected, never)
+    # And the untrained one really is untouched: a real item's row did move.
+    item = model.batcher.tokenizer.encode_indices([0])[0]
+    assert not torch.allclose(
+        model.model.embedding.weight[item].detach(), never
+    )
