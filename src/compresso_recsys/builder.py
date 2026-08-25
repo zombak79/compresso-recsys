@@ -544,9 +544,9 @@ def _build_user_split(args, ds, proc_df):
         # ones, so training spans the catalog and validation/test add nothing.
         # Written out explicitly instead of left as None so that every split mode
         # stores all three partitions and none of them has to be inferred.
-        "train_item_indices": np.arange(len(catalog_item_ids), dtype=np.int64),
-        "val_item_indices": np.array([], dtype=np.int64),
-        "test_item_indices": np.array([], dtype=np.int64),
+        "warm_item_indices": np.arange(len(catalog_item_ids), dtype=np.int64),
+        "val_cold_item_indices": np.array([], dtype=np.int64),
+        "test_cold_item_indices": np.array([], dtype=np.int64),
         "train_user_ids": np.asarray(train_user_index).astype(str),
         "val_user_ids": np.asarray(sorted(split.val["user_id"].astype(str).unique())),
         "test_user_ids": np.asarray(sorted(split.test["user_id"].astype(str).unique())),
@@ -591,9 +591,9 @@ def _build_item_split(args, proc_df):
         "train_target_matrix": x_train,
         "val_holdout": val_holdout,
         "test_holdout": test_holdout,
-        "train_item_indices": train_idx,
-        "val_item_indices": val_idx,
-        "test_item_indices": test_idx,
+        "warm_item_indices": train_idx,
+        "val_cold_item_indices": val_idx,
+        "test_cold_item_indices": test_idx,
         "train_user_ids": train_user_ids,
         "val_user_ids": None,
         "test_user_ids": None,
@@ -682,10 +682,10 @@ def _build_leave_last_out_split(args, proc_df):
         rows = stages[stage]["source_indices"] + stages[stage]["target_indices"]
         return np.unique(np.concatenate(rows)) if rows else np.array([], dtype=np.int64)
 
-    train_item_indices = _observed("train")
-    val_item_indices = np.setdiff1d(_observed("val"), train_item_indices)
-    test_item_indices = np.setdiff1d(
-        _observed("test"), np.union1d(train_item_indices, val_item_indices)
+    warm_item_indices = _observed("train")
+    val_cold_item_indices = np.setdiff1d(_observed("val"), warm_item_indices)
+    test_cold_item_indices = np.setdiff1d(
+        _observed("test"), np.union1d(warm_item_indices, val_cold_item_indices)
     )
 
     # The training window in order, which is what a sequential model trains on:
@@ -724,15 +724,15 @@ def _build_leave_last_out_split(args, proc_df):
         "val_holdout": holdouts["val"],
         "test_holdout": holdouts["test"],
         "train_holdout": holdouts["train"],
-        "train_item_indices": train_item_indices,
-        "val_item_indices": val_item_indices,
-        "test_item_indices": test_item_indices,
+        "warm_item_indices": warm_item_indices,
+        "val_cold_item_indices": val_cold_item_indices,
+        "test_cold_item_indices": test_cold_item_indices,
         "train_user_ids": user_ids,
         "val_user_ids": user_ids,
         "test_user_ids": user_ids,
         "extra_metadata": {
             "has_user_partitions": False,
-            "has_item_partitions": bool(val_item_indices.size or test_item_indices.size),
+            "has_item_partitions": bool(val_cold_item_indices.size or test_cold_item_indices.size),
             "is_temporal": False,
             "is_future_blind": False,
             "leakage_note": (
@@ -742,8 +742,8 @@ def _build_leave_last_out_split(args, proc_df):
             ),
             "min_history": int(min_history),
             "eligible_users": int(len(user_ids)),
-            "new_val_items": int(val_item_indices.size),
-            "new_test_items": int(test_item_indices.size),
+            "new_val_items": int(val_cold_item_indices.size),
+            "new_test_items": int(test_cold_item_indices.size),
         },
     }
 
@@ -1207,9 +1207,9 @@ def _build_temporal_split(args, proc_df, progress: _CheckpointProgress | None = 
             "target_indices": _csr_row_indices(test_target),
             "user_ids": test_stage["user_ids"],
         },
-        "train_item_indices": np.arange(train_count, dtype=np.int64),
-        "val_item_indices": np.arange(train_count, val_count, dtype=np.int64),
-        "test_item_indices": np.arange(val_count, test_count, dtype=np.int64),
+        "warm_item_indices": np.arange(train_count, dtype=np.int64),
+        "val_cold_item_indices": np.arange(train_count, val_count, dtype=np.int64),
+        "test_cold_item_indices": np.arange(val_count, test_count, dtype=np.int64),
         "train_user_ids": train_stage["user_ids"],
         "val_user_ids": val_stage["user_ids"],
         "test_user_ids": test_stage["user_ids"],
@@ -1289,12 +1289,12 @@ def _build_recsys_checkpoint_from_args(args) -> Path:
         item_ids = split_payload["item_ids"]
         val_holdout = split_payload["val_holdout"]
         test_holdout = split_payload["test_holdout"]
-        train_item_indices = split_payload.get("train_item_indices")
-        val_item_indices = split_payload.get("val_item_indices")
-        test_item_indices = split_payload.get("test_item_indices")
-        train_item_count = int(len(train_item_indices)) if train_item_indices is not None else int(len(item_ids))
-        val_item_count = int(len(val_item_indices)) if val_item_indices is not None else 0
-        test_item_count = int(len(test_item_indices)) if test_item_indices is not None else 0
+        warm_item_indices = split_payload.get("warm_item_indices")
+        val_cold_item_indices = split_payload.get("val_cold_item_indices")
+        test_cold_item_indices = split_payload.get("test_cold_item_indices")
+        train_item_count = int(len(warm_item_indices)) if warm_item_indices is not None else int(len(item_ids))
+        val_item_count = int(len(val_cold_item_indices)) if val_cold_item_indices is not None else 0
+        test_item_count = int(len(test_cold_item_indices)) if test_cold_item_indices is not None else 0
 
         progress.step("Building annotations")
         entity_tag_matrix, tag_names, annotation_name = _build_entity_tag_matrix(args, ds, item_ids)
@@ -1330,9 +1330,9 @@ def _build_recsys_checkpoint_from_args(args) -> Path:
                 test_user_ids=split_payload.get("test_user_ids"),
                 val_eval_user_ids=val_holdout.get("user_ids"),
                 test_eval_user_ids=test_holdout.get("user_ids"),
-                train_item_indices=train_item_indices,
-                val_item_indices=val_item_indices,
-                test_item_indices=test_item_indices,
+                warm_item_indices=warm_item_indices,
+                val_cold_item_indices=val_cold_item_indices,
+                test_cold_item_indices=test_cold_item_indices,
                 entity_tag_matrix=entity_tag_matrix,
                 tag_names=tag_names,
                 entity_metadata=entity_metadata,

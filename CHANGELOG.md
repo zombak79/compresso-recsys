@@ -211,6 +211,27 @@ change.
 
 ### Changed
 
+- **Breaking.** The item-partition keys are renamed to say what they hold:
+  `train_item_indices` → `warm_item_indices`, `val_item_indices` →
+  `val_cold_item_indices`, `test_item_indices` → `test_cold_item_indices`. The
+  old spelling promised a relationship to `{phase}_item_ids` that does not
+  exist — the two answer different questions, and they agree only by coincidence
+  and only under `temporal` and `user_split`, where the catalogs already encode
+  the partition. Under `leave_last_out` and `item_split` all three phases share
+  one catalog and the partition is *observed*, so mirroring the catalogs would
+  have reported every item warm in exactly the two modes where the cold items
+  are the point. The warm partition is exactly the columns present in `x_train`
+  in all four modes, which is what every cold-start `fit` consumes.
+  Checkpoints written before the rename are read under their old filenames
+  first. That fallback is load-bearing rather than courteous: a missing warm file
+  defaults to the whole catalog and a missing cold file to nothing, so reading
+  only the new names would turn an older checkpoint into a confident wrong
+  answer that nothing downstream could detect.
+  The `train_item_indices` argument to `TEASER.fit`, `TEASERGD.fit` and CSELSA is
+  **unchanged** — it names what the model does with the columns rather than what
+  they are, so a call now reads
+  `fit(..., train_item_indices=split["warm_item_indices"])`.
+
 - **Breaking.** The six fitted `source_*_` attributes moved onto the owned
   catalog: `model.source_item_ids_` is now `model.candidates.source_item_ids`,
   and likewise for `source_vocabulary_`, `source_id_to_row_`,

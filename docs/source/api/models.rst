@@ -274,7 +274,7 @@ cannot move a metric. On a sparse catalog the share grows. Count first:
 
 Note that ``leave_last_out`` sets ``train_item_ids`` to the whole catalog, since
 that mode does not partition items. The warm subset is
-``split["item_ids"][split["train_item_indices"]]``, and passing it is what makes
+``split["item_ids"][split["warm_item_indices"]]``, and passing it is what makes
 the adapter do anything at all in that mode.
 
 .. autoclass:: compresso_recsys.models.WarmCatalogAdapter
@@ -397,7 +397,7 @@ fitted source vocabulary by stable ID. The operation uses sparse CSR column
 indexing, never densifies user histories, and returns an already aligned matrix
 unchanged.
 
-For an item cold-start split, pass the checkpoint's ``train_item_indices`` to
+For an item cold-start split, pass the checkpoint's ``warm_item_indices`` to
 ``fit``. Only those interaction columns and feature rows participate in ADMM,
 but the decoder keeps feature rows for every item. Validation and test items can
 therefore be ranked from metadata without being treated as zero-valued training

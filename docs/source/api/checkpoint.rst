@@ -34,7 +34,7 @@ Split and Cluster Stages
 Item partitions
 ~~~~~~~~~~~~~~~
 
-``train_item_indices``, ``val_item_indices`` and ``test_item_indices`` are
+``warm_item_indices``, ``val_cold_item_indices`` and ``test_cold_item_indices`` are
 positions into ``item_ids`` naming the items **each phase introduces**, not the
 items it may score:
 
@@ -66,7 +66,7 @@ phase its own item space (only ``temporal`` does, flagged by
 ``has_stage_item_spaces`` in the split metadata).
 
 So to select feature or metadata rows for a phase, index with that phase's
-``*_item_ids``, not by mirroring ``train_item_indices``: for splits that hold no
+``*_item_ids``, not by mirroring ``warm_item_indices``: for splits that hold no
 items out, the latter yields an empty selection that fails much later and far
 from its cause. ``has_item_partitions`` in the split metadata tells you whether
 a split partitions items at all.

@@ -99,8 +99,8 @@ def test_temporal_split_builds_expanding_mixed_catalogs_and_filters_support():
     assert split["test_user_ids"].tolist() == ["u1", "u2", "u3"]
     assert "E" not in split["val_item_ids"]
     assert "E" not in split["test_item_ids"]
-    assert split["val_item_indices"].tolist() == [2]
-    assert split["test_item_indices"].tolist() == [3]
+    assert split["val_cold_item_indices"].tolist() == [2]
+    assert split["test_cold_item_indices"].tolist() == [3]
 
     expected_x_train = split["train_source_matrix"].maximum(
         split["train_target_matrix"]

@@ -79,6 +79,14 @@ def _load_optional_str_array(path: Path) -> np.ndarray | None:
     return np.load(path, allow_pickle=False).astype(str) if path.exists() else None
 
 
+def _first_existing(*paths: Path) -> Path:
+    """The first path that exists, or the first given so the default applies."""
+    for path in paths:
+        if path.exists():
+            return path
+    return paths[0]
+
+
 def _load_optional_int_array(path: Path, default: np.ndarray | None = None) -> np.ndarray:
     if path.exists():
         return np.load(path, allow_pickle=False)
@@ -250,9 +258,9 @@ def save_recsys_split(
     test_user_ids: np.ndarray | list[str] | None = None,
     val_eval_user_ids: np.ndarray | list[str] | None = None,
     test_eval_user_ids: np.ndarray | list[str] | None = None,
-    train_item_indices: np.ndarray | None = None,
-    val_item_indices: np.ndarray | None = None,
-    test_item_indices: np.ndarray | None = None,
+    warm_item_indices: np.ndarray | None = None,
+    val_cold_item_indices: np.ndarray | None = None,
+    test_cold_item_indices: np.ndarray | None = None,
     x_train_sequences: ItemSequences | None = None,
     train_source_sequences: ItemSequences | None = None,
     val_source_sequences: ItemSequences | None = None,
@@ -320,9 +328,22 @@ def save_recsys_split(
 
     Item partitions
     ---------------
-    ``train_item_indices``, ``val_item_indices`` and ``test_item_indices`` are
-    positions into ``item_ids`` naming the items **that phase introduces**, not
-    the items it may score. They partition the catalog by first appearance:
+    ``warm_item_indices``, ``val_cold_item_indices`` and
+    ``test_cold_item_indices`` are positions into ``item_ids`` naming the items
+    **that phase introduces**, not the items it may score. Together they
+    partition the catalog by first appearance: the warm partition is exactly the
+    columns present in ``x_train``, and each cold partition holds the items that
+    become observable only at that stage.
+
+    They are named for what they hold rather than for their phase because the
+    older ``{phase}_item_indices`` spelling promised a relationship to
+    ``{phase}_item_ids`` that does not exist. The two answer different
+    questions: ``*_item_ids`` is the column space a phase lives in, while these
+    are a partition by first appearance. The two agree only by coincidence, and
+    only under ``temporal`` and ``user_split``, where the catalogs already encode
+    the partition; under ``leave_last_out`` and ``item_split`` all three phases
+    share one catalog and the partition is *observed*, so it cannot be recovered
+    from the catalogs at all.
 
     - ``user_split``: training spans every item and the later phases introduce
       none, so the train partition is the full range and val/test are empty.
@@ -340,12 +361,14 @@ def save_recsys_split(
     of a phase is ``{phase}_item_ids``, which defaults to ``item_ids`` when not
     given. Callers that select feature or metadata rows for a phase should index
     with that phase's ``*_item_ids`` (or the union of partitions up to it),
-    because mirroring ``train_item_indices`` into a later phase silently yields
+    because mirroring ``warm_item_indices`` into a later phase silently yields
     an empty selection for splits that hold no items out.
 
     Passing ``None`` for a partition omits its file, and
-    :func:`load_recsys_split` then falls back to the whole catalog for train and
-    to an empty array for val/test. Prefer writing all three explicitly.
+    :func:`load_recsys_split` then falls back to the whole catalog for the warm
+    partition and to an empty array for the cold ones. Prefer writing all three
+    explicitly, since those defaults turn an omission into a confident wrong
+    answer rather than an error.
     """
     root = Path(root)
     data_dir = root / SPLIT_DIR
@@ -472,12 +495,21 @@ def save_recsys_split(
     _save_optional_str_array(data_dir / "test_user_ids.npy", test_user_ids)
     _save_optional_str_array(data_dir / "val_eval_user_ids.npy", val_eval_user_ids)
     _save_optional_str_array(data_dir / "test_eval_user_ids.npy", test_eval_user_ids)
-    if train_item_indices is not None:
-        np.save(data_dir / "train_item_indices.npy", np.asarray(train_item_indices, dtype=np.int64))
-    if val_item_indices is not None:
-        np.save(data_dir / "val_item_indices.npy", np.asarray(val_item_indices, dtype=np.int64))
-    if test_item_indices is not None:
-        np.save(data_dir / "test_item_indices.npy", np.asarray(test_item_indices, dtype=np.int64))
+    if warm_item_indices is not None:
+        np.save(
+            data_dir / "warm_item_indices.npy",
+            np.asarray(warm_item_indices, dtype=np.int64),
+        )
+    if val_cold_item_indices is not None:
+        np.save(
+            data_dir / "val_cold_item_indices.npy",
+            np.asarray(val_cold_item_indices, dtype=np.int64),
+        )
+    if test_cold_item_indices is not None:
+        np.save(
+            data_dir / "test_cold_item_indices.npy",
+            np.asarray(test_cold_item_indices, dtype=np.int64),
+        )
     if entity_tag_matrix is not None:
         if entity_tag_matrix.shape[0] != len(item_ids):
             raise ValueError("entity_tag_matrix rows must match item_ids length")
@@ -507,17 +539,32 @@ def load_recsys_split(root: str | Path) -> dict[str, Any]:
     ``item_ids``.
 
     For checkpoints written before every partition was stored explicitly, a
-    missing ``train_item_indices.npy`` loads as the full catalog range and
-    missing val/test files load as empty arrays.
+    missing ``warm_item_indices.npy`` loads as the full catalog range and
+    missing cold files load as empty arrays. Checkpoints written before the
+    rename are read under their old names first, because those defaults would
+    otherwise turn a missing file into a confident wrong answer.
     """
     root = Path(root)
     split = np.load(root / SPLIT_DIR / "split.npz", allow_pickle=True)
     tags_path = root / SPLIT_DIR / "entity_tags.npz"
     tag_names_path = root / SPLIT_DIR / "tag_names.npy"
     metadata_path = root / SPLIT_DIR / "entity_metadata.csv"
-    train_item_indices_path = root / SPLIT_DIR / "train_item_indices.npy"
-    val_item_indices_path = root / SPLIT_DIR / "val_item_indices.npy"
-    test_item_indices_path = root / SPLIT_DIR / "test_item_indices.npy"
+    # Renamed keys, read with a fallback to what they were called before. The
+    # fallback is not politeness: a missing warm file defaults to the whole
+    # catalog and a missing cold file to nothing, so reading only the new name
+    # would report every item warm on an older checkpoint rather than failing.
+    warm_item_indices_path = _first_existing(
+        root / SPLIT_DIR / "warm_item_indices.npy",
+        root / SPLIT_DIR / "train_item_indices.npy",
+    )
+    val_cold_item_indices_path = _first_existing(
+        root / SPLIT_DIR / "val_cold_item_indices.npy",
+        root / SPLIT_DIR / "val_item_indices.npy",
+    )
+    test_cold_item_indices_path = _first_existing(
+        root / SPLIT_DIR / "test_cold_item_indices.npy",
+        root / SPLIT_DIR / "test_item_indices.npy",
+    )
     train_user_ids_path = root / SPLIT_DIR / "train_user_ids.npy"
     val_user_ids_path = root / SPLIT_DIR / "val_user_ids.npy"
     test_user_ids_path = root / SPLIT_DIR / "test_user_ids.npy"
@@ -600,12 +647,14 @@ def load_recsys_split(root: str | Path) -> dict[str, Any]:
         "test_user_ids": _load_optional_str_array(test_user_ids_path),
         "val_eval_user_ids": _load_optional_str_array(val_eval_user_ids_path),
         "test_eval_user_ids": _load_optional_str_array(test_eval_user_ids_path),
-        "train_item_indices": _load_optional_int_array(
-            train_item_indices_path,
+        "warm_item_indices": _load_optional_int_array(
+            warm_item_indices_path,
             default=np.arange(len(item_ids), dtype=np.int64),
         ),
-        "val_item_indices": _load_optional_int_array(val_item_indices_path),
-        "test_item_indices": _load_optional_int_array(test_item_indices_path),
+        "val_cold_item_indices": _load_optional_int_array(val_cold_item_indices_path),
+        "test_cold_item_indices": _load_optional_int_array(
+            test_cold_item_indices_path
+        ),
         # ``None`` when the split mode has no ordering to preserve, and when a
         # checkpoint predates sequences entirely. Both are legitimate: a
         # checkpoint without them is still complete for every matrix model, so

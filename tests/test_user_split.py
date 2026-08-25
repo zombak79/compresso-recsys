@@ -48,16 +48,16 @@ def test_user_split_stores_every_item_partition_explicitly():
     """Regression: train used to be None while val/test were empty arrays."""
     split = _user_split()
 
-    for key in ("train_item_indices", "val_item_indices", "test_item_indices"):
+    for key in ("warm_item_indices", "val_cold_item_indices", "test_cold_item_indices"):
         assert split[key] is not None, f"{key} must be stored explicitly"
         assert np.asarray(split[key]).dtype == np.int64
 
     n_items = len(split["item_ids"])
     assert n_items == N_ITEMS
     # Training spans the catalog; no later phase introduces new items.
-    assert split["train_item_indices"].tolist() == list(range(n_items))
-    assert split["val_item_indices"].tolist() == []
-    assert split["test_item_indices"].tolist() == []
+    assert split["warm_item_indices"].tolist() == list(range(n_items))
+    assert split["val_cold_item_indices"].tolist() == []
+    assert split["test_cold_item_indices"].tolist() == []
     assert split["extra_metadata"]["has_item_partitions"] is False
 
 
@@ -67,7 +67,7 @@ def test_user_split_train_partition_indexes_the_catalog():
     item_ids = np.asarray(split["item_ids"])
     features = np.arange(len(item_ids) * 3, dtype=np.float32).reshape(len(item_ids), 3)
 
-    rows = split["train_item_indices"]
+    rows = split["warm_item_indices"]
     assert item_ids[rows].tolist() == item_ids.tolist()
     assert features[rows].shape == features.shape
     assert split["x_train"].shape[1] == len(item_ids)
@@ -86,16 +86,16 @@ def test_user_split_item_indices_survive_a_checkpoint_round_trip(tmp_path):
         val_target_indices=val_holdout["target_indices"],
         test_source_indices=holdout["source_indices"],
         test_target_indices=holdout["target_indices"],
-        train_item_indices=split["train_item_indices"],
-        val_item_indices=split["val_item_indices"],
-        test_item_indices=split["test_item_indices"],
+        warm_item_indices=split["warm_item_indices"],
+        val_cold_item_indices=split["val_cold_item_indices"],
+        test_cold_item_indices=split["test_cold_item_indices"],
     )
     loaded = load_recsys_split(tmp_path)
 
     n_items = len(split["item_ids"])
-    assert loaded["train_item_indices"].tolist() == list(range(n_items))
-    assert loaded["val_item_indices"].tolist() == []
-    assert loaded["test_item_indices"].tolist() == []
+    assert loaded["warm_item_indices"].tolist() == list(range(n_items))
+    assert loaded["val_cold_item_indices"].tolist() == []
+    assert loaded["test_cold_item_indices"].tolist() == []
     # Every phase scores the same catalog, which is what the *_item_ids report.
     assert loaded["train_item_ids"].tolist() == loaded["item_ids"].tolist()
     assert loaded["val_item_ids"].tolist() == loaded["item_ids"].tolist()
@@ -114,15 +114,15 @@ def test_missing_train_partition_still_loads_as_the_whole_catalog(tmp_path):
         val_target_indices=[np.asarray([1])],
         test_source_indices=[np.asarray([0])],
         test_target_indices=[np.asarray([1])],
-        train_item_indices=None,
-        val_item_indices=None,
-        test_item_indices=None,
+        warm_item_indices=None,
+        val_cold_item_indices=None,
+        test_cold_item_indices=None,
     )
     loaded = load_recsys_split(tmp_path)
 
-    assert loaded["train_item_indices"].tolist() == [0, 1]
-    assert loaded["val_item_indices"].tolist() == []
-    assert loaded["test_item_indices"].tolist() == []
+    assert loaded["warm_item_indices"].tolist() == [0, 1]
+    assert loaded["val_cold_item_indices"].tolist() == []
+    assert loaded["test_cold_item_indices"].tolist() == []
 
 
 # --------------------------------------------------------------------------
@@ -313,8 +313,8 @@ def test_item_partitions_are_observed_not_imposed():
     """
     dense = _events({f"u{i}": [f"i{(i + j) % 6}" for j in range(5)] for i in range(12)})
     payload = _build_leave_last_out_split(_llo_args(), dense)
-    assert payload["val_item_indices"].size == 0
-    assert payload["test_item_indices"].size == 0
+    assert payload["val_cold_item_indices"].size == 0
+    assert payload["test_cold_item_indices"].size == 0
 
     # "rare" appears once, as u0's final interaction, so nothing trains on it.
     # "e" is also a test target, but u2 sees it early enough to train on, which
@@ -326,9 +326,9 @@ def test_item_partitions_are_observed_not_imposed():
     })
     payload = _build_leave_last_out_split(_llo_args(), sparse)
     items = payload["item_ids"]
-    assert items[payload["test_item_indices"]].tolist() == ["rare"]
+    assert items[payload["test_cold_item_indices"]].tolist() == ["rare"]
     # "d" first appears as a validation target, so it belongs to that phase.
-    assert items[payload["val_item_indices"]].tolist() == ["d"]
+    assert items[payload["val_cold_item_indices"]].tolist() == ["d"]
 
 
 def test_leave_last_out_orders_by_timestamp_not_by_row_order():
@@ -450,3 +450,66 @@ def test_min_target_items_above_one_is_refused_not_ignored():
     """Each stage holds out exactly one item, so more cannot be delivered."""
     with pytest.raises(ValueError, match="exactly one item per stage"):
         _build_leave_last_out_split(_llo_args(min_target_items=2), _llo_events(14))
+
+
+def test_a_checkpoint_written_before_the_rename_still_reads_correctly(tmp_path):
+    """The fallback exists to prevent a confident wrong answer, not for politeness.
+
+    A missing warm file defaults to the whole catalog and a missing cold file to
+    nothing, so reading only the new names would report every item warm on an
+    older checkpoint — and for ``leave_last_out`` and ``item_split``, where all
+    three phases share one catalog, nothing downstream could notice.
+    """
+    from compresso_recsys.checkpoint import SPLIT_DIR, load_recsys_split
+
+    item_ids = np.asarray(["a", "b", "c", "d"])
+    matrix = csr_matrix(np.ones((2, 4), dtype=np.float32))
+    save_recsys_split(
+        tmp_path,
+        item_ids=item_ids,
+        x_train=matrix,
+        val_source_indices=[np.asarray([0]), np.asarray([1])],
+        val_target_indices=[np.asarray([1]), np.asarray([2])],
+        test_source_indices=[np.asarray([0]), np.asarray([1])],
+        test_target_indices=[np.asarray([2]), np.asarray([3])],
+        warm_item_indices=np.asarray([0, 1]),
+        val_cold_item_indices=np.asarray([2]),
+        test_cold_item_indices=np.asarray([3]),
+    )
+
+    # Rewind the files to what they used to be called.
+    data = tmp_path / SPLIT_DIR
+    for new, old in (
+        ("warm_item_indices", "train_item_indices"),
+        ("val_cold_item_indices", "val_item_indices"),
+        ("test_cold_item_indices", "test_item_indices"),
+    ):
+        (data / f"{new}.npy").rename(data / f"{old}.npy")
+
+    loaded = load_recsys_split(tmp_path)
+
+    assert loaded["warm_item_indices"].tolist() == [0, 1]
+    assert loaded["val_cold_item_indices"].tolist() == [2]
+    assert loaded["test_cold_item_indices"].tolist() == [3]
+
+
+def test_a_new_name_wins_over_a_stale_old_one(tmp_path):
+    """Both present means the old file is a leftover, not the truth."""
+    from compresso_recsys.checkpoint import SPLIT_DIR, load_recsys_split
+
+    matrix = csr_matrix(np.ones((2, 4), dtype=np.float32))
+    save_recsys_split(
+        tmp_path,
+        item_ids=np.asarray(["a", "b", "c", "d"]),
+        x_train=matrix,
+        val_source_indices=[np.asarray([0]), np.asarray([1])],
+        val_target_indices=[np.asarray([1]), np.asarray([2])],
+        test_source_indices=[np.asarray([0]), np.asarray([1])],
+        test_target_indices=[np.asarray([2]), np.asarray([3])],
+        warm_item_indices=np.asarray([0, 1]),
+        val_cold_item_indices=np.asarray([2]),
+        test_cold_item_indices=np.asarray([3]),
+    )
+    np.save(tmp_path / SPLIT_DIR / "train_item_indices.npy", np.asarray([9, 9, 9]))
+
+    assert load_recsys_split(tmp_path)["warm_item_indices"].tolist() == [0, 1]
