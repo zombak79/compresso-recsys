@@ -195,13 +195,15 @@ def test_checkpoint_round_trip_preserves_stage_item_spaces_and_training_union(
 def test_checkpoint_rejects_matrix_item_id_mismatch(tmp_path):
     matrix = csr_matrix([[1.0]], dtype=np.float32)
 
+    # Catalogs nest, so the only thing wrong here is the matrix width -- which
+    # is what this test is about.
     with pytest.raises(ValueError, match="validation matrix columns"):
         save_recsys_split(
             tmp_path,
             item_ids=np.asarray(["A", "B"]),
             train_item_ids=np.asarray(["A"]),
             val_item_ids=np.asarray(["A", "B"]),
-            test_item_ids=np.asarray(["A"]),
+            test_item_ids=np.asarray(["A", "B"]),
             x_train=matrix,
             train_source_matrix=matrix,
             train_target_matrix=matrix,

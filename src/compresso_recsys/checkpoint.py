@@ -155,6 +155,78 @@ def load_json(root: str | Path, relpath: str) -> dict[str, Any]:
     return json.loads((Path(root) / relpath).read_text(encoding="utf-8"))
 
 
+def _check_stage_catalogs_nest(
+    *,
+    train_item_ids: np.ndarray,
+    val_item_ids: np.ndarray,
+    test_item_ids: np.ndarray,
+) -> None:
+    """Every stage catalog must extend the previous one by appending.
+
+    A warm item therefore keeps its column index in every later stage, which is
+    what lets a model fitted on the training catalog read a later stage's
+    indices directly: below its own item count is one of its items, at or above
+    is one it has never seen. ``temporal`` grows the catalog window by window and
+    the other modes hold it fixed, so this already held everywhere -- but nothing
+    enforced it, and a mode that re-sorted item IDs per stage would silently
+    change what an index means between stages rather than failing.
+    """
+    for earlier_name, earlier, later_name, later in (
+        ("train_item_ids", train_item_ids, "val_item_ids", val_item_ids),
+        ("val_item_ids", val_item_ids, "test_item_ids", test_item_ids),
+    ):
+        if earlier.size > later.size:
+            raise ValueError(
+                f"{later_name} has {later.size} items but {earlier_name} has "
+                f"{earlier.size}; a stage catalog may only grow"
+            )
+        if not np.array_equal(earlier, later[: earlier.size]):
+            disagreement = int(np.flatnonzero(earlier != later[: earlier.size])[0])
+            raise ValueError(
+                f"{later_name} must extend {earlier_name} by appending, but they "
+                f"differ at index {disagreement}: {earlier[disagreement]!r} "
+                f"versus {later[disagreement]!r}. Stage catalogs that reorder "
+                "make a column index mean different items in different stages"
+            )
+
+
+def _check_sequence_matches_sibling(
+    sequences: ItemSequences,
+    sibling: csr_matrix | list[np.ndarray],
+    name: str,
+    sibling_name: str,
+) -> None:
+    """A sequence and the view beside it must describe the same events.
+
+    Sharing a column space is not enough: two views built from different filter
+    passes can agree on their shape and disagree on their contents, which trains
+    a sequential model and a matrix model on different data while every shape
+    check passes. Order and repeats are the sequence view's whole purpose, so the
+    comparison is per row and set-wise -- the matrix view cannot express either.
+    """
+    if isinstance(sibling, csr_matrix):
+        rows = sibling.shape[0]
+        member_sets = (
+            set(sibling.indices[sibling.indptr[i] : sibling.indptr[i + 1]].tolist())
+            for i in range(rows)
+        )
+    else:
+        rows = len(sibling)
+        member_sets = (np.asarray(entry).tolist() for entry in sibling)
+
+    if rows != sequences.n_rows:
+        raise ValueError(
+            f"{name} has {sequences.n_rows} rows but {sibling_name} has {rows}; "
+            "the two views must address the same rows"
+        )
+    for row, members in enumerate(member_sets):
+        if set(sequences.row(row).tolist()) != set(members):
+            raise ValueError(
+                f"{name} and {sibling_name} disagree on row {row}; the two views "
+                "must describe the same events"
+            )
+
+
 def save_recsys_split(
     root: str | Path,
     *,
@@ -290,6 +362,11 @@ def save_recsys_split(
     test_item_ids = np.asarray(
         item_ids if test_item_ids is None else test_item_ids
     ).astype(str)
+    _check_stage_catalogs_nest(
+        train_item_ids=train_item_ids,
+        val_item_ids=val_item_ids,
+        test_item_ids=test_item_ids,
+    )
     train_source_matrix = x_train if train_source_matrix is None else train_source_matrix
     train_target_matrix = train_source_matrix if train_target_matrix is None else train_target_matrix
     val_source_matrix = (
@@ -359,6 +436,12 @@ def save_recsys_split(
         ("val_source_sequences", val_source_sequences, "validation", val_item_ids),
         ("test_source_sequences", test_source_sequences, "test", test_item_ids),
     )
+    sequence_siblings = {
+        "x_train_sequences": ("x_train", x_train),
+        "train_source_sequences": ("train_source_matrix", train_source_matrix),
+        "val_source_sequences": ("val_source_indices", val_source_indices),
+        "test_source_sequences": ("test_source_indices", test_source_indices),
+    }
     for name, sequences, stage, stage_item_ids in sequence_stages:
         if sequences is None:
             continue
@@ -368,6 +451,8 @@ def save_recsys_split(
                 f"has {len(stage_item_ids)}; a sequence and the matrix beside it "
                 "must share a column space"
             )
+        sibling_name, sibling = sequence_siblings[name]
+        _check_sequence_matches_sibling(sequences, sibling, name, sibling_name)
         save_item_sequences(data_dir / f"{name}.npz", sequences)
 
     save_npz(data_dir / "train_matrix.npz", x_train.tocsr())

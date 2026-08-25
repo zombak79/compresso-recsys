@@ -310,3 +310,152 @@ def test_persisted_stage_lengths_differ_by_one_event_per_user(tmp_path):
 
     assert window - train == users
     assert test - window == users
+
+
+# --------------------------------------------------------------------------
+# invariants the two views rest on
+#
+# Both were true of every split mode before anything checked them, and both are
+# the kind of thing that goes wrong silently: a shape stays valid while an index
+# quietly comes to mean something else.
+# --------------------------------------------------------------------------
+
+
+def _nesting_kwargs(**overrides):
+    from scipy.sparse import csr_matrix
+
+    matrix = csr_matrix(np.ones((1, 2), dtype=np.float32))
+    kwargs = dict(
+        item_ids=np.asarray(["A", "B"]),
+        train_item_ids=np.asarray(["A", "B"]),
+        val_item_ids=np.asarray(["A", "B"]),
+        test_item_ids=np.asarray(["A", "B"]),
+        x_train=matrix,
+        train_source_matrix=matrix,
+        train_target_matrix=matrix,
+        val_source_indices=[np.asarray([0])],
+        val_target_indices=[np.asarray([1])],
+        test_source_indices=[np.asarray([0])],
+        test_target_indices=[np.asarray([1])],
+    )
+    kwargs.update(overrides)
+    return kwargs
+
+
+def test_stage_catalogs_may_grow_by_appending(tmp_path):
+    """What temporal does: each window adds items to the end of the catalog."""
+    from compresso_recsys.checkpoint import save_recsys_split
+
+    save_recsys_split(
+        tmp_path,
+        **_nesting_kwargs(
+            item_ids=np.asarray(["A", "B", "C"]),
+            train_item_ids=np.asarray(["A"]),
+            val_item_ids=np.asarray(["A", "B"]),
+            test_item_ids=np.asarray(["A", "B", "C"]),
+            x_train=csr_matrix(np.ones((1, 1), dtype=np.float32)),
+            train_source_matrix=csr_matrix(np.ones((1, 1), dtype=np.float32)),
+            train_target_matrix=csr_matrix(np.ones((1, 1), dtype=np.float32)),
+        ),
+    )
+
+
+def test_a_reordered_stage_catalog_is_refused(tmp_path):
+    """The failure this guards: an index meaning different items per stage.
+
+    ``B`` is catalog row 1 at validation and row 2 at test, so a model fitted on
+    the validation catalog would read test row 1 as ``B`` when it is now ``C``.
+    Nothing about the shapes is wrong, which is why it needs its own check.
+    """
+    from compresso_recsys.checkpoint import save_recsys_split
+
+    with pytest.raises(ValueError, match="must extend val_item_ids by appending"):
+        save_recsys_split(
+            tmp_path,
+            **_nesting_kwargs(
+                item_ids=np.asarray(["A", "B", "C"]),
+                val_item_ids=np.asarray(["A", "B"]),
+                test_item_ids=np.asarray(["A", "C", "B"]),
+            ),
+        )
+
+
+def test_a_shrinking_stage_catalog_is_refused(tmp_path):
+    from compresso_recsys.checkpoint import save_recsys_split
+
+    with pytest.raises(ValueError, match="a stage catalog may only grow"):
+        save_recsys_split(
+            tmp_path,
+            **_nesting_kwargs(
+                val_item_ids=np.asarray(["A", "B"]),
+                test_item_ids=np.asarray(["A"]),
+            ),
+        )
+
+
+def test_a_sequence_disagreeing_with_its_matrix_is_refused(tmp_path):
+    """The step-4 bug: two views of one split built from different filter passes.
+
+    Column spaces match and row counts match, so every earlier check passes. The
+    consequence is a matrix model and a sequential model trained on different
+    data, which is exactly the kind of difference a comparison cannot see.
+    """
+    from compresso_recsys.checkpoint import save_recsys_split
+
+    with pytest.raises(ValueError, match="disagree on row 0"):
+        save_recsys_split(
+            tmp_path,
+            **_nesting_kwargs(
+                # x_train says row 0 saw items 0 and 1; the sequence says only 0.
+                x_train_sequences=ItemSequences.from_rows([[0]], n_items=2),
+            ),
+        )
+
+
+def test_a_sequence_with_the_wrong_row_count_is_refused(tmp_path):
+    from compresso_recsys.checkpoint import save_recsys_split
+
+    with pytest.raises(ValueError, match="must address the same rows"):
+        save_recsys_split(
+            tmp_path,
+            **_nesting_kwargs(
+                x_train_sequences=ItemSequences.from_rows([[0, 1], [0]], n_items=2),
+            ),
+        )
+
+
+def test_order_and_repeats_are_not_held_against_the_matrix(tmp_path):
+    """The comparison is set-wise on purpose.
+
+    The sequence view exists to carry order and duplicates, neither of which a
+    CSR row can express, so requiring more than set equality would reject every
+    correct sequence.
+    """
+    from compresso_recsys.checkpoint import save_recsys_split
+
+    save_recsys_split(
+        tmp_path,
+        **_nesting_kwargs(
+            x_train_sequences=ItemSequences.from_rows([[1, 0, 1, 0]], n_items=2),
+        ),
+    )
+
+
+def test_every_split_mode_already_satisfies_both_invariants():
+    """Checked against the builders rather than against hand-made payloads."""
+    events = _events([f"i{j}" for j in range(9)])
+    for name, payload in (("llo", _llo(events)), ("temporal", _temporal(events))):
+        ids = {
+            stage: payload.get(f"{stage}_item_ids", payload["item_ids"])
+            for stage in ("train", "val", "test")
+        }
+        assert np.array_equal(ids["train"], ids["val"][: len(ids["train"])]), name
+        assert np.array_equal(ids["val"], ids["test"][: len(ids["val"])]), name
+
+        sequences = payload["x_train_sequences"]
+        matrix = payload["x_train"]
+        assert sequences.n_rows == matrix.shape[0], name
+        for row in range(sequences.n_rows):
+            assert set(sequences.row(row).tolist()) == set(
+                matrix[row].indices.tolist()
+            ), (name, row)

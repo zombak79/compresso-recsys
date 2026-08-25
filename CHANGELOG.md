@@ -119,6 +119,20 @@ change.
   60th. Neither figure is about recommendation quality, so a cross-family
   comparison is sounder with both models wrapped — when the data warrants it,
   which on MovieLens-1M it does not: 3 of 6,033 rows.
+- `save_recsys_split` enforces two invariants the sequence and matrix views rest
+  on, both of which were already true of every split mode and neither of which
+  anything checked. **Stage catalogs must nest by prefix**, so a warm item keeps
+  its column index in every later stage — which is what lets a model fitted on
+  the training catalog read a later stage's indices directly, treating anything
+  at or above its own item count as unseen. `temporal` grows the catalog window
+  by window and the other modes hold it fixed, but a mode that re-sorted IDs per
+  stage would have made an index mean different items in different stages without
+  failing. **And a sequence must describe the same events as the view beside it**
+  — sharing a column space is not enough, since two views built from different
+  filter passes can agree on shape and disagree on contents, which trains a
+  matrix model and a sequential model on different data while every shape check
+  passes. The comparison is per row and set-wise, because order and duplicates
+  are the sequence view's whole purpose and a CSR row can express neither.
 - `ItemSequences.select_rows`, the non-contiguous counterpart to `take_rows`,
   which is what shuffling a training set needs.
 - An end-to-end test spanning one `leave_last_out` build, a checkpoint round
