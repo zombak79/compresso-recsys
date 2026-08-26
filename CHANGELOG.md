@@ -149,7 +149,7 @@ adjacency in cold-item sequences is removed.
   split from the grid `1, 2, 3, 5, 10, 20` and only then scored on test, against
   a popularity floor. On MovieLens-1M `leave_last_out` (6,033 users) SimpleGPT
   scores 0.1520 ± 0.0017 against SimpleRNN's 0.1471 ± 0.0008 — a gap of
-  `+0.0049`, about two and a half times the larger deviation — and both are far
+  `+0.0049`, about three times the larger of the two deviations — and both are far
   past ELSA's 0.0562 and popularity's 0.0176. On Amazon Office_Products
   `leave_last_out` the same three models land within 0.005 of each other
   (ELSA 0.0327 ± 0.0011, SimpleGPT 0.0310 ± 0.0013, SimpleRNN 0.0282 ± 0.0018),

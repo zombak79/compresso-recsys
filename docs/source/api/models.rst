@@ -935,9 +935,9 @@ model comparison cannot say whether either model works at all.
 
 **The datasets disagree, and the disagreement is the finding.** On MovieLens both
 sequential models beat ELSA by more than two and a half times and popularity by
-nearly ten, and SimpleGPT leads SimpleRNN by ``+0.0049`` — about two and a half
-times the pooled seed deviation. On Amazon Office_Products the three top models
-are within 0.005 of each other, with ELSA nominally ahead of SimpleGPT by ~1.4
+nearly ten, and SimpleGPT leads SimpleRNN by ``+0.0049`` — about three
+times the larger of the two seed deviations. On Amazon Office_Products the three top models
+are within 0.005 of each other, with ELSA nominally ahead of SimpleGPT by ~1.3
 deviations, and on the temporal split *nothing beats popularity*.
 
 The reason is what the histories contain. Office targets average exactly 1.0
