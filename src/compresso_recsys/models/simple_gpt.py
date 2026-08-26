@@ -45,7 +45,8 @@ a separate claim that deserves measuring on its own.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
+from pathlib import Path
 from typing import Literal
 
 import numpy as np
@@ -66,6 +67,8 @@ __all__ = [
     "SimpleGPTConfig",
     "SimpleGPTTrainer",
     "TransformerConfig",
+    "load_simple_gpt",
+    "save_simple_gpt",
 ]
 
 OptimizerName = Literal["NAdam", "AdamW"]
@@ -396,17 +399,8 @@ class SimpleGPTTrainer(BaseSequentialRecommender):
                 pad_side="right",
             )
         self._check_batcher(self.batcher)
-        tokenizer = self.batcher.tokenizer
-        self._n_items = tokenizer.n_items
-
-        self.model = SimpleGPT(
-            vocab_size=tokenizer.vocab_size,
-            n_items=tokenizer.n_items,
-            # One slot for CLS on top of the longest history the batcher emits.
-            max_positions=int(self.batcher.max_length) + 1,
-            pad_id=tokenizer.pad_id,
-            config=self.cfg.transformer,
-        ).to(self.device)
+        self._n_items = self.batcher.tokenizer.n_items
+        self.model = self._build_model()
 
         optimizer = getattr(torch.optim, self.cfg.optimizer)(
             self.model.parameters(),
@@ -465,6 +459,23 @@ class SimpleGPTTrainer(BaseSequentialRecommender):
                 epoch_iter.close()
 
         return self
+
+    def _build_model(self) -> SimpleGPT:
+        """The module this trainer's config and batcher describe.
+
+        Shared by :meth:`fit` and :func:`load_simple_gpt` so a reloaded model is
+        built by exactly the path that trained it.
+        """
+        assert self.batcher is not None
+        tokenizer = self.batcher.tokenizer
+        return SimpleGPT(
+            vocab_size=tokenizer.vocab_size,
+            n_items=tokenizer.n_items,
+            # One slot for CLS on top of the longest history the batcher emits.
+            max_positions=int(self.batcher.max_length) + 1,
+            pad_id=tokenizer.pad_id,
+            config=self.cfg.transformer,
+        ).to(self.device)
 
     @staticmethod
     def _check_batcher(batcher: SequenceBatcher) -> None:
@@ -633,3 +644,74 @@ def _progress_bar(enabled: bool, *, total: int, desc: str):
     if not enabled or tqdm is None:
         return None
     return tqdm(total=total, desc=desc)
+
+
+def save_simple_gpt(path: str | Path, trainer: SimpleGPTTrainer) -> None:
+    """Write weights, configuration and vocabulary to one file.
+
+    The tokenizer travels with the weights because a served model without it
+    cannot say what column 41 means. It is the only part that cannot be
+    reconstructed from the config: the config describes the network, while the
+    vocabulary describes the data it was fitted on.
+
+    The batcher's ``max_length`` and ``pad_side`` are stored rather than the
+    batcher, since those two values are all of it that matters and both are
+    already enforced by :meth:`SimpleGPTTrainer.fit`.
+    """
+    if trainer.model is None or trainer.batcher is None:
+        raise RuntimeError("SimpleGPTTrainer must be fitted before saving")
+    config = asdict(trainer.cfg)
+    # torch.device is picklable but a string keeps the file readable by
+    # weights_only=True and by anything that is not torch.
+    config["device"] = str(trainer.cfg.device)
+    torch.save(
+        {
+            "format": 1,
+            "model_state": trainer.model.state_dict(),
+            "config": config,
+            "tokenizer": trainer.batcher.tokenizer.to_dict(),
+            "max_length": int(trainer.batcher.max_length),
+            "pad_side": trainer.batcher.pad_side,
+            "history": list(trainer.history),
+        },
+        Path(path),
+    )
+
+
+def load_simple_gpt(
+    path: str | Path, *, device: str | torch.device | None = None
+) -> SimpleGPTTrainer:
+    """Read back a trainer saved by :func:`save_simple_gpt`, ready to predict.
+
+    Self-contained: no config, tokenizer or batcher is needed at the call site,
+    which is the point — those are what a checkpoint exists to carry.
+
+    Read with ``weights_only=True``, so the file is parsed as data rather than
+    executed as a pickle.
+    """
+    state = torch.load(
+        Path(path), map_location=device or "cpu", weights_only=True
+    )
+    if state.get("format") != 1:
+        raise ValueError(
+            f"unsupported SimpleGPT checkpoint format {state.get('format')!r}"
+        )
+
+    config_state = dict(state["config"])
+    transformer = TransformerConfig(**config_state.pop("transformer"))
+    if device is not None:
+        config_state["device"] = str(device)
+    config = SimpleGPTConfig(transformer=transformer, **config_state)
+
+    batcher = SequenceBatcher(
+        ItemTokenizer.from_dict(state["tokenizer"]),
+        max_length=int(state["max_length"]),
+        pad_side=state["pad_side"],
+    )
+    trainer = SimpleGPTTrainer(config, batcher)
+    trainer._n_items = batcher.tokenizer.n_items
+    trainer.model = trainer._build_model()
+    trainer.model.load_state_dict(state["model_state"])
+    trainer.model.eval()
+    trainer.history = list(state["history"])
+    return trainer

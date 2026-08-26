@@ -13,6 +13,8 @@ from compresso_recsys.models.simple_gpt import (
     SimpleGPTConfig,
     SimpleGPTTrainer,
     TransformerConfig,
+    load_simple_gpt,
+    save_simple_gpt,
 )
 from compresso_recsys.models.tokenizer import ItemTokenizer
 from compresso_recsys.sequences import ItemSequences
@@ -624,3 +626,112 @@ def test_it_evaluates_through_the_standard_entry_point():
 
     assert result.n_scored_rows == 3
     assert result["ndcg@1"] == pytest.approx(1.0)
+
+
+# --------------------------------------------------------------------------
+# persistence
+# --------------------------------------------------------------------------
+
+
+def test_a_reloaded_model_predicts_identically(tmp_path):
+    model = _fitted_on_cycle(epochs=20)
+    sources = _seqs([[0, 1, 2], [3, 4, 5], [], [7]])
+    before = model.predict(sources, k=4)
+    path = tmp_path / "gpt.pt"
+
+    save_simple_gpt(path, model)
+    reloaded = load_simple_gpt(path)
+    after = reloaded.predict(sources, k=4)
+
+    assert after.cols.tolist() == before.cols.tolist()
+    torch.testing.assert_close(after.vals, before.vals)
+
+
+def test_loading_needs_nothing_but_the_file(tmp_path):
+    """The point of carrying the tokenizer: a checkpoint is self-describing."""
+    path = tmp_path / "gpt.pt"
+    save_simple_gpt(path, _fitted_on_cycle(epochs=2))
+
+    reloaded = load_simple_gpt(path)
+
+    assert reloaded.is_fitted
+    assert reloaded.n_items == N_ITEMS
+    assert reloaded.batcher.tokenizer.n_items == N_ITEMS
+    assert reloaded.batcher.max_length == 12
+    assert reloaded.batcher.pad_side == "right"
+    assert reloaded.cfg.transformer.d_model == 32
+
+
+def test_the_vocabulary_survives_including_item_ids(tmp_path):
+    """Without the ids a served model cannot say what a predicted column means."""
+    ids = np.array([f"item-{j}" for j in range(N_ITEMS)], dtype=object)
+    batcher = SequenceBatcher(
+        ItemTokenizer(N_ITEMS, item_ids=ids), max_length=12
+    )
+    model = SimpleGPTTrainer(_trainer_config(epochs=2), batcher).fit(
+        _seqs(_cycle_rows(16))
+    )
+    path = tmp_path / "gpt.pt"
+
+    save_simple_gpt(path, model)
+    reloaded = load_simple_gpt(path)
+
+    predictions = reloaded.predict(_seqs([[0, 1, 2]]), k=2)
+    resolved = reloaded.batcher.tokenizer.decode_ids(
+        predictions.cols[0] + reloaded.batcher.tokenizer.n_reserved
+    )
+    assert all(str(name).startswith("item-") for name in resolved.tolist())
+
+
+def test_history_travels_with_the_weights(tmp_path):
+    model = _fitted_on_cycle(epochs=3)
+    path = tmp_path / "gpt.pt"
+
+    save_simple_gpt(path, model)
+
+    assert load_simple_gpt(path).history == model.history
+
+
+def test_saving_an_unfitted_trainer_is_refused(tmp_path):
+    with pytest.raises(RuntimeError, match="must be fitted before saving"):
+        save_simple_gpt(tmp_path / "gpt.pt", SimpleGPTTrainer(_trainer_config()))
+
+
+def test_an_unknown_format_is_refused(tmp_path):
+    path = tmp_path / "gpt.pt"
+    save_simple_gpt(path, _fitted_on_cycle(epochs=1))
+    state = torch.load(path, weights_only=True)
+    state["format"] = 99
+    torch.save(state, path)
+
+    with pytest.raises(ValueError, match="unsupported SimpleGPT checkpoint format"):
+        load_simple_gpt(path)
+
+
+def test_the_device_can_be_overridden_on_load(tmp_path):
+    path = tmp_path / "gpt.pt"
+    save_simple_gpt(path, _fitted_on_cycle(epochs=1))
+
+    reloaded = load_simple_gpt(path, device="cpu")
+
+    assert reloaded.device == torch.device("cpu")
+    assert reloaded.cfg.device == "cpu"
+
+
+def test_the_file_reads_as_data_not_as_a_pickle(tmp_path):
+    """``weights_only=True`` means loading cannot execute what the file says."""
+    path = tmp_path / "gpt.pt"
+    save_simple_gpt(path, _fitted_on_cycle(epochs=1))
+
+    state = torch.load(path, weights_only=True)
+
+    assert set(state) == {
+        "format",
+        "model_state",
+        "config",
+        "tokenizer",
+        "max_length",
+        "pad_side",
+        "history",
+    }
+    assert isinstance(state["config"]["device"], str)
