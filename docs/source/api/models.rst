@@ -780,7 +780,12 @@ claim that deserves to be measured on its own.
 
    from compresso_recsys.evaluation import evaluate_recommender
    from compresso_recsys.metrics import CalibratedRecall, NDCG
-   from compresso_recsys.models import SimpleRNNConfig, SimpleRNNTrainer
+   from compresso_recsys.models import (
+       ItemTokenizer,
+       SequenceBatcher,
+       SimpleRNNConfig,
+       SimpleRNNTrainer,
+   )
 
    model = SimpleRNNTrainer(
        SimpleRNNConfig(
@@ -790,8 +795,10 @@ claim that deserves to be measured on its own.
            epochs=8,
            batch_size=256,
            lr=3e-3,
-           max_length=200,
-       )
+       ),
+       # The window belongs to the encoder, not to the network.
+       SequenceBatcher(ItemTokenizer(split["x_train_sequences"].n_items),
+                       max_length=200),
    ).fit(split["x_train_sequences"])
 
    result = evaluate_recommender(
@@ -817,3 +824,146 @@ verification that the wiring works, not a tuned result.
 
 .. autoclass:: compresso_recsys.models.SimpleRNNTrainer
    :members:
+
+SimpleGPT
+~~~~~~~~~
+
+SimpleGPT is a causal transformer over the same histories `SimpleRNN` reads. The
+architecture is nanoGPT — pre-norm blocks, fused QKV attention, a learned
+absolute position per slot — with two recommendation-shaped adjustments, and it
+is the model :class:`compresso_recsys.models.ItemTokenizer` and
+:class:`compresso_recsys.models.SequenceBatcher` were split apart for.
+
+**A `CLS` prefix replaces the shift.** Position 0 holds a learned vector, so
+``states[:, i]`` has read `CLS` plus ``tokens[:, :i]`` and therefore predicts
+``tokens[:, i]``. The next-item alignment becomes a property of the input rather
+than arithmetic in the trainer::
+
+   tokens   [a, b, c, PAD]      mask   [T, T, T, F]
+   input    [CLS, a, b, c, PAD]
+   targets  [a,   b, c, PAD]    valid  [T, T, T, F]
+
+Two things follow. Every real position is a target, where a left shift makes
+every position but the first one — so a history of a single interaction is a
+usable training example here, and `CLS` buys back one example per user. And an
+empty history has a *defined* input: it reads `CLS` alone and scores from the
+learned prefix, rather than from the state after reading one pad.
+
+`CLS` is an ``nn.Parameter`` rather than a vocabulary entry, which is the more
+complicated of the two options and the deliberate one. A parameter can be
+*conditioned* — a user embedding or a global feature added into position 0 per
+row, as ``rstar`` does — and a vocabulary lookup cannot express that. Nothing in
+this library has user features yet, so today it does the job `BOS` would.
+
+**There is no attention mask.** Padding is on the right, so a causal mask already
+excludes it: a real token at position ``i`` attends only to ``<= i``, all of which
+are real. Pad positions do compute garbage and nothing reads it — the loss is
+masked and prediction reads each row's last real position. That is why the
+trainer *refuses* a ``pad_side="left"`` batcher instead of quietly building a
+key-padding mask, and why the attention module accepts no mask argument at all.
+
+**The context window is derived, not configured.** ``max_length`` on the batcher
+sizes the positional table, so ``SimpleGPTConfig`` carries no ``block_size`` and
+the two cannot disagree. The consequence is that ``max_length=None`` is an error
+for this model — learned absolute positions need a bound — which is a real
+difference from `SimpleRNN`, where the window only decides how much history is
+read.
+
+.. code-block:: python
+
+   from compresso_recsys.models import (
+       ItemTokenizer,
+       SequenceBatcher,
+       SimpleGPTConfig,
+       SimpleGPTTrainer,
+       TransformerConfig,
+   )
+
+   tokenizer = ItemTokenizer(split["x_train_sequences"].n_items)
+   batcher = SequenceBatcher(tokenizer, max_length=200)   # required, and it
+                                                          # sizes the positions
+
+   model = SimpleGPTTrainer(
+       SimpleGPTConfig(
+           transformer=TransformerConfig(
+               d_model=128, n_heads=4, n_layers=2, dropout=0.1
+           ),
+           epochs=8,
+           batch_size=128,
+           lr=1e-3,
+       ),
+       batcher,
+   ).fit(split["x_train_sequences"])
+
+   result = evaluate_recommender(
+       model,
+       source=split["test_source_sequences"],
+       targets=split["test_target_matrix"],
+       metrics=[CalibratedRecall(20), NDCG(20)],
+   )
+
+Measured on MovieLens-1M, ``ndcg@20`` against the same targets with matching
+fingerprints, so the three are a paired sample rather than three separate runs:
+
+.. list-table:: MovieLens-1M, ndcg@20
+   :header-rows: 1
+   :widths: 26 24 24
+
+   * - model
+     - ``leave_last_out``
+     - ``temporal``
+   * - ELSA
+     - 0.0575
+     - 0.0561
+   * - SimpleRNN
+     - 0.1343
+     - **0.1263**
+   * - SimpleGPT
+     - **0.1436**
+     - 0.0847
+
+The two columns disagree about which sequential model wins, and the reason is
+data rather than architecture. ``leave_last_out`` trains on 6,033 users, where
+SimpleGPT beats SimpleRNN by ``+0.0093`` with a 95% interval of
+``[+0.0043, +0.0144]`` and an adjusted *p* of 0.0015. The ``temporal`` split
+trains on **90** users in its first window, and there the transformer loses
+clearly. Report the split alongside the number: a causal transformer is the more
+data-hungry of the two, and neither result generalises to the other regime.
+
+Two further observations from the same runs, both worth knowing before tuning.
+Going from two layers to four *lowered* ``ndcg@20`` from 0.1436 to 0.1227 on
+``leave_last_out``, so depth is not free at this scale. And ``unk_dropout``
+reproduced its effect on ``temporal``: 0.0559 at a rate of zero against 0.0847 at
+0.25, matching the split's 26% out-of-catalog share — the same ~50% swing measured
+for `SimpleRNN`.
+
+Deliberately absent: tied embeddings, learning-rate schedules, early stopping,
+sampled softmax, and any pooling other than reading the last real position. Each
+is a separate claim that deserves measuring on its own.
+
+Saving carries the vocabulary with the weights, because a served model that
+cannot say what column 41 means is not much use. The file is read with
+``weights_only=True``, so loading parses data rather than executing a pickle:
+
+.. code-block:: python
+
+   from compresso_recsys.models import load_simple_gpt, save_simple_gpt
+
+   save_simple_gpt("artifacts/simple_gpt.pt", model)
+   restored = load_simple_gpt("artifacts/simple_gpt.pt")   # nothing else needed
+
+.. autoclass:: compresso_recsys.models.TransformerConfig
+   :members:
+
+.. autoclass:: compresso_recsys.models.SimpleGPTConfig
+   :members:
+
+.. autoclass:: compresso_recsys.models.SimpleGPT
+   :members:
+
+.. autoclass:: compresso_recsys.models.SimpleGPTTrainer
+   :members:
+
+.. autofunction:: compresso_recsys.models.save_simple_gpt
+
+.. autofunction:: compresso_recsys.models.load_simple_gpt

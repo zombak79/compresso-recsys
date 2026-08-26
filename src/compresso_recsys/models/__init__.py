@@ -30,6 +30,14 @@ from .elsa import (
     ELSAConfig,
     ELSATrainer,
 )
+from .simple_gpt import (
+    SimpleGPT,
+    SimpleGPTConfig,
+    SimpleGPTTrainer,
+    TransformerConfig,
+    load_simple_gpt,
+    save_simple_gpt,
+)
 from .simple_rnn import SimpleRNN, SimpleRNNConfig, SimpleRNNTrainer
 from .teaser import TEASER, TEASERConfig
 from .teaser_gd import TEASERGD, TEASERGDConfig, TEASERGDTrainer
@@ -51,11 +59,17 @@ __all__ = [
     "ELSATrainer",
     "Recommender",
     "SequenceBatcher",
+    "SimpleGPT",
+    "SimpleGPTConfig",
+    "SimpleGPTTrainer",
     "SimpleRNN",
     "SimpleRNNConfig",
     "SimpleRNNTrainer",
     "SequentialRecommender",
     "Tokenizer",
+    "TransformerConfig",
+    "load_simple_gpt",
+    "save_simple_gpt",
     "ItemTokenizer",
     "ItemVocabulary",
     "MutableCandidateCatalog",

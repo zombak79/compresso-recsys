@@ -14,6 +14,12 @@ change.
 
 ### Fixed
 
+- The `SimpleRNN` example in `docs/api/models` passed `max_length` to
+  `SimpleRNNConfig`, which stopped existing when that field moved to the batcher
+  in this release. The documented snippet raised `TypeError`; Sphinx does not
+  execute code blocks, so building with `-W` never caught it. Every snippet in
+  that section is now run rather than only rendered.
+
 - **`leave_last_out` was not leave-last-out.** It removed from training every
   item that was *anyone's* last interaction, forcing all targets cold: 56% of
   the catalog at MovieLens-1M shape, 86% at MovieLens-20M shape. A warm model
@@ -108,6 +114,37 @@ change.
   model too: pads sit after every real token, so a causal mask already excludes
   them and training needs no attention mask, only a loss mask. `catalog_logits`
   is gone, unnecessary once the head is catalog-width.
+- `SimpleGPT`, `TransformerConfig`, `SimpleGPTConfig` and `SimpleGPTTrainer`: a
+  causal transformer over the same histories `SimpleRNN` reads — nanoGPT with two
+  recommendation-shaped adjustments, and the model the tokenizer/batcher split was
+  made for.
+  A `CLS` prefix replaces the next-item shift: position 0 holds a learned vector,
+  so `states[:, i]` has read `CLS` plus `tokens[:, :i]` and predicts
+  `tokens[:, i]`. The alignment becomes a property of the input rather than
+  arithmetic in the trainer, every real position becomes a target where a left
+  shift skips the first, a single-interaction history becomes a usable example,
+  and an empty history gets a *defined* input instead of the state after reading
+  one pad. `CLS` is an `nn.Parameter` rather than a vocabulary entry so it can be
+  conditioned later — a user or global vector added into position 0 per row, which
+  a lookup cannot express.
+  There is no attention mask. Right padding means a causal mask already excludes
+  the padding, so the attention module accepts no mask argument and the trainer
+  *refuses* a `pad_side="left"` batcher rather than quietly building one. It also
+  refuses `max_length=None`, since that value sizes the positional table —
+  `block_size` is derived rather than configured, so the two cannot disagree.
+  `save_simple_gpt` / `load_simple_gpt` carry the vocabulary with the weights,
+  because a served model that cannot say what column 41 means is not much use.
+  Loading is self-contained and reads with `weights_only=True`, parsing the file
+  as data rather than executing it as a pickle.
+  Measured on MovieLens-1M `ndcg@20`, paired against the same targets: on
+  `leave_last_out` (6,033 training users) SimpleGPT 0.1436 beats SimpleRNN 0.1343
+  by `+0.0093`, CI `[+0.0043, +0.0144]`, adjusted p 0.0015, both well past ELSA's
+  0.0575. On `temporal`, whose first window holds **90** users, it loses clearly —
+  0.0847 against SimpleRNN's 0.1263. The split belongs next to the number: a
+  causal transformer is the more data-hungry of the two and neither result carries
+  to the other regime. Two more from the same runs: four layers scored *worse*
+  than two (0.1227 vs 0.1436), and `unk_dropout` reproduced its known effect on
+  `temporal`, 0.0559 at zero against 0.0847 at 0.25.
 - `SimpleRNN`, `SimpleRNNConfig` and `SimpleRNNTrainer`: a GRU or LSTM trained
   on next-item cross entropy at every position, one example per user. The
   smallest model that actually uses order, and so the baseline a transformer has
