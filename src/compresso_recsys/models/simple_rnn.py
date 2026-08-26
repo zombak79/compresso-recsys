@@ -370,8 +370,11 @@ class SimpleRNNTrainer(BaseSequentialRecommender):
         if n_positions == 0:
             return None
 
-        logits = self.model.score(self.model(inputs))
-        loss = objective(logits[valid], targets[valid])
+        # Gather before scoring, as predict_on_batch does. Scoring first
+        # materialises rows x length x n_items and then throws most of it away:
+        # 3.46 GB at batch 128 on a 34k-item catalog against 0.16 GB this way.
+        states = self.model(inputs)
+        loss = objective(self.model.score(states[valid]), targets[valid])
         optimizer.zero_grad(set_to_none=True)
         loss.backward()
         optimizer.step()

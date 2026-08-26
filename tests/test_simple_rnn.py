@@ -3,6 +3,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 import torch
+from torch import nn
 
 from compresso_recsys.models.sequence_batching import SequenceBatcher
 from compresso_recsys.models.simple_rnn import (
@@ -518,3 +519,39 @@ def test_the_unk_embedding_is_only_trained_if_it_is_injected():
     assert not torch.allclose(
         model.model.embedding.weight[item].detach(), never
     )
+
+
+# --------------------------------------------------------------------------
+# training memory
+# --------------------------------------------------------------------------
+
+
+def test_only_the_scored_positions_reach_the_head():
+    """The head is n_items wide, so scoring padding is the dominant memory cost.
+
+    On a 34k-item catalog at batch 128 the difference is 3.46 GB against
+    0.16 GB, because a median history of 7 sits in a batch padded to its
+    longest row. predict_on_batch has always gathered before scoring; this pins
+    that training does too, by counting the rows the head actually sees.
+    """
+    seen = []
+    batcher = SequenceBatcher(ItemTokenizer(N_ITEMS), max_length=None)
+    trainer = SimpleRNNTrainer(_fast_config(batch_size=4), batcher)
+    # After the shift: 2 targets from the first row, 0 from the second (one
+    # item cannot supply a next item), 1 from the third.
+    rows = [[1, 2, 3], [4], [5, 6]]
+
+    trainer.fit(_seqs(rows))
+    original = trainer.model.score
+    trainer.model.score = lambda states: seen.append(states.shape) or original(
+        states
+    )
+    trainer._train_step(
+        _seqs(rows),
+        torch.optim.SGD(trainer.model.parameters(), lr=0.0),
+        nn.CrossEntropyLoss(),
+    )
+
+    # (n_valid, hidden_dim), not (rows, width - 1, hidden_dim).
+    assert len(seen) == 1
+    assert seen[0] == (3, 32), seen

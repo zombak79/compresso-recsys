@@ -136,16 +136,29 @@ change.
   because a served model that cannot say what column 41 means is not much use.
   Loading is self-contained and reads with `weights_only=True`, parsing the file
   as data rather than executing it as a pickle.
-  Measured on MovieLens-1M `ndcg@20` against the same targets, as a mean over
-  training seeds with its standard deviation. On `leave_last_out` (6,033 users,
-  three seeds) SimpleGPT scores 0.1409 ± 0.0024 against SimpleRNN's
-  0.1349 ± 0.0006 — a gap of `+0.0060`, about two and a half times the larger
-  deviation, with a paired test on one seed pair giving `[+0.0043, +0.0144]` and
-  adjusted p 0.0015. Both are far past ELSA's 0.0575. On `temporal`, whose first
-  window trains on **90** users, the two are *indistinguishable*: 0.0891 ± 0.0080
-  against 0.0960 ± 0.0087 over five seeds, a difference in means smaller than
-  either model's own seed range. `unk_dropout` reproduced its known effect there,
-  0.0559 at a rate of zero against 0.0847 at 0.25 for a 26% out-of-catalog share.
+  Measured `ndcg@20` on two datasets, as a mean over three training seeds with
+  its standard deviation, every sequential budget selected on the **validation**
+  split from the grid `1, 2, 3, 5, 10, 20` and only then scored on test, against
+  a popularity floor. On MovieLens-1M `leave_last_out` (6,033 users) SimpleGPT
+  scores 0.1520 ± 0.0017 against SimpleRNN's 0.1471 ± 0.0008 — a gap of
+  `+0.0049`, about two and a half times the larger deviation — and both are far
+  past ELSA's 0.0562 and popularity's 0.0176. On Amazon Office_Products
+  `leave_last_out` the same three models land within 0.005 of each other
+  (ELSA 0.0327 ± 0.0011, SimpleGPT 0.0310 ± 0.0013, SimpleRNN 0.0282 ± 0.0018),
+  and on its `temporal` split **nothing beats popularity's 0.0094**: SimpleRNN
+  0.0091, SimpleGPT 0.0088, ELSA 0.0076. Office targets average exactly 1.0 items
+  per user with no repeats in the first two thousand — a purchase history is
+  nearly a set, so there is little order to exploit — which is why any
+  sequential-versus-matrix claim has to name its dataset.
+  Two cautions attach to those numbers. Validation picked the *edge* of the grid
+  on MovieLens and both curves were still rising, so 0.1520 and 0.1471 are lower
+  bounds. And the budget mattered more than the architecture: it moved Office
+  temporal by 43% (0.0111 at three epochs against 0.0063 at twenty), overfitting
+  after five epochs there while MovieLens still improved at twenty. Neither
+  trainer reads the `val_source_sequences` and `val_target_matrix` that every
+  chronological checkpoint already carries, so `epochs` remains a guess — select
+  it on validation, and never on test, which on Office temporal would have read
+  0.0111 instead of 0.0088.
 - `SimpleRNN`, `SimpleRNNConfig` and `SimpleRNNTrainer`: a GRU or LSTM trained
   on next-item cross entropy at every position, one example per user. The
   smallest model that actually uses order, and so the baseline a transformer has

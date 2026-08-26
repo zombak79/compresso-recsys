@@ -902,56 +902,64 @@ read.
        metrics=[CalibratedRecall(20), NDCG(20)],
    )
 
-Measured on MovieLens-1M, ``ndcg@20`` against the same targets with matching
-fingerprints. Each sequential figure is the **mean over training seeds** with its
-standard deviation, because a single run is a property of one model and not of the
-method — three seeds on ``leave_last_out``, five on ``temporal``:
+Measured ``ndcg@20`` on two datasets. Every figure is a mean over three
+training seeds with its standard deviation, and every sequential budget was
+chosen on the **validation** split from the grid ``1, 2, 3, 5, 10, 20`` and only
+then scored on test. A popularity baseline is included because without a floor a
+model comparison cannot say whether either model works at all.
 
-.. list-table:: MovieLens-1M, ndcg@20
+.. list-table:: ndcg@20, validation-selected budgets, three seeds
    :header-rows: 1
-   :widths: 22 28 28
+   :widths: 20 22 22 22
 
    * - model
-     - ``leave_last_out``
-     - ``temporal``
+     - ML-1M ``leave_last_out``
+     - Office ``leave_last_out``
+     - Office ``temporal``
+   * - popularity
+     - 0.0176
+     - 0.0185
+     - **0.0094**
    * - ELSA
-     - 0.0575
-     - 0.0561
+     - 0.0562 ± 0.0013
+     - **0.0327 ± 0.0011**
+     - 0.0076 ± 0.0004
    * - SimpleRNN
-     - 0.1349 ± 0.0006
-     - 0.0960 ± 0.0087
+     - 0.1471 ± 0.0008
+     - 0.0282 ± 0.0018
+     - 0.0091 ± 0.0007
    * - SimpleGPT
-     - **0.1409 ± 0.0024**
-     - 0.0891 ± 0.0080
+     - **0.1520 ± 0.0017**
+     - 0.0310 ± 0.0013
+     - 0.0088 ± 0.0006
 
-**On ``leave_last_out`` SimpleGPT wins.** The gap of ``+0.0060`` is roughly two
-and a half times the larger seed deviation, and a paired sign-flip test on one
-seed pair puts the interval at ``[+0.0043, +0.0144]`` with an adjusted *p* of
-0.0015 over 6,033 users. Both are far past ELSA.
+**The datasets disagree, and the disagreement is the finding.** On MovieLens both
+sequential models beat ELSA by more than two and a half times and popularity by
+nearly ten, and SimpleGPT leads SimpleRNN by ``+0.0049`` — about two and a half
+times the pooled seed deviation. On Amazon Office_Products the three top models
+are within 0.005 of each other, with ELSA nominally ahead of SimpleGPT by ~1.4
+deviations, and on the temporal split *nothing beats popularity*.
 
-**On ``temporal`` the two are indistinguishable, not ranked.** Its first window
-trains on **90** users, and there the difference in means (``-0.0068``) is
-*smaller* than either model's own seed range (0.018 and 0.023). Any claim about
-which architecture is better on that split would be reading noise. What can be
-said is that a causal transformer needs more data than a GRU before its extra
-machinery earns anything, and that a 90-user split cannot settle the question
-either way.
+The reason is what the histories contain. Office targets average exactly 1.0
+items per user, and not one user in the first two thousand has a repeated item:
+office supplies are bought once, so a purchase history is close to a *set* and
+there is little order for a causal model to exploit. Film histories carry a great
+deal. Quote the dataset alongside any sequential-versus-matrix claim; neither
+column generalises to the other.
 
-That distinction is worth dwelling on, because the tooling in this library does
-not protect you from it. :func:`compresso_recsys.stats.compare_models` pairs on
-*users*, so it controls for which users you drew — and says nothing at all about
-which seed you trained. On ``temporal`` the seed noise dominates, so a confident
-paired *p*-value there would be answering a question nobody asked. See
-:doc:`../statistical-comparison`, "One trained model is not the method".
+**The training budget dominated both.** Getting it wrong moved Office temporal by
+43% — 0.0063 at twenty epochs against 0.0111 at three — and the direction differs
+per dataset: Office overfits after three to five epochs while MovieLens is still
+*improving* at twenty, where validation picked the edge of the grid. So the two
+MovieLens figures above are lower bounds, and a wider grid would raise both.
 
-Two further observations, with their evidence stated so they can be weighed.
-``unk_dropout`` reproduced its known effect on ``temporal`` — 0.0559 at a rate of
-zero against 0.0847 at 0.25, matching that split's 26% out-of-catalog share, the
-same direction and rough size measured for `SimpleRNN`. And going from two layers
-to four *lowered* ``leave_last_out`` ``ndcg@20`` from 0.1436 to 0.1227 on a single
-seed each; given the two-layer seed deviation of 0.0024 that gap is large enough
-to believe, but it was not replicated, so treat it as a hint about depth at this
-scale rather than a result.
+That budget is currently an unvalidated argument. Neither trainer reads the
+``val_source_sequences`` and ``val_target_matrix`` that every chronological
+checkpoint already carries, so ``epochs`` is a guess whose effect here exceeded
+the architectural difference several times over. Select it on validation as these
+figures do, and never on test — the same numbers chosen on test read 0.0111
+rather than 0.0088 on Office temporal, inflated by both the selection and a
+favourable seed.
 
 Deliberately absent: tied embeddings, learning-rate schedules, early stopping,
 sampled softmax, and any pooling other than reading the last real position. Each
