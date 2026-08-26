@@ -38,9 +38,13 @@ loss is masked and prediction reads each row's last real position. That is why
 :class:`SimpleGPTTrainer` refuses a left-padding batcher rather than quietly
 building a key-padding mask.
 
-Deliberately absent: tied embeddings, learning-rate schedules, early stopping,
-sampled softmax, and any pooling other than "read the last real position". Each is
-a separate claim that deserves measuring on its own.
+The output head can be tied to the input embedding (``tie_embeddings``), which
+halves the parameters and is off by default only because the recorded numbers
+were measured untied.
+
+Deliberately absent: learning-rate schedules, early stopping, sampled softmax, a
+logit temperature, and any pooling other than "read the last real position".
+Each is a separate claim that deserves measuring on its own.
 """
 
 from __future__ import annotations
@@ -124,6 +128,16 @@ class SimpleGPTConfig:
     network, and duplicating it is how the two drift apart. ``rstar`` carries it
     in both places and needs a runtime check to keep them equal.
 
+    ``tie_embeddings`` scores with the input embedding's item rows instead of a
+    separate head, halving the parameters. Worth trying wherever the head is most
+    of the model -- at ``d_model=128`` on a 4,445-item catalog it is 573k of
+    1,143k parameters against 6,313 training users. It is off by default because
+    the recorded figures were measured untied, not because untied won. Note the
+    two paths start at different scales: ``nn.Linear`` initialises around
+    ``+/-1/sqrt(d_model)`` while the embedding starts at ``std=0.02``, so a tied
+    head begins with smaller logits and may want a temperature that this model
+    does not have.
+
     ``unk_dropout`` replaces that fraction of input positions with the
     tokenizer's ``unk`` token. Non-zero by default because otherwise ``unk`` is
     never trained at all: the training vocabulary *is* the training window, so an
@@ -134,6 +148,7 @@ class SimpleGPTConfig:
     """
 
     transformer: TransformerConfig = field(default_factory=TransformerConfig)
+    tie_embeddings: bool = False
     unk_dropout: float = 0.05
     batch_size: int = 256
     epochs: int = 10
@@ -260,6 +275,7 @@ class SimpleGPT(nn.Module):
         max_positions: int,
         pad_id: int,
         config: TransformerConfig,
+        tie_embeddings: bool = False,
     ) -> None:
         super().__init__()
         if max_positions < 2:
@@ -267,7 +283,18 @@ class SimpleGPT(nn.Module):
                 "max_positions must be >= 2: one slot for CLS and at least one "
                 f"for an item, got {max_positions}"
             )
+        if n_items > vocab_size:
+            raise ValueError(
+                f"n_items ({n_items}) cannot exceed vocab_size ({vocab_size}): "
+                "the head scores a subset of the vocabulary"
+            )
         self.config = config
+        self.tie_embeddings = bool(tie_embeddings)
+        # Items occupy the LAST n_items rows of the vocabulary, so this is the
+        # tokenizer's n_reserved -- the front-loaded convention the trainer's
+        # objective already relies on when it decodes targets. Deriving it keeps
+        # the module from carrying a second copy that could disagree.
+        self.item_offset = int(vocab_size) - int(n_items)
         self.max_positions = int(max_positions)
         self.pad_id = int(pad_id)
 
@@ -278,7 +305,14 @@ class SimpleGPT(nn.Module):
         self.blocks = nn.ModuleList(Block(config) for _ in range(config.n_layers))
         self.ln_f = LayerNorm(config.d_model, bias=config.bias)
         self.head_dropout = nn.Dropout(config.dropout)
-        self.head = nn.Linear(config.d_model, n_items)
+        # A tied head keeps its bias: tying is a claim about the weight, and
+        # dropping the bias with it would confound two changes in one flag.
+        if self.tie_embeddings:
+            self.head = None
+            self.head_bias = nn.Parameter(torch.zeros(n_items))
+        else:
+            self.head = nn.Linear(config.d_model, n_items)
+            self.head_bias = None
 
         nn.init.normal_(self.embedding.weight, mean=0.0, std=0.02)
         nn.init.normal_(self.position.weight, mean=0.0, std=0.02)
@@ -313,8 +347,18 @@ class SimpleGPT(nn.Module):
         return self.ln_f(hidden)
 
     def score(self, states: torch.Tensor) -> torch.Tensor:
-        """Catalog logits for the given states, one score per item."""
-        return self.head(self.head_dropout(states))
+        """Catalog logits for the given states, one score per item.
+
+        When tied, the weight is a *slice* of the embedding rather than its own
+        parameter: ``pad`` and ``unk`` sit below ``item_offset`` and so stay out
+        of the head, which is what we want anyway — neither is ever a target.
+        Autograd carries the output-side gradient back into the item rows, so a
+        tied embedding is trained from both directions.
+        """
+        hidden = self.head_dropout(states)
+        if self.head is not None:
+            return self.head(hidden)
+        return F.linear(hidden, self.embedding.weight[self.item_offset :], self.head_bias)
 
 
 class SimpleGPTTrainer(BaseSequentialRecommender):
@@ -475,6 +519,7 @@ class SimpleGPTTrainer(BaseSequentialRecommender):
             max_positions=int(self.batcher.max_length) + 1,
             pad_id=tokenizer.pad_id,
             config=self.cfg.transformer,
+            tie_embeddings=self.cfg.tie_embeddings,
         ).to(self.device)
 
     @staticmethod

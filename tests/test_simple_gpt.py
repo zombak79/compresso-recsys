@@ -75,6 +75,17 @@ def _model(**overrides) -> SimpleGPT:
     )
 
 
+def _model_tied(**overrides) -> SimpleGPT:
+    return SimpleGPT(
+        vocab_size=VOCAB,
+        n_items=N_ITEMS,
+        max_positions=MAX_POSITIONS,
+        pad_id=PAD_ID,
+        config=_config(**overrides),
+        tie_embeddings=True,
+    )
+
+
 # --------------------------------------------------------------------------
 # backbone configuration
 # --------------------------------------------------------------------------
@@ -760,3 +771,117 @@ def test_only_the_scored_positions_reach_the_head():
     # (n_valid, d_model), not (rows, width, d_model).
     assert len(seen) == 1
     assert seen[0] == (6, 32), seen
+
+
+# --------------------------------------------------------------------------
+# tied embeddings
+# --------------------------------------------------------------------------
+
+
+def test_tying_removes_exactly_the_head_matrix():
+    """Halving the parameters is the whole point, so pin the arithmetic."""
+    untied, tied = _model(), _model_tied()
+
+    saved = sum(p.numel() for p in untied.parameters()) - sum(
+        p.numel() for p in tied.parameters()
+    )
+
+    assert saved == N_ITEMS * untied.config.d_model
+    assert untied.head is not None and tied.head is None
+    # The bias survives tying: it is a claim about the weight alone.
+    assert tied.head_bias is not None and tied.head_bias.shape == (N_ITEMS,)
+
+
+def test_the_tied_head_is_the_embedding_item_rows():
+    """Not a copy -- the same storage, or the two would drift apart."""
+    tied = _model_tied()
+    tied.eval()
+    states = torch.randn(3, tied.config.d_model)
+
+    expected = states @ tied.embedding.weight[tied.item_offset :].T + tied.head_bias
+
+    assert torch.allclose(tied.score(states), expected, atol=1e-6)
+    assert tied.embedding.weight[tied.item_offset :].data_ptr() == (
+        tied.embedding.weight.data_ptr()
+        + tied.item_offset * tied.config.d_model * tied.embedding.weight.element_size()
+    )
+
+
+def test_item_offset_is_the_reserved_count():
+    """Derived, not passed, so it cannot disagree with the objective's offset.
+
+    The trainer decodes targets with ``tokens - n_reserved``; the head slices at
+    ``vocab_size - n_items``. Front loading makes those the same number, and a
+    mismatch would silently shift every logit by one item.
+    """
+    tokenizer = ItemTokenizer(N_ITEMS)
+
+    assert _model_tied().item_offset == tokenizer.n_reserved
+
+
+def test_a_head_wider_than_the_vocabulary_is_refused():
+    with pytest.raises(ValueError, match="cannot exceed vocab_size"):
+        SimpleGPT(
+            vocab_size=N_ITEMS,
+            n_items=N_ITEMS + 1,
+            max_positions=MAX_POSITIONS,
+            pad_id=PAD_ID,
+            config=_config(),
+        )
+
+
+def test_the_output_side_trains_the_item_rows_and_leaves_the_specials_alone():
+    """A tied embedding learns from both directions, but not pad and not unk.
+
+    Both sit below ``item_offset`` and so never enter the head. That is correct
+    rather than incidental: neither is ever a prediction target, and a pad row
+    that moved would stop being the zero vector ``padding_idx`` promises.
+    """
+    tied = _model_tied()
+
+    tied.score(torch.randn(4, tied.config.d_model)).sum().backward()
+    grad = tied.embedding.weight.grad
+
+    assert float(grad[PAD_ID].abs().sum()) == 0.0
+    assert float(grad[1].abs().sum()) == 0.0  # unk
+    assert float(grad[tied.item_offset :].abs().sum()) > 0.0
+    assert bool((tied.embedding.weight[PAD_ID] == 0).all())
+
+
+@pytest.mark.parametrize("tie", [False, True])
+def test_both_heads_learn_the_cycle(tie):
+    """Tying is a parameter claim, not a capability one."""
+    model = _fitted_on_cycle(tie_embeddings=tie)
+
+    predictions = model.predict(_seqs([[0, 1, 2], [4, 5, 6]]), k=1)
+
+    assert predictions.cols.flatten().tolist() == [3, 7]
+
+
+def test_tying_round_trips_through_a_checkpoint(tmp_path):
+    """The flag lives in the config, so loading must rebuild the same head."""
+    model = _fitted_on_cycle(epochs=2, tie_embeddings=True)
+    sources = _seqs([[0, 1, 2], [5], [3, 4]])
+    path = tmp_path / "tied.pt"
+
+    save_simple_gpt(path, model)
+    reloaded = load_simple_gpt(path)
+
+    assert reloaded.cfg.tie_embeddings is True
+    assert reloaded.model.head is None
+    before = model.predict(sources, k=N_ITEMS)
+    after = reloaded.predict(sources, k=N_ITEMS)
+    assert torch.equal(before.cols, after.cols)
+    assert torch.allclose(before.vals, after.vals, atol=1e-6)
+
+
+def test_an_untied_checkpoint_still_loads_untied(tmp_path):
+    """The default has to survive the new field, or old files change meaning."""
+    path = tmp_path / "untied.pt"
+
+    save_simple_gpt(path, _fitted_on_cycle(epochs=2))
+    reloaded = load_simple_gpt(path)
+
+    assert reloaded.cfg.tie_embeddings is False
+    assert isinstance(reloaded.model.head, nn.Linear)
+
