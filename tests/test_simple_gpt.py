@@ -3,6 +3,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 import torch
+from torch import nn
 
 from compresso_recsys.models.sequence_batching import SequenceBatcher
 from compresso_recsys.models.simple_gpt import (
@@ -735,3 +736,27 @@ def test_the_file_reads_as_data_not_as_a_pickle(tmp_path):
         "history",
     }
     assert isinstance(state["config"]["device"], str)
+
+
+def test_only_the_scored_positions_reach_the_head():
+    """The head is n_items wide, so scoring padding is the dominant memory cost.
+
+    On a 34k-item catalog at batch 128 the difference is 3.5 GB against 0.16 GB,
+    because a median history of 7 sits in a batch padded to its longest row.
+    Prediction has always gathered before scoring; this pins that training does
+    too, by counting the rows the head actually sees.
+    """
+    seen = []
+    trainer = SimpleGPTTrainer(_trainer_config(batch_size=4), _batcher())
+    rows = [[1, 2, 3], [4], [5, 6]]  # 6 real positions in a width-3 batch
+
+    trainer.fit(_seqs(rows))
+    original = trainer.model.score
+    trainer.model.score = lambda states: seen.append(states.shape) or original(states)
+    trainer._train_step(
+        _seqs(rows), torch.optim.SGD(trainer.model.parameters(), lr=0.0), nn.CrossEntropyLoss()
+    )
+
+    # (n_valid, d_model), not (rows, width, d_model).
+    assert len(seen) == 1
+    assert seen[0] == (6, 32), seen

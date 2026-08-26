@@ -522,8 +522,14 @@ class SimpleGPTTrainer(BaseSequentialRecommender):
         # predict the following one anyway" rather than costing an example.
         inputs = self._with_unk_dropout(tokens, mask)
         states = self.model(inputs)
-        logits = self.model.score(states[:, :-1])
-        loss = objective(logits[valid], targets[valid])
+        # Gather the scored positions before applying the head, never after. The
+        # head is n_items wide, so scoring every position would materialise
+        # rows x length x n_items -- 3.5 GB at batch 128 on a 34k catalog, of
+        # which the padding is most of it. Indexing first costs 0.16 GB for the
+        # same gradient. Prediction has always done this; training now agrees.
+        loss = objective(
+            self.model.score(states[:, :-1][valid]), targets[valid]
+        )
         optimizer.zero_grad(set_to_none=True)
         loss.backward()
         optimizer.step()
