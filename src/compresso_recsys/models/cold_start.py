@@ -791,7 +791,7 @@ class MutableCandidateCatalog:
         metadata: pd.DataFrame | None = None,
         feature_space_id: str | None = None,
     ) -> CandidateCatalog:
-        """Add or update candidates and atomically publish a new snapshot."""
+        """Atomically replace the complete catalog and publish a new snapshot."""
         ids = canonical_item_ids(item_ids)
         candidate_metadata = canonical_metadata(metadata, item_ids=ids)
         features = self._prepare_features(ids, item_features)
@@ -818,7 +818,7 @@ class MutableCandidateCatalog:
         on_conflict: CandidateConflict = "error",
         feature_space_id: str | None = None,
     ) -> CandidateCatalog:
-        """Remove registered candidates and publish a new snapshot."""
+        """Add or update candidates and atomically publish a new snapshot."""
         if on_conflict not in {"error", "replace", "ignore"}:
             raise ValueError("on_conflict must be 'error', 'replace', or 'ignore'")
         ids = canonical_item_ids(item_ids)
@@ -930,6 +930,7 @@ class MutableCandidateCatalog:
         *,
         missing: Literal["error", "ignore"] = "error",
     ) -> CandidateCatalog:
+        """Remove registered candidates and publish a new snapshot."""
         if missing not in {"error", "ignore"}:
             raise ValueError("missing must be 'error' or 'ignore'")
         ids = canonical_item_ids(item_ids)
@@ -1190,6 +1191,7 @@ class BaseColdStartRecommender(ABC):
             shape=(source.shape[0], catalog.n_items),
             validate=False,
         )
+
     def _on_catalog_published(self, catalog: CandidateCatalog) -> None:
         """Called with each new snapshot, for dropping caches derived from it."""
 
