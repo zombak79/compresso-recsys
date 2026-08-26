@@ -45,13 +45,30 @@ a separate claim that deserves measuring on its own.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Literal
 
+import numpy as np
 import torch
 import torch.nn.functional as F
 from torch import nn
 
-__all__ = ["SimpleGPT", "TransformerConfig"]
+from compresso import SRPTensor
+
+from compresso_recsys.sequences import ItemSequences
+
+from .base import BaseSequentialRecommender
+from .sequence_batching import SequenceBatcher
+from .tokenizer import ItemTokenizer
+
+__all__ = [
+    "SimpleGPT",
+    "SimpleGPTConfig",
+    "SimpleGPTTrainer",
+    "TransformerConfig",
+]
+
+OptimizerName = Literal["NAdam", "AdamW"]
 
 
 @dataclass(frozen=True)
@@ -92,6 +109,49 @@ class TransformerConfig:
     def head_dim(self) -> int:
         """Width of each attention head."""
         return self.d_model // self.n_heads
+
+
+@dataclass
+class SimpleGPTConfig:
+    """Configuration for :class:`SimpleGPTTrainer`.
+
+    ``transformer`` carries the backbone; everything else is about training it.
+    The context window is deliberately *not* a field — it belongs to the batcher,
+    because it describes what the encoder reads rather than the shape of the
+    network, and duplicating it is how the two drift apart. ``rstar`` carries it
+    in both places and needs a runtime check to keep them equal.
+
+    ``unk_dropout`` replaces that fraction of input positions with the
+    tokenizer's ``unk`` token. Non-zero by default because otherwise ``unk`` is
+    never trained at all: the training vocabulary *is* the training window, so an
+    out-of-catalog item cannot occur until evaluation, and its embedding would
+    still sit at initialisation when a quarter of a temporal test history needs
+    it. Match the rate to the out-of-catalog share you expect — near zero under
+    ``leave_last_out``, far higher on a late ``temporal`` stage.
+    """
+
+    transformer: TransformerConfig = field(default_factory=TransformerConfig)
+    unk_dropout: float = 0.05
+    batch_size: int = 256
+    epochs: int = 10
+    lr: float = 1e-3
+    weight_decay: float = 0.0
+    optimizer: OptimizerName = "NAdam"
+    device: str | torch.device = "cpu"
+    show_progress: bool = True
+    seed: int = 0
+
+    def __post_init__(self) -> None:
+        if self.batch_size < 1:
+            raise ValueError(f"batch_size must be >= 1, got {self.batch_size}")
+        if self.epochs < 1:
+            raise ValueError(f"epochs must be >= 1, got {self.epochs}")
+        if not 0.0 <= self.unk_dropout < 1.0:
+            raise ValueError(
+                f"unk_dropout must be in [0, 1), got {self.unk_dropout}"
+            )
+        if self.lr <= 0.0:
+            raise ValueError(f"lr must be > 0, got {self.lr}")
 
 
 class LayerNorm(nn.Module):
@@ -252,3 +312,324 @@ class SimpleGPT(nn.Module):
     def score(self, states: torch.Tensor) -> torch.Tensor:
         """Catalog logits for the given states, one score per item."""
         return self.head(self.head_dropout(states))
+
+
+class SimpleGPTTrainer(BaseSequentialRecommender):
+    """Trains and serves :class:`SimpleGPT`.
+
+    Follows the package's shape, where ``fit`` returns the trainer and the
+    trainer answers the prediction contract::
+
+        model = SimpleGPTTrainer(
+            SimpleGPTConfig(transformer=TransformerConfig(d_model=128, n_heads=4)),
+            SequenceBatcher(ItemTokenizer(n_items), max_length=200),
+        ).fit(split["x_train_sequences"])
+
+    The encoder is a parameter, not something ``fit`` invents, which is how the
+    context window, the padding side and the vocabulary are all replaceable.
+    Without one, ``fit`` builds a default over the training catalog with
+    :attr:`DEFAULT_MAX_LENGTH` and right padding.
+
+    Two properties of that batcher are load-bearing rather than advisory, so
+    ``fit`` refuses a batcher that lacks them. ``max_length`` must be set,
+    because it sizes the positional table and learned absolute positions need a
+    bound. And ``pad_side`` must be ``"right"``, because that is what lets a
+    causal mask stand in for a padding mask.
+
+    A history of a single interaction is a usable training example here, unlike
+    for :class:`SimpleRNNTrainer` — the `CLS` prefix supplies the context, so
+    every position is a target rather than every position but the first.
+
+    :attr:`history` records one entry per epoch, numbered from one as ELSA's is,
+    carrying the mean loss and the number of positions it was averaged over.
+    """
+
+    #: Context window used when ``fit`` has to build its own batcher.
+    DEFAULT_MAX_LENGTH = 200
+
+    def __init__(
+        self,
+        config: SimpleGPTConfig | None = None,
+        batcher: SequenceBatcher | None = None,
+    ) -> None:
+        self.cfg = config or SimpleGPTConfig()
+        self.device = torch.device(self.cfg.device)
+        self.history: list[dict[str, float]] = []
+        self.model: SimpleGPT | None = None
+        self.batcher = batcher
+        self._n_items: int | None = None
+
+    # -- contract -----------------------------------------------------------
+
+    @property
+    def is_fitted(self) -> bool:
+        return self.model is not None
+
+    @property
+    def n_items(self) -> int | None:
+        return self._n_items
+
+    # -- training -----------------------------------------------------------
+
+    def fit(self, sequences: ItemSequences) -> SimpleGPTTrainer:
+        """Train on chronological histories, one example per position."""
+        if not isinstance(sequences, ItemSequences):
+            raise TypeError(
+                "SimpleGPTTrainer trains on ItemSequences, got "
+                f"{type(sequences).__name__}"
+            )
+        if sequences.n_rows == 0:
+            raise ValueError("cannot train on zero sequences")
+        if int((sequences.row_lengths >= 1).sum()) == 0:
+            raise ValueError(
+                "every history is empty, so there is no next-item example to "
+                "learn from"
+            )
+
+        torch.manual_seed(int(self.cfg.seed))
+        rng = np.random.default_rng(int(self.cfg.seed))
+
+        if self.batcher is None:
+            self.batcher = SequenceBatcher(
+                ItemTokenizer(sequences.n_items),
+                max_length=self.DEFAULT_MAX_LENGTH,
+                pad_side="right",
+            )
+        self._check_batcher(self.batcher)
+        tokenizer = self.batcher.tokenizer
+        self._n_items = tokenizer.n_items
+
+        self.model = SimpleGPT(
+            vocab_size=tokenizer.vocab_size,
+            n_items=tokenizer.n_items,
+            # One slot for CLS on top of the longest history the batcher emits.
+            max_positions=int(self.batcher.max_length) + 1,
+            pad_id=tokenizer.pad_id,
+            config=self.cfg.transformer,
+        ).to(self.device)
+
+        optimizer = getattr(torch.optim, self.cfg.optimizer)(
+            self.model.parameters(),
+            lr=self.cfg.lr,
+            weight_decay=self.cfg.weight_decay,
+        )
+        objective = nn.CrossEntropyLoss()
+        self.history = []
+
+        n_rows = sequences.n_rows
+        batch_size = self.cfg.batch_size
+        starts = range(0, n_rows, batch_size)
+        # Two bars, as ELSA draws them: epochs outside, batches inside. The inner
+        # bar is created once and rewound per epoch rather than a finished one
+        # being left behind for each.
+        epoch_iter = _progress(
+            self.cfg.show_progress,
+            range(1, self.cfg.epochs + 1),
+            total=self.cfg.epochs,
+            desc="SimpleGPT fit",
+        )
+        batch_bar = _progress_bar(
+            self.cfg.show_progress, total=len(starts), desc="SimpleGPT epoch 1"
+        )
+        try:
+            for epoch in epoch_iter:
+                self.model.train()
+                order = rng.permutation(n_rows)
+                if batch_bar is not None:
+                    batch_bar.reset(total=len(starts))
+                    batch_bar.set_description(f"SimpleGPT epoch {epoch}")
+                loss_sum, positions = 0.0, 0
+                for start in starts:
+                    batch = sequences.select_rows(order[start : start + batch_size])
+                    step = self._train_step(batch, optimizer, objective)
+                    if step is not None:
+                        batch_loss, batch_positions = step
+                        loss_sum += batch_loss * batch_positions
+                        positions += batch_positions
+                    if batch_bar is not None:
+                        batch_bar.update(1)
+                mean_loss = loss_sum / positions if positions else float("nan")
+                self.history.append(
+                    {
+                        "epoch": float(epoch),
+                        "loss": mean_loss,
+                        "positions": float(positions),
+                    }
+                )
+                if hasattr(epoch_iter, "set_postfix"):
+                    epoch_iter.set_postfix({"loss": f"{mean_loss:.4f}"})
+        finally:
+            if batch_bar is not None:
+                batch_bar.close()
+            if hasattr(epoch_iter, "close"):
+                epoch_iter.close()
+
+        return self
+
+    @staticmethod
+    def _check_batcher(batcher: SequenceBatcher) -> None:
+        """Refuse a batcher whose settings this architecture cannot honour."""
+        if batcher.max_length is None:
+            raise ValueError(
+                "SimpleGPT needs a bounded context: max_length sizes the "
+                "positional table, and learned absolute positions cannot be "
+                "extended at prediction time. Set max_length on the batcher"
+            )
+        if batcher.pad_side != "right":
+            raise ValueError(
+                f"SimpleGPT needs pad_side='right', got {batcher.pad_side!r}. "
+                "Right padding is what lets a causal mask exclude the padding on "
+                "its own; with padding first, attention would read it"
+            )
+
+    def _train_step(
+        self,
+        batch: ItemSequences,
+        optimizer: torch.optim.Optimizer,
+        objective: nn.Module,
+    ) -> tuple[float, int] | None:
+        """One optimizer step, or ``None`` when the batch carries no target."""
+        assert self.model is not None and self.batcher is not None
+        tokens, mask = self.batcher.encode(batch, device=self.device)
+
+        # No shift. CLS occupies position 0, so states[:, i] has read CLS and
+        # tokens[:, :i] and therefore predicts tokens[:, i] -- the alignment is a
+        # property of the input rather than arithmetic here. Dropping the last
+        # state is all that is left of it: nothing follows the final token.
+        offset = self.batcher.tokenizer.n_reserved
+        targets = tokens - offset
+        # A real item, and one this vocabulary can name. Padding is excluded by
+        # the mask; unk and any unnamed reserved id by the offset test, because
+        # "predict the item I cannot identify" is not a question with an answer.
+        valid = mask & (tokens >= offset)
+        n_positions = int(valid.sum())
+        if n_positions == 0:
+            return None
+
+        # Corrupt the inputs only. The targets come from the clean tokens, so a
+        # corrupted position teaches "an item was here you cannot identify,
+        # predict the following one anyway" rather than costing an example.
+        inputs = self._with_unk_dropout(tokens, mask)
+        states = self.model(inputs)
+        logits = self.model.score(states[:, :-1])
+        loss = objective(logits[valid], targets[valid])
+        optimizer.zero_grad(set_to_none=True)
+        loss.backward()
+        optimizer.step()
+        return float(loss.detach()), n_positions
+
+    def _with_unk_dropout(
+        self, inputs: torch.Tensor, mask: torch.Tensor
+    ) -> torch.Tensor:
+        """Replace a fraction of real input positions with ``unk``.
+
+        Padding is left alone: only real positions are eligible, or the model
+        would learn that ``unk`` and ``pad`` mean the same thing.
+        """
+        assert self.batcher is not None
+        unk_id = getattr(self.batcher.tokenizer, "unk_id", None)
+        if unk_id is None or self.cfg.unk_dropout <= 0.0:
+            return inputs
+        chosen = (
+            torch.rand(inputs.shape, device=inputs.device) < self.cfg.unk_dropout
+        ) & mask
+        return torch.where(chosen, torch.full_like(inputs, unk_id), inputs)
+
+    # -- prediction ---------------------------------------------------------
+
+    def predict_on_batch(
+        self,
+        source: ItemSequences,
+        *,
+        k: int,
+        exclude_seen: bool = True,
+    ) -> SRPTensor:
+        """Rank the catalog for each history from its last real state."""
+        if self.model is None or self.batcher is None or self._n_items is None:
+            raise RuntimeError("SimpleGPTTrainer must be fitted before predicting")
+        if not isinstance(source, ItemSequences):
+            raise TypeError(
+                "SimpleGPTTrainer predicts from ItemSequences, got "
+                f"{type(source).__name__}"
+            )
+        n_items = self._n_items
+        if not 1 <= k <= n_items:
+            raise ValueError(f"k must be in [1, {n_items}], got {k}")
+
+        rows = source.n_rows
+        if rows == 0:
+            return SRPTensor(
+                cols=torch.empty((0, k), dtype=torch.long, device=self.device),
+                vals=torch.empty((0, k), dtype=torch.float32, device=self.device),
+                shape=(0, n_items),
+            )
+
+        self.model.eval()
+        with torch.no_grad():
+            tokens, mask = self.batcher.encode(source, device=self.device)
+            states = self.model(tokens)
+            # States are one wider than the mask because of CLS, and
+            # gather_final requires them to agree. Extending the mask rather
+            # than adjusting indices by hand keeps the empty-history case right:
+            # CLS is always real, so a row with no items reads position 0 and
+            # scores from the learned prefix instead of from padding.
+            prefix = torch.ones(
+                (rows, 1), dtype=torch.bool, device=mask.device
+            )
+            final = self.batcher.gather_final(
+                states, torch.cat([prefix, mask], dim=1)
+            )
+            logits = self.model.score(final)
+            if exclude_seen:
+                self._mask_seen(logits, source)
+            vals, cols = torch.topk(logits, k, dim=1)
+
+        return SRPTensor(cols=cols, vals=vals, shape=(rows, n_items))
+
+    def _mask_seen(self, logits: torch.Tensor, source: ItemSequences) -> None:
+        """Forbid every item in the *full* history, truncated part included.
+
+        Logits are indexed by catalog position, and a history may span a wider
+        catalog than this model was fitted on -- a later split stage does exactly
+        that. Items beyond the fitted catalog are dropped from the mask rather
+        than clipped: they were never scoreable, so there is nothing to forbid.
+        """
+        if source.values.size == 0:
+            return
+        n_items = int(logits.shape[1])
+        rows = np.repeat(np.arange(source.n_rows), source.row_lengths)
+        cols = np.array(source.values, dtype=np.int64)
+        scoreable = cols < n_items
+        if not scoreable.all():
+            rows, cols = rows[scoreable], cols[scoreable]
+        if cols.size == 0:
+            return
+        logits[
+            torch.as_tensor(rows, dtype=torch.long, device=logits.device),
+            torch.as_tensor(cols, dtype=torch.long, device=logits.device),
+        ] = -torch.inf
+
+
+def _tqdm():
+    """The tqdm class, or ``None`` when it is not installed."""
+    try:
+        from tqdm.auto import tqdm
+    except ImportError:  # pragma: no cover - optional dependency
+        return None
+    return tqdm
+
+
+def _progress(enabled: bool, iterable, *, total: int, desc: str):
+    """Wrap an iterable in a bar, or hand it back untouched."""
+    tqdm = _tqdm()
+    if not enabled or tqdm is None:
+        return iterable
+    return tqdm(iterable, total=total, desc=desc)
+
+
+def _progress_bar(enabled: bool, *, total: int, desc: str):
+    """A bar to drive by hand, or ``None`` when progress is unavailable."""
+    tqdm = _tqdm()
+    if not enabled or tqdm is None:
+        return None
+    return tqdm(total=total, desc=desc)

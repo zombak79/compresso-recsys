@@ -1,15 +1,21 @@
 from __future__ import annotations
 
+import numpy as np
 import pytest
 import torch
 
+from compresso_recsys.models.sequence_batching import SequenceBatcher
 from compresso_recsys.models.simple_gpt import (
     Block,
     CausalSelfAttention,
     LayerNorm,
     SimpleGPT,
+    SimpleGPTConfig,
+    SimpleGPTTrainer,
     TransformerConfig,
 )
+from compresso_recsys.models.tokenizer import ItemTokenizer
+from compresso_recsys.sequences import ItemSequences
 
 N_ITEMS = 8
 PAD_ID = 0
@@ -20,6 +26,40 @@ MAX_POSITIONS = 8
 def _config(**overrides) -> TransformerConfig:
     defaults = dict(d_model=16, n_heads=4, n_layers=2, dropout=0.0)
     return TransformerConfig(**{**defaults, **overrides})
+
+
+def _seqs(rows, n_items=N_ITEMS):
+    return ItemSequences.from_rows(rows, n_items=n_items)
+
+
+def _cycle_rows(n_rows=48, length=4, n_items=N_ITEMS):
+    """Histories drawn from a single cycle, so ``next(i) == (i + 1) % n_items``."""
+    return [
+        [(start + step) % n_items for step in range(length)] for start in range(n_rows)
+    ]
+
+
+def _batcher(max_length=12, **kwargs):
+    return SequenceBatcher(ItemTokenizer(N_ITEMS), max_length=max_length, **kwargs)
+
+
+def _trainer_config(**overrides):
+    defaults = dict(
+        transformer=_config(d_model=32),
+        epochs=1,
+        batch_size=16,
+        unk_dropout=0.0,
+        show_progress=False,
+        seed=0,
+    )
+    return SimpleGPTConfig(**{**defaults, **overrides})
+
+
+def _fitted_on_cycle(epochs=60, max_length=12, **overrides):
+    config = _trainer_config(epochs=epochs, lr=0.01, batch_size=48, **overrides)
+    return SimpleGPTTrainer(config, _batcher(max_length=max_length)).fit(
+        _seqs(_cycle_rows())
+    )
 
 
 def _model(**overrides) -> SimpleGPT:
@@ -241,3 +281,346 @@ def test_dropout_is_inactive_in_eval_mode():
 
     with torch.no_grad():
         torch.testing.assert_close(model(tokens), model(tokens))
+
+
+# --------------------------------------------------------------------------
+# trainer configuration
+# --------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "message"),
+    [
+        ({"batch_size": 0}, "batch_size must be >= 1"),
+        ({"epochs": 0}, "epochs must be >= 1"),
+        ({"unk_dropout": 1.0}, r"unk_dropout must be in \[0, 1\)"),
+        ({"lr": 0.0}, "lr must be > 0"),
+    ],
+)
+def test_invalid_trainer_configuration_is_refused(kwargs, message):
+    with pytest.raises(ValueError, match=message):
+        SimpleGPTConfig(**kwargs)
+
+
+def test_the_context_window_is_the_batchers_business():
+    """It describes what the encoder reads, not the shape of the network.
+
+    ``rstar`` carries it in both its tokenizer and its transformer config and
+    needs a runtime check to keep them equal; deriving it removes the question.
+    """
+    assert not hasattr(SimpleGPTConfig(), "max_length")
+    assert not hasattr(SimpleGPTConfig(), "block_size")
+
+
+# --------------------------------------------------------------------------
+# fitting
+# --------------------------------------------------------------------------
+
+
+def test_fit_returns_the_trainer_and_sizes_positions_from_the_batcher():
+    trainer = SimpleGPTTrainer(_trainer_config(), _batcher(max_length=12))
+
+    fitted = trainer.fit(_seqs(_cycle_rows(16)))
+
+    assert fitted is trainer
+    assert trainer.is_fitted and trainer.n_items == N_ITEMS
+    # One slot for CLS on top of the longest history the batcher will emit.
+    assert trainer.model.max_positions == 13
+
+
+def test_before_fitting_nothing_is_claimed():
+    trainer = SimpleGPTTrainer(_trainer_config())
+
+    assert not trainer.is_fitted
+    assert trainer.n_items is None
+
+
+def test_fit_refuses_a_matrix_source():
+    from scipy.sparse import csr_matrix
+
+    with pytest.raises(TypeError, match="trains on ItemSequences"):
+        SimpleGPTTrainer(_trainer_config()).fit(csr_matrix((3, N_ITEMS)))
+
+
+def test_fit_refuses_an_empty_training_set():
+    with pytest.raises(ValueError, match="zero sequences"):
+        SimpleGPTTrainer(_trainer_config()).fit(_seqs([]))
+
+
+def test_fit_refuses_data_with_no_interactions_at_all():
+    with pytest.raises(ValueError, match="every history is empty"):
+        SimpleGPTTrainer(_trainer_config()).fit(_seqs([[], []]))
+
+
+def test_a_single_item_history_is_a_usable_example():
+    """The difference CLS makes. SimpleRNN needs two items to form one example;
+    here the prefix supplies the context, so one item is one target."""
+    trainer = SimpleGPTTrainer(_trainer_config(), _batcher()).fit(_seqs([[3], [5]]))
+
+    assert trainer.history[0]["positions"] == 2.0
+
+
+def test_fit_refuses_an_unbounded_batcher():
+    """A learned positional table cannot be extended at prediction time."""
+    unbounded = SequenceBatcher(ItemTokenizer(N_ITEMS), max_length=None)
+
+    with pytest.raises(ValueError, match="needs a bounded context"):
+        SimpleGPTTrainer(_trainer_config(), unbounded).fit(_seqs(_cycle_rows(16)))
+
+
+def test_fit_refuses_a_left_padding_batcher():
+    """With padding first, causal attention would read it."""
+    left = SequenceBatcher(ItemTokenizer(N_ITEMS), max_length=12, pad_side="left")
+
+    with pytest.raises(ValueError, match="needs pad_side='right'"):
+        SimpleGPTTrainer(_trainer_config(), left).fit(_seqs(_cycle_rows(16)))
+
+
+@pytest.mark.parametrize("batch_size", [1, 2, 3, 64])
+def test_the_number_of_training_positions_is_batching_invariant(batch_size):
+    """Every real position is a target, so grouping cannot change the count.
+
+    Also the cheapest guard that no special becomes a target: the head has no
+    column for one, so a misaligned objective would raise here rather than train.
+    """
+    rows = [[1, 2, 3], [4, 5], [6], []]  # 3 + 2 + 1 + 0 targets
+
+    trainer = SimpleGPTTrainer(
+        _trainer_config(batch_size=batch_size), _batcher()
+    ).fit(_seqs(rows))
+
+    assert trainer.history[0]["positions"] == 6.0
+
+
+def test_training_records_a_loss_per_epoch_and_reduces_it():
+    trainer = _fitted_on_cycle(epochs=40)
+
+    losses = [record["loss"] for record in trainer.history]
+
+    assert len(losses) == 40
+    # One-based, as ELSA's history is, so it agrees with the "epoch N" bar.
+    assert [r["epoch"] for r in trainer.history] == [float(i) for i in range(1, 41)]
+    assert losses[-1] < losses[0], losses[:3] + losses[-3:]
+
+
+def test_refitting_starts_the_history_over():
+    trainer = SimpleGPTTrainer(_trainer_config(epochs=2), _batcher())
+    trainer.fit(_seqs(_cycle_rows(16)))
+
+    trainer.fit(_seqs(_cycle_rows(16)))
+
+    assert len(trainer.history) == 2
+
+
+# --------------------------------------------------------------------------
+# what it learns
+# --------------------------------------------------------------------------
+
+
+def test_it_predicts_the_successor_of_the_last_item():
+    """End to end: encoding, CLS, the causal stack, the final state and top-k."""
+    model = _fitted_on_cycle()
+    sources = _seqs([[0, 1, 2], [3, 4, 5], [6, 7, 0], [5]])
+
+    predictions = model.predict(sources, k=1)
+
+    expected = [(int(sources.row(i)[-1]) + 1) % N_ITEMS for i in range(4)]
+    assert predictions.cols[:, 0].tolist() == expected
+
+
+def test_prediction_is_batching_invariant():
+    """The test that catches reading the wrong position.
+
+    Batching changes the padded width, so a model scoring from the last column
+    agrees with itself at ``batch_size=1`` -- where every row fills its own
+    batch -- and disagrees once short rows sit beside long ones.
+    """
+    model = _fitted_on_cycle()
+    sources = _seqs([[0, 1, 2, 3, 4], [5], [6, 7], [2, 3, 4]])
+
+    whole = model.predict(sources, k=4, batch_size=64)
+    one_at_a_time = model.predict(sources, k=4, batch_size=1)
+
+    assert whole.cols.tolist() == one_at_a_time.cols.tolist()
+    torch.testing.assert_close(whole.vals, one_at_a_time.vals)
+
+
+def test_order_changes_the_prediction():
+    model = _fitted_on_cycle()
+
+    forward = model.predict(_seqs([[1, 2, 3]]), k=1, exclude_seen=False)
+    backward = model.predict(_seqs([[3, 2, 1]]), k=1, exclude_seen=False)
+
+    assert forward.cols[0, 0].item() != backward.cols[0, 0].item()
+
+
+def test_the_same_seed_gives_the_same_model():
+    sources = _seqs([[0, 1, 2], [4, 5]])
+
+    first = _fitted_on_cycle(epochs=3, seed=7)
+    second = _fitted_on_cycle(epochs=3, seed=7)
+
+    assert first.history == second.history
+    assert (
+        first.predict(sources, k=3).cols.tolist()
+        == second.predict(sources, k=3).cols.tolist()
+    )
+
+
+# --------------------------------------------------------------------------
+# prediction contract
+# --------------------------------------------------------------------------
+
+
+def test_predict_refuses_before_fitting():
+    with pytest.raises(RuntimeError, match="must be fitted"):
+        SimpleGPTTrainer(_trainer_config()).predict_on_batch(_seqs([[1]]), k=1)
+
+
+def test_predict_refuses_a_matrix_source():
+    from scipy.sparse import csr_matrix
+
+    model = SimpleGPTTrainer(_trainer_config(), _batcher()).fit(_seqs(_cycle_rows(16)))
+
+    with pytest.raises(TypeError, match="predicts from ItemSequences"):
+        model.predict(csr_matrix((2, N_ITEMS)), k=2)
+
+
+@pytest.mark.parametrize("k", [0, N_ITEMS + 1])
+def test_predict_refuses_an_impossible_k(k):
+    model = SimpleGPTTrainer(_trainer_config(), _batcher()).fit(_seqs(_cycle_rows(16)))
+
+    with pytest.raises(ValueError, match="k must be in"):
+        model.predict_on_batch(_seqs([[1, 2]]), k=k)
+
+
+def test_predictions_are_shaped_and_ordered():
+    model = SimpleGPTTrainer(_trainer_config(), _batcher()).fit(_seqs(_cycle_rows(16)))
+
+    predictions = model.predict(_seqs([[1, 2], [3]]), k=4)
+
+    assert predictions.cols.shape == (2, 4)
+    assert predictions.shape == (2, N_ITEMS)
+    for row in range(2):
+        values = predictions.vals[row].tolist()
+        assert values == sorted(values, reverse=True)
+
+
+def test_no_rows_at_all():
+    model = SimpleGPTTrainer(_trainer_config(), _batcher()).fit(_seqs(_cycle_rows(16)))
+
+    assert model.predict_on_batch(_seqs([]), k=3).cols.shape == (0, 3)
+
+
+def test_an_empty_history_scores_from_cls_not_from_padding():
+    """The improvement over SimpleRNN's "state after one pad".
+
+    A row with no items reads position 0, which is CLS -- a defined prior, and
+    the same one for every empty row.
+    """
+    model = _fitted_on_cycle()
+
+    predictions = model.predict(_seqs([[], []]), k=N_ITEMS)
+
+    assert predictions.cols[0].tolist() == predictions.cols[1].tolist()
+
+
+# --------------------------------------------------------------------------
+# exclude_seen
+# --------------------------------------------------------------------------
+
+
+def test_exclude_seen_masks_the_whole_history_including_repeats():
+    model = _fitted_on_cycle()
+    sources = _seqs([[0, 1, 1, 2], [4, 5]])
+
+    predictions = model.predict(sources, k=N_ITEMS - 4, exclude_seen=True)
+
+    for row in range(sources.n_rows):
+        seen = set(sources.row(row).tolist())
+        assert not seen & set(predictions.cols[row].tolist())
+
+
+def test_exclude_seen_masks_what_truncation_dropped():
+    """Truncation bounds the model's memory, not what it may return."""
+    model = _fitted_on_cycle(max_length=2)
+    history = [0, 1, 2, 3, 4]
+
+    predictions = model.predict(_seqs([history]), k=N_ITEMS - len(history))
+
+    assert not set(history) & set(predictions.cols[0].tolist())
+    assert model.batcher.truncated_lengths(_seqs([history])).tolist() == [2]
+
+
+def test_masking_does_not_mutate_the_source():
+    model = _fitted_on_cycle()
+    sources = _seqs([[1, 2, 3]])
+    before = sources.values.copy()
+
+    model.predict(sources, k=2, exclude_seen=True)
+
+    assert np.array_equal(sources.values, before)
+
+
+# --------------------------------------------------------------------------
+# unk dropout
+# --------------------------------------------------------------------------
+
+
+def test_unk_dropout_never_touches_padding():
+    trainer = SimpleGPTTrainer(_trainer_config(unk_dropout=0.9), _batcher())
+    trainer.fit(_seqs([[1, 2, 3], [4], []]))
+    tokens, mask = trainer.batcher.encode(_seqs([[1, 2, 3], [4], []]))
+
+    corrupted = trainer._with_unk_dropout(tokens, mask)
+
+    assert corrupted[~mask].tolist() == tokens[~mask].tolist()
+
+
+def test_unk_dropout_leaves_the_targets_alone():
+    """A corrupted position costs no training example, because targets come from
+    the clean tokens rather than from the model's input."""
+    rows = [[1, 2, 3], [4, 5]]
+    clean = SimpleGPTTrainer(_trainer_config(unk_dropout=0.0), _batcher()).fit(_seqs(rows))
+    noisy = SimpleGPTTrainer(_trainer_config(unk_dropout=0.9), _batcher()).fit(_seqs(rows))
+
+    assert noisy.history[0]["positions"] == clean.history[0]["positions"] == 5.0
+
+
+def test_a_vocabulary_without_unk_ignores_the_rate():
+    batcher = SequenceBatcher(
+        ItemTokenizer(N_ITEMS, special_tokens={"pad": 0}), max_length=12
+    )
+    trainer = SimpleGPTTrainer(_trainer_config(unk_dropout=0.9), batcher)
+    trainer.fit(_seqs(_cycle_rows(16)))
+    tokens, mask = batcher.encode(_seqs([[1, 2, 3]]))
+
+    assert batcher.tokenizer.unk_id is None
+    assert trainer._with_unk_dropout(tokens, mask).tolist() == tokens.tolist()
+
+
+# --------------------------------------------------------------------------
+# integration with evaluation
+# --------------------------------------------------------------------------
+
+
+def test_it_evaluates_through_the_standard_entry_point():
+    from scipy.sparse import csr_matrix
+
+    from compresso_recsys.evaluation import evaluate_recommender
+    from compresso_recsys.metrics import NDCG
+
+    model = _fitted_on_cycle()
+    sources = _seqs([[0, 1, 2], [3, 4, 5], [6, 7, 0]])
+    wanted = [3, 6, 1]
+    targets = csr_matrix(
+        (np.ones(len(wanted), dtype=np.float32), (np.arange(len(wanted)), np.array(wanted))),
+        shape=(len(wanted), N_ITEMS),
+    )
+
+    result = evaluate_recommender(
+        model, source=sources, targets=targets, metrics=[NDCG(1)]
+    )
+
+    assert result.n_scored_rows == 3
+    assert result["ndcg@1"] == pytest.approx(1.0)
