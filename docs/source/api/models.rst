@@ -903,11 +903,13 @@ read.
    )
 
 Measured on MovieLens-1M, ``ndcg@20`` against the same targets with matching
-fingerprints, so the three are a paired sample rather than three separate runs:
+fingerprints. Each sequential figure is the **mean over training seeds** with its
+standard deviation, because a single run is a property of one model and not of the
+method — three seeds on ``leave_last_out``, five on ``temporal``:
 
 .. list-table:: MovieLens-1M, ndcg@20
    :header-rows: 1
-   :widths: 26 24 24
+   :widths: 22 28 28
 
    * - model
      - ``leave_last_out``
@@ -916,26 +918,40 @@ fingerprints, so the three are a paired sample rather than three separate runs:
      - 0.0575
      - 0.0561
    * - SimpleRNN
-     - 0.1343
-     - **0.1263**
+     - 0.1349 ± 0.0006
+     - 0.0960 ± 0.0087
    * - SimpleGPT
-     - **0.1436**
-     - 0.0847
+     - **0.1409 ± 0.0024**
+     - 0.0891 ± 0.0080
 
-The two columns disagree about which sequential model wins, and the reason is
-data rather than architecture. ``leave_last_out`` trains on 6,033 users, where
-SimpleGPT beats SimpleRNN by ``+0.0093`` with a 95% interval of
-``[+0.0043, +0.0144]`` and an adjusted *p* of 0.0015. The ``temporal`` split
-trains on **90** users in its first window, and there the transformer loses
-clearly. Report the split alongside the number: a causal transformer is the more
-data-hungry of the two, and neither result generalises to the other regime.
+**On ``leave_last_out`` SimpleGPT wins.** The gap of ``+0.0060`` is roughly two
+and a half times the larger seed deviation, and a paired sign-flip test on one
+seed pair puts the interval at ``[+0.0043, +0.0144]`` with an adjusted *p* of
+0.0015 over 6,033 users. Both are far past ELSA.
 
-Two further observations from the same runs, both worth knowing before tuning.
-Going from two layers to four *lowered* ``ndcg@20`` from 0.1436 to 0.1227 on
-``leave_last_out``, so depth is not free at this scale. And ``unk_dropout``
-reproduced its effect on ``temporal``: 0.0559 at a rate of zero against 0.0847 at
-0.25, matching the split's 26% out-of-catalog share — the same ~50% swing measured
-for `SimpleRNN`.
+**On ``temporal`` the two are indistinguishable, not ranked.** Its first window
+trains on **90** users, and there the difference in means (``-0.0068``) is
+*smaller* than either model's own seed range (0.018 and 0.023). Any claim about
+which architecture is better on that split would be reading noise. What can be
+said is that a causal transformer needs more data than a GRU before its extra
+machinery earns anything, and that a 90-user split cannot settle the question
+either way.
+
+That distinction is worth dwelling on, because the tooling in this library does
+not protect you from it. :func:`compresso_recsys.stats.compare_models` pairs on
+*users*, so it controls for which users you drew — and says nothing at all about
+which seed you trained. On ``temporal`` the seed noise dominates, so a confident
+paired *p*-value there would be answering a question nobody asked. See
+:doc:`../statistical-comparison`, "One trained model is not the method".
+
+Two further observations, with their evidence stated so they can be weighed.
+``unk_dropout`` reproduced its known effect on ``temporal`` — 0.0559 at a rate of
+zero against 0.0847 at 0.25, matching that split's 26% out-of-catalog share, the
+same direction and rough size measured for `SimpleRNN`. And going from two layers
+to four *lowered* ``leave_last_out`` ``ndcg@20`` from 0.1436 to 0.1227 on a single
+seed each; given the two-layer seed deviation of 0.0024 that gap is large enough
+to believe, but it was not replicated, so treat it as a hint about depth at this
+scale rather than a result.
 
 Deliberately absent: tied embeddings, learning-rate schedules, early stopping,
 sampled softmax, and any pooling other than reading the last real position. Each

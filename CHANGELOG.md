@@ -136,15 +136,16 @@ change.
   because a served model that cannot say what column 41 means is not much use.
   Loading is self-contained and reads with `weights_only=True`, parsing the file
   as data rather than executing it as a pickle.
-  Measured on MovieLens-1M `ndcg@20`, paired against the same targets: on
-  `leave_last_out` (6,033 training users) SimpleGPT 0.1436 beats SimpleRNN 0.1343
-  by `+0.0093`, CI `[+0.0043, +0.0144]`, adjusted p 0.0015, both well past ELSA's
-  0.0575. On `temporal`, whose first window holds **90** users, it loses clearly —
-  0.0847 against SimpleRNN's 0.1263. The split belongs next to the number: a
-  causal transformer is the more data-hungry of the two and neither result carries
-  to the other regime. Two more from the same runs: four layers scored *worse*
-  than two (0.1227 vs 0.1436), and `unk_dropout` reproduced its known effect on
-  `temporal`, 0.0559 at zero against 0.0847 at 0.25.
+  Measured on MovieLens-1M `ndcg@20` against the same targets, as a mean over
+  training seeds with its standard deviation. On `leave_last_out` (6,033 users,
+  three seeds) SimpleGPT scores 0.1409 ± 0.0024 against SimpleRNN's
+  0.1349 ± 0.0006 — a gap of `+0.0060`, about two and a half times the larger
+  deviation, with a paired test on one seed pair giving `[+0.0043, +0.0144]` and
+  adjusted p 0.0015. Both are far past ELSA's 0.0575. On `temporal`, whose first
+  window trains on **90** users, the two are *indistinguishable*: 0.0891 ± 0.0080
+  against 0.0960 ± 0.0087 over five seeds, a difference in means smaller than
+  either model's own seed range. `unk_dropout` reproduced its known effect there,
+  0.0559 at a rate of zero against 0.0847 at 0.25 for a 26% out-of-catalog share.
 - `SimpleRNN`, `SimpleRNNConfig` and `SimpleRNNTrainer`: a GRU or LSTM trained
   on next-item cross entropy at every position, one example per user. The
   smallest model that actually uses order, and so the baseline a transformer has
