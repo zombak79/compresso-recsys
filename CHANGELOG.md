@@ -12,6 +12,35 @@ change.
 
 ## [Unreleased]
 
+### Added
+
+- `SimpleGPTConfig.tie_embeddings`, scoring with the input embedding's item rows
+  instead of a separate head. **On by default**, because it won on every split
+  measured: ML-1M `leave_last_out` by `+0.0127` (0.1664 ± 0.0010 against
+  0.1537 ± 0.0031, four seed deviations), Office `leave_last_out` by `+0.0074`
+  (six), and Office `temporal` by `+0.0009` (under two). A capacity sweep
+  separated perfectly — every tied configuration beat every untied one on Office
+  `leave_last_out`, and on ML-1M a tied `d_model=64, n_layers=1` model at 277k
+  parameters beat an untied `d_model=128, n_layers=2` at 1,267k. Set it `False`
+  to reproduce figures recorded before this was the default.
+  The margin tracks how far the head outweighs the data, which is what a
+  regularizer should do: largest where 573k of 1,143k parameters faced 6,313
+  training users, smallest on the split with the fewest of both. It also buys
+  stability — on Office `temporal` the untied model lost 32% of its score
+  between its best budget and twenty epochs while the tied one stayed flat, and
+  the seed deviation on Office `leave_last_out` fell sixfold.
+  Front loading makes the tied weight a slice rather than the whole embedding,
+  so `pad` and `unk` sit below it, never enter the head, and never take
+  output-side gradient — which is what we want, since neither is ever a target.
+  The offset is derived rather than passed, making it the same number the
+  objective already uses to decode targets. The bias survives tying, because
+  tying is a claim about the weight alone.
+  Tying converges *later*, not faster: `nn.Linear` starts near
+  `±1/sqrt(d_model)` while the embedding starts at `std=0.02`, so the tied head
+  begins with a flatter softmax. On ML-1M it trails untied at ten epochs and
+  passes it by twenty. Compare the two at a validated budget, never a fixed one,
+  or the slower start reads as a worse model.
+
 ## [0.3.0] — 2026-08-26
 
 Sequential recommendation as four replaceable parts -- tokenizer, batcher,

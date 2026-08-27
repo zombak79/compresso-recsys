@@ -38,9 +38,8 @@ loss is masked and prediction reads each row's last real position. That is why
 :class:`SimpleGPTTrainer` refuses a left-padding batcher rather than quietly
 building a key-padding mask.
 
-The output head can be tied to the input embedding (``tie_embeddings``), which
-halves the parameters and is off by default only because the recorded numbers
-were measured untied.
+The output head is tied to the input embedding by default (``tie_embeddings``),
+which halves the parameters and measured better on every split tried.
 
 Deliberately absent: learning-rate schedules, early stopping, sampled softmax, a
 logit temperature, and any pooling other than "read the last real position".
@@ -129,14 +128,19 @@ class SimpleGPTConfig:
     in both places and needs a runtime check to keep them equal.
 
     ``tie_embeddings`` scores with the input embedding's item rows instead of a
-    separate head, halving the parameters. Worth trying wherever the head is most
-    of the model -- at ``d_model=128`` on a 4,445-item catalog it is 573k of
-    1,143k parameters against 6,313 training users. It is off by default because
-    the recorded figures were measured untied, not because untied won. Note the
-    two paths start at different scales: ``nn.Linear`` initialises around
+    separate head, halving the parameters. On by default: it won on every split
+    measured -- ML-1M ``leave_last_out`` by ``+0.0127`` (four seed deviations),
+    Office ``leave_last_out`` by ``+0.0074`` (six), Office ``temporal`` by
+    ``+0.0009`` (under two) -- and in a capacity sweep every tied configuration
+    beat every untied one, including a tied model with a third of the parameters
+    beating an untied model with all of them. Set it ``False`` to reproduce
+    figures recorded before this was the default.
+
+    Tying converges *later*, not faster. ``nn.Linear`` initialises around
     ``+/-1/sqrt(d_model)`` while the embedding starts at ``std=0.02``, so a tied
-    head begins with smaller logits and may want a temperature that this model
-    does not have.
+    head begins with a flatter softmax: on ML-1M it trails untied at ten epochs
+    and passes it by twenty. Compare the two at a validated budget rather than a
+    fixed one, or the slower start reads as a worse model.
 
     ``unk_dropout`` replaces that fraction of input positions with the
     tokenizer's ``unk`` token. Non-zero by default because otherwise ``unk`` is
@@ -148,7 +152,7 @@ class SimpleGPTConfig:
     """
 
     transformer: TransformerConfig = field(default_factory=TransformerConfig)
-    tie_embeddings: bool = False
+    tie_embeddings: bool = True
     unk_dropout: float = 0.05
     batch_size: int = 256
     epochs: int = 10

@@ -876,12 +876,23 @@ def test_tying_round_trips_through_a_checkpoint(tmp_path):
 
 
 def test_an_untied_checkpoint_still_loads_untied(tmp_path):
-    """The default has to survive the new field, or old files change meaning."""
+    """Tying is the default, so a file saved without it must not acquire it.
+
+    The flag has to travel with the weights: a tied checkpoint reloaded untied
+    would silently gain a head of fresh random numbers, and an untied one
+    reloaded tied would drop the head it was trained with.
+    """
     path = tmp_path / "untied.pt"
 
-    save_simple_gpt(path, _fitted_on_cycle(epochs=2))
+    save_simple_gpt(path, _fitted_on_cycle(epochs=2, tie_embeddings=False))
     reloaded = load_simple_gpt(path)
 
     assert reloaded.cfg.tie_embeddings is False
     assert isinstance(reloaded.model.head, nn.Linear)
+
+
+def test_tying_is_the_default():
+    """Measured better on every split tried, so an unconfigured model gets it."""
+    assert SimpleGPTConfig().tie_embeddings is True
+    assert SimpleGPTConfig(tie_embeddings=False).tie_embeddings is False
 
