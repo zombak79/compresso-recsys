@@ -41,6 +41,34 @@ change.
   passes it by twenty. Compare the two at a validated budget, never a fixed one,
   or the slower start reads as a worse model.
 
+### Changed
+
+- The recorded `ndcg@20` figures are re-measured with tying on and with every
+  budget grid widened until the validation curve turned over, so no published
+  number sits at a grid edge any more. ML-1M `leave_last_out` reads
+  0.1664 ± 0.0010 (peak at forty epochs, falling to 0.1602 by eighty), Office
+  `leave_last_out` 0.0384 ± 0.0002, Office `temporal` 0.0098 ± 0.0005. The
+  earlier "still improving at the edge of the grid, treat as lower bounds" caveat
+  is retired: those peaks are measured.
+  SimpleRNN was re-run on the same widened grids so the comparison is not tilted
+  by tuning one model further than the other. Its figures did not move — it peaks
+  at twenty epochs on ML-1M and *declines* at forty and eighty, so its earlier
+  edge-of-grid selection turned out to be its optimum.
+  Office `leave_last_out` changes conclusion, not just magnitude: SimpleGPT now
+  scores 0.0384 against ELSA's 0.0327, where the untied model read 0.0310. The
+  previous finding that a shallow matrix model beat the transformer on set-like
+  purchase data was a fact about the untied head.
+
+### Documentation
+
+- Office `temporal` now carries the warning it always needed. 85% of its test
+  targets are items absent from training and 75% of its users have at least one,
+  so a fixed-width lookup head cannot reach most of the answers: an oracle
+  restricted the same way scores 0.3252, not 1.0. Every model in that column is
+  competing for a third of the available ndcg, which is why they all land within
+  thousandths of a popularity baseline. It is a cold-start diagnostic, not a
+  ranking of these models.
+
 ## [0.3.0] — 2026-08-26
 
 Sequential recommendation as four replaceable parts -- tokenizer, batcher,

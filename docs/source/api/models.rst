@@ -902,15 +902,16 @@ read.
        metrics=[CalibratedRecall(20), NDCG(20)],
    )
 
-Measured ``ndcg@20`` on two datasets. Every figure is a mean over three
-training seeds with its standard deviation, and every sequential budget was
-chosen on the **validation** split from the grid ``1, 2, 3, 5, 10, 20`` and only
-then scored on test. A popularity baseline is included because without a floor a
-model comparison cannot say whether either model works at all.
+Measured ``ndcg@20`` on two datasets. Every figure is a mean over three training
+seeds with its standard deviation, and every sequential budget was chosen on the
+**validation** split and only then scored on test. Grids were widened until the
+validation curve turned over, so no figure below sits at a grid edge. A
+popularity baseline is included because without a floor a model comparison cannot
+say whether either model works at all.
 
 .. list-table:: ndcg@20, validation-selected budgets, three seeds
    :header-rows: 1
-   :widths: 20 22 22 22
+   :widths: 22 20 20 20
 
    * - model
      - ML-1M ``leave_last_out``
@@ -919,51 +920,71 @@ model comparison cannot say whether either model works at all.
    * - popularity
      - 0.0176
      - 0.0185
-     - **0.0094**
+     - 0.0094
    * - ELSA
      - 0.0562 ± 0.0013
-     - **0.0327 ± 0.0011**
+     - 0.0327 ± 0.0011
      - 0.0076 ± 0.0004
    * - SimpleRNN
      - 0.1471 ± 0.0008
      - 0.0282 ± 0.0018
      - 0.0091 ± 0.0007
-   * - SimpleGPT
-     - **0.1520 ± 0.0017**
+   * - SimpleGPT, untied
+     - 0.1537 ± 0.0031
      - 0.0310 ± 0.0013
      - 0.0088 ± 0.0006
+   * - SimpleGPT, tied
+     - **0.1664 ± 0.0010**
+     - **0.0384 ± 0.0002**
+     - **0.0098 ± 0.0005**
 
-**The datasets disagree, and the disagreement is the finding.** On MovieLens both
-sequential models beat ELSA by more than two and a half times and popularity by
-nearly ten, and SimpleGPT leads SimpleRNN by ``+0.0049`` — about three
-times the larger of the two seed deviations. On Amazon Office_Products the three top models
-are within 0.005 of each other, with ELSA nominally ahead of SimpleGPT by ~1.3
-deviations, and on the temporal split *nothing beats popularity*.
+**Tying the head was worth more than the architecture.** It wins on all three
+columns, and on Office ``leave_last_out`` it moves SimpleGPT from *behind* ELSA
+to comfortably ahead — so the earlier finding that a matrix model beat the
+transformer there was a fact about the untied head, not about sequence models.
+A capacity sweep separated perfectly on that split: every tied configuration
+scored above every untied one, and the best was ``d_model=128, n_layers=1`` at
+0.0385, one layer rather than two. On ML-1M a tied ``d_model=64, n_layers=1``
+model reaches 0.1636 with 277k parameters against an untied ``d_model=128,
+n_layers=2`` at 0.1555 with 1,267k. Reach for tying before reaching for width.
 
-The reason is what the histories contain. Office targets average exactly 1.0
-items per user, and not one user in the first two thousand has a repeated item:
-office supplies are bought once, so a purchase history is close to a *set* and
-there is little order for a causal model to exploit. Film histories carry a great
-deal. Quote the dataset alongside any sequential-versus-matrix claim; neither
-column generalises to the other.
+**The datasets still disagree, and the disagreement is still the finding.** On
+MovieLens both sequential models beat ELSA by more than two and a half times and
+popularity by nearly ten. On Amazon Office_Products the margins collapse to
+thousandths and ELSA is competitive. The reason is what the histories contain:
+Office targets average exactly 1.0 items per user and not one user in the first
+two thousand has a repeated item, so a purchase history is close to a *set* with
+little order for a causal model to exploit. Quote the dataset alongside any
+sequential-versus-matrix claim; neither column generalises to the other.
 
-**The training budget dominated both.** Getting it wrong moved Office temporal by
-43% — 0.0063 at twenty epochs against 0.0111 at three — and the direction differs
-per dataset: Office overfits after three to five epochs while MovieLens is still
-*improving* at twenty, where validation picked the edge of the grid. So the two
-MovieLens figures above are lower bounds, and a wider grid would raise both.
+**Office ``temporal`` is a weak benchmark and the numbers should be read as
+such.** 85% of its test targets are items that never appear in training, and
+75% of users have at least one, so a model whose head is a fixed-width lookup
+table cannot reach most of the answers. An oracle restricted the same way scores
+0.3252 rather than 1.0 — the whole column is competing for 32% of the available
+ndcg, which is why every model lands within thousandths of a popularity
+baseline. Read it as a cold-start diagnostic, not as a ranking of these models,
+and prefer a content-based recommender if the deployment looks like this.
 
-That budget is currently an unvalidated argument. Neither trainer reads the
-``val_source_sequences`` and ``val_target_matrix`` that every chronological
-checkpoint already carries, so ``epochs`` is a guess whose effect here exceeded
-the architectural difference several times over. Select it on validation as these
-figures do, and never on test — the same numbers chosen on test read 0.0111
-rather than 0.0088 on Office temporal, inflated by both the selection and a
-favourable seed.
+**The training budget still dominates.** Getting it wrong moved Office temporal
+by 43%, and the direction differs per dataset: Office overfits after five to ten
+epochs, MovieLens peaks at forty for SimpleGPT and at *twenty* for SimpleRNN,
+declining past both. Tying shifts the peak later rather than earlier, because a
+tied head starts with a flatter softmax — on ML-1M tied trails untied at ten
+epochs and passes it by twenty. Compare variants at validated budgets, never at
+a shared fixed one, or the slower starter reports as the worse model.
 
-Deliberately absent: tied embeddings, learning-rate schedules, early stopping,
-sampled softmax, and any pooling other than reading the last real position. Each
-is a separate claim that deserves measuring on its own.
+That budget remains an unvalidated argument in the trainers themselves. Neither
+reads the ``val_source_sequences`` and ``val_target_matrix`` that every
+chronological checkpoint already carries, so ``epochs`` is a guess whose effect
+here exceeded the architectural difference several times over. Select it on
+validation as these figures do, and never on test.
+
+Deliberately absent: learning-rate schedules, early stopping, sampled softmax, a
+logit temperature, and any pooling other than reading the last real position.
+Each is a separate claim that deserves measuring on its own. A temperature is the
+most likely of these to matter now that the head is tied, since tying couples the
+scale of the input embedding to the scale of the logits.
 
 Saving carries the vocabulary with the weights, because a served model that
 cannot say what column 41 means is not much use. The file is read with
