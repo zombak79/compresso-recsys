@@ -48,6 +48,7 @@ Each is a separate claim that deserves measuring on its own.
 
 from __future__ import annotations
 
+import math
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Literal
@@ -75,6 +76,7 @@ __all__ = [
 ]
 
 OptimizerName = Literal["NAdam", "AdamW"]
+LRSchedule = Literal["constant", "cosine"]
 
 
 @dataclass(frozen=True)
@@ -153,6 +155,9 @@ class SimpleGPTConfig:
 
     transformer: TransformerConfig = field(default_factory=TransformerConfig)
     tie_embeddings: bool = True
+    lr_schedule: LRSchedule = "constant"
+    warmup_fraction: float = 0.05
+    min_lr_ratio: float = 0.1
     unk_dropout: float = 0.05
     batch_size: int = 256
     epochs: int = 10
@@ -174,6 +179,18 @@ class SimpleGPTConfig:
             )
         if self.lr <= 0.0:
             raise ValueError(f"lr must be > 0, got {self.lr}")
+        if self.lr_schedule not in ("constant", "cosine"):
+            raise ValueError(
+                f"lr_schedule must be 'constant' or 'cosine', got {self.lr_schedule!r}"
+            )
+        if not 0.0 <= self.warmup_fraction < 1.0:
+            raise ValueError(
+                f"warmup_fraction must be in [0, 1), got {self.warmup_fraction}"
+            )
+        if not 0.0 < self.min_lr_ratio <= 1.0:
+            raise ValueError(
+                f"min_lr_ratio must be in (0, 1], got {self.min_lr_ratio}"
+            )
 
 
 class LayerNorm(nn.Module):
@@ -318,14 +335,38 @@ class SimpleGPT(nn.Module):
             self.head = nn.Linear(config.d_model, n_items)
             self.head_bias = None
 
-        nn.init.normal_(self.embedding.weight, mean=0.0, std=0.02)
-        nn.init.normal_(self.position.weight, mean=0.0, std=0.02)
+        self.apply(self._init_weights)
         nn.init.normal_(self.cls_token, mean=0.0, std=0.02)
+        # GPT-2's scaled init for the projections that write into the residual
+        # stream. Without it the stream's variance grows with depth, since each
+        # of the 2 * n_layers residual adds contributes at full scale. nanoGPT
+        # matches c_proj by name; matching the modules directly cannot rot.
+        residual_std = 0.02 / math.sqrt(2 * config.n_layers)
+        for block in self.blocks:
+            nn.init.normal_(block.attn.proj.weight, mean=0.0, std=residual_std)
+            nn.init.normal_(block.mlp.down.weight, mean=0.0, std=residual_std)
         # nn.Embedding zeroes padding_idx at construction and the initialisation
         # above overwrote it. Re-zero explicitly: padding_idx keeps the gradient
         # zero, so whatever sits there at the start stays there for good.
         with torch.no_grad():
             self.embedding.weight[self.pad_id].zero_()
+
+    @staticmethod
+    def _init_weights(module: nn.Module) -> None:
+        """GPT-2 initialisation: every weight normal(0, 0.02), biases zero.
+
+        PyTorch's default for ``nn.Linear`` is uniform over
+        ``+/-1/sqrt(fan_in)``, which for ``d_model=128`` is roughly 2.5x wider
+        than this. Leaving it there is a silent departure from the architecture
+        this model claims to be, and it interacts with a tied head: the output
+        weight would start at one scale and the input embedding at another.
+        """
+        if isinstance(module, nn.Linear):
+            nn.init.normal_(module.weight, mean=0.0, std=0.02)
+            if module.bias is not None:
+                nn.init.zeros_(module.bias)
+        elif isinstance(module, nn.Embedding):
+            nn.init.normal_(module.weight, mean=0.0, std=0.02)
 
     def forward(self, tokens: torch.Tensor) -> torch.Tensor:
         """States for `CLS` and every token, shape ``(rows, length + 1, d_model)``.
@@ -461,6 +502,9 @@ class SimpleGPTTrainer(BaseSequentialRecommender):
         n_rows = sequences.n_rows
         batch_size = self.cfg.batch_size
         starts = range(0, n_rows, batch_size)
+        # The schedule is defined over the whole run, so it needs the step count
+        # up front -- which is why this lives here rather than in the config.
+        scheduler = self._build_scheduler(optimizer, len(starts) * self.cfg.epochs)
         # Two bars, as ELSA draws them: epochs outside, batches inside. The inner
         # bar is created once and rewound per epoch rather than a finished one
         # being left behind for each.
@@ -484,6 +528,12 @@ class SimpleGPTTrainer(BaseSequentialRecommender):
                 for start in starts:
                     batch = sequences.select_rows(order[start : start + batch_size])
                     step = self._train_step(batch, optimizer, objective)
+                    if scheduler is not None:
+                        # Advanced even when _train_step declined the batch, so
+                        # the curve is exactly the configured shape over the run
+                        # rather than a slightly truncated one whose floor
+                        # depends on how many batches happened to carry targets.
+                        scheduler.step()
                     if step is not None:
                         batch_loss, batch_positions = step
                         loss_sum += batch_loss * batch_positions
@@ -496,6 +546,7 @@ class SimpleGPTTrainer(BaseSequentialRecommender):
                         "epoch": float(epoch),
                         "loss": mean_loss,
                         "positions": float(positions),
+                        "lr": float(optimizer.param_groups[0]["lr"]),
                     }
                 )
                 if hasattr(epoch_iter, "set_postfix"):
@@ -507,6 +558,38 @@ class SimpleGPTTrainer(BaseSequentialRecommender):
                 epoch_iter.close()
 
         return self
+
+    def _build_scheduler(
+        self, optimizer: torch.optim.Optimizer, total_steps: int
+    ) -> torch.optim.lr_scheduler.LRScheduler | None:
+        """Linear warmup then cosine decay, or ``None`` for a flat rate.
+
+        Warmup exists because the first steps of a transformer are the ones most
+        able to wreck it: attention has learned nothing, so early gradients are
+        large and poorly aimed. Cosine decay then spends the end of the run
+        refining rather than bouncing. nanoGPT does both in its training script;
+        neither is expressible through the optimizer alone, which is why they
+        arrive together as one option rather than two.
+
+        The schedule is measured in optimizer steps, not epochs, so the shape is
+        the same whatever the batch size.
+        """
+        if self.cfg.lr_schedule == "constant":
+            return None
+        warmup = int(self.cfg.warmup_fraction * total_steps)
+        floor = self.cfg.min_lr_ratio
+
+        def factor(step: int) -> float:
+            if step < warmup:
+                # Step 0 would otherwise train at exactly zero and waste a step.
+                return (step + 1) / (warmup + 1)
+            if total_steps <= warmup:
+                return 1.0
+            progress = (step - warmup) / (total_steps - warmup)
+            cosine = 0.5 * (1.0 + math.cos(math.pi * min(progress, 1.0)))
+            return floor + (1.0 - floor) * cosine
+
+        return torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=factor)
 
     def _build_model(self) -> SimpleGPT:
         """The module this trainer's config and batcher describe.

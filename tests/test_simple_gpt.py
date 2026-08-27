@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import math
+
 import numpy as np
 import pytest
 import torch
@@ -895,4 +897,136 @@ def test_tying_is_the_default():
     """Measured better on every split tried, so an unconfigured model gets it."""
     assert SimpleGPTConfig().tie_embeddings is True
     assert SimpleGPTConfig(tie_embeddings=False).tie_embeddings is False
+
+
+# --------------------------------------------------------------------------
+# initialisation
+# --------------------------------------------------------------------------
+
+
+def test_every_weight_starts_at_the_gpt2_scale():
+    """PyTorch's nn.Linear default is ~2.5x wider at d_model=128, and leaving it
+    there is a silent departure from the architecture this model claims."""
+    model = _model(d_model=128, n_heads=4, n_layers=2)
+
+    for name, param in model.named_parameters():
+        if "ln" in name or param.dim() < 2:
+            continue
+        if name.endswith(("attn.proj.weight", "mlp.down.weight")):
+            continue  # scaled separately, asserted below
+        assert 0.015 < param.std().item() < 0.025, f"{name} std {param.std().item()}"
+
+
+def test_residual_projections_are_scaled_by_depth():
+    """GPT-2's 1/sqrt(2 * n_layers) on whatever writes into the residual stream.
+
+    Each block adds twice, so without this the stream's variance grows with
+    depth and a deeper model starts further from usable.
+    """
+    for n_layers in (1, 2, 4):
+        model = _model(d_model=64, n_heads=4, n_layers=n_layers)
+        expected = 0.02 / math.sqrt(2 * n_layers)
+        for block in model.blocks:
+            assert block.attn.proj.weight.std().item() == pytest.approx(
+                expected, rel=0.25
+            )
+            assert block.mlp.down.weight.std().item() == pytest.approx(
+                expected, rel=0.25
+            )
+
+
+def test_the_pad_row_is_still_zero_after_the_new_init():
+    """self.apply() walks the embedding too, so the re-zero has to come last."""
+    model = _model_tied()
+
+    assert bool((model.embedding.weight[PAD_ID] == 0).all())
+
+
+# --------------------------------------------------------------------------
+# learning-rate schedule
+# --------------------------------------------------------------------------
+
+
+def test_constant_is_the_default_and_builds_no_scheduler():
+    trainer = SimpleGPTTrainer(_trainer_config(), _batcher())
+
+    assert trainer.cfg.lr_schedule == "constant"
+    assert trainer._build_scheduler(
+        torch.optim.SGD([torch.nn.Parameter(torch.zeros(1))], lr=0.1), 100
+    ) is None
+
+
+def test_cosine_warms_up_then_decays_to_the_floor():
+    trainer = SimpleGPTTrainer(
+        _trainer_config(lr=0.1, lr_schedule="cosine", warmup_fraction=0.1,
+                        min_lr_ratio=0.05),
+        _batcher(),
+    )
+    param = torch.nn.Parameter(torch.zeros(1))
+    optimizer = torch.optim.SGD([param], lr=0.1)
+    scheduler = trainer._build_scheduler(optimizer, 100)
+
+    rates = [optimizer.param_groups[0]["lr"]]
+    for _ in range(100):
+        optimizer.step()  # order fit uses: the optimizer moves, then the schedule
+        scheduler.step()
+        rates.append(optimizer.param_groups[0]["lr"])
+
+    warm = rates[:11]
+    assert warm == sorted(warm), "warmup must not decrease"
+    assert rates[0] > 0.0, "step zero must still train"
+    tail = rates[11:]
+    assert tail == sorted(tail, reverse=True), "post-warmup must not increase"
+    assert rates[10] == pytest.approx(0.1, rel=0.02), "peak is the configured lr"
+    assert rates[100] == pytest.approx(0.1 * 0.05, rel=0.02), "floor is min_lr_ratio"
+
+
+def test_a_schedule_shorter_than_its_warmup_does_not_divide_by_zero():
+    """A tiny run is a real case: one batch, one epoch."""
+    trainer = SimpleGPTTrainer(
+        _trainer_config(lr_schedule="cosine", warmup_fraction=0.9), _batcher()
+    )
+    optimizer = torch.optim.SGD([torch.nn.Parameter(torch.zeros(1))], lr=0.1)
+    scheduler = trainer._build_scheduler(optimizer, 1)
+
+    optimizer.step()
+    scheduler.step()
+
+    assert optimizer.param_groups[0]["lr"] > 0.0
+
+
+def test_fit_records_the_rate_it_trained_at():
+    """Otherwise a schedule is invisible in the history it should explain."""
+    model = _fitted_on_cycle(epochs=4, lr_schedule="cosine")
+
+    rates = [entry["lr"] for entry in model.history]
+
+    assert len(rates) == 4
+    assert rates[-1] < rates[0]
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "message"),
+    [
+        ({"lr_schedule": "linear"}, "lr_schedule must be"),
+        ({"warmup_fraction": 1.0}, r"warmup_fraction must be in \[0, 1\)"),
+        ({"warmup_fraction": -0.1}, r"warmup_fraction must be in \[0, 1\)"),
+        ({"min_lr_ratio": 0.0}, r"min_lr_ratio must be in \(0, 1\]"),
+        ({"min_lr_ratio": 1.5}, r"min_lr_ratio must be in \(0, 1\]"),
+    ],
+)
+def test_invalid_schedule_configuration_is_refused(kwargs, message):
+    with pytest.raises(ValueError, match=message):
+        _trainer_config(**kwargs)
+
+
+def test_the_schedule_survives_a_checkpoint(tmp_path):
+    model = _fitted_on_cycle(epochs=2, lr_schedule="cosine", min_lr_ratio=0.25)
+    path = tmp_path / "scheduled.pt"
+
+    save_simple_gpt(path, model)
+    reloaded = load_simple_gpt(path)
+
+    assert reloaded.cfg.lr_schedule == "cosine"
+    assert reloaded.cfg.min_lr_ratio == 0.25
 

@@ -285,6 +285,25 @@ adjacency in cold-item sequences is removed.
 
 ### Changed
 
+- **Breaking (numerically).** `SimpleGPT` now initialises the way the
+  architecture it claims to be does. Every weight starts at `std=0.02` — PyTorch's
+  `nn.Linear` default is roughly 2.5× wider at `d_model=128` — and each block's two
+  residual-stream projections start at `0.02 / sqrt(2 * n_layers)`, GPT-2's scaled
+  init. Only the embeddings were initialised before; every `Linear` was left at the
+  PyTorch default, which was a silent departure from nanoGPT rather than a
+  decision. A block adds to the residual stream twice, so without the scaling the
+  stream's variance grows with depth. Existing checkpoints load unchanged; only
+  fresh runs move.
+- `SimpleGPTConfig.lr_schedule`, with `warmup_fraction` and `min_lr_ratio`.
+  `"cosine"` gives linear warmup then cosine decay to a floor, measured in
+  optimizer steps so the shape is invariant to batch size; `"constant"` remains the
+  default. Warmup is there because the first steps of a transformer are the ones
+  most able to wreck it, and neither half is expressible through the optimizer
+  alone. `fit` records the rate it trained at in `history`, so a schedule is
+  visible in the log it should explain. The schedule advances on batches the
+  objective declines, so the curve is exactly the configured shape rather than one
+  whose floor depends on how many batches carried targets.
+
 - **Breaking.** The item-partition keys are renamed to say what they hold:
   `train_item_indices` → `warm_item_indices`, `val_item_indices` →
   `val_cold_item_indices`, `test_item_indices` → `test_cold_item_indices`. The

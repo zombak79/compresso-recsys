@@ -875,6 +875,21 @@ trap comes with it: a tied head starts with a flatter softmax, because
 ten epochs before passing it at twenty. Compare the two at validated budgets, not
 a shared fixed one.
 
+**Initialisation follows GPT-2, including the depth-scaled residual init.**
+Every weight starts at ``std=0.02`` — PyTorch's ``nn.Linear`` default is roughly
+2.5× wider at ``d_model=128`` — and the two projections in each block that write
+into the residual stream start at ``0.02 / sqrt(2 * n_layers)`` instead. Each
+block adds to the stream twice, so without that scaling its variance grows with
+depth and a deeper model starts further from anything usable.
+
+**A learning-rate schedule is available and off by default.**
+``lr_schedule="cosine"`` gives linear warmup over ``warmup_fraction`` of the run
+then cosine decay to ``min_lr_ratio × lr``, measured in optimizer steps so the
+shape does not move with batch size. Warmup exists because the earliest steps of
+a transformer are the ones most able to wreck it — attention has learned nothing,
+so gradients are large and badly aimed. Neither half is expressible through the
+optimizer alone, which is why they arrive as one option rather than two.
+
 **The context window is derived, not configured.** ``max_length`` on the batcher
 sizes the positional table, so ``SimpleGPTConfig`` carries no ``block_size`` and
 the two cannot disagree. The consequence is that ``max_length=None`` is an error
@@ -995,11 +1010,17 @@ chronological checkpoint already carries, so ``epochs`` is a guess whose effect
 here exceeded the architectural difference several times over. Select it on
 validation as these figures do, and never on test.
 
-Deliberately absent: learning-rate schedules, early stopping, sampled softmax, a
-logit temperature, and any pooling other than reading the last real position.
-Each is a separate claim that deserves measuring on its own. A temperature is the
-most likely of these to matter now that the head is tied, since tying couples the
-scale of the input embedding to the scale of the logits.
+Deliberately absent: early stopping, sampled softmax, a logit temperature, and
+any pooling other than reading the last real position. Each is a separate claim
+that deserves measuring on its own.
+
+On the temperature specifically: tying couples the scale of the input embedding to
+the scale of the logits, which is visible at initialisation — a tied head's
+softmax starts near uniform where an untied one does not, and that is why tying
+converges later. nanoGPT ties too and applies no temperature during training, only
+at sampling time, so the reference architecture does not treat this as a problem.
+It may matter more here purely because these runs are hundreds of steps rather
+than hundreds of thousands.
 
 Saving carries the vocabulary with the weights, because a served model that
 cannot say what column 41 means is not much use. The file is read with
