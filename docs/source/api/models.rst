@@ -830,7 +830,8 @@ SimpleGPT
 
 SimpleGPT is a causal transformer over the same histories `SimpleRNN` reads. The
 architecture is nanoGPT — pre-norm blocks, fused QKV attention, a learned
-absolute position per slot — with two recommendation-shaped adjustments, and it
+absolute position per slot — with the recommendation-shaped adjustments below,
+and it
 is the model :class:`compresso_recsys.models.ItemTokenizer` and
 :class:`compresso_recsys.models.SequenceBatcher` were split apart for.
 
@@ -862,6 +863,18 @@ masked and prediction reads each row's last real position. That is why the
 trainer *refuses* a ``pad_side="left"`` batcher instead of quietly building a
 key-padding mask, and why the attention module accepts no mask argument at all.
 
+**The head is tied to the input embedding, and scores the catalog rather than
+the vocabulary.** Items occupy the last ``n_items`` rows of the vocabulary, so
+the output weight is a slice of the embedding and ``pad`` and ``unk`` fall below
+it — which is what we want, since neither is ever a prediction target. Tying
+halves the parameters and measured better on every split below, so it is the
+default; set ``tie_embeddings=False`` to reproduce older figures. One measurement
+trap comes with it: a tied head starts with a flatter softmax, because
+``nn.Linear`` initialises near ``±1/sqrt(d_model)`` while an embedding starts at
+``std=0.02``. It therefore converges *later*, and on ML-1M it trails untied at
+ten epochs before passing it at twenty. Compare the two at validated budgets, not
+a shared fixed one.
+
 **The context window is derived, not configured.** ``max_length`` on the batcher
 sizes the positional table, so ``SimpleGPTConfig`` carries no ``block_size`` and
 the two cannot disagree. The consequence is that ``max_length=None`` is an error
@@ -888,7 +901,9 @@ read.
            transformer=TransformerConfig(
                d_model=128, n_heads=4, n_layers=2, dropout=0.1
            ),
-           epochs=8,
+           # Pick this on the validation split, not by hand -- see below,
+           # where it moved results further than the architecture did.
+           epochs=10,
            batch_size=128,
            lr=1e-3,
        ),

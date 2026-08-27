@@ -1,75 +1,6 @@
-# Changelog
-
-All notable changes to Compresso Recsys are documented in this file.
-
-The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
-this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-While the version stays below 1.0, the minor number carries breaking changes.
-
-Entries before 0.2.0 are reconstructed from release history rather than written
-at the time, so they summarise what each tag contained rather than listing every
-change.
-
 ## [Unreleased]
 
-### Added
-
-- `SimpleGPTConfig.tie_embeddings`, scoring with the input embedding's item rows
-  instead of a separate head. **On by default**, because it won on every split
-  measured: ML-1M `leave_last_out` by `+0.0127` (0.1664 ± 0.0010 against
-  0.1537 ± 0.0031, four seed deviations), Office `leave_last_out` by `+0.0074`
-  (six), and Office `temporal` by `+0.0009` (under two). A capacity sweep
-  separated perfectly — every tied configuration beat every untied one on Office
-  `leave_last_out`, and on ML-1M a tied `d_model=64, n_layers=1` model at 277k
-  parameters beat an untied `d_model=128, n_layers=2` at 1,267k. Set it `False`
-  to reproduce figures recorded before this was the default.
-  The margin tracks how far the head outweighs the data, which is what a
-  regularizer should do: largest where 573k of 1,143k parameters faced 6,313
-  training users, smallest on the split with the fewest of both. It also buys
-  stability — on Office `temporal` the untied model lost 32% of its score
-  between its best budget and twenty epochs while the tied one stayed flat, and
-  the seed deviation on Office `leave_last_out` fell sixfold.
-  Front loading makes the tied weight a slice rather than the whole embedding,
-  so `pad` and `unk` sit below it, never enter the head, and never take
-  output-side gradient — which is what we want, since neither is ever a target.
-  The offset is derived rather than passed, making it the same number the
-  objective already uses to decode targets. The bias survives tying, because
-  tying is a claim about the weight alone.
-  Tying converges *later*, not faster: `nn.Linear` starts near
-  `±1/sqrt(d_model)` while the embedding starts at `std=0.02`, so the tied head
-  begins with a flatter softmax. On ML-1M it trails untied at ten epochs and
-  passes it by twenty. Compare the two at a validated budget, never a fixed one,
-  or the slower start reads as a worse model.
-
-### Changed
-
-- The recorded `ndcg@20` figures are re-measured with tying on and with every
-  budget grid widened until the validation curve turned over, so no published
-  number sits at a grid edge any more. ML-1M `leave_last_out` reads
-  0.1664 ± 0.0010 (peak at forty epochs, falling to 0.1602 by eighty), Office
-  `leave_last_out` 0.0384 ± 0.0002, Office `temporal` 0.0098 ± 0.0005. The
-  earlier "still improving at the edge of the grid, treat as lower bounds" caveat
-  is retired: those peaks are measured.
-  SimpleRNN was re-run on the same widened grids so the comparison is not tilted
-  by tuning one model further than the other. Its figures did not move — it peaks
-  at twenty epochs on ML-1M and *declines* at forty and eighty, so its earlier
-  edge-of-grid selection turned out to be its optimum.
-  Office `leave_last_out` changes conclusion, not just magnitude: SimpleGPT now
-  scores 0.0384 against ELSA's 0.0327, where the untied model read 0.0310. The
-  previous finding that a shallow matrix model beat the transformer on set-like
-  purchase data was a fact about the untied head.
-
-### Documentation
-
-- Office `temporal` now carries the warning it always needed. 85% of its test
-  targets are items absent from training and 75% of its users have at least one,
-  so a fixed-width lookup head cannot reach most of the answers: an oracle
-  restricted the same way scores 0.3252, not 1.0. Every model in that column is
-  competing for a third of the available ndcg, which is why they all land within
-  thousandths of a popularity baseline. It is a cold-start diagnostic, not a
-  ranking of these models.
-
-## [0.3.0] — 2026-08-26
+## [0.3.0] — 2026-08-27
 
 Sequential recommendation as four replaceable parts -- tokenizer, batcher,
 model, trainer -- with `SimpleGPT` as the worked example and `SimpleRNN`
@@ -325,6 +256,33 @@ adjacency in cold-item sequences is removed.
   rule: `temporal` divides by time, `leave_last_out` by position, and the
   non-chronological modes not at all.
 
+- `SimpleGPTConfig.tie_embeddings`, scoring with the input embedding's item rows
+  instead of a separate head. **On by default**, because it won on every split
+  measured: ML-1M `leave_last_out` by `+0.0127` (0.1664 ± 0.0010 against
+  0.1537 ± 0.0031, four seed deviations), Office `leave_last_out` by `+0.0074`
+  (six), and Office `temporal` by `+0.0009` (under two). A capacity sweep
+  separated perfectly — every tied configuration beat every untied one on Office
+  `leave_last_out`, and on ML-1M a tied `d_model=64, n_layers=1` model at 277k
+  parameters beat an untied `d_model=128, n_layers=2` at 1,267k. Set it `False`
+  to reproduce figures recorded before this was the default.
+  The margin tracks how far the head outweighs the data, which is what a
+  regularizer should do: largest where 573k of 1,143k parameters faced 6,313
+  training users, smallest on the split with the fewest of both. It also buys
+  stability — on Office `temporal` the untied model lost 32% of its score
+  between its best budget and twenty epochs while the tied one stayed flat, and
+  the seed deviation on Office `leave_last_out` fell sixfold.
+  Front loading makes the tied weight a slice rather than the whole embedding,
+  so `pad` and `unk` sit below it, never enter the head, and never take
+  output-side gradient — which is what we want, since neither is ever a target.
+  The offset is derived rather than passed, making it the same number the
+  objective already uses to decode targets. The bias survives tying, because
+  tying is a claim about the weight alone.
+  Tying converges *later*, not faster: `nn.Linear` starts near
+  `±1/sqrt(d_model)` while the embedding starts at `std=0.02`, so the tied head
+  begins with a flatter softmax. On ML-1M it trails untied at ten epochs and
+  passes it by twenty. Compare the two at a validated budget, never a fixed one,
+  or the slower start reads as a worse model.
+
 ### Changed
 
 - **Breaking.** The item-partition keys are renamed to say what they hold:
@@ -380,6 +338,32 @@ adjacency in cold-item sequences is removed.
 - **Breaking.** `build_leave_last_out_holdout` takes `stage` and `min_history`
   in place of `min_source_items` and `min_target_items`, and returns one stage at
   a time.
+
+- The recorded `ndcg@20` figures are re-measured with tying on and with every
+  budget grid widened until the validation curve turned over, so no published
+  number sits at a grid edge any more. ML-1M `leave_last_out` reads
+  0.1664 ± 0.0010 (peak at forty epochs, falling to 0.1602 by eighty), Office
+  `leave_last_out` 0.0384 ± 0.0002, Office `temporal` 0.0098 ± 0.0005. The
+  earlier "still improving at the edge of the grid, treat as lower bounds" caveat
+  is retired: those peaks are measured.
+  SimpleRNN was re-run on the same widened grids so the comparison is not tilted
+  by tuning one model further than the other. Its figures did not move — it peaks
+  at twenty epochs on ML-1M and *declines* at forty and eighty, so its earlier
+  edge-of-grid selection turned out to be its optimum.
+  Office `leave_last_out` changes conclusion, not just magnitude: SimpleGPT now
+  scores 0.0384 against ELSA's 0.0327, where the untied model read 0.0310. The
+  previous finding that a shallow matrix model beat the transformer on set-like
+  purchase data was a fact about the untied head.
+
+### Documentation
+
+- Office `temporal` now carries the warning it always needed. 85% of its test
+  targets are items absent from training and 75% of its users have at least one,
+  so a fixed-width lookup head cannot reach most of the answers: an oracle
+  restricted the same way scores 0.3252, not 1.0. Every model in that column is
+  competing for a third of the available ndcg, which is why they all land within
+  thousandths of a popularity baseline. It is a cold-start diagnostic, not a
+  ranking of these models.
 
 ## [0.2.0] — 2026-08-17
 
