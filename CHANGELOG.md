@@ -132,29 +132,10 @@ adjacency in cold-item sequences is removed.
   because a served model that cannot say what column 41 means is not much use.
   Loading is self-contained and reads with `weights_only=True`, parsing the file
   as data rather than executing it as a pickle.
-  Measured `ndcg@20` on two datasets, as a mean over three training seeds with
-  its standard deviation, every sequential budget selected on the **validation**
-  split from the grid `1, 2, 3, 5, 10, 20` and only then scored on test, against
-  a popularity floor. On MovieLens-1M `leave_last_out` (6,033 users) SimpleGPT
-  scores 0.1520 ± 0.0017 against SimpleRNN's 0.1471 ± 0.0008 — a gap of
-  `+0.0049`, about three times the larger of the two deviations — and both are far
-  past ELSA's 0.0562 and popularity's 0.0176. On Amazon Office_Products
-  `leave_last_out` the same three models land within 0.005 of each other
-  (ELSA 0.0327 ± 0.0011, SimpleGPT 0.0310 ± 0.0013, SimpleRNN 0.0282 ± 0.0018),
-  and on its `temporal` split **nothing beats popularity's 0.0094**: SimpleRNN
-  0.0091, SimpleGPT 0.0088, ELSA 0.0076. Office targets average exactly 1.0 items
-  per user with no repeats in the first two thousand — a purchase history is
-  nearly a set, so there is little order to exploit — which is why any
-  sequential-versus-matrix claim has to name its dataset.
-  Two cautions attach to those numbers. Validation picked the *edge* of the grid
-  on MovieLens and both curves were still rising, so 0.1520 and 0.1471 are lower
-  bounds. And the budget mattered more than the architecture: it moved Office
-  temporal by 43% (0.0111 at three epochs against 0.0063 at twenty), overfitting
-  after five epochs there while MovieLens still improved at twenty. Neither
-  trainer reads the `val_source_sequences` and `val_target_matrix` that every
-  chronological checkpoint already carries, so `epochs` remains a guess — select
-  it on validation, and never on test, which on Office temporal would have read
-  0.0111 instead of 0.0088.
+  Measured figures for this model are under **Changed** below rather than here:
+  the defaults moved twice inside this release — a tied head, then the GPT-2 init
+  with a cosine schedule — and one release section quoting three generations of
+  numbers would be worse than none.
 - `SimpleRNN`, `SimpleRNNConfig` and `SimpleRNNTrainer`: a GRU or LSTM trained
   on next-item cross entropy at every position, one example per user. The
   smallest model that actually uses order, and so the baseline a transformer has
@@ -258,9 +239,11 @@ adjacency in cold-item sequences is removed.
 
 - `SimpleGPTConfig.tie_embeddings`, scoring with the input embedding's item rows
   instead of a separate head. **On by default**, because it won on every split
-  measured: ML-1M `leave_last_out` by `+0.0127` (0.1664 ± 0.0010 against
-  0.1537 ± 0.0031, four seed deviations), Office `leave_last_out` by `+0.0074`
-  (six), and Office `temporal` by `+0.0009` (under two). A capacity sweep
+  measured, and re-checked against the init and schedule below rather than left
+  standing on a configuration that no longer exists: ML-1M `leave_last_out` by
+  `+0.0171` (0.1740 ± 0.0011 against 0.1569 ± 0.0009, sixteen seed deviations),
+  Office `leave_last_out` by `+0.0068` (six), and Office `temporal` by `+0.0006`
+  (under one). A capacity sweep
   separated perfectly — every tied configuration beat every untied one on Office
   `leave_last_out`, and on ML-1M a tied `d_model=64, n_layers=1` model at 277k
   parameters beat an untied `d_model=128, n_layers=2` at 1,267k. Set it `False`
@@ -285,6 +268,14 @@ adjacency in cold-item sequences is removed.
 
 ### Changed
 
+- **The init and the schedule interact, and the sign flips.** Under a constant
+  learning rate the GPT-2 init is *worse* on Office `leave_last_out` (0.0341
+  against 0.0389); under cosine it is *better* (0.0422 against 0.0380). They were
+  designed together and using one without the other is the mismatch, so both are
+  on or neither should be. Change one of `tie_embeddings`, the init or
+  `lr_schedule` and re-measure the others: a one-variable comparison inverted
+  twice while these figures were being taken, once for tying between ten and
+  twenty epochs and once here.
 - **Breaking (numerically).** `SimpleGPT` now initialises the way the
   architecture it claims to be does. Every weight starts at `std=0.02` — PyTorch's
   `nn.Linear` default is roughly 2.5× wider at `d_model=128` — and each block's two
@@ -294,10 +285,16 @@ adjacency in cold-item sequences is removed.
   decision. A block adds to the residual stream twice, so without the scaling the
   stream's variance grows with depth. Existing checkpoints load unchanged; only
   fresh runs move.
-- `SimpleGPTConfig.lr_schedule`, with `warmup_fraction` and `min_lr_ratio`.
-  `"cosine"` gives linear warmup then cosine decay to a floor, measured in
-  optimizer steps so the shape is invariant to batch size; `"constant"` remains the
-  default. Warmup is there because the first steps of a transformer are the ones
+- `lr_schedule` on both sequential configs, with `warmup_fraction` and
+  `min_lr_ratio`. `"cosine"` gives linear warmup then cosine decay to a floor,
+  measured in optimizer steps so the shape is invariant to batch size. **Default
+  for `SimpleGPT`**, where it is worth `+0.0080` (six seed deviations) on Office
+  `leave_last_out` and `+0.0052` on ML-1M; `"constant"` stays the default for
+  `SimpleRNN`, which it does not help on any split — under a seed deviation on all
+  three. That split is the behaviour to want: warmup addresses a failure mode a
+  transformer has and a recurrence does not. `SimpleRNN` gets the option anyway,
+  because the two share a comparison table and a knob offered to one model but not
+  the other converts a tuning difference into an apparent architectural one. Warmup is there because the first steps of a transformer are the ones
   most able to wreck it, and neither half is expressible through the optimizer
   alone. `fit` records the rate it trained at in `history`, so a schedule is
   visible in the log it should explain. The schedule advances on batches the
@@ -358,11 +355,14 @@ adjacency in cold-item sequences is removed.
   in place of `min_source_items` and `min_target_items`, and returns one stage at
   a time.
 
-- The recorded `ndcg@20` figures are re-measured with tying on and with every
-  budget grid widened until the validation curve turned over, so no published
-  number sits at a grid edge any more. ML-1M `leave_last_out` reads
-  0.1664 ± 0.0010 (peak at forty epochs, falling to 0.1602 by eighty), Office
-  `leave_last_out` 0.0384 ± 0.0002, Office `temporal` 0.0098 ± 0.0005. The
+- The recorded `ndcg@20` figures are re-measured at the current defaults, with
+  the epoch budget *and* the schedule selected on validation and every grid
+  widened until the validation curve turned over, so no published number sits at
+  a grid edge. SimpleGPT reads 0.1740 ± 0.0011 on ML-1M `leave_last_out` (peak at
+  forty epochs), 0.0422 ± 0.0011 on Office `leave_last_out` (twenty), and
+  0.0102 ± 0.0007 on Office `temporal` (twenty). SimpleRNN is unchanged at
+  0.1471 / 0.0282 / 0.0091: it was offered the same schedule and validation
+  declined it. The
   earlier "still improving at the edge of the grid, treat as lower bounds" caveat
   is retired: those peaks are measured.
   SimpleRNN was re-run on the same widened grids so the comparison is not tilted
