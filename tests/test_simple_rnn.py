@@ -226,8 +226,8 @@ def test_refitting_starts_the_history_over():
 # --------------------------------------------------------------------------
 
 
-def _fitted_on_cycle(max_length=None, **overrides):
-    config = _fast_config(epochs=60, lr=0.02, batch_size=48, **overrides)
+def _fitted_on_cycle(epochs=60, max_length=None, **overrides):
+    config = _fast_config(epochs=epochs, lr=0.02, batch_size=48, **overrides)
     batcher = SequenceBatcher(ItemTokenizer(N_ITEMS), max_length=max_length)
     return SimpleRNNTrainer(config, batcher).fit(_seqs(_cycle_rows()))
 
@@ -555,3 +555,56 @@ def test_only_the_scored_positions_reach_the_head():
     # (n_valid, hidden_dim), not (rows, width - 1, hidden_dim).
     assert len(seen) == 1
     assert seen[0] == (3, 32), seen
+
+
+# --------------------------------------------------------------------------
+# learning-rate schedule
+#
+# The same option SimpleGPT has, and for the same reason it must exist here:
+# the two share a comparison table, so a knob given to one and withheld from the
+# other turns a tuning difference into an apparent architectural one.
+# --------------------------------------------------------------------------
+
+
+def test_constant_is_the_default():
+    assert SimpleRNNConfig().lr_schedule == "constant"
+
+
+def test_cosine_decays_the_rate_across_training():
+    model = _fitted_on_cycle(epochs=5, lr_schedule="cosine")
+
+    rates = [entry["lr"] for entry in model.history]
+
+    assert len(rates) == 5
+    assert rates == sorted(rates, reverse=True)
+    assert rates[-1] < rates[0]
+
+
+def test_a_constant_run_records_one_unchanging_rate():
+    """The field is always present, so a log is comparable across schedules."""
+    model = _fitted_on_cycle(epochs=3)
+
+    rates = [entry["lr"] for entry in model.history]
+
+    assert rates == [pytest.approx(model.cfg.lr)] * len(rates)
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "message"),
+    [
+        ({"lr_schedule": "step"}, "lr_schedule must be"),
+        ({"warmup_fraction": 1.0}, r"warmup_fraction must be in \[0, 1\)"),
+        ({"min_lr_ratio": 0.0}, r"min_lr_ratio must be in \(0, 1\]"),
+    ],
+)
+def test_invalid_schedule_configuration_is_refused(kwargs, message):
+    with pytest.raises(ValueError, match=message):
+        _fast_config(**kwargs)
+
+
+def test_both_sequential_trainers_share_one_schedule_implementation():
+    """Two copies of this curve would be a difference nobody intended."""
+    from compresso_recsys.models import simple_gpt, simple_rnn
+
+    assert simple_rnn.build_scheduler is simple_gpt.build_scheduler
+

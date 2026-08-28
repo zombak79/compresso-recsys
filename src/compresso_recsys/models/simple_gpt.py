@@ -62,6 +62,7 @@ from compresso import SRPTensor
 
 from compresso_recsys.sequences import ItemSequences
 
+from ._schedule import LRSchedule, build_scheduler, check_schedule
 from .base import BaseSequentialRecommender
 from .sequence_batching import SequenceBatcher
 from .tokenizer import ItemTokenizer
@@ -76,7 +77,6 @@ __all__ = [
 ]
 
 OptimizerName = Literal["NAdam", "AdamW"]
-LRSchedule = Literal["constant", "cosine"]
 
 
 @dataclass(frozen=True)
@@ -155,7 +155,7 @@ class SimpleGPTConfig:
 
     transformer: TransformerConfig = field(default_factory=TransformerConfig)
     tie_embeddings: bool = True
-    lr_schedule: LRSchedule = "constant"
+    lr_schedule: LRSchedule = "cosine"
     warmup_fraction: float = 0.05
     min_lr_ratio: float = 0.1
     unk_dropout: float = 0.05
@@ -179,18 +179,7 @@ class SimpleGPTConfig:
             )
         if self.lr <= 0.0:
             raise ValueError(f"lr must be > 0, got {self.lr}")
-        if self.lr_schedule not in ("constant", "cosine"):
-            raise ValueError(
-                f"lr_schedule must be 'constant' or 'cosine', got {self.lr_schedule!r}"
-            )
-        if not 0.0 <= self.warmup_fraction < 1.0:
-            raise ValueError(
-                f"warmup_fraction must be in [0, 1), got {self.warmup_fraction}"
-            )
-        if not 0.0 < self.min_lr_ratio <= 1.0:
-            raise ValueError(
-                f"min_lr_ratio must be in (0, 1], got {self.min_lr_ratio}"
-            )
+        check_schedule(self.lr_schedule, self.warmup_fraction, self.min_lr_ratio)
 
 
 class LayerNorm(nn.Module):
@@ -562,34 +551,14 @@ class SimpleGPTTrainer(BaseSequentialRecommender):
     def _build_scheduler(
         self, optimizer: torch.optim.Optimizer, total_steps: int
     ) -> torch.optim.lr_scheduler.LRScheduler | None:
-        """Linear warmup then cosine decay, or ``None`` for a flat rate.
-
-        Warmup exists because the first steps of a transformer are the ones most
-        able to wreck it: attention has learned nothing, so early gradients are
-        large and poorly aimed. Cosine decay then spends the end of the run
-        refining rather than bouncing. nanoGPT does both in its training script;
-        neither is expressible through the optimizer alone, which is why they
-        arrive together as one option rather than two.
-
-        The schedule is measured in optimizer steps, not epochs, so the shape is
-        the same whatever the batch size.
-        """
-        if self.cfg.lr_schedule == "constant":
-            return None
-        warmup = int(self.cfg.warmup_fraction * total_steps)
-        floor = self.cfg.min_lr_ratio
-
-        def factor(step: int) -> float:
-            if step < warmup:
-                # Step 0 would otherwise train at exactly zero and waste a step.
-                return (step + 1) / (warmup + 1)
-            if total_steps <= warmup:
-                return 1.0
-            progress = (step - warmup) / (total_steps - warmup)
-            cosine = 0.5 * (1.0 + math.cos(math.pi * min(progress, 1.0)))
-            return floor + (1.0 - floor) * cosine
-
-        return torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=factor)
+        """The schedule this trainer's config describes, or ``None`` if flat."""
+        return build_scheduler(
+            optimizer,
+            schedule=self.cfg.lr_schedule,
+            total_steps=total_steps,
+            warmup_fraction=self.cfg.warmup_fraction,
+            min_lr_ratio=self.cfg.min_lr_ratio,
+        )
 
     def _build_model(self) -> SimpleGPT:
         """The module this trainer's config and batcher describe.

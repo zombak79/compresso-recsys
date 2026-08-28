@@ -947,11 +947,13 @@ def test_the_pad_row_is_still_zero_after_the_new_init():
 # --------------------------------------------------------------------------
 
 
-def test_constant_is_the_default_and_builds_no_scheduler():
-    trainer = SimpleGPTTrainer(_trainer_config(), _batcher())
+def test_cosine_is_the_default_and_constant_builds_no_scheduler():
+    """Cosine won on all three splits, but only in combination with the GPT-2
+    init -- under the old init it lost on Office. The two are one change."""
+    assert SimpleGPTConfig().lr_schedule == "cosine"
 
-    assert trainer.cfg.lr_schedule == "constant"
-    assert trainer._build_scheduler(
+    flat = SimpleGPTTrainer(_trainer_config(lr_schedule="constant"), _batcher())
+    assert flat._build_scheduler(
         torch.optim.SGD([torch.nn.Parameter(torch.zeros(1))], lr=0.1), 100
     ) is None
 

@@ -47,6 +47,7 @@ from compresso import SRPTensor
 
 from compresso_recsys.sequences import ItemSequences
 
+from ._schedule import LRSchedule, build_scheduler, check_schedule
 from .base import BaseSequentialRecommender
 from .sequence_batching import SequenceBatcher
 from .tokenizer import ItemTokenizer
@@ -90,6 +91,9 @@ class SimpleRNNConfig:
     num_layers: int = 1
     dropout: float = 0.0
     unk_dropout: float = 0.05
+    lr_schedule: LRSchedule = "constant"
+    warmup_fraction: float = 0.05
+    min_lr_ratio: float = 0.1
     batch_size: int = 256
     epochs: int = 10
     lr: float = 1e-3
@@ -100,6 +104,7 @@ class SimpleRNNConfig:
     seed: int = 0
 
     def __post_init__(self) -> None:
+        check_schedule(self.lr_schedule, self.warmup_fraction, self.min_lr_ratio)
         if self.rnn_type not in ("gru", "lstm"):
             raise ValueError(
                 f"rnn_type must be 'gru' or 'lstm', got {self.rnn_type!r}"
@@ -293,6 +298,13 @@ class SimpleRNNTrainer(BaseSequentialRecommender):
         n_rows = sequences.n_rows
         batch_size = self.cfg.batch_size
         starts = range(0, n_rows, batch_size)
+        scheduler = build_scheduler(
+            optimizer,
+            schedule=self.cfg.lr_schedule,
+            total_steps=len(starts) * self.cfg.epochs,
+            warmup_fraction=self.cfg.warmup_fraction,
+            min_lr_ratio=self.cfg.min_lr_ratio,
+        )
         # Two bars, as ELSA draws them: epochs outside, batches inside. The
         # inner bar is created once and rewound per epoch rather than a finished
         # one being left behind for each.
@@ -316,6 +328,11 @@ class SimpleRNNTrainer(BaseSequentialRecommender):
                 for start in starts:
                     batch = sequences.select_rows(order[start : start + batch_size])
                     step = self._train_step(batch, optimizer, objective)
+                    if scheduler is not None:
+                        # Advanced even on a batch the objective declined, so the
+                        # curve is the configured shape over the run rather than
+                        # one truncated by how many batches carried targets.
+                        scheduler.step()
                     if step is not None:
                         batch_loss, batch_positions = step
                         loss_sum += batch_loss * batch_positions
@@ -328,6 +345,7 @@ class SimpleRNNTrainer(BaseSequentialRecommender):
                         "epoch": float(epoch),
                         "loss": mean_loss,
                         "positions": float(positions),
+                        "lr": float(optimizer.param_groups[0]["lr"]),
                     }
                 )
                 if hasattr(epoch_iter, "set_postfix"):
