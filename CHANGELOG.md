@@ -1,7 +1,5 @@
 ## [Unreleased]
 
-## [0.3.0] — 2026-08-27
-
 Sequential recommendation as four replaceable parts -- tokenizer, batcher,
 model, trainer -- with `SimpleGPT` as the worked example and `SimpleRNN`
 rebuilt on the same layers. The cold-start catalog becomes an owned object
@@ -496,7 +494,7 @@ depends on, and two evaluation-protocol corrections found while validating it.
 Initial release. EASE, ELSA and CompressedELSA, checkpoint building and the
 dataset loaders.
 
-[0.3.0]: https://github.com/zombak79/compresso-recsys/releases/tag/v0.3.0
+[Unreleased]: https://github.com/zombak79/compresso-recsys/compare/v0.2.0...HEAD
 [0.2.0]: https://github.com/zombak79/compresso-recsys/releases/tag/v0.2.0
 [0.1.2]: https://github.com/zombak79/compresso-recsys/releases/tag/v0.1.2
 [0.1.1]: https://github.com/zombak79/compresso-recsys/releases/tag/v0.1.1
