@@ -220,10 +220,25 @@ def test_missing_metric_is_rejected():
 
 
 def test_fewer_than_two_samples_is_rejected():
-    with pytest.raises(ValueError, match="at least 2 evaluable samples"):
+    with pytest.raises(ValueError, match="at least 2 independent units"):
         compare_pair(
             _result(np.array([0.5])),
             _result(np.array([0.6])),
+            metric=METRIC,
+            n_resamples=99,
+        )
+
+
+def test_repeated_rows_from_one_independent_unit_are_rejected():
+    sample_ids = np.repeat("only-user", 5)
+
+    with pytest.raises(
+        ValueError,
+        match="got 1 from 5 evaluable samples",
+    ):
+        compare_pair(
+            _result(np.linspace(0.1, 0.5, 5), sample_ids=sample_ids),
+            _result(np.linspace(0.2, 0.6, 5), sample_ids=sample_ids),
             metric=METRIC,
             n_resamples=99,
         )

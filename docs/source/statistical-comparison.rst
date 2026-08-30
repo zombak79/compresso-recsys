@@ -814,6 +814,10 @@ One user is one observation however many rows the protocol produced, so a user
 evaluated five times is not weighted five times over. ``n_units`` reports how
 many there were, and equals ``n_samples`` when every row is its own.
 
+At least two independent users must remain after this reduction. Several draws
+from only one user cannot estimate variation across users, so comparison raises
+instead of returning a zero-width bootstrap interval.
+
 Had those rows been resampled as independent, every interval would have come out
 27 to 44 percent too narrow, with p-values understated to match.
 

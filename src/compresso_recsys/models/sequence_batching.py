@@ -2,8 +2,8 @@
 
 :class:`~compresso_recsys.models.ItemTokenizer` owns the vocabulary — which token
 an item is, and what an unknown item becomes. :class:`SequenceBatcher` owns the
-other half: how far back to read, where the padding goes, and which positions of
-the resulting rectangle are real.
+other half: how far back to read, how right padding forms a dense tensor, and
+which positions of the resulting rectangle are real.
 
 The two are separate because they have different lifetimes. A vocabulary is a
 property of the dataset and outlives any particular model. ``max_length`` is a
@@ -22,7 +22,6 @@ in trainers.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Literal
 
 import numpy as np
 import torch
@@ -33,8 +32,6 @@ from .tokenizer import Tokenizer
 
 __all__ = ["SequenceBatcher"]
 
-PadSide = Literal["right", "left"]
-
 
 @dataclass(frozen=True)
 class SequenceBatcher:
@@ -43,13 +40,11 @@ class SequenceBatcher:
     The tokenizer is positional because it is a collaborator rather than an
     option: without a vocabulary there is nothing to encode.
 
-    ``pad_side`` defaults to ``"right"``, which is the better default for a
-    causal model and not only for an RNN. With padding after the content, a
-    causal mask already excludes every pad, so training needs no attention mask
-    at all — only a loss mask. Left padding puts pads *before* real tokens, so
-    causal attention would read them unless masked explicitly, and it buys a
-    fixed read position that :meth:`final_positions` and :meth:`gather_final`
-    already provide.
+    Padding is always on the right. A recurrent model can gather each row's last
+    real state before the padding, while a causal model never lets a real token
+    attend to padding that follows it. Supporting left padding would require
+    each model to skip or mask leading pad steps, so it is not exposed as a
+    batcher option.
 
     ``max_length`` truncates to the **most recent** interactions, the only
     sensible direction: a context window is a claim about recency, not about
@@ -58,7 +53,6 @@ class SequenceBatcher:
 
     tokenizer: Tokenizer
     max_length: int | None = None
-    pad_side: PadSide = "right"
 
     def __post_init__(self) -> None:
         if not isinstance(self.tokenizer, Tokenizer):
@@ -69,10 +63,6 @@ class SequenceBatcher:
         if self.max_length is not None and self.max_length < 1:
             raise ValueError(
                 f"max_length must be >= 1 when set, got {self.max_length}"
-            )
-        if self.pad_side not in ("right", "left"):
-            raise ValueError(
-                f"pad_side must be 'right' or 'left', got {self.pad_side!r}"
             )
 
     @property
@@ -117,12 +107,8 @@ class SequenceBatcher:
             # Truncation keeps the tail, so a context window means "the most
             # recent N" rather than "the first N".
             history = self.tokenizer.encode_indices(sequences.row(row)[-length:])
-            if self.pad_side == "right":
-                tokens[row, :length] = history
-                mask[row, :length] = True
-            else:
-                tokens[row, width - length :] = history
-                mask[row, width - length :] = True
+            tokens[row, :length] = history
+            mask[row, :length] = True
 
         return (
             torch.from_numpy(tokens).to(device),
@@ -153,10 +139,7 @@ class SequenceBatcher:
         if mask.ndim != 2:
             raise ValueError("mask must be two-dimensional")
         lengths = mask.sum(dim=1)
-        if self.pad_side == "right":
-            return (lengths - 1).clamp_min(0)
-        width = mask.shape[1]
-        return torch.full_like(lengths, width - 1)
+        return (lengths - 1).clamp_min(0)
 
     @staticmethod
     def has_history(mask: torch.Tensor) -> torch.Tensor:

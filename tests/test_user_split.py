@@ -360,7 +360,7 @@ def test_x_train_is_the_union_of_the_training_pair_in_every_split_mode(mode):
         df = _events({f"u{i}": [f"i{(i + j) % 7}" for j in range(6)] for i in range(10)})
         payload = _build_leave_last_out_split(_llo_args(), df)
     else:
-        from tests.test_temporal_split import _temporal_args, _timeline
+        from test_temporal_split import _temporal_args, _timeline
         from compresso_recsys.builder import _build_temporal_split
 
         payload = _build_temporal_split(_temporal_args(), _timeline())

@@ -31,19 +31,19 @@ user features yet, so today it is a bare learned prefix doing the job `BOS` woul
 do — including giving an empty history a defined input instead of the state after
 reading one pad.
 
-**Why there is no attention mask.** Padding is on the right, so a causal mask
-already excludes it: a real token at position ``i`` attends only to ``<= i``, all
-of which are real. Pad positions do compute garbage and nothing reads it — the
-loss is masked and prediction reads each row's last real position. That is why
-:class:`SimpleGPTTrainer` refuses a left-padding batcher rather than quietly
-building a key-padding mask.
+**Why there is no attention mask.** The batcher always pads on the right, so a
+causal mask already excludes it: a real token at position ``i`` attends only to
+``<= i``, all of which are real. Pad positions do compute garbage and nothing
+reads it — the loss is masked and prediction reads each row's last real
+position.
 
 The output head is tied to the input embedding by default (``tie_embeddings``),
-which halves the parameters and measured better on every split tried.
+which halves the parameters.
 
-Deliberately absent: learning-rate schedules, early stopping, sampled softmax, a
-logit temperature, and any pooling other than "read the last real position".
-Each is a separate claim that deserves measuring on its own.
+Training uses a fixed epoch budget and rebuilds the model on every ``fit`` call;
+early stopping and incremental training are not implemented. Sampled softmax, a
+logit temperature, and pooling other than "read the last real position" are also
+absent.
 """
 
 from __future__ import annotations
@@ -130,19 +130,13 @@ class SimpleGPTConfig:
     in both places and needs a runtime check to keep them equal.
 
     ``tie_embeddings`` scores with the input embedding's item rows instead of a
-    separate head, halving the parameters. On by default: it won on every split
-    measured -- ML-1M ``leave_last_out`` by ``+0.0127`` (four seed deviations),
-    Office ``leave_last_out`` by ``+0.0074`` (six), Office ``temporal`` by
-    ``+0.0009`` (under two) -- and in a capacity sweep every tied configuration
-    beat every untied one, including a tied model with a third of the parameters
-    beating an untied model with all of them. Set it ``False`` to reproduce
-    figures recorded before this was the default.
+    separate head, halving the parameters. It is on by default; set it ``False``
+    to use an independent output projection.
 
-    Tying converges *later*, not faster. ``nn.Linear`` initialises around
+    Tying can change convergence as well as parameter count. ``nn.Linear`` initialises around
     ``+/-1/sqrt(d_model)`` while the embedding starts at ``std=0.02``, so a tied
-    head begins with a flatter softmax: on ML-1M it trails untied at ten epochs
-    and passes it by twenty. Compare the two at a validated budget rather than a
-    fixed one, or the slower start reads as a worse model.
+    head begins with a flatter softmax. Compare variants at independently
+    validated budgets rather than assuming their training curves match.
 
     ``unk_dropout`` replaces that fraction of input positions with the
     tokenizer's ``unk`` token. Non-zero by default because otherwise ``unk`` is
@@ -285,7 +279,7 @@ class SimpleGPT(nn.Module):
         max_positions: int,
         pad_id: int,
         config: TransformerConfig,
-        tie_embeddings: bool = False,
+        tie_embeddings: bool = True,
     ) -> None:
         super().__init__()
         if max_positions < 2:
@@ -407,14 +401,14 @@ class SimpleGPTTrainer(BaseSequentialRecommender):
         ).fit(split["x_train_sequences"])
 
     The encoder is a parameter, not something ``fit`` invents, which is how the
-    context window, the padding side and the vocabulary are all replaceable.
+    context window and vocabulary are replaceable.
     Without one, ``fit`` builds a default over the training catalog with
     :attr:`DEFAULT_MAX_LENGTH` and right padding.
 
-    Two properties of that batcher are load-bearing rather than advisory, so
-    ``fit`` refuses a batcher that lacks them. ``max_length`` must be set,
-    because it sizes the positional table and learned absolute positions need a
-    bound. And ``pad_side`` must be ``"right"``, because that is what lets a
+    One property of that batcher is load-bearing rather than advisory, so
+    ``fit`` refuses a batcher without it. ``max_length`` must be set because it
+    sizes the positional table and learned absolute positions need a bound.
+    Right padding is an invariant of :class:`SequenceBatcher`, which lets the
     causal mask stand in for a padding mask.
 
     A history of a single interaction is a usable training example here, unlike
@@ -474,7 +468,6 @@ class SimpleGPTTrainer(BaseSequentialRecommender):
             self.batcher = SequenceBatcher(
                 ItemTokenizer(sequences.n_items),
                 max_length=self.DEFAULT_MAX_LENGTH,
-                pad_side="right",
             )
         self._check_batcher(self.batcher)
         self._n_items = self.batcher.tokenizer.n_items
@@ -514,9 +507,13 @@ class SimpleGPTTrainer(BaseSequentialRecommender):
                     batch_bar.reset(total=len(starts))
                     batch_bar.set_description(f"SimpleGPT epoch {epoch}")
                 loss_sum, positions = 0.0, 0
+                last_training_lr = float(optimizer.param_groups[0]["lr"])
                 for start in starts:
                     batch = sequences.select_rows(order[start : start + batch_size])
+                    batch_lr = float(optimizer.param_groups[0]["lr"])
                     step = self._train_step(batch, optimizer, objective)
+                    if step is not None:
+                        last_training_lr = batch_lr
                     if scheduler is not None:
                         # Advanced even when _train_step declined the batch, so
                         # the curve is exactly the configured shape over the run
@@ -535,7 +532,7 @@ class SimpleGPTTrainer(BaseSequentialRecommender):
                         "epoch": float(epoch),
                         "loss": mean_loss,
                         "positions": float(positions),
-                        "lr": float(optimizer.param_groups[0]["lr"]),
+                        "lr": last_training_lr,
                     }
                 )
                 if hasattr(epoch_iter, "set_postfix"):
@@ -586,12 +583,6 @@ class SimpleGPTTrainer(BaseSequentialRecommender):
                 "SimpleGPT needs a bounded context: max_length sizes the "
                 "positional table, and learned absolute positions cannot be "
                 "extended at prediction time. Set max_length on the batcher"
-            )
-        if batcher.pad_side != "right":
-            raise ValueError(
-                f"SimpleGPT needs pad_side='right', got {batcher.pad_side!r}. "
-                "Right padding is what lets a causal mask exclude the padding on "
-                "its own; with padding first, attention would read it"
             )
 
     def _train_step(
@@ -673,6 +664,8 @@ class SimpleGPTTrainer(BaseSequentialRecommender):
         n_items = self._n_items
         if not 1 <= k <= n_items:
             raise ValueError(f"k must be in [1, {n_items}], got {k}")
+        if exclude_seen:
+            self._check_unseen_capacity(source, n_items=n_items, k=k)
 
         rows = source.n_rows
         if rows == 0:
@@ -761,9 +754,8 @@ def save_simple_gpt(path: str | Path, trainer: SimpleGPTTrainer) -> None:
     reconstructed from the config: the config describes the network, while the
     vocabulary describes the data it was fitted on.
 
-    The batcher's ``max_length`` and ``pad_side`` are stored rather than the
-    batcher, since those two values are all of it that matters and both are
-    already enforced by :meth:`SimpleGPTTrainer.fit`.
+    The batcher's ``max_length`` is stored rather than the batcher itself. Its
+    other behavior is fixed, while the tokenizer is persisted separately.
     """
     if trainer.model is None or trainer.batcher is None:
         raise RuntimeError("SimpleGPTTrainer must be fitted before saving")
@@ -778,7 +770,6 @@ def save_simple_gpt(path: str | Path, trainer: SimpleGPTTrainer) -> None:
             "config": config,
             "tokenizer": trainer.batcher.tokenizer.to_dict(),
             "max_length": int(trainer.batcher.max_length),
-            "pad_side": trainer.batcher.pad_side,
             "history": list(trainer.history),
         },
         Path(path),
@@ -803,6 +794,10 @@ def load_simple_gpt(
         raise ValueError(
             f"unsupported SimpleGPT checkpoint format {state.get('format')!r}"
         )
+    if state.get("pad_side", "right") != "right":
+        raise ValueError(
+            "unsupported SimpleGPT checkpoint padding: only right padding is valid"
+        )
 
     config_state = dict(state["config"])
     transformer = TransformerConfig(**config_state.pop("transformer"))
@@ -813,7 +808,6 @@ def load_simple_gpt(
     batcher = SequenceBatcher(
         ItemTokenizer.from_dict(state["tokenizer"]),
         max_length=int(state["max_length"]),
-        pad_side=state["pad_side"],
     )
     trainer = SimpleGPTTrainer(config, batcher)
     trainer._n_items = batcher.tokenizer.n_items

@@ -1,14 +1,61 @@
 from __future__ import annotations
 
+import inspect
+
 import numpy as np
+import pandas as pd
 import pytest
 import torch
 
 from compresso_recsys.metrics import CalibratedRecall, NDCG
 from compresso_recsys.retrieval import (
     _iter_topk_predictions,
+    build_leave_last_out_holdout,
     evaluate_item_embeddings_with_holdout,
 )
+
+
+def test_leave_last_out_holdout_exposes_the_staged_api():
+    parameters = inspect.signature(build_leave_last_out_holdout).parameters
+
+    assert tuple(parameters) == (
+        "item_ids",
+        "interactions",
+        "stage",
+        "min_history",
+    )
+
+
+@pytest.mark.parametrize(
+    ("stage", "expected_source", "expected_target"),
+    [
+        ("train", [0, 1], [2]),
+        ("val", [0, 1, 2], [3]),
+        ("test", [0, 1, 2, 3], [4]),
+    ],
+)
+def test_leave_last_out_holdout_builds_each_chronological_stage(
+    stage,
+    expected_source,
+    expected_target,
+):
+    interactions = pd.DataFrame(
+        {
+            "user_id": ["u", "u", "u", "u", "u"],
+            "item_id": ["e", "a", "d", "b", "c"],
+            "timestamp": [5, 1, 4, 2, 3],
+        }
+    )
+
+    holdout = build_leave_last_out_holdout(
+        item_ids=np.array(["a", "b", "c", "d", "e"]),
+        interactions=interactions,
+        stage=stage,
+    )
+
+    assert holdout["user_ids"].tolist() == ["u"]
+    assert holdout["source_indices"][0].tolist() == expected_source
+    assert holdout["target_indices"][0].tolist() == expected_target
 
 
 @pytest.fixture

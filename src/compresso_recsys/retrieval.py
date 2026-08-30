@@ -441,52 +441,6 @@ def build_item_cold_holdout(
     }
 
 
-def build_leave_last_out_holdout(
-    *,
-    item_ids: pd.Index | np.ndarray,
-    interactions: pd.DataFrame,
-    min_source_items: int = 1,
-    min_target_items: int = 1,
-) -> dict[str, object]:
-    """Build per-user source/target by holding out each user's latest interaction."""
-    if isinstance(item_ids, pd.Index):
-        item_ids_arr = np.array(item_ids.astype(str))
-    else:
-        item_ids_arr = np.asarray(item_ids).astype(str)
-    item_to_idx = {item_id: idx for idx, item_id in enumerate(item_ids_arr)}
-
-    df = interactions.copy()
-    df["user_id"] = df["user_id"].astype(str)
-    df["item_id"] = df["item_id"].astype(str)
-    df = df[df["item_id"].isin(item_to_idx)]
-    if "timestamp" not in df.columns or df["timestamp"].isna().all():
-        raise ValueError("leave_last_out split requires non-empty timestamp values")
-    df["timestamp"] = pd.to_numeric(df["timestamp"], errors="coerce")
-    df = df.dropna(subset=["timestamp"])
-
-    source_indices: list[np.ndarray] = []
-    target_indices: list[np.ndarray] = []
-    user_ids: list[str] = []
-    for _, g in df.sort_values("timestamp").groupby("user_id", sort=False):
-        items = g["item_id"].tolist()
-        if len(items) < min_source_items + min_target_items:
-            continue
-        target_item = items[-1]
-        source = sorted({item_to_idx[item] for item in items[:-1]})
-        target = [item_to_idx[target_item]]
-        if len(source) >= min_source_items:
-            source_indices.append(np.asarray(source, dtype=np.int64))
-            target_indices.append(np.asarray(target, dtype=np.int64))
-            user_ids.append(str(g["user_id"].iloc[0]))
-
-    return {
-        "item_ids": item_ids_arr,
-        "source_indices": source_indices,
-        "target_indices": target_indices,
-        "user_ids": np.asarray(user_ids, dtype=str),
-    }
-
-
 def build_temporal_holdout(
     *,
     item_ids: pd.Index | np.ndarray,

@@ -23,7 +23,6 @@ from compresso_recsys.retrieval import (
     LEAVE_LAST_OUT_STAGES,
     build_eval_holdout,
     build_item_cold_holdout,
-    build_leave_last_out_holdout,
     leave_last_out_histories,
     leave_last_out_stage_slices,
 )

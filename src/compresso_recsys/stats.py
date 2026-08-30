@@ -419,13 +419,16 @@ def _paired_values(
             f"per-user arrays for {metric!r} differ in length: "
             f"{x.shape[0]} vs {y.shape[0]}"
         )
-    if x.shape[0] < 2:
-        raise ValueError(
-            f"paired comparison needs at least 2 evaluable samples, got {x.shape[0]}"
-        )
     if not (np.isfinite(x).all() and np.isfinite(y).all()):
         raise ValueError(f"per-user values for {metric!r} contain non-finite entries")
-    return x, y, _unit_codes(left)
+    units = _unit_codes(left)
+    n_units = x.shape[0] if units is None else units[1]
+    if n_units < 2:
+        raise ValueError(
+            "paired comparison needs at least 2 independent units, got "
+            f"{n_units} from {x.shape[0]} evaluable samples"
+        )
+    return x, y, units
 
 
 def _effective_batch(requested: int, n: int) -> int:
@@ -671,7 +674,7 @@ def _compare_arrays(
 
         def advance(fraction: float) -> None:
             nonlocal given
-            step = fraction / passes
+            step = min(fraction / passes, max(0.0, 1.0 - given))
             given += step
             progress(step)
 

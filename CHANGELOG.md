@@ -75,11 +75,11 @@ adjacency in cold-item sequences is removed.
   dense tensor, which positions are real, and how far back to look. Catalog ids
   are the identity and special tokens are appended, so adding a second special
   token cannot shift items out from under an already-trained model.
-  `pad_side="right"` suits an RNN reading to each row's own final position and
-  `"left"` a causal transformer reading position `-1`; `max_length` truncates to
-  the most recent interactions. It deliberately owns no training objective —
-  next-item shift, masked positions and sampled negatives differ per
-  architecture and stay in trainers.
+  Padding is always on the right: an RNN reads each row's own final position,
+  while a causal transformer cannot attend to later pad positions. `max_length`
+  truncates to the most recent interactions. The batcher deliberately owns no
+  training objective — next-item shift, masked positions and sampled negatives
+  differ per architecture and stay in trainers.
 - `ItemTokenizer` and the `Tokenizer` protocol, splitting the vocabulary out of
   `SequenceBatcher`. Specials now come **first** and the catalog is offset after
   them, because catalog growth is what actually happens: stage catalogs nest by
@@ -105,11 +105,10 @@ adjacency in cold-item sequences is removed.
   truncation, and reading the result. The two are separate because they have
   different lifetimes — a vocabulary belongs to the dataset, while `max_length`
   is `block_size` under another name and belongs to the model, so one tokenizer
-  can serve two models that read different amounts of history. `pad_side` still
-  defaults to `"right"`, now documented as the better default for a *causal*
-  model too: pads sit after every real token, so a causal mask already excludes
-  them and training needs no attention mask, only a loss mask. `catalog_logits`
-  is gone, unnecessary once the head is catalog-width.
+  can serve two models that read different amounts of history. Padding is fixed
+  on the right: pads sit after every real token, so a causal mask already
+  excludes them and training needs no attention mask, only a loss mask.
+  `catalog_logits` is gone, unnecessary once the head is catalog-width.
 - `SimpleGPT`, `TransformerConfig`, `SimpleGPTConfig` and `SimpleGPTTrainer`: a
   causal transformer over the same histories `SimpleRNN` reads — nanoGPT with two
   recommendation-shaped adjustments, and the model the tokenizer/batcher split was
@@ -124,9 +123,10 @@ adjacency in cold-item sequences is removed.
   conditioned later — a user or global vector added into position 0 per row, which
   a lookup cannot express.
   There is no attention mask. Right padding means a causal mask already excludes
-  the padding, so the attention module accepts no mask argument and the trainer
-  *refuses* a `pad_side="left"` batcher rather than quietly building one. It also
-  refuses `max_length=None`, since that value sizes the positional table —
+  the padding, so the attention module accepts no padding-mask argument. The
+  batcher enforces that invariant rather than exposing an unsupported left-pad
+  mode. The trainer also refuses `max_length=None`, since that value sizes the
+  positional table —
   `block_size` is derived rather than configured, so the two cannot disagree.
   `save_simple_gpt` / `load_simple_gpt` carry the vocabulary with the weights,
   because a served model that cannot say what column 41 means is not much use.
@@ -143,12 +143,14 @@ adjacency in cold-item sequences is removed.
   row's own final state rather than the last column, which under right padding
   would score most users from a pad embedding; `exclude_seen` masks the whole
   history including the part truncation dropped. The encoder is a constructor
-  parameter rather than something `fit` invents, so the context window, the
-  padding side and the vocabulary are all replaceable — and `max_length` left
+  parameter rather than something `fit` invents, so the context window and
+  vocabulary are replaceable — and `max_length` left
   `SimpleRNNConfig`, since it describes what the encoder reads rather than the
   network. Its next-item objective decodes targets with `tokens - n_reserved` and
   excludes `unk` from them, because "predict the item I cannot identify" is not a
-  question with an answer.
+  question with an answer. Training refuses a dataset with no two-item history
+  left after context-window truncation, rather than returning an untrained model
+  with a NaN loss.
 - `MutableCandidateCatalog`, the candidate-catalog lifecycle as an owned object:
   the lock, the current snapshot, the fitted source vocabulary, and the
   operations that publish, extend, shrink and align against them.
@@ -287,8 +289,9 @@ adjacency in cold-item sequences is removed.
   fresh runs move.
 - `lr_schedule` on both sequential configs, with `warmup_fraction` and
   `min_lr_ratio`. `"cosine"` gives linear warmup then cosine decay to a floor,
-  measured in optimizer steps so the shape is invariant to batch size. **Default
-  for `SimpleGPT`**, where it is worth `+0.0080` (six seed deviations) on Office
+  with that floor used by the final optimizer update. The curve is measured in
+  optimizer steps so its shape is invariant to batch size. **Default for
+  `SimpleGPT`**, where it is worth `+0.0080` (six seed deviations) on Office
   `leave_last_out` and `+0.0052` on ML-1M; `"constant"` stays the default for
   `SimpleRNN`, which it does not help on any split — under a seed deviation on all
   three. That split is the behaviour to want: warmup addresses a failure mode a

@@ -29,9 +29,9 @@ history, including the part truncation dropped -- and, since a history may span 
 wider catalog than the model was fitted on, including nothing it could not have
 scored anyway.
 
-Tied embeddings, learning-rate schedules, early stopping and sampled softmax are
-all deliberately absent. This is a baseline, and every one of those is a
-separate claim that deserves to be measured on its own.
+Training uses a fixed epoch budget and rebuilds the model on every ``fit`` call;
+early stopping and incremental training are not implemented. Tied embeddings
+and sampled softmax are also absent.
 """
 
 from __future__ import annotations
@@ -77,12 +77,8 @@ class SimpleRNNConfig:
 
     The right rate tracks the out-of-catalog share the model will actually face,
     which is a property of the split rather than of the model: near zero under
-    ``leave_last_out``, and far higher on a late ``temporal`` stage. Measured on
-    a temporal MovieLens-1M stage whose test histories are 26% out-of-catalog,
-    ``ndcg@20`` runs 0.090 at a rate of zero, 0.113 at 0.05 and 0.121 at 0.25 --
-    so matching the rate to the exposure is worth about a third of the metric,
-    and leaving it at zero scores no better than deleting the unknown items
-    outright. It is ignored when the tokenizer has no ``unk`` to substitute.
+    ``leave_last_out``, and far higher on a late ``temporal`` stage. It is
+    ignored when the tokenizer has no ``unk`` to substitute.
     """
 
     rnn_type: RNNType = "gru"
@@ -193,9 +189,9 @@ class SimpleRNNTrainer(BaseSequentialRecommender):
         )
 
     The encoder is a *parameter*, not something ``fit`` invents. Passing one is
-    how you change the context window, the padding side, or the vocabulary --
-    including giving it an ``unk`` slot so a later split stage's unseen items
-    become a token rather than an error::
+    how you change the context window or the vocabulary -- including giving it
+    an ``unk`` slot so a later split stage's unseen items become a token rather
+    than an error::
 
         batcher = SequenceBatcher(
             ItemTokenizer(n_items, item_ids=split["train_item_ids"]),
@@ -206,18 +202,19 @@ class SimpleRNNTrainer(BaseSequentialRecommender):
     Without one, ``fit`` builds a default over the training catalog with
     :attr:`DEFAULT_MAX_LENGTH` and right padding.
 
-    Users with fewer than two interactions contribute no training example, since
-    a next-item target needs a preceding item. They are still predictable: a
-    history the model can read yields its state, and an empty history yields the
-    state after a single pad, which is the same for every empty row and therefore
-    a learned popularity-like prior.
+    Users retaining fewer than two interactions after truncation contribute no
+    training example, since a next-item target needs a preceding item. ``fit``
+    refuses a dataset where that leaves no usable history. Short histories are
+    still predictable: a history the model can read yields its state, and an
+    empty history yields the state after a single pad, which is the same for
+    every empty row and therefore a learned popularity-like prior.
 
     :attr:`history` records one entry per epoch, numbered from one as ELSA's is,
     carrying the mean loss and the number of positions it was averaged over. That
     count is worth reading rather than assuming: it is
-    ``sum(min(length, batcher.max_length) - 1)``, so it shows what truncation
-    costs. On MovieLens-1M at the default window of 200, 697 of 6,033 users
-    exceed it and 80k of 543k training positions are dropped.
+    ``sum(max(min(length, batcher.max_length) - 1, 0))``, so it shows what
+    truncation costs. On MovieLens-1M at the default window of 200, 697 of 6,033
+    users exceed it and 80k of 543k training positions are dropped.
     """
 
     #: Context window used when ``fit`` has to build its own batcher.
@@ -256,15 +253,6 @@ class SimpleRNNTrainer(BaseSequentialRecommender):
             )
         if sequences.n_rows == 0:
             raise ValueError("cannot train on zero sequences")
-        usable = int((sequences.row_lengths >= 2).sum())
-        if usable == 0:
-            raise ValueError(
-                "no history has two or more interactions, so there is no "
-                "next-item example to learn from"
-            )
-
-        torch.manual_seed(int(self.cfg.seed))
-        rng = np.random.default_rng(int(self.cfg.seed))
 
         if self.batcher is None:
             # Right padding: an RNN reads to each row's own final position, so
@@ -272,8 +260,17 @@ class SimpleRNNTrainer(BaseSequentialRecommender):
             self.batcher = SequenceBatcher(
                 ItemTokenizer(sequences.n_items),
                 max_length=self.DEFAULT_MAX_LENGTH,
-                pad_side="right",
             )
+        usable = int((self.batcher.truncated_lengths(sequences) >= 2).sum())
+        if usable == 0:
+            raise ValueError(
+                "no history retains two or more interactions after truncation, "
+                "so there is no next-item example to learn from"
+            )
+
+        torch.manual_seed(int(self.cfg.seed))
+        rng = np.random.default_rng(int(self.cfg.seed))
+
         tokenizer = self.batcher.tokenizer
         self._n_items = tokenizer.n_items
         self.model = SimpleRNN(
@@ -325,9 +322,13 @@ class SimpleRNNTrainer(BaseSequentialRecommender):
                     batch_bar.reset(total=len(starts))
                     batch_bar.set_description(f"SimpleRNN epoch {epoch}")
                 loss_sum, positions = 0.0, 0
+                last_training_lr = float(optimizer.param_groups[0]["lr"])
                 for start in starts:
                     batch = sequences.select_rows(order[start : start + batch_size])
+                    batch_lr = float(optimizer.param_groups[0]["lr"])
                     step = self._train_step(batch, optimizer, objective)
+                    if step is not None:
+                        last_training_lr = batch_lr
                     if scheduler is not None:
                         # Advanced even on a batch the objective declined, so the
                         # curve is the configured shape over the run rather than
@@ -345,7 +346,7 @@ class SimpleRNNTrainer(BaseSequentialRecommender):
                         "epoch": float(epoch),
                         "loss": mean_loss,
                         "positions": float(positions),
-                        "lr": float(optimizer.param_groups[0]["lr"]),
+                        "lr": last_training_lr,
                     }
                 )
                 if hasattr(epoch_iter, "set_postfix"):
@@ -441,6 +442,8 @@ class SimpleRNNTrainer(BaseSequentialRecommender):
         n_items = self._n_items
         if not 1 <= k <= n_items:
             raise ValueError(f"k must be in [1, {n_items}], got {k}")
+        if exclude_seen:
+            self._check_unseen_capacity(source, n_items=n_items, k=k)
 
         rows = source.n_rows
         if rows == 0:

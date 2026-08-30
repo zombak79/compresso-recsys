@@ -102,6 +102,64 @@ to recommend the 201st.
    :members:
    :private-members: _prepare_source
 
+.. _the-owned-candidate-catalog:
+
+The Owned Candidate Catalog
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+:class:`compresso_recsys.models.CandidateCatalog` is an immutable snapshot.
+:class:`compresso_recsys.models.MutableCandidateCatalog` is the lifecycle around
+it: the lock, the current snapshot, the fitted source vocabulary, and the
+operations that publish, extend, shrink and align against them.
+
+While that lifecycle lived on a base class, "cold-capable" and "inherits
+:class:`compresso_recsys.models.BaseColdStartRecommender`" were the same
+statement. Adding a second axis -- a model that reads ordered histories rather
+than a matrix -- would then have forced a choice between multiple inheritance and
+a fourth base class, for two independent ideas. An owned object removes the
+choice: a model holds one, whichever base it derives from.
+
+Composition rather than a mixin, because the state is what decides it. A mixin
+would not encapsulate these attributes; it would install them on whatever class
+it is mixed into, six of them public. Two stateful mixins both initialising
+through ``super().__init__()`` is where MRO ordering and private-name collisions
+live. An owned object has its own ``__init__``, its own lock and its own tests,
+and a model could hold two if that ever made sense.
+
+.. code-block:: python
+
+   class SequentialContentRNN(BaseSequentialRecommender):
+       def __init__(self) -> None:
+           self.candidates = MutableCandidateCatalog()
+
+       def fit(self, sequences, item_features, *, item_ids):
+           ...
+           self.candidates.install(...)
+           return self
+
+       def predict_on_batch(self, source, *, k, exclude_seen=True):
+           catalog = self.candidates.snapshot()
+
+Reads go through :meth:`~compresso_recsys.models.MutableCandidateCatalog.snapshot`
+rather than through forwarded properties, deliberately. A snapshot is a
+consistent view: several reads off one snapshot cannot straddle a concurrent
+republish, which forwarding ``item_ids``, ``rows_for`` and ``ids_for``
+separately would silently allow. ``n_items`` is the one convenience, because
+"how many candidates are there" needs an answer before installation, which a
+snapshot cannot give.
+
+``on_publish`` is called with each new snapshot while the lock is held, and is
+how an owner drops caches derived from the previous one. The six fitted
+``source_*`` attributes live on the catalog, so a model's fitted source
+vocabulary is ``model.candidates.source_item_ids`` rather than
+``model.source_item_ids_``.
+
+.. autoclass:: compresso_recsys.models.CandidateCatalog
+   :members:
+
+.. autoclass:: compresso_recsys.models.MutableCandidateCatalog
+   :members:
+
 Training Interaction Batches
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -170,17 +228,15 @@ the metric calculation, but the wrapped transductive model cannot recommend
 them. This makes the result directly comparable with a cold-start model on the
 same users and targets while preserving the transductive model's limitation.
 
-Either source representation works, because the projection is one operation on
-two views: a ``csr_matrix`` keeps the fitted columns, and an
-:class:`compresso_recsys.ItemSequences` keeps each history's fitted items in
-order, repeats intact. Rows survive either way -- a user whose history is
-entirely cold becomes an empty row rather than disappearing -- which is what
-keeps the aligned source row-aligned with the targets. That single class is what
-lets a matrix model and a sequential model be compared on the ``temporal`` split
-mode at all, since every stage there has its own catalog.
-
-The item IDs supplied to the adapter define both column orders, so evaluation
-does not depend on warm items occupying a catalog prefix:
+Both source representations work because checkpoint stage catalogs grow by
+appending: ``train_item_ids`` is an exact ordered prefix of every later catalog.
+A ``csr_matrix`` is projected to that fitted prefix. An
+:class:`compresso_recsys.ItemSequences` is passed through whole: its warm indices
+keep their meaning, while the sequential model's tokenizer turns appended cold
+indices into ``unk`` without deleting their positions or inventing adjacency.
+Rows survive either way, which keeps the source aligned with the targets. The
+adapter validates the prefix invariant when it is constructed rather than
+silently interpreting a reordered catalog.
 
 .. code-block:: python
 
@@ -201,8 +257,8 @@ does not depend on warm items occupying a catalog prefix:
        batch_size=1024,
    )
 
-A sequential model is wrapped the same way, and returns the representation it
-was given:
+A sequential model is wrapped the same way, but its history is passed directly
+because dropping cold positions would change the sequence:
 
 .. code-block:: python
 
@@ -214,14 +270,16 @@ was given:
 
    result = evaluate_recommender(
        adapted_rnn,
-       source=adapted_rnn.align_source(split["test_source_sequences"]),
+       source=split["test_source_sequences"],
        targets=split["test_target_matrix"],
        metrics=metrics,
    )
 
 The input to :meth:`~compresso_recsys.models.WarmCatalogAdapter.align_source`
-must use the exact column order declared by ``catalog_item_ids``. Construct a
-separate adapter for validation when its catalog differs from the test catalog.
+must be a matrix using the exact column order declared by ``catalog_item_ids``;
+sequences go straight to ``predict_on_batch`` or ``evaluate_recommender``.
+Construct a separate adapter for validation when its catalog differs from the
+test catalog.
 
 When to Reach for It Outside ``temporal``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -280,8 +338,11 @@ the adapter do anything at all in that mode.
 .. autoclass:: compresso_recsys.models.WarmCatalogAdapter
    :members:
 
+Collaborative Filtering Models
+------------------------------
+
 EASE
-----
+~~~~
 
 EASE is a closed-form collaborative-filtering model. Fitting creates a dense
 item-by-item coefficient matrix, so its memory use grows quadratically with
@@ -297,7 +358,7 @@ paper and copy-ready BibTeX.
    :members:
 
 ELSA
-----
+~~~~
 
 ELSA learns a low-rank matrix of normalized item embeddings with a shallow
 linear autoencoder objective. Unlike EASE, its model size grows linearly with
@@ -341,8 +402,71 @@ normalized factor matrix and can be faster for less sparse tickets. Configure
 the normal backend in ``ELSACompressionConfig`` or override it per
 ``predict`` or ``predict_on_batch`` call without retraining.
 
+Configuration
+^^^^^^^^^^^^^
+
+.. autoclass:: compresso_recsys.models.ELSAConfig
+   :members:
+
+.. autoclass:: compresso_recsys.models.ELSACompressionConfig
+   :members:
+
+Models and Trainer
+^^^^^^^^^^^^^^^^^^
+
+.. autoclass:: compresso_recsys.models.ELSA
+   :members:
+
+.. autoclass:: compresso_recsys.models.CompressedELSA
+   :members:
+
+.. autoclass:: compresso_recsys.models.ELSATrainer
+   :members:
+
+Backend Performance
+^^^^^^^^^^^^^^^^^^^
+
+Sparse backends are not necessarily slower. In one representative benchmark
+with ``latent_dim=4096``, their speed advantage disappeared between
+``k_target=16`` and ``k_target=32``:
+
+.. list-table:: Relative throughput compared with the corresponding dense backend
+   :header-rows: 1
+   :widths: 15 28 28
+
+   * - ``k_target``
+     - COO fine-tuning
+     - CSR inference
+   * - 8
+     - 32% faster
+     - 9% faster
+   * - 16
+     - 13% faster
+     - 4% faster
+   * - 32
+     - 4% slower
+     - 2.6% slower
+
+This table is illustrative rather than a universal selection rule. Sparse
+kernel overhead, device characteristics, batch size, candidate count, catalog
+size, and ``latent_dim`` all affect the crossover. Even above it, COO or CSR
+may be preferable because they avoid the much larger dense factor
+representation. For a new workload, benchmark both backends with the same
+trained ticket; ``sparse_inference_backend`` can be overridden per prediction
+call without retraining. Tiny metric differences between backends can occur
+because floating-point reductions use a different order.
+
+Compressed ELSA uses Compresso's exact ``MaskedParam.to_srp_param()``
+conversion, which preserves the final selected mask even for tied or
+zero-valued entries. Compresso currently moves its initialization copy with the
+model, so mask search temporarily retains an additional dense factor buffer on
+the training device.
+
+Cold-Start Models
+-----------------
+
 ContentRecommender
-------------------
+~~~~~~~~~~~~~~~~~~
 
 ContentRecommender is a cold-start baseline that learns nothing. A user profile
 is the sum of the feature vectors of the items they interacted with, and
@@ -374,7 +498,7 @@ GPU; only the score matrix returns to the host.
    :members:
 
 TEASER
-------
+~~~~~~
 
 TEASER learns item-to-feature encoder weights from binary implicit interactions
 while keeping the supplied item-feature matrix fixed as its decoder. The
@@ -434,66 +558,8 @@ See :doc:`../citing` for the original TEASER paper.
    :members:
    :inherited-members:
 
-.. autoclass:: compresso_recsys.models.CandidateCatalog
-   :members:
-
-.. _the-owned-candidate-catalog:
-
-The Owned Candidate Catalog
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-:class:`compresso_recsys.models.CandidateCatalog` is an immutable snapshot.
-:class:`compresso_recsys.models.MutableCandidateCatalog` is the lifecycle around
-it: the lock, the current snapshot, the fitted source vocabulary, and the
-operations that publish, extend, shrink and align against them.
-
-While that lifecycle lived on a base class, "cold-capable" and "inherits
-:class:`compresso_recsys.models.BaseColdStartRecommender`" were the same
-statement. Adding a second axis -- a model that reads ordered histories rather
-than a matrix -- would then have forced a choice between multiple inheritance and
-a fourth base class, for two independent ideas. An owned object removes the
-choice: a model holds one, whichever base it derives from.
-
-Composition rather than a mixin, because the state is what decides it. A mixin
-would not encapsulate these attributes; it would install them on whatever class
-it is mixed into, six of them public. Two stateful mixins both initialising
-through ``super().__init__()`` is where MRO ordering and private-name collisions
-live. An owned object has its own ``__init__``, its own lock and its own tests,
-and a model could hold two if that ever made sense.
-
-.. code-block:: python
-
-   class SequentialContentRNN(BaseSequentialRecommender):
-       def __init__(self) -> None:
-           self.candidates = MutableCandidateCatalog()
-
-       def fit(self, sequences, item_features, *, item_ids):
-           ...
-           self.candidates.install(...)
-           return self
-
-       def predict_on_batch(self, source, *, k, exclude_seen=True):
-           catalog = self.candidates.snapshot()
-
-Reads go through :meth:`~compresso_recsys.models.MutableCandidateCatalog.snapshot`
-rather than through forwarded properties, deliberately. A snapshot is a
-consistent view: several reads off one snapshot cannot straddle a concurrent
-republish, which forwarding ``item_ids``, ``rows_for`` and ``ids_for``
-separately would silently allow. ``n_items`` is the one convenience, because
-"how many candidates are there" needs an answer before installation, which a
-snapshot cannot give.
-
-``on_publish`` is called with each new snapshot while the lock is held, and is
-how an owner drops caches derived from the previous one. The six fitted
-``source_*`` attributes live on the catalog, so a model's fitted source
-vocabulary is ``model.candidates.source_item_ids`` rather than
-``model.source_item_ids_``.
-
-.. autoclass:: compresso_recsys.models.MutableCandidateCatalog
-   :members:
-
 TEASERGD
---------
+~~~~~~~~
 
 TEASERGD keeps TEASER's fixed item-feature decoder but learns the encoder with
 PyTorch instead of the reference ADMM solver. It never materializes the dense
@@ -568,60 +634,6 @@ See :doc:`../citing` for the original TEASER paper.
 .. autoclass:: compresso_recsys.models.TEASERGDTrainer
    :members:
 
-Backend Performance
-~~~~~~~~~~~~~~~~~~~
-
-Sparse backends are not necessarily slower. In one representative benchmark
-with ``latent_dim=4096``, their speed advantage disappeared between
-``k_target=16`` and ``k_target=32``:
-
-.. list-table:: Relative throughput compared with the corresponding dense backend
-   :header-rows: 1
-   :widths: 15 28 28
-
-   * - ``k_target``
-     - COO fine-tuning
-     - CSR inference
-   * - 8
-     - 32% faster
-     - 9% faster
-   * - 16
-     - 13% faster
-     - 4% faster
-   * - 32
-     - 4% slower
-     - 2.6% slower
-
-This table is illustrative rather than a universal selection rule. Sparse
-kernel overhead, device characteristics, batch size, candidate count, catalog
-size, and ``latent_dim`` all affect the crossover. Even above it, COO or CSR
-may be preferable because they avoid the much larger dense factor
-representation. For a new workload, benchmark both backends with the same
-trained ticket; ``sparse_inference_backend`` can be overridden per prediction
-call without retraining. Tiny metric differences between backends can occur
-because floating-point reductions use a different order.
-
-Compressed ELSA uses Compresso's exact ``MaskedParam.to_srp_param()``
-conversion, which preserves the final selected mask even for tied or
-zero-valued entries. Compresso currently moves its initialization copy with the
-model, so mask search temporarily retains an additional dense factor buffer on
-the training device.
-
-.. autoclass:: compresso_recsys.models.ELSAConfig
-   :members:
-
-.. autoclass:: compresso_recsys.models.ELSACompressionConfig
-   :members:
-
-.. autoclass:: compresso_recsys.models.ELSA
-   :members:
-
-.. autoclass:: compresso_recsys.models.CompressedELSA
-   :members:
-
-.. autoclass:: compresso_recsys.models.ELSATrainer
-   :members:
-
 Sequential Models
 -----------------
 
@@ -635,7 +647,8 @@ decisions. Two components add them back, and they are separate on purpose.
 :class:`compresso_recsys.models.ItemTokenizer` owns the **vocabulary**: which
 token an item is, and what an item the model has never seen becomes.
 :class:`compresso_recsys.models.SequenceBatcher` owns **ragged-to-dense**: how
-far back to read, where the padding goes, and which positions are real.
+far back to read, how right padding forms a dense tensor, and which positions
+are real.
 
 They are split because they have different lifetimes. A vocabulary is a property
 of the dataset and outlives any model. ``max_length`` is a property of the
@@ -675,12 +688,14 @@ they had been consecutive. On a temporal MovieLens-1M split that fabricates 21%
 of all adjacencies across every row and costs about 9% of ndcg@20. A vocabulary
 built without ``unk`` cannot express such an item and raises rather than guesses.
 
-``pad_side`` defaults to ``"right"``, which suits a causal model and not only an
-RNN: with padding after the content, a causal mask already excludes every pad, so
-training needs no attention mask at all — only a loss mask. Left padding puts
-pads *before* real tokens and buys a fixed read position that
-:meth:`~compresso_recsys.models.SequenceBatcher.final_positions` and
-:meth:`~compresso_recsys.models.SequenceBatcher.gather_final` already provide.
+:class:`~compresso_recsys.models.SequenceBatcher` always pads on the right. For
+an RNN, the final-state helpers read each row before its trailing pads. For a
+causal transformer, real tokens cannot attend to padding that follows them, so
+training needs no padding mask — only a loss mask. Left padding is deliberately
+not configurable: a raw GRU or LSTM would process the leading pad steps, while a
+transformer would need an additional key-padding mask. In either case it could
+make behavior depend on the other histories in the batch.
+
 ``max_length`` truncates to the **most recent** interactions, the only sensible
 direction, since a context window is a claim about recency rather than about
 where a history happened to start.
@@ -710,7 +725,7 @@ batching cannot change a prediction. Both live in trainers.
        n_reserved=4,                       # room for mask, cls, later
        item_ids=split["train_item_ids"],   # optional; enables the ID path
    )
-   batcher = SequenceBatcher(tokenizer, max_length=200, pad_side="right")
+   batcher = SequenceBatcher(tokenizer, max_length=200)
 
    # A later stage may be wider than the tokenizer; unknown items become unk.
    tokens, mask = batcher.encode(split["test_source_sequences"], device="cuda")
@@ -761,20 +776,20 @@ become a target. The head scores ``n_items`` rather than the full vocabulary: a
 special token is never a target, so an output column for it could only learn to be
 wrong, and a shift bug raises an index error instead of scoring plausibly.
 
-A history of one interaction yields no training example, since a next-item target
-needs a preceding item. Such rows remain predictable, and an entirely empty
-history yields the state after a single pad — identical for every empty row, so
-effectively a learned prior.
+A history retaining one interaction after truncation yields no training example,
+since a next-item target needs a preceding item. ``fit`` raises if truncation
+leaves every history this short. Such rows remain predictable, and an entirely
+empty history yields the state after a single pad — identical for every empty
+row, so effectively a learned prior.
 
 ``history`` records the mean loss per epoch alongside the number of positions it
 was averaged over. That count is worth reading rather than assuming: it is
-``sum(min(length, max_length) - 1)``, so it reports what truncation costs. On
-MovieLens-1M under ``leave_last_out``, the default ``max_length=200`` puts 697 of
-6,033 users over the window and drops 80k of 543k training positions.
+``sum(max(min(length, max_length) - 1, 0))``, so it reports what truncation
+costs.
 
-Tied embeddings, learning-rate schedules, early stopping and sampled softmax are
-all deliberately absent. This is a baseline, and each of those is a separate
-claim that deserves to be measured on its own.
+The trainer currently runs a fixed epoch budget and rebuilds the model on every
+``fit`` call. It does not provide validation-based early stopping or incremental
+training. Tied embeddings and sampled softmax are also not implemented.
 
 .. code-block:: python
 
@@ -808,13 +823,6 @@ claim that deserves to be measured on its own.
        metrics=[CalibratedRecall(20), NDCG(20)],
        batch_size=512,
    )
-
-On MovieLens-1M with ``min_value_to_keep=4.0`` under ``leave_last_out``, that
-configuration reaches ``ndcg@20 = 0.132`` against ``0.070`` for EASE at
-``l2=200``. The gap is expected rather than impressive: the protocol scores one
-held-out final interaction per user, and EASE has no notion of recency to bring to
-it. The loss is still falling at the eighth epoch, so the number is a
-verification that the wiring works, not a tuned result.
 
 .. autoclass:: compresso_recsys.models.SimpleRNNConfig
    :members:
@@ -856,24 +864,22 @@ complicated of the two options and the deliberate one. A parameter can be
 row, as ``rstar`` does — and a vocabulary lookup cannot express that. Nothing in
 this library has user features yet, so today it does the job `BOS` would.
 
-**There is no attention mask.** Padding is on the right, so a causal mask already
-excludes it: a real token at position ``i`` attends only to ``<= i``, all of which
-are real. Pad positions do compute garbage and nothing reads it — the loss is
-masked and prediction reads each row's last real position. That is why the
-trainer *refuses* a ``pad_side="left"`` batcher instead of quietly building a
-key-padding mask, and why the attention module accepts no mask argument at all.
+**There is no attention mask.** The batcher always pads on the right, so a causal
+mask already excludes padding: a real token at position ``i`` attends only to
+``<= i``, all of which are real. Pad positions do compute garbage and nothing
+reads it — the loss is masked and prediction reads each row's last real
+position. This invariant is why the attention module needs no padding-mask
+argument.
 
 **The head is tied to the input embedding, and scores the catalog rather than
 the vocabulary.** Items occupy the last ``n_items`` rows of the vocabulary, so
 the output weight is a slice of the embedding and ``pad`` and ``unk`` fall below
 it — which is what we want, since neither is ever a prediction target. Tying
-halves the parameters and measured better on every split below, so it is the
-default; set ``tie_embeddings=False`` to reproduce older figures. One measurement
-trap comes with it: a tied head starts with a flatter softmax, because
+halves the parameters and is the default; set ``tie_embeddings=False`` to use a
+separate output head. A tied head starts with a flatter softmax because
 ``nn.Linear`` initialises near ``±1/sqrt(d_model)`` while an embedding starts at
-``std=0.02``. It therefore converges *later*, and on ML-1M it trails untied at
-ten epochs before passing it at twenty. Compare the two at validated budgets, not
-a shared fixed one.
+``std=0.02``, so tying can also change the training curve rather than only the
+parameter count.
 
 **Initialisation follows GPT-2, including the depth-scaled residual init.**
 Every weight starts at ``std=0.02`` — PyTorch's ``nn.Linear`` default is roughly
@@ -882,13 +888,15 @@ into the residual stream start at ``0.02 / sqrt(2 * n_layers)`` instead. Each
 block adds to the stream twice, so without that scaling its variance grows with
 depth and a deeper model starts further from anything usable.
 
-**A learning-rate schedule is available and off by default.**
-``lr_schedule="cosine"`` gives linear warmup over ``warmup_fraction`` of the run
-then cosine decay to ``min_lr_ratio × lr``, measured in optimizer steps so the
-shape does not move with batch size. Warmup exists because the earliest steps of
-a transformer are the ones most able to wreck it — attention has learned nothing,
-so gradients are large and badly aimed. Neither half is expressible through the
-optimizer alone, which is why they arrive as one option rather than two.
+**A cosine learning-rate schedule is on by default.** It gives linear warmup over
+``warmup_fraction`` of the run, then cosine decay to ``min_lr_ratio × lr``,
+with the final optimizer update using that floor. The curve is measured in
+optimizer steps so its shape does not move with batch size. Set
+``lr_schedule="constant"`` to disable both. Warmup exists because the earliest
+steps of a transformer are the ones most able to wreck it — attention has
+learned nothing, so gradients are large and badly aimed. Neither half is
+expressible through the optimizer alone, which is why they arrive as one option
+rather than two.
 
 **The context window is derived, not configured.** ``max_length`` on the batcher
 sizes the positional table, so ``SimpleGPTConfig`` carries no ``block_size`` and
@@ -916,8 +924,7 @@ read.
            transformer=TransformerConfig(
                d_model=128, n_heads=4, n_layers=2, dropout=0.1
            ),
-           # Pick this on the validation split, not by hand -- see below,
-           # where it moved results further than the architecture did.
+           # Select the fixed budget on validation data.
            epochs=10,
            batch_size=128,
            lr=1e-3,
@@ -932,114 +939,11 @@ read.
        metrics=[CalibratedRecall(20), NDCG(20)],
    )
 
-Measured ``ndcg@20`` on two datasets. Every figure is a mean over three training
-seeds with its standard deviation. For each model the epoch budget *and* the
-learning-rate schedule were chosen on the **validation** split and only then
-scored on test, and every grid was widened until the validation curve turned
-over — so no figure below sits at a grid edge. A popularity baseline is included
-because without a floor a model comparison cannot say whether either model works
-at all.
-
-.. list-table:: ndcg@20, validation-selected budget and schedule, three seeds
-   :header-rows: 1
-   :widths: 22 20 20 20
-
-   * - model
-     - ML-1M ``leave_last_out``
-     - Office ``leave_last_out``
-     - Office ``temporal``
-   * - popularity
-     - 0.0176
-     - 0.0185
-     - 0.0094
-   * - ELSA
-     - 0.0562 ± 0.0013
-     - 0.0327 ± 0.0011
-     - 0.0076 ± 0.0004
-   * - SimpleRNN
-     - 0.1471 ± 0.0008
-     - 0.0282 ± 0.0018
-     - 0.0091 ± 0.0007
-   * - SimpleGPT
-     - **0.1740 ± 0.0011**
-     - **0.0422 ± 0.0011**
-     - **0.0102 ± 0.0007**
-
-SimpleGPT peaks at 40, 20 and 20 epochs respectively; SimpleRNN at 20, 10 and 5.
-Both were offered the cosine schedule. It is worth ``+0.0080`` to the transformer
-on Office ``leave_last_out`` and nothing at all to the recurrent model — under a
-seed deviation on all three splits — which is the behaviour you would want from
-it: warmup addresses a failure mode a transformer has and a GRU does not, since
-attention that has learned nothing produces large, badly aimed early gradients
-and a recurrence has no analogous phase. A knob given to one model and withheld
-from the other would have turned that tuning difference into an apparent
-architectural one.
-
-**Three defaults account for most of SimpleGPT's score, and they are not
-separable.** Tying the head beats an untied one by ``+0.0171``, ``+0.0068`` and
-``+0.0006`` (sixteen, six and under one seed deviation) — and on Office
-``leave_last_out`` tying is what moves the transformer from *behind* ELSA to
-comfortably ahead, so the earlier finding that a matrix model wins on set-like
-purchase data was a fact about the untied head rather than about sequence models.
-But the GPT-2 init and the cosine schedule **interact, and the sign flips**: under
-a constant rate the narrower init is worse on Office ``leave_last_out``
-(0.0341 against 0.0389), and under cosine it is better (0.0422 against 0.0380).
-They were designed together, and using one without the other is the mismatch. If
-you change one of these three, re-measure the others rather than assuming the
-ordering transfers — this held twice while these numbers were being taken.
-
-**The datasets disagree, and the disagreement is still the finding.** On
-MovieLens both sequential models beat ELSA by more than two and a half times and
-popularity by nearly ten. On Amazon Office_Products the margins collapse to
-thousandths and ELSA stays competitive with SimpleRNN. The reason is what the
-histories contain: Office targets average exactly 1.0 items per user and not one
-user in the first two thousand has a repeated item, so a purchase history is
-close to a *set* with little order for a causal model to exploit. Quote the
-dataset alongside any sequential-versus-matrix claim; neither column generalises
-to the other.
-
-**Office ``temporal`` is a weak benchmark and the numbers should be read as
-such.** 85% of its test targets are items that never appear in training, and 75%
-of users have at least one, so a model whose head is a fixed-width lookup table
-cannot reach most of the answers. An oracle restricted the same way scores 0.3252
-rather than 1.0 — the whole column is competing for a third of the available
-ndcg, which is why every model lands within thousandths of a popularity baseline.
-Read it as a cold-start diagnostic, not as a ranking of these models, and prefer
-a content-based recommender if the deployment looks like this.
-
-**The training budget still dominates.** Getting it wrong moved Office temporal
-by 43%, and the direction differs per dataset: Office overfits after five to
-twenty epochs, MovieLens peaks at forty for SimpleGPT and at twenty for
-SimpleRNN, declining past both. Tying and the narrower init both shift the peak
-*later*, because each starts the model with a flatter softmax — on ML-1M tied
-trails untied at ten epochs and passes it by twenty. Compare variants at
-validated budgets, never at a shared fixed one, or the slower starter reports as
-the worse model.
-
-That budget remains an unvalidated argument in the trainers themselves. Neither
-reads the ``val_source_sequences`` and ``val_target_matrix`` that every
-chronological checkpoint already carries, so ``epochs`` is a guess whose effect
-here exceeded the architectural difference several times over. Select it on
-validation as these figures do, and never on test.
-
-A capacity sweep run under the previous defaults found that tying dominated
-width and depth — every tied configuration beat every untied one on Office
-``leave_last_out``, one layer matched two, and a tied model at a third of the
-parameters beat an untied model at all of them. The specific figures are not
-reproduced here because they predate the init and schedule above, but the
-guidance survives: reach for tying before reaching for width.
-
-Deliberately absent: early stopping, sampled softmax, a logit temperature, and
-any pooling other than reading the last real position. Each is a separate claim
-that deserves measuring on its own.
-
-On the temperature specifically: tying couples the scale of the input embedding to
-the scale of the logits, which is visible at initialisation — a tied head's
-softmax starts near uniform where an untied one does not, and that is why tying
-converges later. nanoGPT ties too and applies no temperature during training, only
-at sampling time, so the reference architecture does not treat this as a problem.
-It may matter more here purely because these runs are hundreds of steps rather
-than hundreds of thousands.
+The trainer currently runs a fixed epoch budget and rebuilds the model on every
+``fit`` call. It does not provide validation-based early stopping or incremental
+training, so select ``epochs`` using validation data. Sampled softmax, a logit
+temperature, and pooling strategies other than reading the final real position
+are also not implemented.
 
 Saving carries the vocabulary with the weights, because a served model that
 cannot say what column 41 means is not much use. The file is read with

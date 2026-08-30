@@ -65,6 +65,8 @@ docs = [
     "sphinx-rtd-theme>=3.0",
     "sphinx-autodoc-typehints>=2.0",
     "myst-parser>=4.0",
+    "nbsphinx>=0.9",
+    "ipython-pygments-lexers>=1.0",
     # conf.py reads the version from pyproject rather than from installed
     # metadata, which can be stale. tomllib is stdlib from 3.11.
     "tomli>=2.0; python_version < '3.11'",

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import inspect
+
 import numpy as np
 import pytest
 import torch
@@ -30,8 +32,8 @@ def _items(batcher, indices):
 # --------------------------------------------------------------------------
 
 
-def test_right_padding_puts_content_first():
-    batcher = _batcher(pad_side="right")
+def test_padding_puts_content_first():
+    batcher = _batcher()
 
     tokens, mask = batcher.encode(_seqs([[1, 2, 3], [4]]))
 
@@ -40,22 +42,9 @@ def test_right_padding_puts_content_first():
     assert mask.tolist() == [[True, True, True], [True, False, False]]
 
 
-def test_left_padding_puts_the_newest_item_last():
-    """What a causal transformer needs: prediction always reads position -1."""
-    batcher = _batcher(pad_side="left")
-
-    tokens, mask = batcher.encode(_seqs([[1, 2, 3], [4]]))
-
-    pad = batcher.pad_id
-    assert tokens.tolist() == [_items(batcher, [1, 2, 3]), [pad, pad] + _items(batcher, [4])]
-    assert mask.tolist() == [[True, True, True], [False, False, True]]
-    assert tokens[:, -1].tolist() == _items(batcher, [3, 4])
-
-
-@pytest.mark.parametrize("pad_side", ["right", "left"])
-def test_the_mask_recovers_every_history_exactly(pad_side):
+def test_the_mask_recovers_every_history_exactly():
     rows = [[1, 2, 3], [], [4, 4, 5], [9]]
-    batcher = _batcher(pad_side=pad_side)
+    batcher = _batcher()
     sequences = _seqs(rows)
 
     tokens, mask = batcher.encode(sequences)
@@ -63,7 +52,7 @@ def test_the_mask_recovers_every_history_exactly(pad_side):
     for row, expected in enumerate(rows):
         # Decoding is how a history is recovered now that tokens are offset.
         recovered = batcher.tokenizer.decode_indices(tokens[row][mask[row]])
-        assert recovered.tolist() == expected, (pad_side, row)
+        assert recovered.tolist() == expected, row
 
 
 def test_padding_never_collides_with_a_catalog_item():
@@ -143,10 +132,9 @@ def test_a_wider_source_is_refused_when_the_vocabulary_has_no_unk():
 # --------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("pad_side", ["right", "left"])
-def test_truncation_keeps_the_most_recent_items(pad_side):
+def test_truncation_keeps_the_most_recent_items():
     """A context window is a claim about recency, not about where a history began."""
-    batcher = _batcher(max_length=3, pad_side=pad_side)
+    batcher = _batcher(max_length=3)
 
     tokens, mask = batcher.encode(_seqs([[1, 2, 3, 4, 5, 6]]))
 
@@ -176,7 +164,7 @@ def test_truncated_lengths_reports_what_encode_will_use():
 
 def test_final_positions_point_at_real_tokens_not_padding():
     """The bug this method exists to prevent: reading [:, -1] under right padding."""
-    batcher = _batcher(pad_side="right")
+    batcher = _batcher()
     tokens, mask = batcher.encode(_seqs([[1, 2, 3], [4], [5, 6]]))
 
     positions = batcher.final_positions(mask)
@@ -190,16 +178,6 @@ def test_final_positions_point_at_real_tokens_not_padding():
     assert tokens[:, -1].tolist() == [_items(batcher, [3])[0], pad, pad]
 
 
-def test_final_positions_are_the_last_column_under_left_padding():
-    batcher = _batcher(pad_side="left")
-    tokens, mask = batcher.encode(_seqs([[1, 2, 3], [4], [5, 6]]))
-
-    positions = batcher.final_positions(mask)
-
-    assert positions.tolist() == [2, 2, 2]
-    assert tokens[:, -1].tolist() == _items(batcher, [3, 4, 6])
-
-
 def test_final_position_of_an_empty_row_is_zero_and_flagged():
     batcher = _batcher()
     _, mask = batcher.encode(_seqs([[], [1, 2]]))
@@ -208,9 +186,8 @@ def test_final_position_of_an_empty_row_is_zero_and_flagged():
     assert batcher.has_history(mask).tolist() == [False, True]
 
 
-@pytest.mark.parametrize("pad_side", ["right", "left"])
-def test_gather_final_selects_the_right_state(pad_side):
-    batcher = _batcher(pad_side=pad_side)
+def test_gather_final_selects_the_right_state():
+    batcher = _batcher()
     _, mask = batcher.encode(_seqs([[1, 2, 3], [4]]))
     # A state whose value encodes its own position, so a wrong pick is visible.
     states = (
@@ -257,9 +234,9 @@ def test_the_batcher_has_no_objective():
         "has_history",
         "max_length",
         "pad_id",
-        "pad_side",
         "tokenizer",
         "truncated_lengths",
     }
+    assert "pad_side" not in inspect.signature(SequenceBatcher).parameters
     # The vocabulary lives on the tokenizer, not here.
     assert not surface & {"n_items", "vocab_size", "special_tokens", "token_id"}

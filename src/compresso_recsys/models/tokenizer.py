@@ -300,9 +300,23 @@ class ItemTokenizer:
 
     # -- decoding -----------------------------------------------------------
 
+    def _checked_tokens(
+        self, tokens: np.ndarray | Sequence[int]
+    ) -> np.ndarray:
+        array = np.asarray(tokens, dtype=_TOKEN_DTYPE)
+        if array.size:
+            smallest = int(array.min())
+            largest = int(array.max())
+            if smallest < 0 or largest >= self.vocab_size:
+                raise ValueError(
+                    f"token ids must be in [0, {self.vocab_size}), got values "
+                    f"from {smallest} to {largest}"
+                )
+        return array
+
     def decode_indices(self, tokens: np.ndarray | Sequence[int]) -> np.ndarray:
         """Token ids to catalog indices; every special becomes ``-1``."""
-        array = np.asarray(tokens, dtype=_TOKEN_DTYPE)
+        array = self._checked_tokens(tokens)
         return np.where(array < self._n_reserved, -1, array - self._n_reserved)
 
     def decode_ids(self, tokens: np.ndarray | Sequence[int]) -> np.ndarray:
@@ -312,7 +326,7 @@ class ItemTokenizer:
                 "this tokenizer was built without item_ids, so it cannot decode "
                 "to IDs; use decode_indices, or pass item_ids"
             )
-        array = np.asarray(tokens, dtype=_TOKEN_DTYPE)
+        array = self._checked_tokens(tokens)
         out = np.empty(array.shape, dtype=object)
         special = array < self._n_reserved
         if special.any():

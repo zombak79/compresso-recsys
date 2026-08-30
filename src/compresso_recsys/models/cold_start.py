@@ -319,12 +319,13 @@ class WarmCatalogAdapter:
     columns back into that catalog. Cold candidates remain valid target items but
     can never be emitted by the wrapped model.
 
-    Either source representation is accepted, because the projection is the same
-    operation on both: a ``csr_matrix`` keeps the fitted columns, and an
-    :class:`~compresso_recsys.ItemSequences` keeps the fitted items of each
-    history, in order. Rows survive either way, so a user whose history is
-    entirely cold becomes an empty row rather than disappearing, and the
-    alignment stays row-aligned with the targets.
+    Stage catalogs must follow the checkpoint invariant: the training IDs are an
+    exact ordered prefix and cold items are appended. A ``csr_matrix`` is projected
+    to that fitted prefix. An :class:`~compresso_recsys.ItemSequences` is passed
+    through whole, because its warm indices already mean the same thing and the
+    wrapped model's tokenizer turns appended cold indices into ``unk`` without
+    deleting positions. Rows survive either way, so alignment with the targets is
+    preserved.
 
     This is mandatory whenever the model's item space is narrower than the
     evaluation catalog, which the ``temporal`` split mode guarantees by
@@ -349,7 +350,8 @@ class WarmCatalogAdapter:
     train_item_ids:
         Item IDs in the exact column order used to fit ``model``.
     catalog_item_ids:
-        Expanded source and target catalog. It must contain every training ID.
+        Expanded source and target catalog. ``train_item_ids`` must be its exact
+        ordered prefix; additional cold items are appended after it.
     """
 
     def __init__(
@@ -377,6 +379,15 @@ class WarmCatalogAdapter:
             raise ValueError(
                 "catalog_item_ids is missing training item ID: "
                 f"{missing[0]!r}"
+            )
+        if not np.array_equal(
+            train_vocabulary.item_ids,
+            catalog_vocabulary.item_ids[: train_vocabulary.n_items],
+        ):
+            raise ValueError(
+                "train_item_ids must be an exact ordered prefix of "
+                "catalog_item_ids; checkpoint stage catalogs may only grow by "
+                "appending cold items"
             )
 
         train_to_catalog = np.fromiter(

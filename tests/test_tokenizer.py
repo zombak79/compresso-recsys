@@ -262,6 +262,15 @@ def test_decode_preserves_shape():
     assert tok.decode_indices(np.array([[2, 3], [4, 0]])).tolist() == [[0, 1], [2, -1]]
 
 
+@pytest.mark.parametrize("invalid", [-1, N_ITEMS + 2])
+@pytest.mark.parametrize("decoder", ["decode_indices", "decode_ids"])
+def test_decoding_rejects_tokens_outside_the_vocabulary(decoder, invalid):
+    tok = _with_ids()
+
+    with pytest.raises(ValueError, match=r"token ids must be in \[0, 12\)"):
+        getattr(tok, decoder)([invalid])
+
+
 # --------------------------------------------------------------------------
 # growth
 # --------------------------------------------------------------------------

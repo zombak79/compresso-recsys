@@ -41,7 +41,7 @@ def _adapter(model=None) -> WarmCatalogAdapter:
     return WarmCatalogAdapter(
         _FixedWarmModel() if model is None else model,
         train_item_ids=["warm-b", "warm-a", "warm-c"],
-        catalog_item_ids=["warm-a", "cold-x", "warm-c", "warm-b"],
+        catalog_item_ids=["warm-b", "warm-a", "warm-c", "cold-x"],
     )
 
 
@@ -65,14 +65,14 @@ def test_adapter_aligns_source_and_remaps_predictions():
         exclude_seen=False,
     )
 
-    np.testing.assert_array_equal(adapter.train_to_catalog, [3, 0, 2])
+    np.testing.assert_array_equal(adapter.train_to_catalog, [0, 1, 2])
     np.testing.assert_array_equal(
         aligned.toarray(),
-        [[1, 1, 0], [0, 0, 1]],
+        [[1, 1, 0], [0, 1, 1]],
     )
     torch.testing.assert_close(
         predictions.cols,
-        torch.tensor([[3, 2], [3, 2]]),
+        torch.tensor([[0, 2], [0, 2]]),
     )
     assert predictions.shape == (2, 4)
     assert model.last_exclude_seen is False
@@ -85,7 +85,7 @@ def test_adapter_integrates_with_full_catalog_evaluation():
         np.asarray([[1, 0, 0, 0], [0, 0, 1, 0]], dtype=np.float32)
     )
     targets = csr_matrix(
-        np.asarray([[0, 0, 0, 1], [0, 1, 0, 0]], dtype=np.float32)
+        np.asarray([[1, 0, 0, 0], [0, 0, 0, 1]], dtype=np.float32)
     )
 
     result = evaluate_recommender(
@@ -118,6 +118,15 @@ def test_adapter_rejects_missing_training_item():
             _FixedWarmModel(n_items=2),
             train_item_ids=["a", "b"],
             catalog_item_ids=["a", "cold"],
+        )
+
+
+def test_adapter_rejects_a_training_catalog_that_is_not_an_ordered_prefix():
+    with pytest.raises(ValueError, match="exact ordered prefix"):
+        WarmCatalogAdapter(
+            _FixedWarmModel(n_items=2),
+            train_item_ids=["a", "b"],
+            catalog_item_ids=["a", "cold", "b"],
         )
 
 
@@ -184,7 +193,7 @@ def _sequence_adapter(model=None) -> WarmCatalogAdapter:
     return WarmCatalogAdapter(
         _FixedWarmSequenceModel() if model is None else model,
         train_item_ids=["warm-b", "warm-a", "warm-c"],
-        catalog_item_ids=["warm-a", "cold-x", "warm-c", "warm-b"],
+        catalog_item_ids=["warm-b", "warm-a", "warm-c", "cold-x"],
     )
 
 
@@ -223,10 +232,10 @@ def test_predicting_from_sequences_still_widens_the_columns():
     predictions = adapter.predict_on_batch(_catalog_sequences([[0, 1], [3]]), k=3)
 
     assert predictions.cols_total == 4
-    # Fitted ranking b, c, a maps to catalog rows 3, 2, 0.
-    assert predictions.cols[0].tolist() == [3, 2, 0]
+    # The fitted catalog is the full catalog's prefix, so warm rows are stable.
+    assert predictions.cols[0].tolist() == [0, 2, 1]
     # The cold item is still unreachable, because the model cannot score it.
-    assert 1 not in predictions.cols.flatten().tolist()
+    assert 3 not in predictions.cols.flatten().tolist()
 
 
 def test_a_sequence_over_the_wrong_catalog_is_refused():
@@ -243,15 +252,15 @@ def test_the_matrix_path_still_projects_because_a_row_is_a_set():
     back on, so the projection stays exactly where it belongs.
     """
     adapter = _sequence_adapter()
-    # Catalog order is warm-a, cold-x, warm-c, warm-b; this row holds the first,
-    # the cold one, and the last.
+    # Catalog order is warm-b, warm-a, warm-c, cold-x; this row holds the first,
+    # the second, and the appended cold item.
     matrix = csr_matrix(np.asarray([[1, 1, 0, 1]], dtype=np.float32))
 
     aligned = adapter.align_source(matrix)
 
     assert aligned.shape == (1, 3)
-    # Fitted order is warm-b, warm-a, warm-c: both warm items survive, in fitted
-    # positions, and cold-x is gone with nothing standing in for it.
+    # The two warm items survive in their stable prefix positions, and cold-x is
+    # gone with nothing standing in for it.
     assert sorted(aligned[0].indices.tolist()) == [0, 1]
 
 
@@ -259,7 +268,7 @@ def test_a_sequential_model_evaluates_through_the_adapter():
     """The combination that could not run before: temporal plus a sequence model."""
     adapter = _sequence_adapter()
     targets = csr_matrix(
-        (np.ones(2, dtype=np.float32), (np.arange(2), np.array([3, 1]))),
+        (np.ones(2, dtype=np.float32), (np.arange(2), np.array([0, 3]))),
         shape=(2, 4),
     )
 

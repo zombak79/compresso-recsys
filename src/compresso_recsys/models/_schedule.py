@@ -48,20 +48,28 @@ def build_scheduler(
     Warmup exists because the earliest steps are the ones most able to wreck a
     transformer: attention has learned nothing, so gradients are large and badly
     aimed. Cosine decay then spends the end of the run refining rather than
-    bouncing. Neither is expressible through the optimizer alone, which is why
-    they arrive as one option rather than two.
+    bouncing. Its floor belongs to the final optimizer update, not the unused
+    rate selected after that update. Neither half is expressible through the
+    optimizer alone, which is why they arrive as one option rather than two.
     """
     if schedule == "constant":
         return None
     warmup = int(warmup_fraction * total_steps)
 
     def factor(step: int) -> float:
+        if total_steps <= 1:
+            # A one-update run cannot traverse a curve; train at the base rate.
+            return 1.0
         if step < warmup:
             # Step 0 would otherwise train at exactly zero and waste a step.
             return (step + 1) / (warmup + 1)
-        if total_steps <= warmup:
-            return 1.0
-        progress = (step - warmup) / (total_steps - warmup)
+        if warmup == 0:
+            # With no warmup, the optimizer-used indices include both endpoints.
+            progress = step / (total_steps - 1)
+        else:
+            # The warmup owns indices [0, warmup); decay owns the remaining
+            # optimizer updates, so its final used index must map to progress 1.
+            progress = (step - warmup + 1) / (total_steps - warmup)
         cosine = 0.5 * (1.0 + math.cos(math.pi * min(progress, 1.0)))
         return min_lr_ratio + (1.0 - min_lr_ratio) * cosine
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Protocol, runtime_checkable
 
+import numpy as np
 import torch
 from scipy.sparse import csr_matrix
 
@@ -216,6 +217,24 @@ class BaseSequentialRecommender(ABC):
                 f"{type(source).__name__}"
             )
         return source
+
+    @staticmethod
+    def _check_unseen_capacity(
+        source: ItemSequences,
+        *,
+        n_items: int,
+        k: int,
+    ) -> None:
+        """Require every row to contain at least ``k`` scoreable unseen items."""
+        for row in range(source.n_rows):
+            history = source.row(row)
+            scoreable = history[history < n_items]
+            available = n_items - int(np.unique(scoreable).size)
+            if available < k:
+                raise ValueError(
+                    f"source row {row} has only {available} unseen items, "
+                    f"fewer than k={k}"
+                )
 
     def predict(
         self,

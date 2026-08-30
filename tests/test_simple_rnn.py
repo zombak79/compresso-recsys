@@ -180,6 +180,17 @@ def test_fit_refuses_data_with_no_next_item_example():
         SimpleRNNTrainer(_fast_config()).fit(_seqs([[1], [2], [3]]))
 
 
+def test_fit_checks_usable_histories_after_truncation():
+    batcher = SequenceBatcher(ItemTokenizer(N_ITEMS), max_length=1)
+    trainer = SimpleRNNTrainer(_fast_config(), batcher)
+
+    with pytest.raises(ValueError, match="after truncation"):
+        trainer.fit(_seqs([[1, 2, 3], [4, 5]]))
+
+    assert not trainer.is_fitted
+    assert trainer.history == []
+
+
 @pytest.mark.parametrize("batch_size", [1, 2, 3, 64])
 def test_the_number_of_training_positions_is_batching_invariant(batch_size):
     """Positions come from the shift, so how rows are grouped cannot change it.
@@ -254,8 +265,8 @@ def test_prediction_is_batching_invariant():
     model = _fitted_on_cycle()
     sources = _seqs([[0, 1, 2, 3, 4], [5], [6, 7], [2, 3, 4]])
 
-    whole = model.predict(sources, k=4, batch_size=64)
-    one_at_a_time = model.predict(sources, k=4, batch_size=1)
+    whole = model.predict(sources, k=4, batch_size=64, exclude_seen=False)
+    one_at_a_time = model.predict(sources, k=4, batch_size=1, exclude_seen=False)
 
     assert whole.cols.tolist() == one_at_a_time.cols.tolist()
     torch.testing.assert_close(whole.vals, one_at_a_time.vals)
@@ -375,10 +386,26 @@ def test_exclude_seen_masks_what_truncation_dropped():
     assert model.batcher.truncated_lengths(_seqs([history])).tolist() == [2]
 
 
+def test_exclude_seen_refuses_when_fewer_than_k_unseen_items_remain():
+    model = _fitted_on_cycle()
+    # Repeats and out-of-catalog items are not additional scoreable seen items.
+    sources = _seqs([[0, 0, 1, 2, 3, 4, 5, 6, 8]], n_items=N_ITEMS + 1)
+
+    with pytest.raises(
+        ValueError,
+        match="source row 0 has only 1 unseen items, fewer than k=2",
+    ):
+        model.predict_on_batch(sources, k=2, exclude_seen=True)
+
+
 def test_exclude_seen_false_may_return_the_history():
     model = _fitted_on_cycle()
 
-    predictions = model.predict(_seqs([[0, 1, 2, 3, 4, 5, 6]]), k=N_ITEMS)
+    predictions = model.predict(
+        _seqs([[0, 1, 2, 3, 4, 5, 6]]),
+        k=N_ITEMS,
+        exclude_seen=False,
+    )
 
     assert sorted(predictions.cols[0].tolist()) == list(range(N_ITEMS))
 
@@ -589,6 +616,25 @@ def test_a_constant_run_records_one_unchanging_rate():
     assert rates == [pytest.approx(model.cfg.lr)] * len(rates)
 
 
+def test_history_records_the_rate_used_for_the_epochs_final_update():
+    """The scheduler advances after the update, so history must not report it."""
+    model = SimpleRNNTrainer(
+        _fast_config(
+            epochs=2,
+            batch_size=8,
+            lr=0.1,
+            lr_schedule="cosine",
+            warmup_fraction=0.5,
+            min_lr_ratio=0.1,
+        ),
+        SequenceBatcher(ItemTokenizer(N_ITEMS), max_length=None),
+    ).fit(_seqs([[0, 1], [1, 2]]))
+
+    # One batch per epoch: the first update warms up at 0.05, and the second is
+    # the final update, so it uses the configured 0.01 floor.
+    assert [entry["lr"] for entry in model.history] == pytest.approx([0.05, 0.01])
+
+
 @pytest.mark.parametrize(
     ("kwargs", "message"),
     [
@@ -607,4 +653,3 @@ def test_both_sequential_trainers_share_one_schedule_implementation():
     from compresso_recsys.models import simple_gpt, simple_rnn
 
     assert simple_rnn.build_scheduler is simple_gpt.build_scheduler
-

@@ -74,6 +74,7 @@ def _model(**overrides) -> SimpleGPT:
         max_positions=MAX_POSITIONS,
         pad_id=PAD_ID,
         config=_config(**overrides),
+        tie_embeddings=False,
     )
 
 
@@ -172,7 +173,7 @@ def test_a_position_cannot_see_a_later_token():
 
 
 def test_attention_is_causal_by_construction_not_by_mask():
-    """No mask is built or accepted -- the padding side is what makes that safe."""
+    """No mask is built or accepted because batching always pads on the right."""
     attention = CausalSelfAttention(_config())
 
     import inspect
@@ -384,14 +385,6 @@ def test_fit_refuses_an_unbounded_batcher():
         SimpleGPTTrainer(_trainer_config(), unbounded).fit(_seqs(_cycle_rows(16)))
 
 
-def test_fit_refuses_a_left_padding_batcher():
-    """With padding first, causal attention would read it."""
-    left = SequenceBatcher(ItemTokenizer(N_ITEMS), max_length=12, pad_side="left")
-
-    with pytest.raises(ValueError, match="needs pad_side='right'"):
-        SimpleGPTTrainer(_trainer_config(), left).fit(_seqs(_cycle_rows(16)))
-
-
 @pytest.mark.parametrize("batch_size", [1, 2, 3, 64])
 def test_the_number_of_training_positions_is_batching_invariant(batch_size):
     """Every real position is a target, so grouping cannot change the count.
@@ -454,8 +447,8 @@ def test_prediction_is_batching_invariant():
     model = _fitted_on_cycle()
     sources = _seqs([[0, 1, 2, 3, 4], [5], [6, 7], [2, 3, 4]])
 
-    whole = model.predict(sources, k=4, batch_size=64)
-    one_at_a_time = model.predict(sources, k=4, batch_size=1)
+    whole = model.predict(sources, k=4, batch_size=64, exclude_seen=False)
+    one_at_a_time = model.predict(sources, k=4, batch_size=1, exclude_seen=False)
 
     assert whole.cols.tolist() == one_at_a_time.cols.tolist()
     torch.testing.assert_close(whole.vals, one_at_a_time.vals)
@@ -568,6 +561,18 @@ def test_exclude_seen_masks_what_truncation_dropped():
     assert model.batcher.truncated_lengths(_seqs([history])).tolist() == [2]
 
 
+def test_exclude_seen_refuses_when_fewer_than_k_unseen_items_remain():
+    model = _fitted_on_cycle()
+    # Repeats and out-of-catalog items are not additional scoreable seen items.
+    sources = _seqs([[0, 0, 1, 2, 3, 4, 5, 6, 8]], n_items=N_ITEMS + 1)
+
+    with pytest.raises(
+        ValueError,
+        match="source row 0 has only 1 unseen items, fewer than k=2",
+    ):
+        model.predict_on_batch(sources, k=2, exclude_seen=True)
+
+
 def test_masking_does_not_mutate_the_source():
     model = _fitted_on_cycle()
     sources = _seqs([[1, 2, 3]])
@@ -672,7 +677,6 @@ def test_loading_needs_nothing_but_the_file(tmp_path):
     assert reloaded.n_items == N_ITEMS
     assert reloaded.batcher.tokenizer.n_items == N_ITEMS
     assert reloaded.batcher.max_length == 12
-    assert reloaded.batcher.pad_side == "right"
     assert reloaded.cfg.transformer.d_model == 32
 
 
@@ -745,10 +749,32 @@ def test_the_file_reads_as_data_not_as_a_pickle(tmp_path):
         "config",
         "tokenizer",
         "max_length",
-        "pad_side",
         "history",
     }
     assert isinstance(state["config"]["device"], str)
+
+
+def test_loading_accepts_legacy_right_padding_metadata(tmp_path):
+    path = tmp_path / "gpt.pt"
+    save_simple_gpt(path, _fitted_on_cycle(epochs=1))
+    state = torch.load(path, weights_only=True)
+    state["pad_side"] = "right"
+    torch.save(state, path)
+
+    reloaded = load_simple_gpt(path)
+
+    assert reloaded.is_fitted
+
+
+def test_loading_refuses_legacy_left_padding_metadata(tmp_path):
+    path = tmp_path / "gpt.pt"
+    save_simple_gpt(path, _fitted_on_cycle(epochs=1))
+    state = torch.load(path, weights_only=True)
+    state["pad_side"] = "left"
+    torch.save(state, path)
+
+    with pytest.raises(ValueError, match="only right padding is valid"):
+        load_simple_gpt(path)
 
 
 def test_only_the_scored_positions_reach_the_head():
@@ -871,8 +897,8 @@ def test_tying_round_trips_through_a_checkpoint(tmp_path):
 
     assert reloaded.cfg.tie_embeddings is True
     assert reloaded.model.head is None
-    before = model.predict(sources, k=N_ITEMS)
-    after = reloaded.predict(sources, k=N_ITEMS)
+    before = model.predict(sources, k=N_ITEMS, exclude_seen=False)
+    after = reloaded.predict(sources, k=N_ITEMS, exclude_seen=False)
     assert torch.equal(before.cols, after.cols)
     assert torch.allclose(before.vals, after.vals, atol=1e-6)
 
@@ -895,6 +921,16 @@ def test_an_untied_checkpoint_still_loads_untied(tmp_path):
 
 def test_tying_is_the_default():
     """Measured better on every split tried, so an unconfigured model gets it."""
+    model = SimpleGPT(
+        vocab_size=VOCAB,
+        n_items=N_ITEMS,
+        max_positions=MAX_POSITIONS,
+        pad_id=PAD_ID,
+        config=_config(),
+    )
+
+    assert model.tie_embeddings is True
+    assert model.head is None
     assert SimpleGPTConfig().tie_embeddings is True
     assert SimpleGPTConfig(tie_embeddings=False).tie_embeddings is False
 
@@ -968,19 +1004,19 @@ def test_cosine_warms_up_then_decays_to_the_floor():
     optimizer = torch.optim.SGD([param], lr=0.1)
     scheduler = trainer._build_scheduler(optimizer, 100)
 
-    rates = [optimizer.param_groups[0]["lr"]]
+    rates = []
     for _ in range(100):
+        rates.append(optimizer.param_groups[0]["lr"])
         optimizer.step()  # order fit uses: the optimizer moves, then the schedule
         scheduler.step()
-        rates.append(optimizer.param_groups[0]["lr"])
 
     warm = rates[:11]
     assert warm == sorted(warm), "warmup must not decrease"
     assert rates[0] > 0.0, "step zero must still train"
-    tail = rates[11:]
+    tail = rates[10:]
     assert tail == sorted(tail, reverse=True), "post-warmup must not increase"
     assert rates[10] == pytest.approx(0.1, rel=0.02), "peak is the configured lr"
-    assert rates[100] == pytest.approx(0.1 * 0.05, rel=0.02), "floor is min_lr_ratio"
+    assert rates[-1] == pytest.approx(0.1 * 0.05), "final update uses the floor"
 
 
 def test_a_schedule_shorter_than_its_warmup_does_not_divide_by_zero():
@@ -991,20 +1027,30 @@ def test_a_schedule_shorter_than_its_warmup_does_not_divide_by_zero():
     optimizer = torch.optim.SGD([torch.nn.Parameter(torch.zeros(1))], lr=0.1)
     scheduler = trainer._build_scheduler(optimizer, 1)
 
+    used_lr = optimizer.param_groups[0]["lr"]
     optimizer.step()
     scheduler.step()
 
-    assert optimizer.param_groups[0]["lr"] > 0.0
+    assert used_lr == pytest.approx(0.1)
 
 
-def test_fit_records_the_rate_it_trained_at():
-    """Otherwise a schedule is invisible in the history it should explain."""
-    model = _fitted_on_cycle(epochs=4, lr_schedule="cosine")
+def test_fit_records_the_rate_used_for_the_epochs_final_update():
+    """The scheduler advances after the update, so history must not report it."""
+    model = SimpleGPTTrainer(
+        _trainer_config(
+            epochs=2,
+            batch_size=8,
+            lr=0.1,
+            lr_schedule="cosine",
+            warmup_fraction=0.5,
+            min_lr_ratio=0.1,
+        ),
+        _batcher(),
+    ).fit(_seqs([[0], [1]]))
 
-    rates = [entry["lr"] for entry in model.history]
-
-    assert len(rates) == 4
-    assert rates[-1] < rates[0]
+    # One batch per epoch: the first update warms up at 0.05, and the second is
+    # the final update, so it uses the configured 0.01 floor.
+    assert [entry["lr"] for entry in model.history] == pytest.approx([0.05, 0.01])
 
 
 @pytest.mark.parametrize(
@@ -1031,4 +1077,3 @@ def test_the_schedule_survives_a_checkpoint(tmp_path):
 
     assert reloaded.cfg.lr_schedule == "cosine"
     assert reloaded.cfg.min_lr_ratio == 0.25
-
