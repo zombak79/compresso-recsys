@@ -317,8 +317,8 @@ def test_fit_predict_and_candidate_catalog(interactions, item_features, sparse):
     assert predictions.shape == interactions.shape
     assert len(model.history) == 2
     assert all(np.isfinite(record["loss"]) for record in model.history)
-    assert model.candidates.metadata.equals(metadata)
-    assert model.candidates.feature_space_id == "test-features"
+    assert model.candidates.snapshot().metadata.equals(metadata)
+    assert model.candidates.snapshot().feature_space_id == "test-features"
     for row, seen in enumerate(interactions):
         assert set(predictions.cols[row].tolist()).isdisjoint(seen.indices)
 
@@ -492,7 +492,7 @@ def test_train_item_subset_supports_cold_candidates(item_features):
 
 def test_full_candidate_tensor_is_cached_and_invalidated(interactions, item_features):
     model = TEASERGDTrainer(_config(epochs=1)).fit(interactions, item_features)
-    selection = model._resolve_candidate_selection(None)
+    selection = model.candidates.resolve_selection(None)
 
     first = model._selection_tensor(selection)
     second = model._selection_tensor(selection)
@@ -502,7 +502,7 @@ def test_full_candidate_tensor_is_cached_and_invalidated(interactions, item_feat
         item_ids=["new"],
         item_features=np.array([[0.5, 0.5, 0.5]], dtype=np.float32),
     )
-    third = model._selection_tensor(model._resolve_candidate_selection(None))
+    third = model._selection_tensor(model.candidates.resolve_selection(None))
     assert third is not first
 
 

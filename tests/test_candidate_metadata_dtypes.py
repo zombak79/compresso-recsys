@@ -46,7 +46,7 @@ def test_appending_items_preserves_metadata_dtype(column, values, expected_dtype
 
     model.update_candidates(item_ids=["new-a", "new-b"], item_features=features[:2])
 
-    metadata = model.candidates.metadata
+    metadata = model.candidates.snapshot().metadata
     assert metadata is not None
     assert len(metadata) == N_ITEMS + 2
     assert metadata[column].dtype.kind == expected_dtype_kind
@@ -81,7 +81,7 @@ def test_metadata_introduced_by_an_update_accepts_non_numeric_values():
         metadata=pd.DataFrame({"tag": ["x", "y"]}),
     )
 
-    metadata = model.candidates.metadata
+    metadata = model.candidates.snapshot().metadata
     assert metadata is not None
     assert list(metadata["tag"].iloc[-2:]) == ["x", "y"]
     assert metadata["tag"].iloc[:N_ITEMS].isna().all()
@@ -98,7 +98,7 @@ def test_appended_metadata_values_land_on_the_appended_rows():
         metadata=pd.DataFrame({"score": [90.0, 91.0]}),
     )
 
-    metadata = model.candidates.metadata
+    metadata = model.candidates.snapshot().metadata
     assert metadata is not None
     assert metadata["score"].dtype.kind == "f"
     assert list(metadata["score"].iloc[-2:]) == [90.0, 91.0]
@@ -118,7 +118,7 @@ def test_replacing_metadata_without_additions_is_unchanged():
         on_conflict="replace",
     )
 
-    metadata = model.candidates.metadata
+    metadata = model.candidates.snapshot().metadata
     assert metadata is not None
     assert len(metadata) == N_ITEMS
     assert metadata["score"].dtype.kind == "f"

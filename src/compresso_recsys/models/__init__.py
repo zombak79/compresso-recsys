@@ -1,6 +1,13 @@
 """Collaborative-filtering models."""
 
-from .base import BaseCollaborativeRecommender, Recommender
+from .sequence_batching import SequenceBatcher
+from .tokenizer import ItemTokenizer, Tokenizer
+from .base import (
+    BaseCollaborativeRecommender,
+    BaseSequentialRecommender,
+    Recommender,
+    SequentialRecommender,
+)
 from .batching import (
     InteractionBatch,
     InteractionBatchSampler,
@@ -11,6 +18,7 @@ from .cold_start import (
     CandidateCatalog,
     ColdStartRecommender,
     ItemVocabulary,
+    MutableCandidateCatalog,
     WarmCatalogAdapter,
 )
 from .content import ContentRecommender, ContentRecommenderConfig
@@ -22,12 +30,22 @@ from .elsa import (
     ELSAConfig,
     ELSATrainer,
 )
+from .simple_gpt import (
+    SimpleGPT,
+    SimpleGPTConfig,
+    SimpleGPTTrainer,
+    TransformerConfig,
+    load_simple_gpt,
+    save_simple_gpt,
+)
+from .simple_rnn import SimpleRNN, SimpleRNNConfig, SimpleRNNTrainer
 from .teaser import TEASER, TEASERConfig
 from .teaser_gd import TEASERGD, TEASERGDConfig, TEASERGDTrainer
 
 __all__ = [
     "BaseColdStartRecommender",
     "BaseCollaborativeRecommender",
+    "BaseSequentialRecommender",
     "CompressedELSA",
     "CandidateCatalog",
     "ColdStartRecommender",
@@ -40,7 +58,21 @@ __all__ = [
     "ELSAConfig",
     "ELSATrainer",
     "Recommender",
+    "SequenceBatcher",
+    "SimpleGPT",
+    "SimpleGPTConfig",
+    "SimpleGPTTrainer",
+    "SimpleRNN",
+    "SimpleRNNConfig",
+    "SimpleRNNTrainer",
+    "SequentialRecommender",
+    "Tokenizer",
+    "TransformerConfig",
+    "load_simple_gpt",
+    "save_simple_gpt",
+    "ItemTokenizer",
     "ItemVocabulary",
+    "MutableCandidateCatalog",
     "InteractionBatch",
     "InteractionBatchSampler",
     "dense_training_target",

@@ -11,12 +11,20 @@ import numpy as np
 import pandas as pd
 from scipy.sparse import csr_matrix
 
-from compresso_recsys.checkpoint import save_recsys_split, update_checkpoint
+from compresso_recsys.checkpoint import (
+    _indices_to_csr,
+    save_recsys_split,
+    update_checkpoint,
+)
 from compresso_recsys.datasets import AmazonReviews2023, Goodbooks, MovieLens1M, MovieLens20M
+from compresso_recsys.sequences import ItemSequences
 from compresso_recsys.retrieval import (
+    LEAVE_LAST_OUT_MIN_HISTORY,
+    LEAVE_LAST_OUT_STAGES,
     build_eval_holdout,
     build_item_cold_holdout,
-    build_leave_last_out_holdout,
+    leave_last_out_histories,
+    leave_last_out_stage_slices,
 )
 
 
@@ -535,9 +543,9 @@ def _build_user_split(args, ds, proc_df):
         # ones, so training spans the catalog and validation/test add nothing.
         # Written out explicitly instead of left as None so that every split mode
         # stores all three partitions and none of them has to be inferred.
-        "train_item_indices": np.arange(len(catalog_item_ids), dtype=np.int64),
-        "val_item_indices": np.array([], dtype=np.int64),
-        "test_item_indices": np.array([], dtype=np.int64),
+        "warm_item_indices": np.arange(len(catalog_item_ids), dtype=np.int64),
+        "val_cold_item_indices": np.array([], dtype=np.int64),
+        "test_cold_item_indices": np.array([], dtype=np.int64),
         "train_user_ids": np.asarray(train_user_index).astype(str),
         "val_user_ids": np.asarray(sorted(split.val["user_id"].astype(str).unique())),
         "test_user_ids": np.asarray(sorted(split.test["user_id"].astype(str).unique())),
@@ -582,9 +590,9 @@ def _build_item_split(args, proc_df):
         "train_target_matrix": x_train,
         "val_holdout": val_holdout,
         "test_holdout": test_holdout,
-        "train_item_indices": train_idx,
-        "val_item_indices": val_idx,
-        "test_item_indices": test_idx,
+        "warm_item_indices": train_idx,
+        "val_cold_item_indices": val_idx,
+        "test_cold_item_indices": test_idx,
         "train_user_ids": train_user_ids,
         "val_user_ids": None,
         "test_user_ids": None,
@@ -603,113 +611,151 @@ def _build_item_split(args, proc_df):
 
 
 def _build_leave_last_out_split(args, proc_df):
-    item_ids = np.array(sorted(proc_df["item_id"].astype(str).unique()))
-    holdout = build_leave_last_out_holdout(
-        item_ids=item_ids,
-        interactions=proc_df,
-        min_source_items=args.min_source_items,
-        min_target_items=args.min_target_items,
+    """Chronological per-user holdout with the catalog left intact.
+
+    Each user's last interaction is the test target, the one before it the
+    validation target, and the one before that the training target. Sources are
+    the corresponding prefixes.
+
+    Nothing is stripped from training. Item partitions are *observed* rather than
+    imposed: an item lands in the validation or test partition only when every
+    one of its occurrences happens to fall in a held-out tail, which on dense
+    data means the partitions come out empty and on sparse data means they hold
+    the genuinely new items.
+    """
+    # Every support argument has to reach the protocol or be refused outright.
+    # min_target_items cannot: each stage holds out exactly one item, so a
+    # request for more is a request this split cannot fill.
+    if int(args.min_target_items) > 1:
+        raise ValueError(
+            "leave_last_out holds out exactly one item per stage, so "
+            f"min_target_items must be 1, got {args.min_target_items}"
+        )
+    # The floor of four is structural: one source item plus three stage targets.
+    # Above it, min_user_support drops short users outright, and min_source_items
+    # lengthens the training source, which costs three more interactions.
+    # min_user_support is resolved from the dataset spec by the main build
+    # path, so it is still None when a split builder is called directly.
+    user_support = 0 if args.min_user_support is None else int(args.min_user_support)
+    min_history = max(
+        LEAVE_LAST_OUT_MIN_HISTORY,
+        user_support,
+        int(args.min_source_items) + 3,
     )
-    target_items = sorted({int(i) for row in holdout["target_indices"] for i in row.tolist()})
-    target_idx = np.asarray(target_items, dtype=np.int64)
-    train_idx = np.setdiff1d(np.arange(len(item_ids), dtype=np.int64), target_idx, assume_unique=False)
-    train_items = set(item_ids[train_idx].tolist())
-    train_df = proc_df[proc_df["item_id"].astype(str).isin(train_items)].copy()
-    x_train, train_user_ids = _to_sparse_matrix_for_items_with_users(train_df, item_ids)
+
+    provisional_item_ids = np.array(
+        sorted(proc_df["item_id"].astype(str).unique())
+    )
+    histories, user_ids = leave_last_out_histories(
+        item_ids=provisional_item_ids,
+        interactions=proc_df,
+        min_history=min_history,
+    )
+    if len(user_ids) == 0:
+        raise ValueError(
+            f"leave_last_out needs users with at least {min_history} "
+            "interactions; none qualified"
+        )
+
+    # Only retained, timestamp-valid histories define this checkpoint. Compacting
+    # here removes permanently empty columns contributed by discarded users or
+    # invalid events while preserving the provisional catalog's sorted order.
+    used_item_indices = np.unique(np.concatenate(histories))
+    item_ids = provisional_item_ids[used_item_indices]
+    old_to_new = np.full(len(provisional_item_ids), -1, dtype=np.int64)
+    old_to_new[used_item_indices] = np.arange(len(used_item_indices), dtype=np.int64)
+    histories = [old_to_new[history] for history in histories]
+
+    stages: dict[str, dict[str, list[np.ndarray]]] = {}
+    ordered_sources: dict[str, list[np.ndarray]] = {}
+    for stage in LEAVE_LAST_OUT_STAGES:
+        sources, targets, in_order = [], [], []
+        for history in histories:
+            source, target = leave_last_out_stage_slices(history, stage)
+            # Two views of the same events, taken in one pass: the matrix wants a
+            # set, the sequence wants the order. Deriving one from the other later
+            # is impossible in the direction that matters.
+            sources.append(np.unique(source))
+            targets.append(np.unique(target))
+            in_order.append(source)
+        stages[stage] = {"source_indices": sources, "target_indices": targets}
+        ordered_sources[stage] = in_order
+
+    n_items = len(item_ids)
+    train_source = _indices_to_csr(stages["train"]["source_indices"], n_cols=n_items)
+    train_target = _indices_to_csr(stages["train"]["target_indices"], n_cols=n_items)
+    # The same relationship temporal uses: the training window is the pair's
+    # union, and a symmetric model trains on that.
+    x_train = train_source.maximum(train_target).tocsr()
+    # Items first seen in each phase, exactly as the temporal stages compute it.
+    def _observed(stage: str) -> np.ndarray:
+        rows = stages[stage]["source_indices"] + stages[stage]["target_indices"]
+        return np.unique(np.concatenate(rows)) if rows else np.array([], dtype=np.int64)
+
+    warm_item_indices = _observed("train")
+    val_cold_item_indices = np.setdiff1d(_observed("val"), warm_item_indices)
+    test_cold_item_indices = np.setdiff1d(
+        _observed("test"), np.union1d(warm_item_indices, val_cold_item_indices)
+    )
+
+    # The training window in order, which is what a sequential model trains on:
+    # it shifts internally, so handing over only the source would discard the
+    # last transition the matrix pair encodes explicitly.
+    train_window = [history[:-2] for history in histories]
+    sequences = {
+        "x_train_sequences": ItemSequences.from_rows(train_window, n_items=n_items),
+        "train_source_sequences": ItemSequences.from_rows(
+            ordered_sources["train"], n_items=n_items
+        ),
+        "val_source_sequences": ItemSequences.from_rows(
+            ordered_sources["val"], n_items=n_items
+        ),
+        "test_source_sequences": ItemSequences.from_rows(
+            ordered_sources["test"], n_items=n_items
+        ),
+    }
+
+    holdouts = {
+        stage: {
+            "item_ids": item_ids,
+            "source_indices": stages[stage]["source_indices"],
+            "target_indices": stages[stage]["target_indices"],
+            "user_ids": user_ids,
+        }
+        for stage in LEAVE_LAST_OUT_STAGES
+    }
+
     return {
         "item_ids": item_ids,
         "x_train": x_train,
-        "train_source_matrix": x_train,
-        "train_target_matrix": x_train,
-        "val_holdout": holdout,
-        "test_holdout": holdout,
-        "train_item_indices": train_idx,
-        "val_item_indices": target_idx,
-        "test_item_indices": target_idx,
-        "train_user_ids": train_user_ids,
-        "val_user_ids": None,
-        "test_user_ids": None,
+        "train_source_matrix": train_source,
+        "train_target_matrix": train_target,
+        **sequences,
+        "val_holdout": holdouts["val"],
+        "test_holdout": holdouts["test"],
+        "train_holdout": holdouts["train"],
+        "warm_item_indices": warm_item_indices,
+        "val_cold_item_indices": val_cold_item_indices,
+        "test_cold_item_indices": test_cold_item_indices,
+        "train_user_ids": user_ids,
+        "val_user_ids": user_ids,
+        "test_user_ids": user_ids,
         "extra_metadata": {
             "has_user_partitions": False,
-            "has_item_partitions": False,
+            "has_item_partitions": bool(val_cold_item_indices.size or test_cold_item_indices.size),
             "is_temporal": False,
             "is_future_blind": False,
-            "leakage_note": "Leave-last-out is chronological within each user but can leak global future information across users.",
-            "cold_target_items": int(len(target_idx)),
+            "leakage_note": (
+                "Leave-last-out is chronological within each user but not "
+                "globally future-blind: another user's training interactions may "
+                "post-date this user's test target."
+            ),
+            "min_history": int(min_history),
+            "eligible_users": int(len(user_ids)),
+            "new_val_items": int(val_cold_item_indices.size),
+            "new_test_items": int(test_cold_item_indices.size),
         },
     }
-
-
-def _timestamps_in_seconds(values: pd.Series) -> np.ndarray:
-    timestamps = pd.to_numeric(values, errors="coerce").to_numpy(dtype=np.float64)
-    finite = np.isfinite(timestamps)
-    if not bool(finite.any()):
-        raise ValueError("temporal split requires non-empty timestamp values")
-    magnitude = float(np.max(np.abs(timestamps[finite])))
-    if magnitude >= 1e17:
-        timestamps /= 1e9
-    elif magnitude >= 1e14:
-        timestamps /= 1e6
-    elif magnitude >= 1e11:
-        timestamps /= 1e3
-    return timestamps
-
-
-def _matrix_from_temporal_codes(
-    *,
-    event_mask: np.ndarray,
-    global_user_codes: np.ndarray,
-    global_item_codes: np.ndarray,
-    values: np.ndarray,
-    user_lookup: np.ndarray,
-    item_lookup: np.ndarray,
-    shape: tuple[int, int],
-) -> csr_matrix:
-    if not bool(event_mask.any()) or shape[0] == 0 or shape[1] == 0:
-        return csr_matrix(shape, dtype=np.float32)
-
-    rows = user_lookup[global_user_codes[event_mask]]
-    cols = item_lookup[global_item_codes[event_mask]]
-    valid = (rows >= 0) & (cols >= 0)
-    matrix = csr_matrix(
-        (values[event_mask][valid], (rows[valid], cols[valid])),
-        shape=shape,
-        dtype=np.float32,
-    )
-    matrix.sum_duplicates()
-    matrix.eliminate_zeros()
-    matrix.sort_indices()
-    return matrix
-
-
-def _temporal_user_upper_bound(
-    *,
-    source_mask: np.ndarray,
-    target_mask: np.ndarray,
-    global_user_codes: np.ndarray,
-    n_users: int,
-    min_user_support: int,
-    min_source_items: int,
-    min_target_items: int,
-) -> tuple[np.ndarray, int]:
-    """Reject users that cannot meet support before allocating tall CSRs.
-
-    Event counts are an upper bound on distinct nonzero item counts. Keeping a
-    user here does not guarantee eligibility, but rejecting one is always safe;
-    the exact fixed-point filter still runs on the resulting sparse matrices.
-    """
-    source_counts = np.bincount(
-        global_user_codes[source_mask], minlength=n_users
-    )
-    target_counts = np.bincount(
-        global_user_codes[target_mask], minlength=n_users
-    )
-    keep = source_counts >= min_source_items
-    keep &= target_counts >= min_target_items
-    source_counts += target_counts
-    initial_users = int(np.count_nonzero(source_counts > 0))
-    keep &= source_counts >= min_user_support
-    return np.flatnonzero(keep).astype(np.int64, copy=False), initial_users
 
 
 def _csr_row_indices(matrix: csr_matrix) -> list[np.ndarray]:
@@ -809,6 +855,116 @@ def _filter_temporal_pair(
     return source, target, user_ids, item_ids, stats
 
 
+def _sequences_from_temporal_codes(
+    *,
+    event_mask: np.ndarray,
+    global_user_codes: np.ndarray,
+    global_item_codes: np.ndarray,
+    timestamps: np.ndarray,
+    user_lookup: np.ndarray,
+    item_lookup: np.ndarray,
+    n_rows: int,
+    n_items: int,
+) -> ItemSequences:
+    """Chronological histories for the events a mask selects.
+
+    The matrix twin of this drops order and merges duplicates; both read the same
+    masked events, so the two views describe the same interactions rather than
+    two things that happen to look alike.
+
+    Sorting is by ``(row, timestamp)`` with a stable kind, so events sharing a
+    timestamp keep the order the source data gave them rather than an arbitrary
+    one.
+    """
+    if n_rows == 0:
+        return ItemSequences.from_rows([], n_items=n_items)
+
+    rows = user_lookup[global_user_codes[event_mask]]
+    cols = item_lookup[global_item_codes[event_mask]]
+    times = timestamps[event_mask]
+    keep = (rows >= 0) & (cols >= 0)
+    rows, cols, times = rows[keep], cols[keep], times[keep]
+
+    order = np.lexsort((times, rows))
+    rows, cols = rows[order], cols[order]
+
+    counts = np.bincount(rows, minlength=n_rows)
+    indptr = np.concatenate(([0], np.cumsum(counts)))
+    return ItemSequences(values=cols, indptr=indptr, n_items=n_items)
+
+
+def _matrix_from_temporal_codes(
+    *,
+    event_mask: np.ndarray,
+    global_user_codes: np.ndarray,
+    global_item_codes: np.ndarray,
+    values: np.ndarray,
+    user_lookup: np.ndarray,
+    item_lookup: np.ndarray,
+    shape: tuple[int, int],
+) -> csr_matrix:
+    if not bool(event_mask.any()) or shape[0] == 0 or shape[1] == 0:
+        return csr_matrix(shape, dtype=np.float32)
+
+    rows = user_lookup[global_user_codes[event_mask]]
+    cols = item_lookup[global_item_codes[event_mask]]
+    valid = (rows >= 0) & (cols >= 0)
+    matrix = csr_matrix(
+        (values[event_mask][valid], (rows[valid], cols[valid])),
+        shape=shape,
+        dtype=np.float32,
+    )
+    matrix.sum_duplicates()
+    matrix.eliminate_zeros()
+    matrix.sort_indices()
+    return matrix
+
+
+def _temporal_user_upper_bound(
+    *,
+    source_mask: np.ndarray,
+    target_mask: np.ndarray,
+    global_user_codes: np.ndarray,
+    n_users: int,
+    min_user_support: int,
+    min_source_items: int,
+    min_target_items: int,
+) -> tuple[np.ndarray, int]:
+    """Reject users that cannot meet support before allocating tall CSRs.
+
+    Event counts are an upper bound on distinct nonzero item counts. Keeping a
+    user here does not guarantee eligibility, but rejecting one is always safe;
+    the exact fixed-point filter still runs on the resulting sparse matrices.
+    """
+    source_counts = np.bincount(
+        global_user_codes[source_mask], minlength=n_users
+    )
+    target_counts = np.bincount(
+        global_user_codes[target_mask], minlength=n_users
+    )
+    keep = source_counts >= min_source_items
+    keep &= target_counts >= min_target_items
+    source_counts += target_counts
+    initial_users = int(np.count_nonzero(source_counts > 0))
+    keep &= source_counts >= min_user_support
+    return np.flatnonzero(keep).astype(np.int64, copy=False), initial_users
+
+
+def _timestamps_in_seconds(values: pd.Series) -> np.ndarray:
+    timestamps = pd.to_numeric(values, errors="coerce").to_numpy(dtype=np.float64)
+    finite = np.isfinite(timestamps)
+    if not bool(finite.any()):
+        raise ValueError("temporal split requires non-empty timestamp values")
+    magnitude = float(np.max(np.abs(timestamps[finite])))
+    if magnitude >= 1e17:
+        timestamps /= 1e9
+    elif magnitude >= 1e14:
+        timestamps /= 1e6
+    elif magnitude >= 1e11:
+        timestamps /= 1e3
+    return timestamps
+
+
 def _build_temporal_stage(
     *,
     source_mask: np.ndarray,
@@ -818,6 +974,7 @@ def _build_temporal_stage(
     global_user_ids: np.ndarray,
     global_item_ids: np.ndarray,
     values: np.ndarray,
+    timestamps: np.ndarray,
     inherited_item_codes: np.ndarray,
     args,
     stage: str,
@@ -891,9 +1048,37 @@ def _build_temporal_stage(
     stats["initial_users"] = initial_users
     stats["prefiltered_users"] = int(len(user_codes))
     retained_item_codes = pd.Index(global_item_ids).get_indexer(item_ids)
+
+    # _filter_temporal_pair drops users and items, so the lookups built above no
+    # longer describe the returned matrices. Rebuild them from what survived, or
+    # the sequence rows would address a row space the matrices no longer have.
+    retained_user_codes = pd.Index(global_user_ids).get_indexer(user_ids)
+    final_user_lookup = np.full(len(global_user_ids), -1, dtype=np.int64)
+    final_user_lookup[retained_user_codes] = np.arange(len(user_ids), dtype=np.int64)
+    final_item_lookup = np.full(len(global_item_ids), -1, dtype=np.int64)
+    final_item_lookup[retained_item_codes] = np.arange(len(item_ids), dtype=np.int64)
+
+    def _stage_sequences(mask: np.ndarray) -> ItemSequences:
+        return _sequences_from_temporal_codes(
+            event_mask=mask,
+            global_user_codes=global_user_codes,
+            global_item_codes=global_item_codes,
+            timestamps=timestamps,
+            user_lookup=final_user_lookup,
+            item_lookup=final_item_lookup,
+            n_rows=len(user_ids),
+            n_items=len(item_ids),
+        )
+
     return {
         "source": source,
         "target": target,
+        "source_sequences": _stage_sequences(source_mask),
+        # The stage's whole window, source and target together. Each stage is
+        # filtered independently, so a window sequence taken from a later stage
+        # would address a different row and column space than this stage's
+        # matrices.
+        "window_sequences": _stage_sequences(source_mask | target_mask),
         "user_ids": user_ids,
         "item_ids": item_ids,
         "item_codes": retained_item_codes.astype(np.int64, copy=False),
@@ -945,6 +1130,7 @@ def _build_temporal_split(args, proc_df, progress: _CheckpointProgress | None = 
         global_user_ids=global_user_ids,
         global_item_ids=global_item_ids,
         values=values,
+        timestamps=timestamps,
         inherited_item_codes=np.asarray([], dtype=np.int64),
         args=args,
         stage="train",
@@ -960,6 +1146,7 @@ def _build_temporal_split(args, proc_df, progress: _CheckpointProgress | None = 
         global_user_ids=global_user_ids,
         global_item_ids=global_item_ids,
         values=values,
+        timestamps=timestamps,
         inherited_item_codes=train_stage["item_codes"],
         args=args,
         stage="validation",
@@ -974,6 +1161,7 @@ def _build_temporal_split(args, proc_df, progress: _CheckpointProgress | None = 
         global_user_ids=global_user_ids,
         global_item_ids=global_item_ids,
         values=values,
+        timestamps=timestamps,
         inherited_item_codes=val_stage["item_codes"],
         args=args,
         stage="test",
@@ -990,6 +1178,19 @@ def _build_temporal_split(args, proc_df, progress: _CheckpointProgress | None = 
     test_target = test_stage["target"]
     x_train = train_source.maximum(train_target).tocsr()
 
+    # The training window in order. For both chronological modes the validation
+    # source is that same window, so these two agree exactly, mirroring x_train
+    # and val_source_matrix on the matrix side.
+    sequences = {
+        # x_train is the train stage's window, so its sequence must come from the
+        # same stage: val_stage covers the same events but in its own filtered
+        # row and column space.
+        "x_train_sequences": train_stage["window_sequences"],
+        "train_source_sequences": train_stage["source_sequences"],
+        "val_source_sequences": val_stage["source_sequences"],
+        "test_source_sequences": test_stage["source_sequences"],
+    }
+
     train_count = len(train_item_ids)
     val_count = len(val_item_ids)
     test_count = len(test_item_ids)
@@ -1001,6 +1202,7 @@ def _build_temporal_split(args, proc_df, progress: _CheckpointProgress | None = 
         "x_train": x_train,
         "train_source_matrix": train_source,
         "train_target_matrix": train_target,
+        **sequences,
         "val_source_matrix": val_source,
         "val_target_matrix": val_target,
         "test_source_matrix": test_source,
@@ -1015,9 +1217,9 @@ def _build_temporal_split(args, proc_df, progress: _CheckpointProgress | None = 
             "target_indices": _csr_row_indices(test_target),
             "user_ids": test_stage["user_ids"],
         },
-        "train_item_indices": np.arange(train_count, dtype=np.int64),
-        "val_item_indices": np.arange(train_count, val_count, dtype=np.int64),
-        "test_item_indices": np.arange(val_count, test_count, dtype=np.int64),
+        "warm_item_indices": np.arange(train_count, dtype=np.int64),
+        "val_cold_item_indices": np.arange(train_count, val_count, dtype=np.int64),
+        "test_cold_item_indices": np.arange(val_count, test_count, dtype=np.int64),
         "train_user_ids": train_stage["user_ids"],
         "val_user_ids": val_stage["user_ids"],
         "test_user_ids": test_stage["user_ids"],
@@ -1097,12 +1299,12 @@ def _build_recsys_checkpoint_from_args(args) -> Path:
         item_ids = split_payload["item_ids"]
         val_holdout = split_payload["val_holdout"]
         test_holdout = split_payload["test_holdout"]
-        train_item_indices = split_payload.get("train_item_indices")
-        val_item_indices = split_payload.get("val_item_indices")
-        test_item_indices = split_payload.get("test_item_indices")
-        train_item_count = int(len(train_item_indices)) if train_item_indices is not None else int(len(item_ids))
-        val_item_count = int(len(val_item_indices)) if val_item_indices is not None else 0
-        test_item_count = int(len(test_item_indices)) if test_item_indices is not None else 0
+        warm_item_indices = split_payload.get("warm_item_indices")
+        val_cold_item_indices = split_payload.get("val_cold_item_indices")
+        test_cold_item_indices = split_payload.get("test_cold_item_indices")
+        train_item_count = int(len(warm_item_indices)) if warm_item_indices is not None else int(len(item_ids))
+        val_item_count = int(len(val_cold_item_indices)) if val_cold_item_indices is not None else 0
+        test_item_count = int(len(test_cold_item_indices)) if test_cold_item_indices is not None else 0
 
         progress.step("Building annotations")
         entity_tag_matrix, tag_names, annotation_name = _build_entity_tag_matrix(args, ds, item_ids)
@@ -1123,6 +1325,10 @@ def _build_recsys_checkpoint_from_args(args) -> Path:
                 val_target_indices=val_holdout["target_indices"],
                 test_source_indices=test_holdout["source_indices"],
                 test_target_indices=test_holdout["target_indices"],
+                x_train_sequences=split_payload.get("x_train_sequences"),
+                train_source_sequences=split_payload.get("train_source_sequences"),
+                val_source_sequences=split_payload.get("val_source_sequences"),
+                test_source_sequences=split_payload.get("test_source_sequences"),
                 train_source_matrix=split_payload.get("train_source_matrix"),
                 train_target_matrix=split_payload.get("train_target_matrix"),
                 val_source_matrix=split_payload.get("val_source_matrix"),
@@ -1134,9 +1340,9 @@ def _build_recsys_checkpoint_from_args(args) -> Path:
                 test_user_ids=split_payload.get("test_user_ids"),
                 val_eval_user_ids=val_holdout.get("user_ids"),
                 test_eval_user_ids=test_holdout.get("user_ids"),
-                train_item_indices=train_item_indices,
-                val_item_indices=val_item_indices,
-                test_item_indices=test_item_indices,
+                warm_item_indices=warm_item_indices,
+                val_cold_item_indices=val_cold_item_indices,
+                test_cold_item_indices=test_cold_item_indices,
                 entity_tag_matrix=entity_tag_matrix,
                 tag_names=tag_names,
                 entity_metadata=entity_metadata,
@@ -1168,6 +1374,19 @@ def _build_recsys_checkpoint_from_args(args) -> Path:
                     "n_test_eval_rows": int(len(test_holdout["source_indices"])),
                     "n_val_eval_users": _distinct_eval_users(val_holdout),
                     "n_test_eval_users": _distinct_eval_users(test_holdout),
+                    # Listed only when the split mode produced them, so the
+                    # registry says what a checkpoint holds rather than what the
+                    # format allows.
+                    "sequence_files": {
+                        name: f"data/{name}.npz"
+                        for name in (
+                            "x_train_sequences",
+                            "train_source_sequences",
+                            "val_source_sequences",
+                            "test_source_sequences",
+                        )
+                        if split_payload.get(name) is not None
+                    },
                     "split_files": {
                         "train_source_matrix": "data/train_source_matrix.npz",
                         "train_target_matrix": "data/train_target_matrix.npz",

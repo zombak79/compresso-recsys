@@ -315,7 +315,7 @@ class TEASER(_LinearFeatureRecommenderMixin):
         self.n_items_ = n_items
         self.n_features_ = feature_count
         self.admm_history_ = history
-        self._install_feature_catalog(
+        self.candidates.install(
             source_item_ids=resolved_item_ids,
             source_popularity=source_popularity,
             n_input_features=int(features.shape[1]),

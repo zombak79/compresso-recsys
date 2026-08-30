@@ -268,14 +268,26 @@ def build_item_cold_holdout(
     }
 
 
-def build_leave_last_out_holdout(
+#: Stages of the leave-last-out protocol, oldest target first.
+LEAVE_LAST_OUT_STAGES = ("train", "val", "test")
+
+#: A user needs one source item plus one target for each of the three stages.
+LEAVE_LAST_OUT_MIN_HISTORY = 4
+
+
+def leave_last_out_histories(
     *,
     item_ids: pd.Index | np.ndarray,
     interactions: pd.DataFrame,
-    min_source_items: int = 1,
-    min_target_items: int = 1,
-) -> dict[str, object]:
-    """Build per-user source/target by holding out each user's latest interaction."""
+    min_history: int = LEAVE_LAST_OUT_MIN_HISTORY,
+) -> tuple[list[np.ndarray], np.ndarray]:
+    """Per-user chronological catalog indices, oldest first, duplicates kept.
+
+    The ordering is the whole point: every stage below is a prefix of it, and
+    collapsing to a set here would make the sequential views of §9 impossible to
+    recover. Users with fewer than ``min_history`` interactions are dropped,
+    since the protocol needs one source item and three targets.
+    """
     if isinstance(item_ids, pd.Index):
         item_ids_arr = np.array(item_ids.astype(str))
     else:
@@ -291,26 +303,99 @@ def build_leave_last_out_holdout(
     df["timestamp"] = pd.to_numeric(df["timestamp"], errors="coerce")
     df = df.dropna(subset=["timestamp"])
 
+    histories: list[np.ndarray] = []
+    user_ids: list[str] = []
+    for user_id, group in df.sort_values("timestamp", kind="stable").groupby(
+        "user_id", sort=True
+    ):
+        if len(group) < min_history:
+            continue
+        histories.append(
+            np.fromiter(
+                (item_to_idx[item] for item in group["item_id"]),
+                dtype=np.int64,
+                count=len(group),
+            )
+        )
+        user_ids.append(str(user_id))
+
+    return histories, np.asarray(user_ids, dtype=str)
+
+
+def leave_last_out_stage_slices(history: np.ndarray, stage: str) -> tuple[np.ndarray, np.ndarray]:
+    """Source and target catalog indices for one stage of one user's history.
+
+    For ``[1, 2, 3, 4, 5, 6, 7]``::
+
+        train   source [1,2,3,4]      target [5]
+        val     source [1,2,3,4,5]    target [6]
+        test    source [1,2,3,4,5,6]  target [7]
+
+    Items 6 and 7 are withheld from training; item 5 is not — it is the target of
+    the training pair, and ``x_train`` is the union of that pair. So two items
+    per user are held out of training, matching the sequential literature.
+    """
+    if stage == "train":
+        return history[:-3], history[-3:-2]
+    if stage == "val":
+        return history[:-2], history[-2:-1]
+    if stage == "test":
+        return history[:-1], history[-1:]
+    raise ValueError(f"unknown leave_last_out stage: {stage!r}")
+
+
+def build_leave_last_out_holdout(
+    *,
+    item_ids: pd.Index | np.ndarray,
+    interactions: pd.DataFrame,
+    stage: str = "test",
+    min_history: int = LEAVE_LAST_OUT_MIN_HISTORY,
+) -> dict[str, object]:
+    """Build one stage of the leave-last-out holdout.
+
+    Each user's chronologically last interaction is the test target, the one
+    before it the validation target, and the one before that the training
+    target. Sources are the corresponding prefixes, so each stage's source is
+    the previous stage's source plus the previous stage's target.
+
+    Nothing is removed from the catalog. An item is absent from training only
+    when every one of its occurrences happens to fall in a held-out tail, which
+    is a property of the data rather than something this function imposes.
+    """
+    if stage not in LEAVE_LAST_OUT_STAGES:
+        raise ValueError(
+            f"stage must be one of {LEAVE_LAST_OUT_STAGES}, got {stage!r}"
+        )
+    if min_history < LEAVE_LAST_OUT_MIN_HISTORY:
+        raise ValueError(
+            f"min_history must be >= {LEAVE_LAST_OUT_MIN_HISTORY} so every stage "
+            f"has a non-empty source and target, got {min_history!r}"
+        )
+
+    if isinstance(item_ids, pd.Index):
+        item_ids_arr = np.array(item_ids.astype(str))
+    else:
+        item_ids_arr = np.asarray(item_ids).astype(str)
+
+    histories, user_ids = leave_last_out_histories(
+        item_ids=item_ids_arr,
+        interactions=interactions,
+        min_history=min_history,
+    )
     source_indices: list[np.ndarray] = []
     target_indices: list[np.ndarray] = []
-    user_ids: list[str] = []
-    for _, g in df.sort_values("timestamp").groupby("user_id", sort=False):
-        items = g["item_id"].tolist()
-        if len(items) < min_source_items + min_target_items:
-            continue
-        target_item = items[-1]
-        source = sorted({item_to_idx[item] for item in items[:-1]})
-        target = [item_to_idx[target_item]]
-        if len(source) >= min_source_items:
-            source_indices.append(np.asarray(source, dtype=np.int64))
-            target_indices.append(np.asarray(target, dtype=np.int64))
-            user_ids.append(str(g["user_id"].iloc[0]))
+    for history in histories:
+        source, target = leave_last_out_stage_slices(history, stage)
+        # The matrix view is a set of items; order and duplicates belong to the
+        # sequence view, which reads the same histories.
+        source_indices.append(np.unique(source))
+        target_indices.append(np.unique(target))
 
     return {
         "item_ids": item_ids_arr,
         "source_indices": source_indices,
         "target_indices": target_indices,
-        "user_ids": np.asarray(user_ids, dtype=str),
+        "user_ids": user_ids,
     }
 
 

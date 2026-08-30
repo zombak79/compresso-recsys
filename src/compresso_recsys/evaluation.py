@@ -4,7 +4,7 @@ import hashlib
 import warnings
 from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Any, Literal
+from typing import Any, Literal, overload
 
 import numpy as np
 import torch
@@ -12,7 +12,8 @@ from scipy.sparse import csr_matrix, isspmatrix_csr
 
 from compresso import SRPTensor
 from compresso_recsys.metrics import CalibratedRecall, NDCG, RankingBatch, RankingMetric
-from compresso_recsys.models import Recommender
+from compresso_recsys.models import Recommender, SequentialRecommender
+from compresso_recsys.sequences import ItemSequences
 
 MatchBackend = Literal["auto", "dense", "searchsorted"]
 
@@ -33,6 +34,39 @@ def _owned(array: np.ndarray, source: Any) -> np.ndarray:
     values are, would reach out and freeze the caller's own array.
     """
     return array.copy() if array is source else array
+
+
+@dataclass(frozen=True)
+class _CsrRowBatches:
+    """Adapts a CSR source to the row-batching contract sequences already meet.
+
+    Evaluation only ever asks a source two things: how many rows it has, and give
+    me rows ``start:stop``. :class:`~compresso_recsys.sequences.ItemSequences`
+    answers both natively; ``csr_matrix`` answers them under different names. One
+    adapter here keeps the batching loop written once, so a third source type
+    means teaching :func:`_as_row_batches` rather than editing the loop.
+    """
+
+    matrix: csr_matrix
+
+    @property
+    def n_rows(self) -> int:
+        return int(self.matrix.shape[0])
+
+    def take_rows(self, start: int, stop: int) -> csr_matrix:
+        return self.matrix[start:stop]
+
+
+def _as_row_batches(source: Any) -> Any:
+    """Return ``source`` in a form that can report and slice its own rows."""
+    if isinstance(source, ItemSequences):
+        return source
+    if isspmatrix_csr(source):
+        return _CsrRowBatches(source)
+    raise TypeError(
+        "source must be a scipy.sparse.csr_matrix or an ItemSequences, got "
+        f"{type(source).__name__}"
+    )
 
 
 class _TargetFingerprint:
@@ -727,10 +761,50 @@ def evaluate_ranked_predictions(
     return evaluator.compute()
 
 
+@overload
 def evaluate_recommender(
     model: Recommender,
     *,
     source: csr_matrix,
+    targets: csr_matrix,
+    metrics: Sequence[RankingMetric],
+    sample_ids: Sequence[Any] | np.ndarray | None = None,
+    collect_per_user: bool = True,
+    metadata: Mapping[str, Any] | None = None,
+    batch_size: int = 1024,
+    match_backend: MatchBackend = "auto",
+    max_dense_cells: int = 20_000_000,
+    validate_predictions: bool = True,
+    debug: bool = False,
+    debug_users: int = 5,
+    show_progress: bool = False,
+) -> EvaluationResult: ...
+
+
+@overload
+def evaluate_recommender(
+    model: SequentialRecommender,
+    *,
+    source: ItemSequences,
+    targets: csr_matrix,
+    metrics: Sequence[RankingMetric],
+    sample_ids: Sequence[Any] | np.ndarray | None = None,
+    collect_per_user: bool = True,
+    metadata: Mapping[str, Any] | None = None,
+    batch_size: int = 1024,
+    match_backend: MatchBackend = "auto",
+    max_dense_cells: int = 20_000_000,
+    validate_predictions: bool = True,
+    debug: bool = False,
+    debug_users: int = 5,
+    show_progress: bool = False,
+) -> EvaluationResult: ...
+
+
+def evaluate_recommender(
+    model: Recommender | SequentialRecommender,
+    *,
+    source: csr_matrix | ItemSequences,
     targets: csr_matrix,
     metrics: Sequence[RankingMetric],
     sample_ids: Sequence[Any] | np.ndarray | None = None,
@@ -751,15 +825,21 @@ def evaluate_recommender(
     and each prediction batch is immediately sent to :class:`RankingEvaluator`.
     Source and target column counts may differ: source columns describe the
     model's history vocabulary, while target columns describe its candidates.
+
+    ``source`` may be a ``csr_matrix`` of interactions or an
+    :class:`~compresso_recsys.sequences.ItemSequences` of chronological
+    histories, matching whichever the model reads. Only the row count has to
+    agree with ``targets``; nothing downstream of ``predict_on_batch`` knows or
+    cares which was given, which is why sequential and matrix models can be
+    compared against each other with no statistics-side changes.
     """
-    if not isinstance(model, Recommender):
+    if not isinstance(model, (Recommender, SequentialRecommender)):
         raise TypeError("model must implement predict_on_batch(source, *, k)")
-    if not isspmatrix_csr(source):
-        raise TypeError("source must be a scipy.sparse.csr_matrix")
+    batches = _as_row_batches(source)
     targets = _canonical_csr(targets)
-    if source.shape[0] != targets.shape[0]:
+    if batches.n_rows != targets.shape[0]:
         raise ValueError(
-            f"source rows ({source.shape[0]}) must match target rows "
+            f"source rows ({batches.n_rows}) must match target rows "
             f"({targets.shape[0]})"
         )
     if batch_size < 1:
@@ -775,16 +855,16 @@ def evaluate_recommender(
         debug=debug,
         debug_users=debug_users,
     )
-    resolved_ids = _canonical_sample_ids(sample_ids, n_rows=source.shape[0])
-    starts = range(0, source.shape[0], batch_size)
+    resolved_ids = _canonical_sample_ids(sample_ids, n_rows=batches.n_rows)
+    starts = range(0, batches.n_rows, batch_size)
     for start in _progress(
         starts,
         enabled=show_progress,
         desc=f"evaluate recommender@{evaluator.required_k}",
     ):
-        end = min(start + batch_size, source.shape[0])
+        end = min(start + batch_size, batches.n_rows)
         predictions = model.predict_on_batch(
-            source[start:end],
+            batches.take_rows(start, end),
             k=evaluator.required_k,
         )
         evaluator.update(

@@ -12,7 +12,13 @@ from compresso_recsys.evaluation import (
     evaluate_recommender,
 )
 from compresso_recsys.metrics import CalibratedRecall, NDCG
-from compresso_recsys.models import CandidateCatalog, Recommender, TEASER, TEASERConfig
+from compresso_recsys.models import (
+    CandidateCatalog,
+    MutableCandidateCatalog,
+    Recommender,
+    TEASER,
+    TEASERConfig,
+)
 
 
 @pytest.fixture
@@ -236,18 +242,19 @@ def test_fit_builds_id_aware_candidate_catalog(interactions, item_features):
         feature_space_id="encoder@revision",
     )
 
-    assert isinstance(model.candidates, CandidateCatalog)
-    assert model.candidates.version == 1
-    assert model.candidates.feature_space_id == "encoder@revision"
-    assert model.n_candidates_ == interactions.shape[1]
-    np.testing.assert_array_equal(model.candidates.item_ids, item_ids)
-    assert model.candidates.metadata.equals(metadata)
+    assert isinstance(model.candidates, MutableCandidateCatalog)
+    assert isinstance(model.candidates.snapshot(), CandidateCatalog)
+    assert model.candidates.snapshot().version == 1
+    assert model.candidates.snapshot().feature_space_id == "encoder@revision"
+    assert model.candidates.n_items == interactions.shape[1]
+    np.testing.assert_array_equal(model.candidates.snapshot().item_ids, item_ids)
+    assert model.candidates.snapshot().metadata.equals(metadata)
     np.testing.assert_array_equal(
-        model.candidates.rows_for(["book-4", "book-1"]),
+        model.candidates.snapshot().rows_for(["book-4", "book-1"]),
         [4, 1],
     )
     np.testing.assert_array_equal(
-        model.candidates.ids_for(torch.tensor([[4, 1]])),
+        model.candidates.snapshot().ids_for(torch.tensor([[4, 1]])),
         [["book-4", "book-1"]],
     )
 
@@ -304,7 +311,7 @@ def test_build_candidates_replaces_catalog_but_not_source_vocabulary(
     np.testing.assert_allclose(predictions.to_dense().numpy(), expected)
     np.testing.assert_array_equal(
         np.asarray(catalog.item_features[:, -1]).ravel(),
-        [0.0, model.source_popularity_[0], 0.0],
+        [0.0, model.candidates.source_popularity[0], 0.0],
     )
     unseen = model.predict_on_batch(source[:1], k=2)
     assert 1 not in unseen.cols[0].tolist()  # A moved to candidate row 1.
@@ -406,7 +413,7 @@ def test_remove_candidates_and_feature_space_validation(interactions, item_featu
 
 def test_failed_catalog_rebuild_is_atomic(interactions, item_features):
     model = TEASER(TEASERConfig(max_iterations=1)).fit(interactions, item_features)
-    original = model.candidates
+    original = model.candidates.snapshot()
 
     with pytest.raises(ValueError, match="input features"):
         model.build_candidates(
@@ -414,7 +421,7 @@ def test_failed_catalog_rebuild_is_atomic(interactions, item_features):
             item_features=np.ones((1, item_features.shape[1] + 1)),
         )
 
-    assert model.candidates is original
+    assert model.candidates.snapshot() is original
 
 
 def test_align_source_selects_and_reorders_columns_by_stable_id(
@@ -436,7 +443,10 @@ def test_align_source_selects_and_reorders_columns_by_stable_id(
     assert isinstance(aligned, csr_matrix)
     assert aligned.shape == (source.shape[0], source_columns.size)
     np.testing.assert_array_equal(aligned.toarray(), expected.toarray())
-    assert model.align_source(aligned, item_ids=model.source_item_ids_) is aligned
+    assert (
+        model.align_source(aligned, item_ids=model.candidates.source_item_ids)
+        is aligned
+    )
 
 
 def test_aligned_source_produces_same_predictions_as_manual_projection(
@@ -528,7 +538,7 @@ def test_predict_uses_one_catalog_snapshot_across_batches(
 
     assert versions == [1, 1]
     assert predictions.shape == source.shape
-    assert model.candidates.version == 2
+    assert model.candidates.snapshot().version == 2
 
 
 def test_predict_matches_predict_on_batch(interactions, item_features, source):

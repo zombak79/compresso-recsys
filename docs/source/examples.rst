@@ -237,7 +237,7 @@ all item features in the fixed decoder:
    model.fit(
        split["x_train"],
        item_features=split["entity_tag_matrix"],
-       train_item_indices=split["train_item_indices"],
+       train_item_indices=split["warm_item_indices"],
        item_ids=split["item_ids"],
        metadata=split["entity_metadata"],
        feature_names=split["tag_names"],
@@ -293,7 +293,7 @@ output candidate sampling:
    model.fit(
        split["x_train"],
        item_features=item_embeddings,
-       train_item_indices=split["train_item_indices"],
+       train_item_indices=split["warm_item_indices"],
        item_ids=split["item_ids"],
        metadata=split["entity_metadata"],
        feature_space_id="Qwen/Qwen3-Embedding-0.6B",
@@ -327,7 +327,7 @@ caller-provided label used to reject explicitly incompatible updates:
 
 .. code-block:: python
 
-   train_items = split["train_item_indices"]
+   train_items = split["warm_item_indices"]
 
    model.fit(
        interactions=split["x_train"][:, train_items],
@@ -385,7 +385,7 @@ allowlist contains registered IDs; it does not rebuild or copy the catalog:
 
 .. code-block:: python
 
-   catalog = model.candidates
+   catalog = model.candidates.snapshot()
    predictions = model.predict(
        model.align_source(source, item_ids=source_item_ids),
        k=100,

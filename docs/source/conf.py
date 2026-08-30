@@ -55,12 +55,30 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx_autodoc_typehints",
     "myst_parser",
+    "nbsphinx",
 ]
 
 autosummary_generate = True
 autodoc_member_order = "bysource"
 autodoc_typehints = "description"
 autoclass_content = "both"
+nbsphinx_execute = "never"
+# Sphinx appends ".txt" to copied sources by default, which would offer the
+# notebook as an unrunnable text file. Clearing the suffix makes the page's
+# source link a real .ipynb, and the prolog says so above every notebook.
+html_sourcelink_suffix = ""
+nbsphinx_prolog = """
+.. raw:: html
+
+    <div class="admonition tip">
+      <p class="admonition-title">Run this notebook</p>
+      <p>
+        Download it with the <em>View page source</em> link at the top right,
+        or from the repository at
+        <code>docs/source/{{ env.doc2path(env.docname, base=None)|basename }}</code>.
+      </p>
+    </div>
+"""
 
 napoleon_google_docstring = True
 napoleon_numpy_docstring = True

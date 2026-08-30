@@ -12,9 +12,17 @@ from compresso_recsys.models import (
     ELSACompressionConfig,
     ELSAConfig,
     ELSATrainer,
+    ItemTokenizer,
+    SequenceBatcher,
+    SimpleGPTConfig,
+    SimpleGPTTrainer,
+    SimpleRNNConfig,
+    SimpleRNNTrainer,
     TEASERGDConfig,
     TEASERGDTrainer,
+    TransformerConfig,
 )
+from compresso_recsys.sequences import ItemSequences
 
 EPOCHS = 3
 
@@ -131,11 +139,54 @@ def _fit_teaser_gd(*, show_progress: bool = True):
     return trainer.fit(_interactions(), _item_features())
 
 
+def _histories(n_items: int = 3):
+    """Chronological histories over the same catalog the matrices use."""
+    return ItemSequences.from_rows(
+        [[0, 1, 2], [1, 2], [2, 0, 1], [0, 2]], n_items=n_items
+    )
+
+
+def _fit_simple_rnn(*, show_progress: bool = True):
+    trainer = SimpleRNNTrainer(
+        SimpleRNNConfig(
+            embedding_dim=4,
+            hidden_dim=8,
+            epochs=EPOCHS,
+            batch_size=2,
+            lr=1e-2,
+            unk_dropout=0.0,
+            show_progress=show_progress,
+            seed=5,
+        ),
+        SequenceBatcher(ItemTokenizer(3), max_length=8),
+    )
+    return trainer.fit(_histories())
+
+
+def _fit_simple_gpt(*, show_progress: bool = True):
+    trainer = SimpleGPTTrainer(
+        SimpleGPTConfig(
+            transformer=TransformerConfig(d_model=8, n_heads=2, n_layers=1, dropout=0.0),
+            epochs=EPOCHS,
+            batch_size=2,
+            lr=1e-2,
+            unk_dropout=0.0,
+            show_progress=show_progress,
+            seed=5,
+        ),
+        SequenceBatcher(ItemTokenizer(3), max_length=8),
+    )
+    return trainer.fit(_histories())
+
+
 TRAINERS = pytest.mark.parametrize(
     ("fit", "label", "trainer_class", "step"),
     [
         (_fit_elsa, "ELSA", ELSATrainer, "train_step"),
         (_fit_teaser_gd, "TEASERGD", TEASERGDTrainer, "_train_step"),
+        # The sequential trainers draw bars the same way and were untested.
+        (_fit_simple_rnn, "SimpleRNN", SimpleRNNTrainer, "_train_step"),
+        (_fit_simple_gpt, "SimpleGPT", SimpleGPTTrainer, "_train_step"),
     ],
 )
 
