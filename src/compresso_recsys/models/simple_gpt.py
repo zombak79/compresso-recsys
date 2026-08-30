@@ -432,6 +432,7 @@ class SimpleGPTTrainer(BaseSequentialRecommender):
         self.history: list[dict[str, float]] = []
         self.model: SimpleGPT | None = None
         self.batcher = batcher
+        self._owns_batcher = batcher is None
         self._n_items: int | None = None
 
     # -- contract -----------------------------------------------------------
@@ -461,15 +462,24 @@ class SimpleGPTTrainer(BaseSequentialRecommender):
                 "learn from"
             )
 
-        torch.manual_seed(int(self.cfg.seed))
-        rng = np.random.default_rng(int(self.cfg.seed))
-
-        if self.batcher is None:
+        if self._owns_batcher:
             self.batcher = SequenceBatcher(
                 ItemTokenizer(sequences.n_items),
                 max_length=self.DEFAULT_MAX_LENGTH,
             )
+        if self.batcher is None:  # pragma: no cover - defensive against mutation
+            raise RuntimeError("trainer batcher is unavailable")
+        if self.batcher.tokenizer.n_items != sequences.n_items:
+            raise ValueError(
+                "batcher tokenizer has "
+                f"{self.batcher.tokenizer.n_items} items, but training sequences "
+                f"have {sequences.n_items}"
+            )
         self._check_batcher(self.batcher)
+
+        torch.manual_seed(int(self.cfg.seed))
+        rng = np.random.default_rng(int(self.cfg.seed))
+
         self._n_items = self.batcher.tokenizer.n_items
         self.model = self._build_model()
 

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import get_type_hints
+
 import numpy as np
 import pytest
 import torch
@@ -8,7 +10,11 @@ from scipy.sparse import csc_matrix, csr_matrix
 from compresso import SRPTensor
 from compresso_recsys.evaluation import evaluate_recommender
 from compresso_recsys.metrics import CalibratedRecall
-from compresso_recsys.models import Recommender, WarmCatalogAdapter
+from compresso_recsys.models import (
+    Recommender,
+    SequentialRecommender,
+    WarmCatalogAdapter,
+)
 from compresso_recsys.sequences import ItemSequences
 
 
@@ -43,6 +49,12 @@ def _adapter(model=None) -> WarmCatalogAdapter:
         train_item_ids=["warm-b", "warm-a", "warm-c"],
         catalog_item_ids=["warm-b", "warm-a", "warm-c", "cold-x"],
     )
+
+
+def test_adapter_annotation_accepts_both_recommender_contracts():
+    model_type = get_type_hints(WarmCatalogAdapter.__init__)["model"]
+
+    assert model_type == Recommender | SequentialRecommender
 
 
 def test_adapter_aligns_source_and_remaps_predictions():

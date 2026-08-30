@@ -70,11 +70,9 @@ adjacency in cold-item sequences is removed.
   `test_source_sequences`; `user_split` and `item_split` carry none, having no
   ordering to preserve. Each sequence addresses the same rows and columns as the
   matrix it accompanies.
-- `SequenceBatcher`, the encoding step shared by sequential architectures:
-  where special tokens live in the vocabulary, how a ragged batch becomes a
-  dense tensor, which positions are real, and how far back to look. Catalog ids
-  are the identity and special tokens are appended, so adding a second special
-  token cannot shift items out from under an already-trained model.
+- `SequenceBatcher`, the encoding step shared by sequential architectures. It
+  uses a supplied tokenizer to map catalog indices, then owns how a ragged batch
+  becomes a dense tensor, which positions are real, and how far back to look.
   Padding is always on the right: an RNN reads each row's own final position,
   while a causal transformer cannot attend to later pad positions. `max_length`
   truncates to the most recent interactions. The batcher deliberately owns no

@@ -21,7 +21,7 @@ from scipy.sparse import csr_matrix, hstack, issparse, isspmatrix_csr, vstack
 
 from compresso import SRPTensor
 from compresso_recsys.models._validation import canonical_csr
-from compresso_recsys.models.base import Recommender
+from compresso_recsys.models.base import Recommender, SequentialRecommender
 from compresso_recsys.sequences import ItemSequences
 
 __all__ = [
@@ -356,7 +356,7 @@ class WarmCatalogAdapter:
 
     def __init__(
         self,
-        model: Recommender,
+        model: Recommender | SequentialRecommender,
         train_item_ids: Sequence[Hashable] | np.ndarray,
         catalog_item_ids: Sequence[Hashable] | np.ndarray,
     ) -> None:

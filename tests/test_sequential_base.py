@@ -7,6 +7,7 @@ keeps these tests about the plumbing rather than about an RNN.
 from __future__ import annotations
 
 import warnings
+from typing import get_overloads, get_type_hints
 
 import numpy as np
 import pytest
@@ -159,6 +160,18 @@ def test_evaluate_recommender_accepts_sequences():
     assert result.n_scored_rows == 4
     assert set(result.per_user) == {"calibrated_recall@3", "ndcg@3"}
     assert result.target_fingerprint is not None
+
+
+def test_evaluate_recommender_advertises_both_source_contracts():
+    contracts = [
+        get_type_hints(candidate)
+        for candidate in get_overloads(evaluate_recommender)
+    ]
+
+    assert [(contract["model"], contract["source"]) for contract in contracts] == [
+        (Recommender, csr_matrix),
+        (SequentialRecommender, ItemSequences),
+    ]
 
 
 def test_evaluate_recommender_batches_sequences_identically():

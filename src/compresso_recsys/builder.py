@@ -643,9 +643,11 @@ def _build_leave_last_out_split(args, proc_df):
         int(args.min_source_items) + 3,
     )
 
-    item_ids = np.array(sorted(proc_df["item_id"].astype(str).unique()))
+    provisional_item_ids = np.array(
+        sorted(proc_df["item_id"].astype(str).unique())
+    )
     histories, user_ids = leave_last_out_histories(
-        item_ids=item_ids,
+        item_ids=provisional_item_ids,
         interactions=proc_df,
         min_history=min_history,
     )
@@ -654,6 +656,15 @@ def _build_leave_last_out_split(args, proc_df):
             f"leave_last_out needs users with at least {min_history} "
             "interactions; none qualified"
         )
+
+    # Only retained, timestamp-valid histories define this checkpoint. Compacting
+    # here removes permanently empty columns contributed by discarded users or
+    # invalid events while preserving the provisional catalog's sorted order.
+    used_item_indices = np.unique(np.concatenate(histories))
+    item_ids = provisional_item_ids[used_item_indices]
+    old_to_new = np.full(len(provisional_item_ids), -1, dtype=np.int64)
+    old_to_new[used_item_indices] = np.arange(len(used_item_indices), dtype=np.int64)
+    histories = [old_to_new[history] for history in histories]
 
     stages: dict[str, dict[str, list[np.ndarray]]] = {}
     ordered_sources: dict[str, list[np.ndarray]] = {}

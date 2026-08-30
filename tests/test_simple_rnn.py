@@ -232,6 +232,34 @@ def test_refitting_starts_the_history_over():
     assert len(trainer.history) == 2
 
 
+def test_refitting_rebuilds_an_automatic_batcher_for_the_new_catalog():
+    trainer = SimpleRNNTrainer(_fast_config())
+    trainer.fit(_seqs(_cycle_rows(16)))
+    first_batcher = trainer.batcher
+    expanded_n_items = N_ITEMS + 2
+
+    trainer.fit(
+        _seqs(
+            _cycle_rows(16, n_items=expanded_n_items),
+            n_items=expanded_n_items,
+        )
+    )
+
+    assert trainer.batcher is not first_batcher
+    assert trainer.batcher.tokenizer.n_items == expanded_n_items
+    assert trainer.n_items == expanded_n_items
+
+
+def test_fit_rejects_a_supplied_batcher_for_a_different_catalog():
+    batcher = SequenceBatcher(ItemTokenizer(N_ITEMS), max_length=12)
+    trainer = SimpleRNNTrainer(_fast_config(), batcher)
+
+    with pytest.raises(ValueError, match=r"batcher tokenizer has 8 items.*have 10"):
+        trainer.fit(_seqs([[0, 8], [1, 9]], n_items=N_ITEMS + 2))
+
+    assert not trainer.is_fitted
+
+
 # --------------------------------------------------------------------------
 # what it learns
 # --------------------------------------------------------------------------

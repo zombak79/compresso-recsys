@@ -399,48 +399,6 @@ def build_leave_last_out_holdout(
     }
 
 
-def build_item_cold_holdout(
-    *,
-    item_ids: pd.Index | np.ndarray,
-    interactions: pd.DataFrame,
-    source_item_ids: set[str] | list[str] | np.ndarray,
-    target_item_ids: set[str] | list[str] | np.ndarray,
-    min_source_items: int = 1,
-    min_target_items: int = 1,
-) -> dict[str, object]:
-    """Build source=train-item and target=cold-item holdout for overlapping users."""
-    if isinstance(item_ids, pd.Index):
-        item_ids_arr = np.array(item_ids.astype(str))
-    else:
-        item_ids_arr = np.asarray(item_ids).astype(str)
-    item_to_idx = {item_id: idx for idx, item_id in enumerate(item_ids_arr)}
-    source_items = set(np.asarray(list(source_item_ids)).astype(str))
-    target_items = set(np.asarray(list(target_item_ids)).astype(str))
-
-    df = interactions.copy()
-    df["user_id"] = df["user_id"].astype(str)
-    df["item_id"] = df["item_id"].astype(str)
-    df = df[df["item_id"].isin(item_to_idx)]
-
-    source_indices: list[np.ndarray] = []
-    target_indices: list[np.ndarray] = []
-    user_ids: list[str] = []
-    for _, g in df.groupby("user_id"):
-        src = sorted({item_to_idx[item] for item in g["item_id"] if item in source_items})
-        tgt = sorted({item_to_idx[item] for item in g["item_id"] if item in target_items})
-        if len(src) >= min_source_items and len(tgt) >= min_target_items:
-            source_indices.append(np.asarray(src, dtype=np.int64))
-            target_indices.append(np.asarray(tgt, dtype=np.int64))
-            user_ids.append(str(g["user_id"].iloc[0]))
-
-    return {
-        "item_ids": item_ids_arr,
-        "source_indices": source_indices,
-        "target_indices": target_indices,
-        "user_ids": np.asarray(user_ids, dtype=str),
-    }
-
-
 def build_temporal_holdout(
     *,
     item_ids: pd.Index | np.ndarray,

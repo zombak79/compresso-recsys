@@ -303,6 +303,37 @@ def test_leave_last_out_requires_four_interactions():
         _build_leave_last_out_split(_llo_args(), _events({"u0": ["a", "b", "c"]}))
 
 
+def test_leave_last_out_catalog_contains_only_items_from_eligible_histories():
+    eligible = _events({"eligible": ["a", "b", "c", "d", "e"]})
+    short = _events({"short": ["short-only"]})
+    invalid = pd.DataFrame(
+        [
+            {
+                "user_id": "eligible",
+                "item_id": "invalid-time-only",
+                "value": 1.0,
+                "timestamp": "not-a-timestamp",
+            }
+        ]
+    )
+
+    payload = _build_leave_last_out_split(
+        _llo_args(),
+        pd.concat([eligible, short, invalid], ignore_index=True),
+    )
+
+    assert payload["item_ids"].tolist() == ["a", "b", "c", "d", "e"]
+    assert payload["x_train"].shape[1] == 5
+    partitioned = np.concatenate(
+        [
+            payload["warm_item_indices"],
+            payload["val_cold_item_indices"],
+            payload["test_cold_item_indices"],
+        ]
+    )
+    assert np.sort(partitioned).tolist() == list(range(5))
+
+
 def test_item_partitions_are_observed_not_imposed():
     """Overlapping histories yield empty partitions; a tail-only item lands in one.
 

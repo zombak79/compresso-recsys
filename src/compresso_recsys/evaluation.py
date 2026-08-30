@@ -4,7 +4,7 @@ import hashlib
 import warnings
 from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Any, Literal
+from typing import Any, Literal, overload
 
 import numpy as np
 import torch
@@ -12,7 +12,7 @@ from scipy.sparse import csr_matrix, isspmatrix_csr
 
 from compresso import SRPTensor
 from compresso_recsys.metrics import CalibratedRecall, NDCG, RankingBatch, RankingMetric
-from compresso_recsys.models import Recommender
+from compresso_recsys.models import Recommender, SequentialRecommender
 from compresso_recsys.sequences import ItemSequences
 
 MatchBackend = Literal["auto", "dense", "searchsorted"]
@@ -761,10 +761,50 @@ def evaluate_ranked_predictions(
     return evaluator.compute()
 
 
+@overload
 def evaluate_recommender(
     model: Recommender,
     *,
     source: csr_matrix,
+    targets: csr_matrix,
+    metrics: Sequence[RankingMetric],
+    sample_ids: Sequence[Any] | np.ndarray | None = None,
+    collect_per_user: bool = True,
+    metadata: Mapping[str, Any] | None = None,
+    batch_size: int = 1024,
+    match_backend: MatchBackend = "auto",
+    max_dense_cells: int = 20_000_000,
+    validate_predictions: bool = True,
+    debug: bool = False,
+    debug_users: int = 5,
+    show_progress: bool = False,
+) -> EvaluationResult: ...
+
+
+@overload
+def evaluate_recommender(
+    model: SequentialRecommender,
+    *,
+    source: ItemSequences,
+    targets: csr_matrix,
+    metrics: Sequence[RankingMetric],
+    sample_ids: Sequence[Any] | np.ndarray | None = None,
+    collect_per_user: bool = True,
+    metadata: Mapping[str, Any] | None = None,
+    batch_size: int = 1024,
+    match_backend: MatchBackend = "auto",
+    max_dense_cells: int = 20_000_000,
+    validate_predictions: bool = True,
+    debug: bool = False,
+    debug_users: int = 5,
+    show_progress: bool = False,
+) -> EvaluationResult: ...
+
+
+def evaluate_recommender(
+    model: Recommender | SequentialRecommender,
+    *,
+    source: csr_matrix | ItemSequences,
     targets: csr_matrix,
     metrics: Sequence[RankingMetric],
     sample_ids: Sequence[Any] | np.ndarray | None = None,
@@ -793,7 +833,7 @@ def evaluate_recommender(
     cares which was given, which is why sequential and matrix models can be
     compared against each other with no statistics-side changes.
     """
-    if not isinstance(model, Recommender):
+    if not isinstance(model, (Recommender, SequentialRecommender)):
         raise TypeError("model must implement predict_on_batch(source, *, k)")
     batches = _as_row_batches(source)
     targets = _canonical_csr(targets)

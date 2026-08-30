@@ -230,6 +230,7 @@ class SimpleRNNTrainer(BaseSequentialRecommender):
         self.history: list[dict[str, float]] = []
         self.model: SimpleRNN | None = None
         self.batcher = batcher
+        self._owns_batcher = batcher is None
         self._n_items: int | None = None
 
     # -- contract -----------------------------------------------------------
@@ -254,12 +255,20 @@ class SimpleRNNTrainer(BaseSequentialRecommender):
         if sequences.n_rows == 0:
             raise ValueError("cannot train on zero sequences")
 
-        if self.batcher is None:
+        if self._owns_batcher:
             # Right padding: an RNN reads to each row's own final position, so
             # trailing padding costs nothing and the shift below stays simple.
             self.batcher = SequenceBatcher(
                 ItemTokenizer(sequences.n_items),
                 max_length=self.DEFAULT_MAX_LENGTH,
+            )
+        if self.batcher is None:  # pragma: no cover - defensive against mutation
+            raise RuntimeError("trainer batcher is unavailable")
+        if self.batcher.tokenizer.n_items != sequences.n_items:
+            raise ValueError(
+                "batcher tokenizer has "
+                f"{self.batcher.tokenizer.n_items} items, but training sequences "
+                f"have {sequences.n_items}"
             )
         usable = int((self.batcher.truncated_lengths(sequences) >= 2).sum())
         if usable == 0:
