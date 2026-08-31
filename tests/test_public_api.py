@@ -7,6 +7,7 @@ import compresso_recsys.evaluation as evaluation
 import compresso_recsys.metrics as metrics
 import compresso_recsys.models as models
 import compresso_recsys.models.batching as batching
+import compresso_recsys.persistence as persistence
 import compresso_recsys.stats as stats
 
 
@@ -18,6 +19,8 @@ def test_top_level_public_api_is_intentional():
         "ItemSequences",
         "MovieLens1M",
         "MovieLens20M",
+        "ModelCheckpointReader",
+        "ModelCheckpointWriter",
         "RecSysDataset",
         "SplitBundle",
         "load_cluster_graph_stage",
@@ -117,9 +120,17 @@ def test_submodule_public_apis_are_intentional():
             "InteractionBatchSampler",
             "dense_training_target",
         },
+        persistence: {
+            "MODEL_CHECKPOINT_FORMAT",
+            "MODEL_CHECKPOINT_VERSION",
+            "ModelCheckpointReader",
+            "ModelCheckpointWriter",
+        },
         models: {
             "BaseColdStartRecommender",
             "BaseCollaborativeRecommender",
+            "BaseIdentifiedRecommender",
+            "BasePersistableRecommender",
             "BaseSequentialRecommender",
             "CandidateCatalog",
             "ColdStartRecommender",
@@ -134,11 +145,14 @@ def test_submodule_public_apis_are_intentional():
             "ELSATrainer",
             "ItemTokenizer",
             "ItemVocabulary",
+            "IdentifiedRecommender",
             "MutableCandidateCatalog",
             "InteractionBatch",
             "InteractionBatchSampler",
             "dense_training_target",
+            "PersistableRecommender",
             "Recommender",
+            "Recommendations",
             "SequenceBatcher",
             "SequentialRecommender",
             "SimpleGPT",
@@ -149,8 +163,6 @@ def test_submodule_public_apis_are_intentional():
             "SimpleRNNTrainer",
             "Tokenizer",
             "TransformerConfig",
-            "load_simple_gpt",
-            "save_simple_gpt",
             "TEASER",
             "TEASERConfig",
             "TEASERGD",

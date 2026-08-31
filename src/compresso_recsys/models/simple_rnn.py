@@ -37,7 +37,7 @@ and sampled softmax are also absent.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Literal
+from typing import Hashable, Literal, Sequence
 
 import numpy as np
 import torch
@@ -45,10 +45,12 @@ from torch import nn
 
 from compresso import SRPTensor
 
+from compresso_recsys.persistence import ModelCheckpointReader, ModelCheckpointWriter
 from compresso_recsys.sequences import ItemSequences
 
 from ._schedule import LRSchedule, build_scheduler, check_schedule
 from .base import BaseSequentialRecommender
+from .identifiers import ItemVocabulary
 from .sequence_batching import SequenceBatcher
 from .tokenizer import ItemTokenizer
 
@@ -219,6 +221,7 @@ class SimpleRNNTrainer(BaseSequentialRecommender):
 
     #: Context window used when ``fit`` has to build its own batcher.
     DEFAULT_MAX_LENGTH = 200
+    checkpoint_type = "simple_rnn_trainer"
 
     def __init__(
         self,
@@ -229,6 +232,7 @@ class SimpleRNNTrainer(BaseSequentialRecommender):
         self.device = torch.device(self.cfg.device)
         self.history: list[dict[str, float]] = []
         self.model: SimpleRNN | None = None
+        self.optimizer: torch.optim.Optimizer | None = None
         self.batcher = batcher
         self._owns_batcher = batcher is None
         self._n_items: int | None = None
@@ -245,7 +249,12 @@ class SimpleRNNTrainer(BaseSequentialRecommender):
 
     # -- training -----------------------------------------------------------
 
-    def fit(self, sequences: ItemSequences) -> SimpleRNNTrainer:
+    def fit(
+        self,
+        sequences: ItemSequences,
+        *,
+        item_ids: Sequence[Hashable] | np.ndarray | None = None,
+    ) -> SimpleRNNTrainer:
         """Train on chronological histories, one example per row."""
         if not isinstance(sequences, ItemSequences):
             raise TypeError(
@@ -270,6 +279,17 @@ class SimpleRNNTrainer(BaseSequentialRecommender):
                 f"{self.batcher.tokenizer.n_items} items, but training sequences "
                 f"have {sequences.n_items}"
             )
+        tokenizer_ids = getattr(self.batcher.tokenizer, "item_ids", None)
+        if item_ids is not None and tokenizer_ids is not None:
+            supplied = ItemVocabulary.from_ids(item_ids).item_ids
+            if not np.array_equal(supplied, tokenizer_ids):
+                raise ValueError(
+                    "item_ids must match the batcher tokenizer item IDs"
+                )
+        self._set_item_ids(
+            tokenizer_ids if item_ids is None else item_ids,
+            n_items=sequences.n_items,
+        )
         usable = int((self.batcher.truncated_lengths(sequences) >= 2).sum())
         if usable == 0:
             raise ValueError(
@@ -282,22 +302,14 @@ class SimpleRNNTrainer(BaseSequentialRecommender):
 
         tokenizer = self.batcher.tokenizer
         self._n_items = tokenizer.n_items
-        self.model = SimpleRNN(
-            vocab_size=tokenizer.vocab_size,
-            n_items=tokenizer.n_items,
-            embedding_dim=self.cfg.embedding_dim,
-            hidden_dim=self.cfg.hidden_dim,
-            num_layers=self.cfg.num_layers,
-            dropout=self.cfg.dropout,
-            rnn_type=self.cfg.rnn_type,
-            pad_id=tokenizer.pad_id,
-        ).to(self.device)
+        self.model = self._build_model()
 
-        optimizer = getattr(torch.optim, self.cfg.optimizer)(
+        self.optimizer = getattr(torch.optim, self.cfg.optimizer)(
             self.model.parameters(),
             lr=self.cfg.lr,
             weight_decay=self.cfg.weight_decay,
         )
+        optimizer = self.optimizer
         objective = nn.CrossEntropyLoss()
         self.history = []
 
@@ -370,6 +382,89 @@ class SimpleRNNTrainer(BaseSequentialRecommender):
 
         return self
 
+    def _build_model(self) -> SimpleRNN:
+        if self.batcher is None:
+            raise RuntimeError("SimpleRNN batcher is unavailable")
+        tokenizer = self.batcher.tokenizer
+        return SimpleRNN(
+            vocab_size=tokenizer.vocab_size,
+            n_items=tokenizer.n_items,
+            embedding_dim=self.cfg.embedding_dim,
+            hidden_dim=self.cfg.hidden_dim,
+            num_layers=self.cfg.num_layers,
+            dropout=self.cfg.dropout,
+            rnn_type=self.cfg.rnn_type,
+            pad_id=tokenizer.pad_id,
+        ).to(self.device)
+
+    @classmethod
+    def _from_checkpoint_config(
+        cls,
+        config: dict,
+        reader: ModelCheckpointReader,
+        *,
+        device: torch.device,
+    ) -> SimpleRNNTrainer:
+        config = dict(config)
+        config["device"] = str(device)
+        trainer_state = reader.read_json("state/trainer.json")
+        tokenizer_state = reader.read_json("state/tokenizer.json")
+        if reader.exists("state/tokenizer_item_ids.json"):
+            tokenizer_state["item_ids"] = reader.read_item_ids(
+                "state/tokenizer_item_ids.json"
+            )
+        tokenizer = ItemTokenizer.from_dict(tokenizer_state)
+        max_length = trainer_state.get("max_length")
+        batcher = SequenceBatcher(
+            tokenizer,
+            max_length=None if max_length is None else int(max_length),
+        )
+        trainer = cls(SimpleRNNConfig(**config), batcher)
+        trainer._n_items = tokenizer.n_items
+        trainer.model = trainer._build_model()
+        return trainer
+
+    def _checkpoint_module(self) -> nn.Module | None:
+        return self.model
+
+    def _save_checkpoint_state(self, writer: ModelCheckpointWriter) -> None:
+        if self.batcher is None or not isinstance(
+            self.batcher.tokenizer, ItemTokenizer
+        ):
+            raise TypeError(
+                "SimpleRNNTrainer checkpoints support ItemTokenizer only"
+            )
+        writer.write_json(
+            "state/trainer.json",
+            {
+                "max_length": self.batcher.max_length,
+                "history": self.history,
+            },
+        )
+        writer.write_json(
+            "state/tokenizer.json",
+            self.batcher.tokenizer.to_dict(include_item_ids=False),
+        )
+        item_ids = self.batcher.tokenizer.item_ids
+        if item_ids is not None:
+            writer.write_item_ids("state/tokenizer_item_ids.json", item_ids)
+
+    def _load_checkpoint_state(self, reader: ModelCheckpointReader) -> None:
+        state = reader.read_json("state/trainer.json")
+        history = state.get("history")
+        if not isinstance(history, list):
+            raise ValueError("SimpleRNN training history must be a list")
+        self.history = list(history)
+
+    def _build_checkpoint_optimizer(self) -> None:
+        if self.model is None:
+            raise RuntimeError("SimpleRNN model must be built before its optimizer")
+        self.optimizer = getattr(torch.optim, self.cfg.optimizer)(
+            self.model.parameters(),
+            lr=self.cfg.lr,
+            weight_decay=self.cfg.weight_decay,
+        )
+
     def _train_step(
         self,
         batch: ItemSequences,
@@ -439,6 +534,7 @@ class SimpleRNNTrainer(BaseSequentialRecommender):
         *,
         k: int,
         exclude_seen: bool = True,
+        candidate_ids: Sequence[Hashable] | np.ndarray | None = None,
     ) -> SRPTensor:
         """Rank the catalog for each history from its final recurrent state."""
         if self.model is None or self.batcher is None or self._n_items is None:
@@ -449,10 +545,17 @@ class SimpleRNNTrainer(BaseSequentialRecommender):
                 f"{type(source).__name__}"
             )
         n_items = self._n_items
-        if not 1 <= k <= n_items:
-            raise ValueError(f"k must be in [1, {n_items}], got {k}")
+        candidate_rows = self._candidate_rows(candidate_ids)
+        candidate_count = int(candidate_rows.size)
+        if not 1 <= k <= candidate_count:
+            raise ValueError(f"k must be in [1, {candidate_count}], got {k}")
         if exclude_seen:
-            self._check_unseen_capacity(source, n_items=n_items, k=k)
+            self._check_unseen_capacity(
+                source,
+                n_items=n_items,
+                k=k,
+                candidate_rows=candidate_rows,
+            )
 
         rows = source.n_rows
         if rows == 0:
@@ -469,7 +572,9 @@ class SimpleRNNTrainer(BaseSequentialRecommender):
             logits = self.model.score(final)
             if exclude_seen:
                 self._mask_seen(logits, source)
-            vals, cols = torch.topk(logits, k, dim=1)
+            candidates = torch.from_numpy(candidate_rows).long().to(self.device)
+            vals, local_cols = torch.topk(logits[:, candidates], k, dim=1)
+            cols = candidates[local_cols]
 
         return SRPTensor(cols=cols, vals=vals, shape=(rows, n_items))
 

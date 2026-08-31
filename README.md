@@ -103,6 +103,13 @@ corresponding `train_item_ids`, `val_item_ids`, and `test_item_ids` arrays.
 - One evaluation path for both model shapes. A sequential and a matrix model are
   compared through the same `evaluate_recommender` and `compare_models` calls,
   because a recommender is anything implementing `predict_on_batch`.
+- One production recommendation path through `model.recommend(histories, k=...)`.
+  Histories and optional allow/block filters use stable item IDs; ranked item IDs
+  and scores come back in a batch-shaped `Recommendations` result. Rows with
+  fewer than `k` valid candidates truncate without weakening the filters.
+- Unified fitted-model persistence through `model.save(path)` and
+  `ModelClass.load(path)`, using versioned ZIP archives that carry model state,
+  configuration, and the vocabulary or candidate catalog needed for serving.
 - A checkpoint-building console command:
   `compresso-recsys-build-checkpoint`.
 

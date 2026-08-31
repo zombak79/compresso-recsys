@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import warnings
 from dataclasses import dataclass
-from typing import Literal
+from typing import Hashable, Literal, Sequence
 
 import numpy as np
 import torch
@@ -11,6 +11,7 @@ from scipy.sparse import csr_matrix
 from torch import nn
 
 from compresso import MaskedParam, SRPParam, SRPTensor, SparsityController
+from compresso_recsys.persistence import ModelCheckpointReader, ModelCheckpointWriter
 from compresso_recsys.models._batching import (
     InteractionBatchSampler,
     dense_training_target,
@@ -509,6 +510,8 @@ class CompressedELSA(nn.Module):
 class ELSATrainer(BaseCollaborativeRecommender):
     """Fit and run ELSA with sparse interaction matrices."""
 
+    checkpoint_type = "elsa_trainer"
+
     def __init__(self, config: ELSAConfig | None = None) -> None:
         self.cfg = config if config is not None else ELSAConfig()
         self.input_dim: int | None = None
@@ -586,6 +589,93 @@ class ELSATrainer(BaseCollaborativeRecommender):
             lr=float(self.cfg.lr),
             weight_decay=float(self.cfg.weight_decay),
         )
+
+    @classmethod
+    def _from_checkpoint_config(
+        cls,
+        config: dict,
+        reader: ModelCheckpointReader,
+        *,
+        device: torch.device,
+    ) -> ELSATrainer:
+        config = dict(config)
+        compression_state = config.get("compression")
+        if compression_state is not None:
+            compression_state = dict(compression_state)
+            schedule = compression_state.get("k_schedule")
+            if schedule is not None:
+                compression_state["k_schedule"] = tuple(schedule)
+            config["compression"] = ELSACompressionConfig(**compression_state)
+        config["device"] = str(device)
+        # Compilation is runtime state; checkpoints always rebuild an eager model.
+        config["compile"] = False
+        trainer = cls(ELSAConfig(**config))
+        state = reader.read_json("state/trainer.json")
+        input_dim = int(state["input_dim"])
+        trainer.input_dim = input_dim
+        if trainer.cfg.compression is None:
+            trainer.elsa = ELSA(
+                input_dim=input_dim,
+                latent_dim=trainer.cfg.latent_dim,
+                use_relu=trainer.cfg.use_relu,
+            ).to(device)
+        else:
+            trainer.elsa = CompressedELSA(
+                input_dim=input_dim,
+                latent_dim=trainer.cfg.latent_dim,
+                compression=trainer.cfg.compression,
+                use_relu=trainer.cfg.use_relu,
+            ).to(device)
+        return trainer
+
+    def _checkpoint_module(self) -> nn.Module | None:
+        return self.elsa
+
+    def _prepare_checkpoint_module_state(self, state: dict[str, object]) -> None:
+        if not isinstance(self.elsa, CompressedELSA):
+            return
+        columns = state.get("sparse_A.cols")
+        values = state.get("sparse_A.values")
+        if not isinstance(columns, torch.Tensor) or not isinstance(
+            values, torch.Tensor
+        ):
+            raise ValueError(
+                "fitted compressed ELSA checkpoint is missing sparse factors"
+            )
+        self.elsa.masked_A = None
+        self.elsa.sparse_A = SRPParam(
+            cols=columns,
+            values=torch.zeros_like(values),
+            shape=(self.elsa.input_dim, self.elsa.latent_dim),
+        ).to(self.device)
+        self.elsa.phase = "sparse_finetune"
+
+    def _save_checkpoint_state(self, writer: ModelCheckpointWriter) -> None:
+        assert self.input_dim is not None
+        writer.write_json(
+            "state/trainer.json",
+            {
+                "input_dim": self.input_dim,
+                "history": self.history,
+            },
+        )
+
+    def _load_checkpoint_state(self, reader: ModelCheckpointReader) -> None:
+        state = reader.read_json("state/trainer.json")
+        history = state.get("history")
+        if not isinstance(history, list):
+            raise ValueError("ELSA training history must be a list")
+        self.history = list(history)
+
+    def _build_checkpoint_optimizer(self) -> None:
+        self._reset_optimizer()
+
+    def _finish_checkpoint_load(self) -> None:
+        self.sparsity_controller = None
+        self._last_controller_info = {}
+        self._is_fitted = True
+        if isinstance(self.elsa, CompressedELSA):
+            self.elsa.prepare_inference()
 
     def _progress(self, iterable, *, total: int, desc: str):
         if not self.cfg.show_progress:
@@ -835,7 +925,12 @@ class ELSATrainer(BaseCollaborativeRecommender):
         self._reset_optimizer()
         return self.elsa
 
-    def fit(self, interactions: csr_matrix) -> ELSATrainer:
+    def fit(
+        self,
+        interactions: csr_matrix,
+        *,
+        item_ids: Sequence[Hashable] | np.ndarray | None = None,
+    ) -> ELSATrainer:
         """Fit dense ELSA or search and fine-tune a compressed ELSA ticket."""
         interactions = canonical_csr(interactions, name="interactions")
         if interactions.shape[0] < 1 or interactions.shape[1] < 1:
@@ -864,6 +959,8 @@ class ELSATrainer(BaseCollaborativeRecommender):
             self._fit_fixed_epochs(dataset, phase="sparse_finetune")
             model.prepare_inference()
         self._is_fitted = True
+        assert self.input_dim is not None
+        self._set_item_ids(item_ids, n_items=self.input_dim)
         return self
 
     def _prepare_source(self, source: csr_matrix) -> csr_matrix:
@@ -883,6 +980,7 @@ class ELSATrainer(BaseCollaborativeRecommender):
         *,
         k: int,
         exclude_seen: bool = True,
+        candidate_ids: Sequence[Hashable] | np.ndarray | None = None,
         sparse_inference_backend: SparseInferenceBackend | None = None,
     ) -> SRPTensor:
         """Predict ranked items for one source batch.
@@ -899,10 +997,24 @@ class ELSATrainer(BaseCollaborativeRecommender):
             raise ValueError(
                 "sparse_inference_backend is only available for compressed ELSA"
             )
-        if not 1 <= int(k) <= self.input_dim:
-            raise ValueError(f"k must be in [1, {self.input_dim}], got {k}")
+        candidate_rows = self._candidate_rows(candidate_ids)
+        candidate_count = int(candidate_rows.size)
+        if not 1 <= int(k) <= candidate_count:
+            raise ValueError(f"k must be in [1, {candidate_count}], got {k}")
         if exclude_seen:
-            unseen_counts = self.input_dim - np.diff(source.indptr)
+            selected = np.zeros(self.input_dim, dtype=bool)
+            selected[candidate_rows] = True
+            seen_counts = np.diff(source.indptr)
+            seen_rows = np.repeat(
+                np.arange(source.shape[0], dtype=np.int64),
+                seen_counts,
+            )
+            selected_seen = selected[source.indices]
+            selected_seen_counts = np.bincount(
+                seen_rows[selected_seen],
+                minlength=source.shape[0],
+            )
+            unseen_counts = candidate_count - selected_seen_counts
             if unseen_counts.size and np.any(unseen_counts < k):
                 row = int(np.flatnonzero(unseen_counts < k)[0])
                 raise ValueError(
@@ -941,7 +1053,17 @@ class ELSATrainer(BaseCollaborativeRecommender):
             seen_rows = torch.from_numpy(seen.row.astype(np.int64)).to(self.device)
             seen_columns = torch.from_numpy(seen.col.astype(np.int64)).to(self.device)
             scores[seen_rows, seen_columns] = -torch.inf
-        return SRPTensor.from_dense(scores, k=int(k), score_mode="raw")
+        candidate_tensor = torch.from_numpy(candidate_rows).long().to(self.device)
+        local = SRPTensor.from_dense(
+            scores[:, candidate_tensor],
+            k=int(k),
+            score_mode="raw",
+        )
+        return SRPTensor(
+            cols=candidate_tensor[local.cols],
+            vals=local.vals,
+            shape=source.shape,
+        )
 
     @torch.no_grad()
     def predict(
@@ -951,6 +1073,7 @@ class ELSATrainer(BaseCollaborativeRecommender):
         k: int = 100,
         batch_size: int | None = None,
         exclude_seen: bool = True,
+        candidate_ids: Sequence[Hashable] | np.ndarray | None = None,
         show_progress: bool | None = None,
         sparse_inference_backend: SparseInferenceBackend | None = None,
     ) -> SRPTensor:
@@ -967,8 +1090,9 @@ class ELSATrainer(BaseCollaborativeRecommender):
         )
         if resolved_batch_size < 1:
             raise ValueError("batch_size must be >= 1")
-        if not 1 <= int(k) <= source.shape[1]:
-            raise ValueError(f"k must be in [1, {source.shape[1]}], got {k}")
+        candidate_count = int(self._candidate_rows(candidate_ids).size)
+        if not 1 <= int(k) <= candidate_count:
+            raise ValueError(f"k must be in [1, {candidate_count}], got {k}")
         progress_enabled = (
             self.cfg.show_progress if show_progress is None else bool(show_progress)
         )
@@ -989,6 +1113,7 @@ class ELSATrainer(BaseCollaborativeRecommender):
                 source[start:end],
                 k=k,
                 exclude_seen=exclude_seen,
+                candidate_ids=candidate_ids,
                 sparse_inference_backend=sparse_inference_backend,
             )
             columns.append(predictions.cols)
@@ -999,6 +1124,7 @@ class ELSATrainer(BaseCollaborativeRecommender):
                 source,
                 k=k,
                 exclude_seen=exclude_seen,
+                candidate_ids=candidate_ids,
                 sparse_inference_backend=sparse_inference_backend,
             )
         return SRPTensor(

@@ -32,6 +32,40 @@ adjacency in cold-item sequences is removed.
 
 ### Added
 
+- A production-facing ``model.recommend(...)`` API inherited by collaborative,
+  sequential, and cold-start recommenders. It accepts a batch of histories as
+  stable item IDs, applies batch-wide ``allowlist`` and ``blocklist`` filters
+  before top-k selection, and returns
+  immutable ranked IDs and scores through ``Recommendations``. Unknown IDs
+  raise. Rows with fewer than ``k`` eligible candidates are truncated
+  independently (after removing seen items when requested) and exposed through
+  ``valid_mask`` and ``valid_counts``;
+  padded positions are ``None``/``-inf`` and ``to_dicts()`` omits them. Strict
+  callers can select ``on_insufficient="raise"``. Fixed-catalog fits accept
+  optional ``item_ids`` and use positional integer IDs when omitted;
+  fitted-model checkpoints preserve the identity mapping.
+  ``exclude_seen`` defaults to ``False`` for production use, where repeated
+  recommendations are legal and callers can block particular seen IDs;
+  evaluation-style exclusion remains an explicit option.
+  ``WarmCatalogAdapter`` supports the same API while keeping appended cold
+  items unreachable to its wrapped transductive model.
+- Unified fitted-model persistence through `model.save(path)` and
+  `ModelClass.load(path, device="cpu")` on the collaborative, sequential,
+  and cold-start bases. EASE, dense and compressed ELSA, SimpleRNN, SimpleGPT,
+  ContentRecommender, TEASER, and TEASERGD now round-trip as prediction-ready
+  models in a versioned ZIP format. Configurations, safe item IDs, Torch state,
+  sparse and dense arrays, metadata, histories, tokenizers, mappings, and the
+  current mutable candidate catalog travel with the fitted model. Loading is
+  CPU-first and rejects the wrong model class or unsupported format version.
+  Optimizer state is excluded by default and can be included and restored
+  explicitly; scheduler, RNG, partial-epoch, compiled-wrapper, and cache state
+  remain runtime concerns rather than an exact-resumption promise.
+- `ModelCheckpointWriter`, `ModelCheckpointReader`,
+  `BasePersistableRecommender`, and the structural
+  `PersistableRecommender` protocol. The reader and writer own the manifest
+  and safe typed storage operations so third-party models do not invent a ZIP
+  layout. `WarmCatalogAdapter` remains a stage-specific projection and is
+  rebuilt around its loaded nested model and dataset catalog IDs.
 - `ItemSequences`, a chronological interaction history: catalog indices in order
   with duplicates preserved, and nothing else. No padding, no `MASK`/`PAD`/`BOS`,
   no maximum length, no truncation — tokenisation is a modelling decision that
@@ -124,10 +158,8 @@ adjacency in cold-item sequences is removed.
   mode. The trainer also refuses `max_length=None`, since that value sizes the
   positional table —
   `block_size` is derived rather than configured, so the two cannot disagree.
-  `save_simple_gpt` / `load_simple_gpt` carry the vocabulary with the weights,
+  The unified fitted-model checkpoint carries its vocabulary with the weights,
   because a served model that cannot say what column 41 means is not much use.
-  Loading is self-contained and reads with `weights_only=True`, parsing the file
-  as data rather than executing it as a pickle.
   Measured figures for this model are under **Changed** below rather than here:
   the defaults moved twice inside this release — a tied head, then the GPT-2 init
   with a cosine schedule — and one release section quoting three generations of
