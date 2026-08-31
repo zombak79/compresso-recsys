@@ -59,7 +59,7 @@ Use ``user_split`` for classic warm-item recommender experiments:
      --annotation_source genres
 
 Use ``item_split`` when you want cold-item evaluation. Models should train on
-``train_item_indices`` only, then transform all items before evaluation:
+``warm_item_indices`` only, then transform all items before evaluation:
 
 .. code-block:: bash
 

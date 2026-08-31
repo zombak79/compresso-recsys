@@ -6,16 +6,17 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Checkpoint CLI Reference &mdash; Compresso Recsys 0.2.0 documentation</title>
+  <title>Checkpoint CLI Reference &mdash; Compresso Recsys 0.3.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=938c9ccc"></script>
+      <script src="_static/documentation_options.js?v=83a61292"></script>
       <script src="_static/doctools.js?v=fd6eb6e6"></script>
       <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -77,6 +78,18 @@
 <li class="toctree-l2"><a class="reference internal" href="examples.html#train-teaser-with-gradient-descent">Train TEASER with Gradient Descent</a></li>
 <li class="toctree-l2"><a class="reference internal" href="examples.html#serve-new-teaser-candidates">Serve New TEASER Candidates</a></li>
 <li class="toctree-l2"><a class="reference internal" href="examples.html#train-and-evaluate-elsa">Train and Evaluate ELSA</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="bring-your-own-dataset.html">Bringing Your Own Dataset</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="bring-your-own-dataset.html#What-a-dataset-has-to-produce">What a dataset has to produce</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bring-your-own-dataset.html#The-dataset">The dataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bring-your-own-dataset.html#The-dataset-class">The dataset class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bring-your-own-dataset.html#Two-defaults-that-will-empty-your-dataset">Two defaults that will empty your dataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bring-your-own-dataset.html#What-is-in-it">What is in it</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bring-your-own-dataset.html#Does-it-work?">Does it work?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bring-your-own-dataset.html#Cold-items,-for-free">Cold items, for free</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bring-your-own-dataset.html#What-timestamps-would-have-added">What timestamps would have added</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bring-your-own-dataset.html#You-do-not-need-a-dataset-class-at-all">You do not need a dataset class at all</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="statistical-comparison.html">Comparing Models Statistically</a><ul>
@@ -189,45 +202,75 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="api/persistence.html">Fitted Model Persistence</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/persistence.html#embedding-models-in-data-checkpoints">Embedding Models in Data Checkpoints</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/persistence.html#stable-item-ids">Stable Item IDs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/persistence.html#optimizer-state">Optimizer State</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/persistence.html#checkpoint-format">Checkpoint Format</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/persistence.html#compresso_recsys.ModelCheckpointWriter"><code class="docutils literal notranslate"><span class="pre">ModelCheckpointWriter</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/persistence.html#compresso_recsys.ModelCheckpointReader"><code class="docutils literal notranslate"><span class="pre">ModelCheckpointReader</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/persistence.html#extending-persistence">Extending Persistence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/persistence.html#warm-catalog-adapters">Warm Catalog Adapters</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api/sequences.html">Sequences API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/sequences.html#interaction-histories">Interaction Histories</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/sequences.html#compresso_recsys.ItemSequences"><code class="docutils literal notranslate"><span class="pre">ItemSequences</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/sequences.html#compresso_recsys.save_item_sequences"><code class="docutils literal notranslate"><span class="pre">save_item_sequences()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/sequences.html#compresso_recsys.load_item_sequences"><code class="docutils literal notranslate"><span class="pre">load_item_sequences()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/sequences.html#which-split-modes-produce-them">Which Split Modes Produce Them</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="api/models.html">Models API</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="api/models.html#recommender-contract">Recommender Contract</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.Recommender"><code class="docutils literal notranslate"><span class="pre">Recommender</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.ColdStartRecommender"><code class="docutils literal notranslate"><span class="pre">ColdStartRecommender</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.ItemVocabulary"><code class="docutils literal notranslate"><span class="pre">ItemVocabulary</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.SequentialRecommender"><code class="docutils literal notranslate"><span class="pre">SequentialRecommender</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#production-recommendations">Production Recommendations</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.IdentifiedRecommender"><code class="docutils literal notranslate"><span class="pre">IdentifiedRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.Recommendations"><code class="docutils literal notranslate"><span class="pre">Recommendations</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#fitted-model-persistence">Fitted Model Persistence</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.PersistableRecommender"><code class="docutils literal notranslate"><span class="pre">PersistableRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.BasePersistableRecommender"><code class="docutils literal notranslate"><span class="pre">BasePersistableRecommender</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="api/models.html#implementing-new-models">Implementing New Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.BaseIdentifiedRecommender"><code class="docutils literal notranslate"><span class="pre">BaseIdentifiedRecommender</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.BaseCollaborativeRecommender"><code class="docutils literal notranslate"><span class="pre">BaseCollaborativeRecommender</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.BaseColdStartRecommender"><code class="docutils literal notranslate"><span class="pre">BaseColdStartRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.BaseSequentialRecommender"><code class="docutils literal notranslate"><span class="pre">BaseSequentialRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#the-owned-candidate-catalog">The Owned Candidate Catalog</a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/models.html#training-interaction-batches">Training Interaction Batches</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="api/models.html#transductive-models-in-expanding-catalogs">Transductive Models in Expanding Catalogs</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.WarmCatalogAdapter"><code class="docutils literal notranslate"><span class="pre">WarmCatalogAdapter</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#when-to-reach-for-it-outside-temporal">When to Reach for It Outside <code class="docutils literal notranslate"><span class="pre">temporal</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="api/models.html#ease">EASE</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.EASEConfig"><code class="docutils literal notranslate"><span class="pre">EASEConfig</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.EASE"><code class="docutils literal notranslate"><span class="pre">EASE</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#collaborative-filtering-models">Collaborative Filtering Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#ease">EASE</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#elsa">ELSA</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="api/models.html#elsa">ELSA</a></li>
-<li class="toctree-l3"><a class="reference internal" href="api/models.html#contentrecommender">ContentRecommender</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.ContentRecommenderConfig"><code class="docutils literal notranslate"><span class="pre">ContentRecommenderConfig</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.ContentRecommender"><code class="docutils literal notranslate"><span class="pre">ContentRecommender</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#cold-start-models">Cold-Start Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#contentrecommender">ContentRecommender</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#teaser">TEASER</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#teasergd">TEASERGD</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="api/models.html#teaser">TEASER</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.TEASERConfig"><code class="docutils literal notranslate"><span class="pre">TEASERConfig</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.TEASER"><code class="docutils literal notranslate"><span class="pre">TEASER</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.CandidateCatalog"><code class="docutils literal notranslate"><span class="pre">CandidateCatalog</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="api/models.html#teasergd">TEASERGD</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.TEASERGDConfig"><code class="docutils literal notranslate"><span class="pre">TEASERGDConfig</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.TEASERGD"><code class="docutils literal notranslate"><span class="pre">TEASERGD</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.TEASERGDTrainer"><code class="docutils literal notranslate"><span class="pre">TEASERGDTrainer</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="api/models.html#backend-performance">Backend Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#sequential-models">Sequential Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#tokenizing-histories">Tokenizing Histories</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#simplernn">SimpleRNN</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#simplegpt">SimpleGPT</a></li>
 </ul>
 </li>
 </ul>
@@ -300,7 +343,7 @@
       <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
       <li class="breadcrumb-item active">Checkpoint CLI Reference</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="_sources/cli-reference.rst.txt" rel="nofollow"> View page source</a>
+            <a href="_sources/cli-reference.rst" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -337,11 +380,15 @@ configurable metadata fields, so downstream code can encode item descriptions
 consistently.</p>
 <section id="leave-last-out-checkpoint">
 <h3>Leave-Last-Out Checkpoint<a class="headerlink" href="#leave-last-out-checkpoint" title="Link to this heading"></a></h3>
-<p><code class="docutils literal notranslate"><span class="pre">leave_last_out</span></code> is computed locally from timestamps. For every eligible
-user, the latest interaction becomes the target and earlier interactions
-become the source profile. This respects time within each user, but it is not
-globally future-blind because other users may contribute later interactions to
-training.</p>
+<p><code class="docutils literal notranslate"><span class="pre">leave_last_out</span></code> is computed locally from timestamps. Each user’s latest
+interaction is the test target, the one before it the validation target, and the
+one before that the training target; sources are the corresponding prefixes, so
+each stage sees everything up to its own target. A user needs at least four
+interactions to contribute to all three stages.</p>
+<p>The catalog is left whole — nothing is withheld from training merely for being
+someone’s target. This respects time within each user, but it is not globally
+future-blind, because another user’s training interactions may post-date this
+user’s test target.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>compresso-recsys-build-checkpoint<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--dataset<span class="w"> </span>amazon2023<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--amazon_category<span class="w"> </span>Toys_and_Games<span class="w"> </span><span class="se">\</span>
@@ -416,9 +463,9 @@ data/test_item_ids.npy
 <p>Each array defines the columns of both matrices in that split. Temporal item
 spaces are cumulative, so source and target shapes match within a split while
 the number and order of columns may differ between splits.</p>
-<p>For temporal checkpoints, <code class="docutils literal notranslate"><span class="pre">train_item_indices</span></code> maps the training catalog into
-the global <code class="docutils literal notranslate"><span class="pre">item_ids</span></code> array, while <code class="docutils literal notranslate"><span class="pre">val_item_indices</span></code> and
-<code class="docutils literal notranslate"><span class="pre">test_item_indices</span></code> identify items newly admitted in those stages. The
+<p>For temporal checkpoints, <code class="docutils literal notranslate"><span class="pre">warm_item_indices</span></code> maps the training catalog into
+the global <code class="docutils literal notranslate"><span class="pre">item_ids</span></code> array, while <code class="docutils literal notranslate"><span class="pre">val_cold_item_indices</span></code> and
+<code class="docutils literal notranslate"><span class="pre">test_cold_item_indices</span></code> identify items newly admitted in those stages. The
 stage-specific <code class="docutils literal notranslate"><span class="pre">*_item_ids</span></code> arrays, not these index subsets, define matrix
 columns.</p>
 <p>Depending on the split mode, the checkpoint also stores partition ids:</p>
@@ -427,8 +474,8 @@ columns.</p>
 <code class="docutils literal notranslate"><span class="pre">test_user_ids.npy</span></code>. It does not store explicit item partitions; loaders
 treat all items as train items.</p>
 </dd>
-<dt><code class="docutils literal notranslate"><span class="pre">item_split</span></code></dt><dd><p>Stores <code class="docutils literal notranslate"><span class="pre">train_item_indices.npy</span></code>, <code class="docutils literal notranslate"><span class="pre">val_item_indices.npy</span></code>, and
-<code class="docutils literal notranslate"><span class="pre">test_item_indices.npy</span></code>.</p>
+<dt><code class="docutils literal notranslate"><span class="pre">item_split</span></code></dt><dd><p>Stores <code class="docutils literal notranslate"><span class="pre">warm_item_indices.npy</span></code>, <code class="docutils literal notranslate"><span class="pre">val_cold_item_indices.npy</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">test_cold_item_indices.npy</span></code>.</p>
 </dd>
 <dt><code class="docutils literal notranslate"><span class="pre">leave_last_out</span></code></dt><dd><p>Stores source/target matrices built from per-user latest interactions. It is
 chronological per user, but not globally future-blind.</p>

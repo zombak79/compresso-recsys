@@ -8,6 +8,9 @@ reference.
 
 Every function here works on the paired per-user difference between two models
 evaluated on identical users, and requires results carrying per-user values.
+After repeated ``sample_ids`` are grouped, at least two independent users must
+remain; repeated evaluation draws from one user do not provide a variance
+estimate.
 
 Comparison Functions
 --------------------

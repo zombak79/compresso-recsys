@@ -5,16 +5,17 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>compresso_recsys.stats &mdash; Compresso Recsys 0.2.0 documentation</title>
+  <title>compresso_recsys.stats &mdash; Compresso Recsys 0.3.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
 
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=938c9ccc"></script>
+      <script src="../../_static/documentation_options.js?v=83a61292"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" /> 
@@ -74,6 +75,18 @@
 <li class="toctree-l2"><a class="reference internal" href="../../examples.html#train-teaser-with-gradient-descent">Train TEASER with Gradient Descent</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples.html#serve-new-teaser-candidates">Serve New TEASER Candidates</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples.html#train-and-evaluate-elsa">Train and Evaluate ELSA</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../bring-your-own-dataset.html">Bringing Your Own Dataset</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../bring-your-own-dataset.html#What-a-dataset-has-to-produce">What a dataset has to produce</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../bring-your-own-dataset.html#The-dataset">The dataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../bring-your-own-dataset.html#The-dataset-class">The dataset class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../bring-your-own-dataset.html#Two-defaults-that-will-empty-your-dataset">Two defaults that will empty your dataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../bring-your-own-dataset.html#What-is-in-it">What is in it</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../bring-your-own-dataset.html#Does-it-work?">Does it work?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../bring-your-own-dataset.html#Cold-items,-for-free">Cold items, for free</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../bring-your-own-dataset.html#What-timestamps-would-have-added">What timestamps would have added</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../bring-your-own-dataset.html#You-do-not-need-a-dataset-class-at-all">You do not need a dataset class at all</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../statistical-comparison.html">Comparing Models Statistically</a><ul>
@@ -186,45 +199,75 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/persistence.html">Fitted Model Persistence</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/persistence.html#embedding-models-in-data-checkpoints">Embedding Models in Data Checkpoints</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/persistence.html#stable-item-ids">Stable Item IDs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/persistence.html#optimizer-state">Optimizer State</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/persistence.html#checkpoint-format">Checkpoint Format</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/persistence.html#compresso_recsys.ModelCheckpointWriter"><code class="docutils literal notranslate"><span class="pre">ModelCheckpointWriter</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/persistence.html#compresso_recsys.ModelCheckpointReader"><code class="docutils literal notranslate"><span class="pre">ModelCheckpointReader</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/persistence.html#extending-persistence">Extending Persistence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/persistence.html#warm-catalog-adapters">Warm Catalog Adapters</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/sequences.html">Sequences API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/sequences.html#interaction-histories">Interaction Histories</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/sequences.html#compresso_recsys.ItemSequences"><code class="docutils literal notranslate"><span class="pre">ItemSequences</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/sequences.html#compresso_recsys.save_item_sequences"><code class="docutils literal notranslate"><span class="pre">save_item_sequences()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/sequences.html#compresso_recsys.load_item_sequences"><code class="docutils literal notranslate"><span class="pre">load_item_sequences()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/sequences.html#which-split-modes-produce-them">Which Split Modes Produce Them</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/models.html">Models API</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../api/models.html#recommender-contract">Recommender Contract</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.Recommender"><code class="docutils literal notranslate"><span class="pre">Recommender</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.ColdStartRecommender"><code class="docutils literal notranslate"><span class="pre">ColdStartRecommender</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.ItemVocabulary"><code class="docutils literal notranslate"><span class="pre">ItemVocabulary</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.SequentialRecommender"><code class="docutils literal notranslate"><span class="pre">SequentialRecommender</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models.html#production-recommendations">Production Recommendations</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.IdentifiedRecommender"><code class="docutils literal notranslate"><span class="pre">IdentifiedRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.Recommendations"><code class="docutils literal notranslate"><span class="pre">Recommendations</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models.html#fitted-model-persistence">Fitted Model Persistence</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.PersistableRecommender"><code class="docutils literal notranslate"><span class="pre">PersistableRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.BasePersistableRecommender"><code class="docutils literal notranslate"><span class="pre">BasePersistableRecommender</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/models.html#implementing-new-models">Implementing New Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.BaseIdentifiedRecommender"><code class="docutils literal notranslate"><span class="pre">BaseIdentifiedRecommender</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.BaseCollaborativeRecommender"><code class="docutils literal notranslate"><span class="pre">BaseCollaborativeRecommender</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.BaseColdStartRecommender"><code class="docutils literal notranslate"><span class="pre">BaseColdStartRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.BaseSequentialRecommender"><code class="docutils literal notranslate"><span class="pre">BaseSequentialRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#the-owned-candidate-catalog">The Owned Candidate Catalog</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/models.html#training-interaction-batches">Training Interaction Batches</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/models.html#transductive-models-in-expanding-catalogs">Transductive Models in Expanding Catalogs</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.WarmCatalogAdapter"><code class="docutils literal notranslate"><span class="pre">WarmCatalogAdapter</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#when-to-reach-for-it-outside-temporal">When to Reach for It Outside <code class="docutils literal notranslate"><span class="pre">temporal</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/models.html#ease">EASE</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.EASEConfig"><code class="docutils literal notranslate"><span class="pre">EASEConfig</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.EASE"><code class="docutils literal notranslate"><span class="pre">EASE</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models.html#collaborative-filtering-models">Collaborative Filtering Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#ease">EASE</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#elsa">ELSA</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/models.html#elsa">ELSA</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/models.html#contentrecommender">ContentRecommender</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.ContentRecommenderConfig"><code class="docutils literal notranslate"><span class="pre">ContentRecommenderConfig</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.ContentRecommender"><code class="docutils literal notranslate"><span class="pre">ContentRecommender</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models.html#cold-start-models">Cold-Start Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#contentrecommender">ContentRecommender</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#teaser">TEASER</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#teasergd">TEASERGD</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/models.html#teaser">TEASER</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.TEASERConfig"><code class="docutils literal notranslate"><span class="pre">TEASERConfig</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.TEASER"><code class="docutils literal notranslate"><span class="pre">TEASER</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.CandidateCatalog"><code class="docutils literal notranslate"><span class="pre">CandidateCatalog</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/models.html#teasergd">TEASERGD</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.TEASERGDConfig"><code class="docutils literal notranslate"><span class="pre">TEASERGDConfig</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.TEASERGD"><code class="docutils literal notranslate"><span class="pre">TEASERGD</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.TEASERGDTrainer"><code class="docutils literal notranslate"><span class="pre">TEASERGDTrainer</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#backend-performance">Backend Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models.html#sequential-models">Sequential Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#tokenizing-histories">Tokenizing Histories</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#simplernn">SimpleRNN</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#simplegpt">SimpleGPT</a></li>
 </ul>
 </li>
 </ul>
@@ -739,13 +782,16 @@
             <span class="sa">f</span><span class="s2">"per-user arrays for </span><span class="si">{</span><span class="n">metric</span><span class="si">!r}</span><span class="s2"> differ in length: "</span>
             <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> vs </span><span class="si">{</span><span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span>
         <span class="p">)</span>
-    <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">"paired comparison needs at least 2 evaluable samples, got </span><span class="si">{</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span>
-        <span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">y</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()):</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"per-user values for </span><span class="si">{</span><span class="n">metric</span><span class="si">!r}</span><span class="s2"> contain non-finite entries"</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">_unit_codes</span><span class="p">(</span><span class="n">left</span><span class="p">)</span>
+    <span class="n">units</span> <span class="o">=</span> <span class="n">_unit_codes</span><span class="p">(</span><span class="n">left</span><span class="p">)</span>
+    <span class="n">n_units</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">units</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">units</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">n_units</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">"paired comparison needs at least 2 independent units, got "</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">n_units</span><span class="si">}</span><span class="s2"> from </span><span class="si">{</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> evaluable samples"</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">units</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_effective_batch</span><span class="p">(</span><span class="n">requested</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
@@ -991,7 +1037,7 @@
 
         <span class="k">def</span><span class="w"> </span><span class="nf">advance</span><span class="p">(</span><span class="n">fraction</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">nonlocal</span> <span class="n">given</span>
-            <span class="n">step</span> <span class="o">=</span> <span class="n">fraction</span> <span class="o">/</span> <span class="n">passes</span>
+            <span class="n">step</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">fraction</span> <span class="o">/</span> <span class="n">passes</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">given</span><span class="p">))</span>
             <span class="n">given</span> <span class="o">+=</span> <span class="n">step</span>
             <span class="n">progress</span><span class="p">(</span><span class="n">step</span><span class="p">)</span>
 

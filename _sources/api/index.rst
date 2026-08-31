@@ -2,8 +2,8 @@ API Reference
 =============
 
 The API reference documents the public objects exported by
-``compresso_recsys`` and its public dataset, checkpoint, model, retrieval,
-metric, evaluation, and statistics submodules.
+``compresso_recsys`` and its public dataset, checkpoint, sequence, model,
+retrieval, metric, evaluation, and statistics submodules.
 
 .. toctree::
    :maxdepth: 2
@@ -11,6 +11,8 @@ metric, evaluation, and statistics submodules.
    compresso_recsys
    datasets
    checkpoint
+   persistence
+   sequences
    models
    retrieval
    evaluation

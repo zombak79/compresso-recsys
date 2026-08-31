@@ -5,16 +5,17 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>compresso_recsys.retrieval &mdash; Compresso Recsys 0.2.0 documentation</title>
+  <title>compresso_recsys.retrieval &mdash; Compresso Recsys 0.3.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
 
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=938c9ccc"></script>
+      <script src="../../_static/documentation_options.js?v=83a61292"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" /> 
@@ -74,6 +75,18 @@
 <li class="toctree-l2"><a class="reference internal" href="../../examples.html#train-teaser-with-gradient-descent">Train TEASER with Gradient Descent</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples.html#serve-new-teaser-candidates">Serve New TEASER Candidates</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples.html#train-and-evaluate-elsa">Train and Evaluate ELSA</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../bring-your-own-dataset.html">Bringing Your Own Dataset</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../bring-your-own-dataset.html#What-a-dataset-has-to-produce">What a dataset has to produce</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../bring-your-own-dataset.html#The-dataset">The dataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../bring-your-own-dataset.html#The-dataset-class">The dataset class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../bring-your-own-dataset.html#Two-defaults-that-will-empty-your-dataset">Two defaults that will empty your dataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../bring-your-own-dataset.html#What-is-in-it">What is in it</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../bring-your-own-dataset.html#Does-it-work?">Does it work?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../bring-your-own-dataset.html#Cold-items,-for-free">Cold items, for free</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../bring-your-own-dataset.html#What-timestamps-would-have-added">What timestamps would have added</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../bring-your-own-dataset.html#You-do-not-need-a-dataset-class-at-all">You do not need a dataset class at all</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../statistical-comparison.html">Comparing Models Statistically</a><ul>
@@ -186,45 +199,75 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/persistence.html">Fitted Model Persistence</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/persistence.html#embedding-models-in-data-checkpoints">Embedding Models in Data Checkpoints</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/persistence.html#stable-item-ids">Stable Item IDs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/persistence.html#optimizer-state">Optimizer State</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/persistence.html#checkpoint-format">Checkpoint Format</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/persistence.html#compresso_recsys.ModelCheckpointWriter"><code class="docutils literal notranslate"><span class="pre">ModelCheckpointWriter</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/persistence.html#compresso_recsys.ModelCheckpointReader"><code class="docutils literal notranslate"><span class="pre">ModelCheckpointReader</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/persistence.html#extending-persistence">Extending Persistence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/persistence.html#warm-catalog-adapters">Warm Catalog Adapters</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/sequences.html">Sequences API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/sequences.html#interaction-histories">Interaction Histories</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/sequences.html#compresso_recsys.ItemSequences"><code class="docutils literal notranslate"><span class="pre">ItemSequences</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/sequences.html#compresso_recsys.save_item_sequences"><code class="docutils literal notranslate"><span class="pre">save_item_sequences()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/sequences.html#compresso_recsys.load_item_sequences"><code class="docutils literal notranslate"><span class="pre">load_item_sequences()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/sequences.html#which-split-modes-produce-them">Which Split Modes Produce Them</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/models.html">Models API</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../api/models.html#recommender-contract">Recommender Contract</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.Recommender"><code class="docutils literal notranslate"><span class="pre">Recommender</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.ColdStartRecommender"><code class="docutils literal notranslate"><span class="pre">ColdStartRecommender</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.ItemVocabulary"><code class="docutils literal notranslate"><span class="pre">ItemVocabulary</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.SequentialRecommender"><code class="docutils literal notranslate"><span class="pre">SequentialRecommender</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models.html#production-recommendations">Production Recommendations</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.IdentifiedRecommender"><code class="docutils literal notranslate"><span class="pre">IdentifiedRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.Recommendations"><code class="docutils literal notranslate"><span class="pre">Recommendations</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models.html#fitted-model-persistence">Fitted Model Persistence</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.PersistableRecommender"><code class="docutils literal notranslate"><span class="pre">PersistableRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.BasePersistableRecommender"><code class="docutils literal notranslate"><span class="pre">BasePersistableRecommender</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/models.html#implementing-new-models">Implementing New Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.BaseIdentifiedRecommender"><code class="docutils literal notranslate"><span class="pre">BaseIdentifiedRecommender</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.BaseCollaborativeRecommender"><code class="docutils literal notranslate"><span class="pre">BaseCollaborativeRecommender</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.BaseColdStartRecommender"><code class="docutils literal notranslate"><span class="pre">BaseColdStartRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.BaseSequentialRecommender"><code class="docutils literal notranslate"><span class="pre">BaseSequentialRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#the-owned-candidate-catalog">The Owned Candidate Catalog</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/models.html#training-interaction-batches">Training Interaction Batches</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/models.html#transductive-models-in-expanding-catalogs">Transductive Models in Expanding Catalogs</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.WarmCatalogAdapter"><code class="docutils literal notranslate"><span class="pre">WarmCatalogAdapter</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#when-to-reach-for-it-outside-temporal">When to Reach for It Outside <code class="docutils literal notranslate"><span class="pre">temporal</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/models.html#ease">EASE</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.EASEConfig"><code class="docutils literal notranslate"><span class="pre">EASEConfig</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.EASE"><code class="docutils literal notranslate"><span class="pre">EASE</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models.html#collaborative-filtering-models">Collaborative Filtering Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#ease">EASE</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#elsa">ELSA</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/models.html#elsa">ELSA</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/models.html#contentrecommender">ContentRecommender</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.ContentRecommenderConfig"><code class="docutils literal notranslate"><span class="pre">ContentRecommenderConfig</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.ContentRecommender"><code class="docutils literal notranslate"><span class="pre">ContentRecommender</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models.html#cold-start-models">Cold-Start Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#contentrecommender">ContentRecommender</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#teaser">TEASER</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#teasergd">TEASERGD</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/models.html#teaser">TEASER</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.TEASERConfig"><code class="docutils literal notranslate"><span class="pre">TEASERConfig</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.TEASER"><code class="docutils literal notranslate"><span class="pre">TEASER</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.CandidateCatalog"><code class="docutils literal notranslate"><span class="pre">CandidateCatalog</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/models.html#teasergd">TEASERGD</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.TEASERGDConfig"><code class="docutils literal notranslate"><span class="pre">TEASERGDConfig</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.TEASERGD"><code class="docutils literal notranslate"><span class="pre">TEASERGD</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.TEASERGDTrainer"><code class="docutils literal notranslate"><span class="pre">TEASERGDTrainer</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#backend-performance">Backend Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models.html#sequential-models">Sequential Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#tokenizing-histories">Tokenizing Histories</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#simplernn">SimpleRNN</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#simplegpt">SimpleGPT</a></li>
 </ul>
 </li>
 </ul>
@@ -582,16 +625,26 @@
 
 
 
-<div class="viewcode-block" id="build_leave_last_out_holdout">
-<a class="viewcode-back" href="../../api/retrieval.html#compresso_recsys.retrieval.build_leave_last_out_holdout">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">build_leave_last_out_holdout</span><span class="p">(</span>
+<span class="c1">#: Stages of the leave-last-out protocol, oldest target first.</span>
+<span class="n">LEAVE_LAST_OUT_STAGES</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"train"</span><span class="p">,</span> <span class="s2">"val"</span><span class="p">,</span> <span class="s2">"test"</span><span class="p">)</span>
+
+<span class="c1">#: A user needs one source item plus one target for each of the three stages.</span>
+<span class="n">LEAVE_LAST_OUT_MIN_HISTORY</span> <span class="o">=</span> <span class="mi">4</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">leave_last_out_histories</span><span class="p">(</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">item_ids</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Index</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
     <span class="n">interactions</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
-    <span class="n">min_source_items</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
-    <span class="n">min_target_items</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">"""Build per-user source/target by holding out each user's latest interaction."""</span>
+    <span class="n">min_history</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">LEAVE_LAST_OUT_MIN_HISTORY</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Per-user chronological catalog indices, oldest first, duplicates kept.</span>
+
+<span class="sd">    The ordering is the whole point: every stage below is a prefix of it, and</span>
+<span class="sd">    collapsing to a set here would make the sequential views of §9 impossible to</span>
+<span class="sd">    recover. Users with fewer than ``min_history`` interactions are dropped,</span>
+<span class="sd">    since the protocol needs one source item and three targets.</span>
+<span class="sd">    """</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item_ids</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Index</span><span class="p">):</span>
         <span class="n">item_ids_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">item_ids</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">))</span>
     <span class="k">else</span><span class="p">:</span>
@@ -607,26 +660,101 @@
     <span class="n">df</span><span class="p">[</span><span class="s2">"timestamp"</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">"timestamp"</span><span class="p">],</span> <span class="n">errors</span><span class="o">=</span><span class="s2">"coerce"</span><span class="p">)</span>
     <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">dropna</span><span class="p">(</span><span class="n">subset</span><span class="o">=</span><span class="p">[</span><span class="s2">"timestamp"</span><span class="p">])</span>
 
+    <span class="n">histories</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">user_ids</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">user_id</span><span class="p">,</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s2">"timestamp"</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s2">"stable"</span><span class="p">)</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span>
+        <span class="s2">"user_id"</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">group</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">min_history</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">histories</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">fromiter</span><span class="p">(</span>
+                <span class="p">(</span><span class="n">item_to_idx</span><span class="p">[</span><span class="n">item</span><span class="p">]</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">group</span><span class="p">[</span><span class="s2">"item_id"</span><span class="p">]),</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span>
+                <span class="n">count</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">group</span><span class="p">),</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">user_ids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">user_id</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">histories</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">user_ids</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">str</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">leave_last_out_stage_slices</span><span class="p">(</span><span class="n">history</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">stage</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Source and target catalog indices for one stage of one user's history.</span>
+
+<span class="sd">    For ``[1, 2, 3, 4, 5, 6, 7]``::</span>
+
+<span class="sd">        train   source [1,2,3,4]      target [5]</span>
+<span class="sd">        val     source [1,2,3,4,5]    target [6]</span>
+<span class="sd">        test    source [1,2,3,4,5,6]  target [7]</span>
+
+<span class="sd">    Items 6 and 7 are withheld from training; item 5 is not — it is the target of</span>
+<span class="sd">    the training pair, and ``x_train`` is the union of that pair. So two items</span>
+<span class="sd">    per user are held out of training, matching the sequential literature.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">stage</span> <span class="o">==</span> <span class="s2">"train"</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">history</span><span class="p">[:</span><span class="o">-</span><span class="mi">3</span><span class="p">],</span> <span class="n">history</span><span class="p">[</span><span class="o">-</span><span class="mi">3</span><span class="p">:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">stage</span> <span class="o">==</span> <span class="s2">"val"</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">history</span><span class="p">[:</span><span class="o">-</span><span class="mi">2</span><span class="p">],</span> <span class="n">history</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">stage</span> <span class="o">==</span> <span class="s2">"test"</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">history</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">history</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">:]</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"unknown leave_last_out stage: </span><span class="si">{</span><span class="n">stage</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="build_leave_last_out_holdout">
+<a class="viewcode-back" href="../../api/retrieval.html#compresso_recsys.retrieval.build_leave_last_out_holdout">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">build_leave_last_out_holdout</span><span class="p">(</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">item_ids</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Index</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">interactions</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+    <span class="n">stage</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"test"</span><span class="p">,</span>
+    <span class="n">min_history</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">LEAVE_LAST_OUT_MIN_HISTORY</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Build one stage of the leave-last-out holdout.</span>
+
+<span class="sd">    Each user's chronologically last interaction is the test target, the one</span>
+<span class="sd">    before it the validation target, and the one before that the training</span>
+<span class="sd">    target. Sources are the corresponding prefixes, so each stage's source is</span>
+<span class="sd">    the previous stage's source plus the previous stage's target.</span>
+
+<span class="sd">    Nothing is removed from the catalog. An item is absent from training only</span>
+<span class="sd">    when every one of its occurrences happens to fall in a held-out tail, which</span>
+<span class="sd">    is a property of the data rather than something this function imposes.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">stage</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">LEAVE_LAST_OUT_STAGES</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"stage must be one of </span><span class="si">{</span><span class="n">LEAVE_LAST_OUT_STAGES</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">stage</span><span class="si">!r}</span><span class="s2">"</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="n">min_history</span> <span class="o">&lt;</span> <span class="n">LEAVE_LAST_OUT_MIN_HISTORY</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"min_history must be &gt;= </span><span class="si">{</span><span class="n">LEAVE_LAST_OUT_MIN_HISTORY</span><span class="si">}</span><span class="s2"> so every stage "</span>
+            <span class="sa">f</span><span class="s2">"has a non-empty source and target, got </span><span class="si">{</span><span class="n">min_history</span><span class="si">!r}</span><span class="s2">"</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item_ids</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Index</span><span class="p">):</span>
+        <span class="n">item_ids_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">item_ids</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">item_ids_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">item_ids</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span>
+
+    <span class="n">histories</span><span class="p">,</span> <span class="n">user_ids</span> <span class="o">=</span> <span class="n">leave_last_out_histories</span><span class="p">(</span>
+        <span class="n">item_ids</span><span class="o">=</span><span class="n">item_ids_arr</span><span class="p">,</span>
+        <span class="n">interactions</span><span class="o">=</span><span class="n">interactions</span><span class="p">,</span>
+        <span class="n">min_history</span><span class="o">=</span><span class="n">min_history</span><span class="p">,</span>
+    <span class="p">)</span>
     <span class="n">source_indices</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">target_indices</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="n">user_ids</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s2">"timestamp"</span><span class="p">)</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"user_id"</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-        <span class="n">items</span> <span class="o">=</span> <span class="n">g</span><span class="p">[</span><span class="s2">"item_id"</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">items</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">min_source_items</span> <span class="o">+</span> <span class="n">min_target_items</span><span class="p">:</span>
-            <span class="k">continue</span>
-        <span class="n">target_item</span> <span class="o">=</span> <span class="n">items</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-        <span class="n">source</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">({</span><span class="n">item_to_idx</span><span class="p">[</span><span class="n">item</span><span class="p">]</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">items</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]})</span>
-        <span class="n">target</span> <span class="o">=</span> <span class="p">[</span><span class="n">item_to_idx</span><span class="p">[</span><span class="n">target_item</span><span class="p">]]</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">source</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">min_source_items</span><span class="p">:</span>
-            <span class="n">source_indices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">))</span>
-            <span class="n">target_indices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">))</span>
-            <span class="n">user_ids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">g</span><span class="p">[</span><span class="s2">"user_id"</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+    <span class="k">for</span> <span class="n">history</span> <span class="ow">in</span> <span class="n">histories</span><span class="p">:</span>
+        <span class="n">source</span><span class="p">,</span> <span class="n">target</span> <span class="o">=</span> <span class="n">leave_last_out_stage_slices</span><span class="p">(</span><span class="n">history</span><span class="p">,</span> <span class="n">stage</span><span class="p">)</span>
+        <span class="c1"># The matrix view is a set of items; order and duplicates belong to the</span>
+        <span class="c1"># sequence view, which reads the same histories.</span>
+        <span class="n">source_indices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">source</span><span class="p">))</span>
+        <span class="n">target_indices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">target</span><span class="p">))</span>
 
     <span class="k">return</span> <span class="p">{</span>
         <span class="s2">"item_ids"</span><span class="p">:</span> <span class="n">item_ids_arr</span><span class="p">,</span>
         <span class="s2">"source_indices"</span><span class="p">:</span> <span class="n">source_indices</span><span class="p">,</span>
         <span class="s2">"target_indices"</span><span class="p">:</span> <span class="n">target_indices</span><span class="p">,</span>
-        <span class="s2">"user_ids"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">user_ids</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">str</span><span class="p">),</span>
+        <span class="s2">"user_ids"</span><span class="p">:</span> <span class="n">user_ids</span><span class="p">,</span>
     <span class="p">}</span></div>
 
 

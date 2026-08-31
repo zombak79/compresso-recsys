@@ -5,16 +5,17 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>compresso_recsys.evaluation &mdash; Compresso Recsys 0.2.0 documentation</title>
+  <title>compresso_recsys.evaluation &mdash; Compresso Recsys 0.3.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
 
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=938c9ccc"></script>
+      <script src="../../_static/documentation_options.js?v=83a61292"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" /> 
@@ -74,6 +75,18 @@
 <li class="toctree-l2"><a class="reference internal" href="../../examples.html#train-teaser-with-gradient-descent">Train TEASER with Gradient Descent</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples.html#serve-new-teaser-candidates">Serve New TEASER Candidates</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples.html#train-and-evaluate-elsa">Train and Evaluate ELSA</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../bring-your-own-dataset.html">Bringing Your Own Dataset</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../bring-your-own-dataset.html#What-a-dataset-has-to-produce">What a dataset has to produce</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../bring-your-own-dataset.html#The-dataset">The dataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../bring-your-own-dataset.html#The-dataset-class">The dataset class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../bring-your-own-dataset.html#Two-defaults-that-will-empty-your-dataset">Two defaults that will empty your dataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../bring-your-own-dataset.html#What-is-in-it">What is in it</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../bring-your-own-dataset.html#Does-it-work?">Does it work?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../bring-your-own-dataset.html#Cold-items,-for-free">Cold items, for free</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../bring-your-own-dataset.html#What-timestamps-would-have-added">What timestamps would have added</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../bring-your-own-dataset.html#You-do-not-need-a-dataset-class-at-all">You do not need a dataset class at all</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../statistical-comparison.html">Comparing Models Statistically</a><ul>
@@ -186,45 +199,75 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/persistence.html">Fitted Model Persistence</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/persistence.html#embedding-models-in-data-checkpoints">Embedding Models in Data Checkpoints</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/persistence.html#stable-item-ids">Stable Item IDs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/persistence.html#optimizer-state">Optimizer State</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/persistence.html#checkpoint-format">Checkpoint Format</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/persistence.html#compresso_recsys.ModelCheckpointWriter"><code class="docutils literal notranslate"><span class="pre">ModelCheckpointWriter</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/persistence.html#compresso_recsys.ModelCheckpointReader"><code class="docutils literal notranslate"><span class="pre">ModelCheckpointReader</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/persistence.html#extending-persistence">Extending Persistence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/persistence.html#warm-catalog-adapters">Warm Catalog Adapters</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/sequences.html">Sequences API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/sequences.html#interaction-histories">Interaction Histories</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/sequences.html#compresso_recsys.ItemSequences"><code class="docutils literal notranslate"><span class="pre">ItemSequences</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/sequences.html#compresso_recsys.save_item_sequences"><code class="docutils literal notranslate"><span class="pre">save_item_sequences()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/sequences.html#compresso_recsys.load_item_sequences"><code class="docutils literal notranslate"><span class="pre">load_item_sequences()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/sequences.html#which-split-modes-produce-them">Which Split Modes Produce Them</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/models.html">Models API</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../api/models.html#recommender-contract">Recommender Contract</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.Recommender"><code class="docutils literal notranslate"><span class="pre">Recommender</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.ColdStartRecommender"><code class="docutils literal notranslate"><span class="pre">ColdStartRecommender</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.ItemVocabulary"><code class="docutils literal notranslate"><span class="pre">ItemVocabulary</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.SequentialRecommender"><code class="docutils literal notranslate"><span class="pre">SequentialRecommender</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models.html#production-recommendations">Production Recommendations</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.IdentifiedRecommender"><code class="docutils literal notranslate"><span class="pre">IdentifiedRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.Recommendations"><code class="docutils literal notranslate"><span class="pre">Recommendations</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models.html#fitted-model-persistence">Fitted Model Persistence</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.PersistableRecommender"><code class="docutils literal notranslate"><span class="pre">PersistableRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.BasePersistableRecommender"><code class="docutils literal notranslate"><span class="pre">BasePersistableRecommender</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/models.html#implementing-new-models">Implementing New Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.BaseIdentifiedRecommender"><code class="docutils literal notranslate"><span class="pre">BaseIdentifiedRecommender</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.BaseCollaborativeRecommender"><code class="docutils literal notranslate"><span class="pre">BaseCollaborativeRecommender</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.BaseColdStartRecommender"><code class="docutils literal notranslate"><span class="pre">BaseColdStartRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.BaseSequentialRecommender"><code class="docutils literal notranslate"><span class="pre">BaseSequentialRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#the-owned-candidate-catalog">The Owned Candidate Catalog</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/models.html#training-interaction-batches">Training Interaction Batches</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/models.html#transductive-models-in-expanding-catalogs">Transductive Models in Expanding Catalogs</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.WarmCatalogAdapter"><code class="docutils literal notranslate"><span class="pre">WarmCatalogAdapter</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#when-to-reach-for-it-outside-temporal">When to Reach for It Outside <code class="docutils literal notranslate"><span class="pre">temporal</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/models.html#ease">EASE</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.EASEConfig"><code class="docutils literal notranslate"><span class="pre">EASEConfig</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.EASE"><code class="docutils literal notranslate"><span class="pre">EASE</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models.html#collaborative-filtering-models">Collaborative Filtering Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#ease">EASE</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#elsa">ELSA</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/models.html#elsa">ELSA</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/models.html#contentrecommender">ContentRecommender</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.ContentRecommenderConfig"><code class="docutils literal notranslate"><span class="pre">ContentRecommenderConfig</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.ContentRecommender"><code class="docutils literal notranslate"><span class="pre">ContentRecommender</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models.html#cold-start-models">Cold-Start Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#contentrecommender">ContentRecommender</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#teaser">TEASER</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#teasergd">TEASERGD</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/models.html#teaser">TEASER</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.TEASERConfig"><code class="docutils literal notranslate"><span class="pre">TEASERConfig</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.TEASER"><code class="docutils literal notranslate"><span class="pre">TEASER</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.CandidateCatalog"><code class="docutils literal notranslate"><span class="pre">CandidateCatalog</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/models.html#teasergd">TEASERGD</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.TEASERGDConfig"><code class="docutils literal notranslate"><span class="pre">TEASERGDConfig</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.TEASERGD"><code class="docutils literal notranslate"><span class="pre">TEASERGD</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.TEASERGDTrainer"><code class="docutils literal notranslate"><span class="pre">TEASERGDTrainer</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#backend-performance">Backend Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models.html#sequential-models">Sequential Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#tokenizing-histories">Tokenizing Histories</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#simplernn">SimpleRNN</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#simplegpt">SimpleGPT</a></li>
 </ul>
 </li>
 </ul>
@@ -312,7 +355,7 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Sequence</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Literal</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">overload</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
@@ -320,7 +363,8 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">compresso</span><span class="w"> </span><span class="kn">import</span> <span class="n">SRPTensor</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">CalibratedRecall</span><span class="p">,</span> <span class="n">NDCG</span><span class="p">,</span> <span class="n">RankingBatch</span><span class="p">,</span> <span class="n">RankingMetric</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Recommender</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Recommender</span><span class="p">,</span> <span class="n">SequentialRecommender</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.sequences</span><span class="w"> </span><span class="kn">import</span> <span class="n">ItemSequences</span>
 
 <span class="n">MatchBackend</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"auto"</span><span class="p">,</span> <span class="s2">"dense"</span><span class="p">,</span> <span class="s2">"searchsorted"</span><span class="p">]</span>
 
@@ -341,6 +385,39 @@
 <span class="sd">    values are, would reach out and freeze the caller's own array.</span>
 <span class="sd">    """</span>
     <span class="k">return</span> <span class="n">array</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span> <span class="k">if</span> <span class="n">array</span> <span class="ow">is</span> <span class="n">source</span> <span class="k">else</span> <span class="n">array</span>
+
+
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">_CsrRowBatches</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Adapts a CSR source to the row-batching contract sequences already meet.</span>
+
+<span class="sd">    Evaluation only ever asks a source two things: how many rows it has, and give</span>
+<span class="sd">    me rows ``start:stop``. :class:`~compresso_recsys.sequences.ItemSequences`</span>
+<span class="sd">    answers both natively; ``csr_matrix`` answers them under different names. One</span>
+<span class="sd">    adapter here keeps the batching loop written once, so a third source type</span>
+<span class="sd">    means teaching :func:`_as_row_batches` rather than editing the loop.</span>
+<span class="sd">    """</span>
+
+    <span class="n">matrix</span><span class="p">:</span> <span class="n">csr_matrix</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">n_rows</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">matrix</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">take_rows</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">stop</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">csr_matrix</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">matrix</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">stop</span><span class="p">]</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_as_row_batches</span><span class="p">(</span><span class="n">source</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Return ``source`` in a form that can report and slice its own rows."""</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">ItemSequences</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">source</span>
+    <span class="k">if</span> <span class="n">isspmatrix_csr</span><span class="p">(</span><span class="n">source</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">_CsrRowBatches</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>
+    <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+        <span class="s2">"source must be a scipy.sparse.csr_matrix or an ItemSequences, got "</span>
+        <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">source</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">"</span>
+    <span class="p">)</span>
 
 
 <span class="k">class</span><span class="w"> </span><span class="nc">_TargetFingerprint</span><span class="p">:</span>
@@ -1047,12 +1124,52 @@
 
 
 
-<div class="viewcode-block" id="evaluate_recommender">
-<a class="viewcode-back" href="../../api/evaluation.html#compresso_recsys.evaluation.evaluate_recommender">[docs]</a>
+<span class="nd">@overload</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">evaluate_recommender</span><span class="p">(</span>
     <span class="n">model</span><span class="p">:</span> <span class="n">Recommender</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">source</span><span class="p">:</span> <span class="n">csr_matrix</span><span class="p">,</span>
+    <span class="n">targets</span><span class="p">:</span> <span class="n">csr_matrix</span><span class="p">,</span>
+    <span class="n">metrics</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">RankingMetric</span><span class="p">],</span>
+    <span class="n">sample_ids</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">collect_per_user</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">metadata</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1024</span><span class="p">,</span>
+    <span class="n">match_backend</span><span class="p">:</span> <span class="n">MatchBackend</span> <span class="o">=</span> <span class="s2">"auto"</span><span class="p">,</span>
+    <span class="n">max_dense_cells</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">20_000_000</span><span class="p">,</span>
+    <span class="n">validate_predictions</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">debug</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">debug_users</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
+    <span class="n">show_progress</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EvaluationResult</span><span class="p">:</span> <span class="o">...</span>
+
+
+<span class="nd">@overload</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">evaluate_recommender</span><span class="p">(</span>
+    <span class="n">model</span><span class="p">:</span> <span class="n">SequentialRecommender</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">source</span><span class="p">:</span> <span class="n">ItemSequences</span><span class="p">,</span>
+    <span class="n">targets</span><span class="p">:</span> <span class="n">csr_matrix</span><span class="p">,</span>
+    <span class="n">metrics</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">RankingMetric</span><span class="p">],</span>
+    <span class="n">sample_ids</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">collect_per_user</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">metadata</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1024</span><span class="p">,</span>
+    <span class="n">match_backend</span><span class="p">:</span> <span class="n">MatchBackend</span> <span class="o">=</span> <span class="s2">"auto"</span><span class="p">,</span>
+    <span class="n">max_dense_cells</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">20_000_000</span><span class="p">,</span>
+    <span class="n">validate_predictions</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">debug</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">debug_users</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
+    <span class="n">show_progress</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EvaluationResult</span><span class="p">:</span> <span class="o">...</span>
+
+
+<div class="viewcode-block" id="evaluate_recommender">
+<a class="viewcode-back" href="../../api/evaluation.html#compresso_recsys.evaluation.evaluate_recommender">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">evaluate_recommender</span><span class="p">(</span>
+    <span class="n">model</span><span class="p">:</span> <span class="n">Recommender</span> <span class="o">|</span> <span class="n">SequentialRecommender</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">source</span><span class="p">:</span> <span class="n">csr_matrix</span> <span class="o">|</span> <span class="n">ItemSequences</span><span class="p">,</span>
     <span class="n">targets</span><span class="p">:</span> <span class="n">csr_matrix</span><span class="p">,</span>
     <span class="n">metrics</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">RankingMetric</span><span class="p">],</span>
     <span class="n">sample_ids</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1073,15 +1190,21 @@
 <span class="sd">    and each prediction batch is immediately sent to :class:`RankingEvaluator`.</span>
 <span class="sd">    Source and target column counts may differ: source columns describe the</span>
 <span class="sd">    model's history vocabulary, while target columns describe its candidates.</span>
+
+<span class="sd">    ``source`` may be a ``csr_matrix`` of interactions or an</span>
+<span class="sd">    :class:`~compresso_recsys.sequences.ItemSequences` of chronological</span>
+<span class="sd">    histories, matching whichever the model reads. Only the row count has to</span>
+<span class="sd">    agree with ``targets``; nothing downstream of ``predict_on_batch`` knows or</span>
+<span class="sd">    cares which was given, which is why sequential and matrix models can be</span>
+<span class="sd">    compared against each other with no statistics-side changes.</span>
 <span class="sd">    """</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">Recommender</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="n">Recommender</span><span class="p">,</span> <span class="n">SequentialRecommender</span><span class="p">)):</span>
         <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">"model must implement predict_on_batch(source, *, k)"</span><span class="p">)</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">isspmatrix_csr</span><span class="p">(</span><span class="n">source</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">"source must be a scipy.sparse.csr_matrix"</span><span class="p">)</span>
+    <span class="n">batches</span> <span class="o">=</span> <span class="n">_as_row_batches</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>
     <span class="n">targets</span> <span class="o">=</span> <span class="n">_canonical_csr</span><span class="p">(</span><span class="n">targets</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">targets</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+    <span class="k">if</span> <span class="n">batches</span><span class="o">.</span><span class="n">n_rows</span> <span class="o">!=</span> <span class="n">targets</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">"source rows (</span><span class="si">{</span><span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">) must match target rows "</span>
+            <span class="sa">f</span><span class="s2">"source rows (</span><span class="si">{</span><span class="n">batches</span><span class="o">.</span><span class="n">n_rows</span><span class="si">}</span><span class="s2">) must match target rows "</span>
             <span class="sa">f</span><span class="s2">"(</span><span class="si">{</span><span class="n">targets</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">)"</span>
         <span class="p">)</span>
     <span class="k">if</span> <span class="n">batch_size</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
@@ -1097,16 +1220,16 @@
         <span class="n">debug</span><span class="o">=</span><span class="n">debug</span><span class="p">,</span>
         <span class="n">debug_users</span><span class="o">=</span><span class="n">debug_users</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="n">resolved_ids</span> <span class="o">=</span> <span class="n">_canonical_sample_ids</span><span class="p">(</span><span class="n">sample_ids</span><span class="p">,</span> <span class="n">n_rows</span><span class="o">=</span><span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-    <span class="n">starts</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">batch_size</span><span class="p">)</span>
+    <span class="n">resolved_ids</span> <span class="o">=</span> <span class="n">_canonical_sample_ids</span><span class="p">(</span><span class="n">sample_ids</span><span class="p">,</span> <span class="n">n_rows</span><span class="o">=</span><span class="n">batches</span><span class="o">.</span><span class="n">n_rows</span><span class="p">)</span>
+    <span class="n">starts</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">batches</span><span class="o">.</span><span class="n">n_rows</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">start</span> <span class="ow">in</span> <span class="n">_progress</span><span class="p">(</span>
         <span class="n">starts</span><span class="p">,</span>
         <span class="n">enabled</span><span class="o">=</span><span class="n">show_progress</span><span class="p">,</span>
         <span class="n">desc</span><span class="o">=</span><span class="sa">f</span><span class="s2">"evaluate recommender@</span><span class="si">{</span><span class="n">evaluator</span><span class="o">.</span><span class="n">required_k</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="n">end</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">start</span> <span class="o">+</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">end</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">start</span> <span class="o">+</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">batches</span><span class="o">.</span><span class="n">n_rows</span><span class="p">)</span>
         <span class="n">predictions</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict_on_batch</span><span class="p">(</span>
-            <span class="n">source</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">],</span>
+            <span class="n">batches</span><span class="o">.</span><span class="n">take_rows</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">),</span>
             <span class="n">k</span><span class="o">=</span><span class="n">evaluator</span><span class="o">.</span><span class="n">required_k</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">evaluator</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>

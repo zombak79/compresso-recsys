@@ -78,7 +78,7 @@ The dataset builder writes one portable ZIP file. The core split contains:
   list-of-index views of the same validation/test holdouts
 * ``train_user_ids`` and ``val_eval_user_ids`` / ``test_eval_user_ids`` when
   user ids are meaningful for the split
-* ``train_item_indices`` / ``val_item_indices`` / ``test_item_indices`` when
+* ``warm_item_indices`` / ``val_cold_item_indices`` / ``test_cold_item_indices`` when
   the protocol partitions items, especially for cold-item experiments
 * optional ``entity_metadata``, ``entity_tag_matrix``, and ``tag_names``
 
@@ -101,7 +101,7 @@ Split Modes
 
 ``item_split``
    Holds out cold validation/test items. Downstream embedding stages should fit
-   only on ``train_item_indices`` and then transform all items before
+   only on ``warm_item_indices`` and then transform all items before
    evaluation. The checkpoint stores item partitions rather than user
    partitions.
 

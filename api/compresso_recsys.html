@@ -6,16 +6,17 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Core API &mdash; Compresso Recsys 0.2.0 documentation</title>
+  <title>Core API &mdash; Compresso Recsys 0.3.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
 
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=938c9ccc"></script>
+      <script src="../_static/documentation_options.js?v=83a61292"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -77,6 +78,18 @@
 <li class="toctree-l2"><a class="reference internal" href="../examples.html#train-teaser-with-gradient-descent">Train TEASER with Gradient Descent</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../examples.html#serve-new-teaser-candidates">Serve New TEASER Candidates</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../examples.html#train-and-evaluate-elsa">Train and Evaluate ELSA</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../bring-your-own-dataset.html">Bringing Your Own Dataset</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../bring-your-own-dataset.html#What-a-dataset-has-to-produce">What a dataset has to produce</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../bring-your-own-dataset.html#The-dataset">The dataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../bring-your-own-dataset.html#The-dataset-class">The dataset class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../bring-your-own-dataset.html#Two-defaults-that-will-empty-your-dataset">Two defaults that will empty your dataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../bring-your-own-dataset.html#What-is-in-it">What is in it</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../bring-your-own-dataset.html#Does-it-work?">Does it work?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../bring-your-own-dataset.html#Cold-items,-for-free">Cold items, for free</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../bring-your-own-dataset.html#What-timestamps-would-have-added">What timestamps would have added</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../bring-your-own-dataset.html#You-do-not-need-a-dataset-class-at-all">You do not need a dataset class at all</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../statistical-comparison.html">Comparing Models Statistically</a><ul>
@@ -189,45 +202,75 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="persistence.html">Fitted Model Persistence</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="persistence.html#embedding-models-in-data-checkpoints">Embedding Models in Data Checkpoints</a></li>
+<li class="toctree-l3"><a class="reference internal" href="persistence.html#stable-item-ids">Stable Item IDs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="persistence.html#optimizer-state">Optimizer State</a></li>
+<li class="toctree-l3"><a class="reference internal" href="persistence.html#checkpoint-format">Checkpoint Format</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="persistence.html#compresso_recsys.ModelCheckpointWriter"><code class="docutils literal notranslate"><span class="pre">ModelCheckpointWriter</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="persistence.html#compresso_recsys.ModelCheckpointReader"><code class="docutils literal notranslate"><span class="pre">ModelCheckpointReader</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="persistence.html#extending-persistence">Extending Persistence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="persistence.html#warm-catalog-adapters">Warm Catalog Adapters</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="sequences.html">Sequences API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="sequences.html#interaction-histories">Interaction Histories</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="sequences.html#compresso_recsys.ItemSequences"><code class="docutils literal notranslate"><span class="pre">ItemSequences</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="sequences.html#compresso_recsys.save_item_sequences"><code class="docutils literal notranslate"><span class="pre">save_item_sequences()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="sequences.html#compresso_recsys.load_item_sequences"><code class="docutils literal notranslate"><span class="pre">load_item_sequences()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="sequences.html#which-split-modes-produce-them">Which Split Modes Produce Them</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="models.html">Models API</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="models.html#recommender-contract">Recommender Contract</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.Recommender"><code class="docutils literal notranslate"><span class="pre">Recommender</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.ColdStartRecommender"><code class="docutils literal notranslate"><span class="pre">ColdStartRecommender</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.ItemVocabulary"><code class="docutils literal notranslate"><span class="pre">ItemVocabulary</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.SequentialRecommender"><code class="docutils literal notranslate"><span class="pre">SequentialRecommender</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="models.html#production-recommendations">Production Recommendations</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.IdentifiedRecommender"><code class="docutils literal notranslate"><span class="pre">IdentifiedRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.Recommendations"><code class="docutils literal notranslate"><span class="pre">Recommendations</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="models.html#fitted-model-persistence">Fitted Model Persistence</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.PersistableRecommender"><code class="docutils literal notranslate"><span class="pre">PersistableRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.BasePersistableRecommender"><code class="docutils literal notranslate"><span class="pre">BasePersistableRecommender</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="models.html#implementing-new-models">Implementing New Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.BaseIdentifiedRecommender"><code class="docutils literal notranslate"><span class="pre">BaseIdentifiedRecommender</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.BaseCollaborativeRecommender"><code class="docutils literal notranslate"><span class="pre">BaseCollaborativeRecommender</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.BaseColdStartRecommender"><code class="docutils literal notranslate"><span class="pre">BaseColdStartRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.BaseSequentialRecommender"><code class="docutils literal notranslate"><span class="pre">BaseSequentialRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="models.html#the-owned-candidate-catalog">The Owned Candidate Catalog</a></li>
 <li class="toctree-l4"><a class="reference internal" href="models.html#training-interaction-batches">Training Interaction Batches</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="models.html#transductive-models-in-expanding-catalogs">Transductive Models in Expanding Catalogs</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.WarmCatalogAdapter"><code class="docutils literal notranslate"><span class="pre">WarmCatalogAdapter</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="models.html#when-to-reach-for-it-outside-temporal">When to Reach for It Outside <code class="docutils literal notranslate"><span class="pre">temporal</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="models.html#ease">EASE</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.EASEConfig"><code class="docutils literal notranslate"><span class="pre">EASEConfig</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.EASE"><code class="docutils literal notranslate"><span class="pre">EASE</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="models.html#collaborative-filtering-models">Collaborative Filtering Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="models.html#ease">EASE</a></li>
+<li class="toctree-l4"><a class="reference internal" href="models.html#elsa">ELSA</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="models.html#elsa">ELSA</a></li>
-<li class="toctree-l3"><a class="reference internal" href="models.html#contentrecommender">ContentRecommender</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.ContentRecommenderConfig"><code class="docutils literal notranslate"><span class="pre">ContentRecommenderConfig</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.ContentRecommender"><code class="docutils literal notranslate"><span class="pre">ContentRecommender</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="models.html#cold-start-models">Cold-Start Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="models.html#contentrecommender">ContentRecommender</a></li>
+<li class="toctree-l4"><a class="reference internal" href="models.html#teaser">TEASER</a></li>
+<li class="toctree-l4"><a class="reference internal" href="models.html#teasergd">TEASERGD</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="models.html#teaser">TEASER</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.TEASERConfig"><code class="docutils literal notranslate"><span class="pre">TEASERConfig</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.TEASER"><code class="docutils literal notranslate"><span class="pre">TEASER</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.CandidateCatalog"><code class="docutils literal notranslate"><span class="pre">CandidateCatalog</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="models.html#teasergd">TEASERGD</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.TEASERGDConfig"><code class="docutils literal notranslate"><span class="pre">TEASERGDConfig</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.TEASERGD"><code class="docutils literal notranslate"><span class="pre">TEASERGD</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.TEASERGDTrainer"><code class="docutils literal notranslate"><span class="pre">TEASERGDTrainer</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="models.html#backend-performance">Backend Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="models.html#sequential-models">Sequential Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="models.html#tokenizing-histories">Tokenizing Histories</a></li>
+<li class="toctree-l4"><a class="reference internal" href="models.html#simplernn">SimpleRNN</a></li>
+<li class="toctree-l4"><a class="reference internal" href="models.html#simplegpt">SimpleGPT</a></li>
 </ul>
 </li>
 </ul>
@@ -301,7 +344,7 @@
           <li class="breadcrumb-item"><a href="index.html">API Reference</a></li>
       <li class="breadcrumb-item active">Core API</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../_sources/api/compresso_recsys.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../_sources/api/compresso_recsys.rst" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -636,7 +679,7 @@ scripts, so we read direct Hugging Face/McAuley data files instead.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="compresso_recsys.save_recsys_split">
-<span class="sig-prename descclassname"><span class="pre">compresso_recsys.</span></span><span class="sig-name descname"><span class="pre">save_recsys_split</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">root</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">item_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_train</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_item_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_item_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_item_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_source_indices</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_target_indices</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_source_indices</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_target_indices</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_source_matrix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_target_matrix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_source_matrix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_target_matrix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_source_matrix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_target_matrix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_user_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_user_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_user_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_eval_user_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_eval_user_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_item_indices</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_item_indices</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_item_indices</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">entity_tag_matrix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tag_names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">entity_metadata</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/checkpoint.html#save_recsys_split"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.save_recsys_split" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">compresso_recsys.</span></span><span class="sig-name descname"><span class="pre">save_recsys_split</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">root</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">item_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_train</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_item_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_item_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_item_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_source_indices</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_target_indices</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_source_indices</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_target_indices</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_source_matrix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_target_matrix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_source_matrix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_target_matrix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_source_matrix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_target_matrix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_user_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_user_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_user_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_eval_user_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_eval_user_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">warm_item_indices</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_cold_item_indices</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_cold_item_indices</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_train_sequences</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_source_sequences</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_source_sequences</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_source_sequences</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">entity_tag_matrix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tag_names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">entity_metadata</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/checkpoint.html#save_recsys_split"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.save_recsys_split" title="Link to this definition"></a></dt>
 <dd><p>Write the split stage of a checkpoint.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
@@ -665,9 +708,13 @@ scripts, so we read direct Hugging Face/McAuley data files instead.</p>
 <li><p><strong>test_user_ids</strong> (<em>ndarray</em><em> | </em><em>list</em><em>[</em><em>str</em><em>] </em><em>| </em><em>None</em>)</p></li>
 <li><p><strong>val_eval_user_ids</strong> (<em>ndarray</em><em> | </em><em>list</em><em>[</em><em>str</em><em>] </em><em>| </em><em>None</em>)</p></li>
 <li><p><strong>test_eval_user_ids</strong> (<em>ndarray</em><em> | </em><em>list</em><em>[</em><em>str</em><em>] </em><em>| </em><em>None</em>)</p></li>
-<li><p><strong>train_item_indices</strong> (<em>ndarray</em><em> | </em><em>None</em>)</p></li>
-<li><p><strong>val_item_indices</strong> (<em>ndarray</em><em> | </em><em>None</em>)</p></li>
-<li><p><strong>test_item_indices</strong> (<em>ndarray</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>warm_item_indices</strong> (<em>ndarray</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>val_cold_item_indices</strong> (<em>ndarray</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>test_cold_item_indices</strong> (<em>ndarray</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>x_train_sequences</strong> (<a class="reference internal" href="sequences.html#compresso_recsys.ItemSequences" title="compresso_recsys.sequences.ItemSequences"><em>ItemSequences</em></a><em> | </em><em>None</em>)</p></li>
+<li><p><strong>train_source_sequences</strong> (<a class="reference internal" href="sequences.html#compresso_recsys.ItemSequences" title="compresso_recsys.sequences.ItemSequences"><em>ItemSequences</em></a><em> | </em><em>None</em>)</p></li>
+<li><p><strong>val_source_sequences</strong> (<a class="reference internal" href="sequences.html#compresso_recsys.ItemSequences" title="compresso_recsys.sequences.ItemSequences"><em>ItemSequences</em></a><em> | </em><em>None</em>)</p></li>
+<li><p><strong>test_source_sequences</strong> (<a class="reference internal" href="sequences.html#compresso_recsys.ItemSequences" title="compresso_recsys.sequences.ItemSequences"><em>ItemSequences</em></a><em> | </em><em>None</em>)</p></li>
 <li><p><strong>entity_tag_matrix</strong> (<em>csr_matrix</em><em> | </em><em>None</em>)</p></li>
 <li><p><strong>tag_names</strong> (<em>ndarray</em><em> | </em><em>list</em><em>[</em><em>str</em><em>] </em><em>| </em><em>None</em>)</p></li>
 <li><p><strong>entity_metadata</strong> (<em>DataFrame</em><em> | </em><em>None</em>)</p></li>
@@ -675,18 +722,82 @@ scripts, so we read direct Hugging Face/McAuley data files instead.</p>
 </ul>
 </dd>
 </dl>
+<section id="training-matrices">
+<h3>Training matrices<a class="headerlink" href="#training-matrices" title="Link to this heading"></a></h3>
+<p>Three keys describe the same training data, and the relationship between
+them is fixed:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>x_train = train_source_matrix ∪ train_target_matrix
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">x_train</span></code> is what a symmetric model trains on — an autoencoder reconstructs
+the whole window. The pair is what an asymmetric model trains on, mapping
+source to target. They must agree, and this function refuses a checkpoint
+where they do not.</p>
+<p>How the training data is partitioned follows each split mode’s protocol, and
+only the chronological modes have one to follow:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">temporal</span></code>: by time. Source is everything before the first target
+window, target is the events inside it.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">leave_last_out</span></code>: by position. Target is the last interaction of the
+training window, source is everything earlier.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">user_split</span></code> and <code class="docutils literal notranslate"><span class="pre">item_split</span></code>: no partition. Both keys equal
+<code class="docutils literal notranslate"><span class="pre">x_train</span></code>, and the invariant holds trivially.</p></li>
+</ul>
+<p>The last case is deliberate rather than a gap. A non-chronological split has
+no boundary to divide on, so any per-user division would be an arbitrary
+choice invented here rather than a property of the protocol. A model wanting
+asymmetric training on those modes can partition <code class="docutils literal notranslate"><span class="pre">x_train</span></code> itself, under
+its own seed, and own that choice. The same absence of an ordering is why
+sequences exist only for the chronological modes.</p>
+</section>
+<section id="sequence-views">
+<h3>Sequence views<a class="headerlink" href="#sequence-views" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">x_train_sequences</span></code> and <code class="docutils literal notranslate"><span class="pre">{stage}_source_sequences</span></code> carry the same events
+as their matrix counterparts, in chronological order and with duplicates
+kept. A matrix row is a set; a sequence row is a history. Targets have no
+sequence view because a ranking target is a set — order is irrelevant to
+every metric — so <code class="docutils literal notranslate"><span class="pre">{stage}_target_matrix</span></code> serves both model families.</p>
+<p>They are written only when the split mode produced them, which means the
+chronological modes. <code class="docutils literal notranslate"><span class="pre">user_split</span></code> and <code class="docutils literal notranslate"><span class="pre">item_split</span></code> have no ordering to
+preserve, and the same absence that makes their training partition arbitrary
+(above) makes a sequence meaningless.</p>
+<p>Loading a checkpoint without them yields <code class="docutils literal notranslate"><span class="pre">None</span></code> rather than an error. A
+checkpoint that predates sequences, or comes from a non-chronological mode, is
+still complete for every matrix model, so refusing it would break working
+setups over a field they never touch. A sequential model fails later, where
+the message can name the split mode that would have produced them.</p>
+<p>A sequence whose <code class="docutils literal notranslate"><span class="pre">n_items</span></code> disagrees with <strong>its own stage’s</strong> item IDs is
+refused: the two views must share a column space or a model scores one item
+and is credited for another. Per stage rather than globally, because temporal
+windows each have their own catalog — it grows window by window — which is the
+same allowance the matrix check above makes.</p>
+</section>
 <section id="item-partitions">
 <h3>Item partitions<a class="headerlink" href="#item-partitions" title="Link to this heading"></a></h3>
-<p><code class="docutils literal notranslate"><span class="pre">train_item_indices</span></code>, <code class="docutils literal notranslate"><span class="pre">val_item_indices</span></code> and <code class="docutils literal notranslate"><span class="pre">test_item_indices</span></code> are
-positions into <code class="docutils literal notranslate"><span class="pre">item_ids</span></code> naming the items <strong>that phase introduces</strong>, not
-the items it may score. They partition the catalog by first appearance:</p>
+<p><code class="docutils literal notranslate"><span class="pre">warm_item_indices</span></code>, <code class="docutils literal notranslate"><span class="pre">val_cold_item_indices</span></code> and
+<code class="docutils literal notranslate"><span class="pre">test_cold_item_indices</span></code> are positions into <code class="docutils literal notranslate"><span class="pre">item_ids</span></code> naming the items
+<strong>that phase introduces</strong>, not the items it may score. Together they
+partition the catalog by first appearance: the warm partition is exactly the
+columns present in <code class="docutils literal notranslate"><span class="pre">x_train</span></code>, and each cold partition holds the items that
+become observable only at that stage.</p>
+<p>They are named for what they hold rather than for their phase because the
+older <code class="docutils literal notranslate"><span class="pre">{phase}_item_indices</span></code> spelling promised a relationship to
+<code class="docutils literal notranslate"><span class="pre">{phase}_item_ids</span></code> that does not exist. The two answer different
+questions: <code class="docutils literal notranslate"><span class="pre">*_item_ids</span></code> is the column space a phase lives in, while these
+are a partition by first appearance. The two agree only by coincidence, and
+only under <code class="docutils literal notranslate"><span class="pre">temporal</span></code> and <code class="docutils literal notranslate"><span class="pre">user_split</span></code>, where the catalogs already encode
+the partition; under <code class="docutils literal notranslate"><span class="pre">leave_last_out</span></code> and <code class="docutils literal notranslate"><span class="pre">item_split</span></code> all three phases
+share one catalog and the partition is <em>observed</em>, so it cannot be recovered
+from the catalogs at all.</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">user_split</span></code>: training spans every item and the later phases introduce
 none, so the train partition is the full range and val/test are empty.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">item_split</span></code>: three disjoint partitions, the val/test ones being the
 cold items held out of training.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">leave_last_out</span></code>: train holds the items that never appear as a target,
-val/test hold the target items.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">leave_last_out</span></code>: nothing is held out of the catalog. An item lands in
+the val or test partition only when every one of its occurrences falls in
+a held-out tail, so on dense data both partitions are empty and on sparse
+data they hold the genuinely new items.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">temporal</span></code>: each phase introduces the items first seen in its window,
 so the partitions are consecutive ranges of the growing catalog.</p></li>
 </ul>
@@ -695,11 +806,13 @@ which is not the same as “this phase has no candidates”. The candidate space
 of a phase is <code class="docutils literal notranslate"><span class="pre">{phase}_item_ids</span></code>, which defaults to <code class="docutils literal notranslate"><span class="pre">item_ids</span></code> when not
 given. Callers that select feature or metadata rows for a phase should index
 with that phase’s <code class="docutils literal notranslate"><span class="pre">*_item_ids</span></code> (or the union of partitions up to it),
-because mirroring <code class="docutils literal notranslate"><span class="pre">train_item_indices</span></code> into a later phase silently yields
+because mirroring <code class="docutils literal notranslate"><span class="pre">warm_item_indices</span></code> into a later phase silently yields
 an empty selection for splits that hold no items out.</p>
 <p>Passing <code class="docutils literal notranslate"><span class="pre">None</span></code> for a partition omits its file, and
-<a class="reference internal" href="#compresso_recsys.load_recsys_split" title="compresso_recsys.load_recsys_split"><code class="xref py py-func docutils literal notranslate"><span class="pre">load_recsys_split()</span></code></a> then falls back to the whole catalog for train and
-to an empty array for val/test. Prefer writing all three explicitly.</p>
+<a class="reference internal" href="#compresso_recsys.load_recsys_split" title="compresso_recsys.load_recsys_split"><code class="xref py py-func docutils literal notranslate"><span class="pre">load_recsys_split()</span></code></a> then falls back to the whole catalog for the warm
+partition and to an empty array for the cold ones. Prefer writing all three
+explicitly, since those defaults turn an omission into a confident wrong
+answer rather than an error.</p>
 </section>
 </dd></dl>
 
@@ -712,8 +825,10 @@ items each phase <em>introduces</em>, so they are empty for phases that hold no
 items out, while <code class="docutils literal notranslate"><span class="pre">*_item_ids</span></code> give the candidate space and default to
 <code class="docutils literal notranslate"><span class="pre">item_ids</span></code>.</p>
 <p>For checkpoints written before every partition was stored explicitly, a
-missing <code class="docutils literal notranslate"><span class="pre">train_item_indices.npy</span></code> loads as the full catalog range and
-missing val/test files load as empty arrays.</p>
+missing <code class="docutils literal notranslate"><span class="pre">warm_item_indices.npy</span></code> loads as the full catalog range and
+missing cold files load as empty arrays. Checkpoints written before the
+rename are read under their old names first, because those defaults would
+otherwise turn a missing file into a confident wrong answer.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>]</span></p>

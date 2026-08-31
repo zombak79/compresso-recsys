@@ -5,16 +5,17 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Index &mdash; Compresso Recsys 0.2.0 documentation</title>
+  <title>Index &mdash; Compresso Recsys 0.3.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=938c9ccc"></script>
+      <script src="_static/documentation_options.js?v=83a61292"></script>
       <script src="_static/doctools.js?v=fd6eb6e6"></script>
       <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="#" />
     <link rel="search" title="Search" href="search.html" /> 
@@ -74,6 +75,18 @@
 <li class="toctree-l2"><a class="reference internal" href="examples.html#train-teaser-with-gradient-descent">Train TEASER with Gradient Descent</a></li>
 <li class="toctree-l2"><a class="reference internal" href="examples.html#serve-new-teaser-candidates">Serve New TEASER Candidates</a></li>
 <li class="toctree-l2"><a class="reference internal" href="examples.html#train-and-evaluate-elsa">Train and Evaluate ELSA</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="bring-your-own-dataset.html">Bringing Your Own Dataset</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="bring-your-own-dataset.html#What-a-dataset-has-to-produce">What a dataset has to produce</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bring-your-own-dataset.html#The-dataset">The dataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bring-your-own-dataset.html#The-dataset-class">The dataset class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bring-your-own-dataset.html#Two-defaults-that-will-empty-your-dataset">Two defaults that will empty your dataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bring-your-own-dataset.html#What-is-in-it">What is in it</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bring-your-own-dataset.html#Does-it-work?">Does it work?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bring-your-own-dataset.html#Cold-items,-for-free">Cold items, for free</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bring-your-own-dataset.html#What-timestamps-would-have-added">What timestamps would have added</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bring-your-own-dataset.html#You-do-not-need-a-dataset-class-at-all">You do not need a dataset class at all</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="statistical-comparison.html">Comparing Models Statistically</a><ul>
@@ -186,45 +199,75 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="api/persistence.html">Fitted Model Persistence</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/persistence.html#embedding-models-in-data-checkpoints">Embedding Models in Data Checkpoints</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/persistence.html#stable-item-ids">Stable Item IDs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/persistence.html#optimizer-state">Optimizer State</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/persistence.html#checkpoint-format">Checkpoint Format</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/persistence.html#compresso_recsys.ModelCheckpointWriter"><code class="docutils literal notranslate"><span class="pre">ModelCheckpointWriter</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/persistence.html#compresso_recsys.ModelCheckpointReader"><code class="docutils literal notranslate"><span class="pre">ModelCheckpointReader</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/persistence.html#extending-persistence">Extending Persistence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/persistence.html#warm-catalog-adapters">Warm Catalog Adapters</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api/sequences.html">Sequences API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/sequences.html#interaction-histories">Interaction Histories</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/sequences.html#compresso_recsys.ItemSequences"><code class="docutils literal notranslate"><span class="pre">ItemSequences</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/sequences.html#compresso_recsys.save_item_sequences"><code class="docutils literal notranslate"><span class="pre">save_item_sequences()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/sequences.html#compresso_recsys.load_item_sequences"><code class="docutils literal notranslate"><span class="pre">load_item_sequences()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/sequences.html#which-split-modes-produce-them">Which Split Modes Produce Them</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="api/models.html">Models API</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="api/models.html#recommender-contract">Recommender Contract</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.Recommender"><code class="docutils literal notranslate"><span class="pre">Recommender</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.ColdStartRecommender"><code class="docutils literal notranslate"><span class="pre">ColdStartRecommender</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.ItemVocabulary"><code class="docutils literal notranslate"><span class="pre">ItemVocabulary</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.SequentialRecommender"><code class="docutils literal notranslate"><span class="pre">SequentialRecommender</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#production-recommendations">Production Recommendations</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.IdentifiedRecommender"><code class="docutils literal notranslate"><span class="pre">IdentifiedRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.Recommendations"><code class="docutils literal notranslate"><span class="pre">Recommendations</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#fitted-model-persistence">Fitted Model Persistence</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.PersistableRecommender"><code class="docutils literal notranslate"><span class="pre">PersistableRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.BasePersistableRecommender"><code class="docutils literal notranslate"><span class="pre">BasePersistableRecommender</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="api/models.html#implementing-new-models">Implementing New Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.BaseIdentifiedRecommender"><code class="docutils literal notranslate"><span class="pre">BaseIdentifiedRecommender</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.BaseCollaborativeRecommender"><code class="docutils literal notranslate"><span class="pre">BaseCollaborativeRecommender</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.BaseColdStartRecommender"><code class="docutils literal notranslate"><span class="pre">BaseColdStartRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.BaseSequentialRecommender"><code class="docutils literal notranslate"><span class="pre">BaseSequentialRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#the-owned-candidate-catalog">The Owned Candidate Catalog</a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/models.html#training-interaction-batches">Training Interaction Batches</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="api/models.html#transductive-models-in-expanding-catalogs">Transductive Models in Expanding Catalogs</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.WarmCatalogAdapter"><code class="docutils literal notranslate"><span class="pre">WarmCatalogAdapter</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#when-to-reach-for-it-outside-temporal">When to Reach for It Outside <code class="docutils literal notranslate"><span class="pre">temporal</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="api/models.html#ease">EASE</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.EASEConfig"><code class="docutils literal notranslate"><span class="pre">EASEConfig</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.EASE"><code class="docutils literal notranslate"><span class="pre">EASE</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#collaborative-filtering-models">Collaborative Filtering Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#ease">EASE</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#elsa">ELSA</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="api/models.html#elsa">ELSA</a></li>
-<li class="toctree-l3"><a class="reference internal" href="api/models.html#contentrecommender">ContentRecommender</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.ContentRecommenderConfig"><code class="docutils literal notranslate"><span class="pre">ContentRecommenderConfig</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.ContentRecommender"><code class="docutils literal notranslate"><span class="pre">ContentRecommender</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#cold-start-models">Cold-Start Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#contentrecommender">ContentRecommender</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#teaser">TEASER</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#teasergd">TEASERGD</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="api/models.html#teaser">TEASER</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.TEASERConfig"><code class="docutils literal notranslate"><span class="pre">TEASERConfig</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.TEASER"><code class="docutils literal notranslate"><span class="pre">TEASER</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.CandidateCatalog"><code class="docutils literal notranslate"><span class="pre">CandidateCatalog</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="api/models.html#teasergd">TEASERGD</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.TEASERGDConfig"><code class="docutils literal notranslate"><span class="pre">TEASERGDConfig</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.TEASERGD"><code class="docutils literal notranslate"><span class="pre">TEASERGD</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.TEASERGDTrainer"><code class="docutils literal notranslate"><span class="pre">TEASERGDTrainer</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="api/models.html#backend-performance">Backend Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#sequential-models">Sequential Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#tokenizing-histories">Tokenizing Histories</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#simplernn">SimpleRNN</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#simplegpt">SimpleGPT</a></li>
 </ul>
 </li>
 </ul>
@@ -321,27 +364,45 @@
  | <a href="#L"><strong>L</strong></a>
  | <a href="#M"><strong>M</strong></a>
  | <a href="#N"><strong>N</strong></a>
+ | <a href="#O"><strong>O</strong></a>
  | <a href="#P"><strong>P</strong></a>
  | <a href="#R"><strong>R</strong></a>
  | <a href="#S"><strong>S</strong></a>
  | <a href="#T"><strong>T</strong></a>
  | <a href="#U"><strong>U</strong></a>
+ | <a href="#V"><strong>V</strong></a>
  | <a href="#W"><strong>W</strong></a>
  
 </div>
 <h2 id="_">_</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/models.html#compresso_recsys.models.BaseColdStartRecommender._install_feature_catalog">_install_feature_catalog() (compresso_recsys.models.BaseColdStartRecommender method)</a>
+      <li><a href="api/models.html#compresso_recsys.models.BasePersistableRecommender._build_checkpoint_optimizer">_build_checkpoint_optimizer() (compresso_recsys.models.BasePersistableRecommender method)</a>
+</li>
+      <li><a href="api/models.html#compresso_recsys.models.BasePersistableRecommender._checkpoint_module">_checkpoint_module() (compresso_recsys.models.BasePersistableRecommender method)</a>
+</li>
+      <li><a href="api/models.html#compresso_recsys.models.BasePersistableRecommender._finish_checkpoint_load">_finish_checkpoint_load() (compresso_recsys.models.BasePersistableRecommender method)</a>
+</li>
+      <li><a href="api/models.html#compresso_recsys.models.BasePersistableRecommender._from_checkpoint_config">_from_checkpoint_config() (compresso_recsys.models.BasePersistableRecommender class method)</a>
+</li>
+      <li><a href="api/models.html#compresso_recsys.models.BasePersistableRecommender._load_checkpoint_state">_load_checkpoint_state() (compresso_recsys.models.BasePersistableRecommender method)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/models.html#compresso_recsys.models.BaseIdentifiedRecommender._predict_identified">_predict_identified() (compresso_recsys.models.BaseIdentifiedRecommender method)</a>
+</li>
       <li><a href="api/models.html#compresso_recsys.models.BaseColdStartRecommender._prepare_source">_prepare_source() (compresso_recsys.models.BaseColdStartRecommender method)</a>
 
       <ul>
         <li><a href="api/models.html#compresso_recsys.models.BaseCollaborativeRecommender._prepare_source">(compresso_recsys.models.BaseCollaborativeRecommender method)</a>
 </li>
+        <li><a href="api/models.html#compresso_recsys.models.BaseSequentialRecommender._prepare_source">(compresso_recsys.models.BaseSequentialRecommender method)</a>
+</li>
       </ul></li>
+      <li><a href="api/models.html#compresso_recsys.models.BaseIdentifiedRecommender._recommendation_source">_recommendation_source() (compresso_recsys.models.BaseIdentifiedRecommender method)</a>
+</li>
+      <li><a href="api/models.html#compresso_recsys.models.BasePersistableRecommender._save_checkpoint_state">_save_checkpoint_state() (compresso_recsys.models.BasePersistableRecommender method)</a>
+</li>
   </ul></td>
 </tr></table>
 
@@ -353,6 +414,8 @@
       <li><a href="api/models.html#compresso_recsys.models.BaseColdStartRecommender.align_source">align_source() (compresso_recsys.models.BaseColdStartRecommender method)</a>
 
       <ul>
+        <li><a href="api/models.html#compresso_recsys.models.MutableCandidateCatalog.align_source">(compresso_recsys.models.MutableCandidateCatalog method)</a>
+</li>
         <li><a href="api/models.html#compresso_recsys.models.TEASER.align_source">(compresso_recsys.models.TEASER method)</a>
 </li>
         <li><a href="api/models.html#compresso_recsys.models.WarmCatalogAdapter.align_source">(compresso_recsys.models.WarmCatalogAdapter method)</a>
@@ -371,6 +434,12 @@
       <li><a href="api/models.html#compresso_recsys.models.BaseColdStartRecommender">BaseColdStartRecommender (class in compresso_recsys.models)</a>
 </li>
       <li><a href="api/models.html#compresso_recsys.models.BaseCollaborativeRecommender">BaseCollaborativeRecommender (class in compresso_recsys.models)</a>
+</li>
+      <li><a href="api/models.html#compresso_recsys.models.BaseIdentifiedRecommender">BaseIdentifiedRecommender (class in compresso_recsys.models)</a>
+</li>
+      <li><a href="api/models.html#compresso_recsys.models.BasePersistableRecommender">BasePersistableRecommender (class in compresso_recsys.models)</a>
+</li>
+      <li><a href="api/models.html#compresso_recsys.models.BaseSequentialRecommender">BaseSequentialRecommender (class in compresso_recsys.models)</a>
 </li>
       <li><a href="api/evaluation.html#compresso_recsys.metrics.CalibratedRecall.batch_values">batch_values() (compresso_recsys.metrics.CalibratedRecall method)</a>
 
@@ -391,7 +460,11 @@
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/models.html#compresso_recsys.models.ELSATrainer.build">build() (compresso_recsys.models.ELSATrainer method)</a>
+
+      <ul>
+        <li><a href="api/models.html#compresso_recsys.models.MutableCandidateCatalog.build">(compresso_recsys.models.MutableCandidateCatalog method)</a>
 </li>
+      </ul></li>
       <li><a href="api/models.html#compresso_recsys.models.BaseColdStartRecommender.build_candidates">build_candidates() (compresso_recsys.models.BaseColdStartRecommender method)</a>
 
       <ul>
@@ -416,20 +489,24 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/evaluation.html#compresso_recsys.metrics.CalibratedRecall">CalibratedRecall (class in compresso_recsys.metrics)</a>
 </li>
-      <li><a href="api/models.html#compresso_recsys.models.CandidateCatalog">CandidateCatalog (class in compresso_recsys.models)</a>
-</li>
-      <li><a href="api/models.html#compresso_recsys.models.BaseColdStartRecommender.candidates">candidates (compresso_recsys.models.BaseColdStartRecommender property)</a>
+      <li><a href="api/models.html#compresso_recsys.models.BaseColdStartRecommender.candidate_item_ids">candidate_item_ids (compresso_recsys.models.BaseColdStartRecommender property)</a>
 
       <ul>
-        <li><a href="api/models.html#compresso_recsys.models.TEASER.candidates">(compresso_recsys.models.TEASER property)</a>
+        <li><a href="api/models.html#compresso_recsys.models.BaseIdentifiedRecommender.candidate_item_ids">(compresso_recsys.models.BaseIdentifiedRecommender property)</a>
+</li>
+        <li><a href="api/models.html#compresso_recsys.models.TEASER.candidate_item_ids">(compresso_recsys.models.TEASER property)</a>
+</li>
+        <li><a href="api/models.html#compresso_recsys.models.WarmCatalogAdapter.candidate_item_ids">(compresso_recsys.models.WarmCatalogAdapter property)</a>
 </li>
       </ul></li>
-      <li><a href="api/models.html#compresso_recsys.models.ColdStartRecommender">ColdStartRecommender (class in compresso_recsys.models)</a>
+      <li><a href="api/models.html#compresso_recsys.models.CandidateCatalog">CandidateCatalog (class in compresso_recsys.models)</a>
 </li>
-      <li><a href="api/statistics.html#compresso_recsys.stats.compare_models">compare_models() (in module compresso_recsys.stats)</a>
+      <li><a href="api/models.html#compresso_recsys.models.ColdStartRecommender">ColdStartRecommender (class in compresso_recsys.models)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/statistics.html#compresso_recsys.stats.compare_models">compare_models() (in module compresso_recsys.stats)</a>
+</li>
       <li><a href="api/statistics.html#compresso_recsys.stats.compare_pair">compare_pair() (in module compresso_recsys.stats)</a>
 </li>
       <li><a href="api/statistics.html#compresso_recsys.stats.ComparisonReport">ComparisonReport (class in compresso_recsys.stats)</a>
@@ -450,12 +527,24 @@
 <h2 id="D">D</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/models.html#compresso_recsys.models.ItemTokenizer.decode">decode() (compresso_recsys.models.ItemTokenizer method)</a>
+</li>
+      <li><a href="api/models.html#compresso_recsys.models.ItemTokenizer.decode_ids">decode_ids() (compresso_recsys.models.ItemTokenizer method)</a>
+</li>
+      <li><a href="api/models.html#compresso_recsys.models.ItemTokenizer.decode_indices">decode_indices() (compresso_recsys.models.ItemTokenizer method)</a>
+</li>
+      <li><a href="api/models.html#compresso_recsys.models.SimpleGPTTrainer.DEFAULT_MAX_LENGTH">DEFAULT_MAX_LENGTH (compresso_recsys.models.SimpleGPTTrainer attribute)</a>
+
+      <ul>
+        <li><a href="api/models.html#compresso_recsys.models.SimpleRNNTrainer.DEFAULT_MAX_LENGTH">(compresso_recsys.models.SimpleRNNTrainer attribute)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/models.html#compresso_recsys.models.dense_training_target">dense_training_target() (in module compresso_recsys.models)</a>
 </li>
       <li><a href="api/statistics.html#compresso_recsys.stats.PairwiseComparison.direction">direction (compresso_recsys.stats.PairwiseComparison property)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/models.html#compresso_recsys.models.EASE.dtype">dtype (compresso_recsys.models.EASE property)</a>
 
       <ul>
@@ -480,10 +569,20 @@
 </li>
       <li><a href="api/models.html#compresso_recsys.models.ELSATrainer">ELSATrainer (class in compresso_recsys.models)</a>
 </li>
-      <li><a href="api/models.html#compresso_recsys.models.TEASERGD.encoder_weights">encoder_weights() (compresso_recsys.models.TEASERGD method)</a>
+      <li><a href="api/models.html#compresso_recsys.models.ItemTokenizer.encode">encode() (compresso_recsys.models.ItemTokenizer method)</a>
+
+      <ul>
+        <li><a href="api/models.html#compresso_recsys.models.SequenceBatcher.encode">(compresso_recsys.models.SequenceBatcher method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/models.html#compresso_recsys.models.ItemTokenizer.encode_ids">encode_ids() (compresso_recsys.models.ItemTokenizer method)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/models.html#compresso_recsys.models.ItemTokenizer.encode_indices">encode_indices() (compresso_recsys.models.ItemTokenizer method)</a>
+</li>
+      <li><a href="api/models.html#compresso_recsys.models.TEASERGD.encoder_weights">encoder_weights() (compresso_recsys.models.TEASERGD method)</a>
+</li>
       <li><a href="api/retrieval.html#compresso_recsys.retrieval.evaluate_item_embeddings">evaluate_item_embeddings() (in module compresso_recsys.retrieval)</a>
 </li>
       <li><a href="api/retrieval.html#compresso_recsys.retrieval.evaluate_item_embeddings_with_holdout">evaluate_item_embeddings_with_holdout() (in module compresso_recsys.retrieval)</a>
@@ -498,12 +597,18 @@
 </li>
       <li><a href="api/models.html#compresso_recsys.models.CompressedELSA.export_item_embeddings">export_item_embeddings() (compresso_recsys.models.CompressedELSA method)</a>
 </li>
+      <li><a href="api/models.html#compresso_recsys.models.ItemTokenizer.extended">extended() (compresso_recsys.models.ItemTokenizer method)</a>
+</li>
   </ul></td>
 </tr></table>
 
 <h2 id="F">F</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/models.html#compresso_recsys.models.MutableCandidateCatalog.feature_space_id">feature_space_id (compresso_recsys.models.MutableCandidateCatalog property)</a>
+</li>
+      <li><a href="api/models.html#compresso_recsys.models.SequenceBatcher.final_positions">final_positions() (compresso_recsys.models.SequenceBatcher method)</a>
+</li>
       <li><a href="api/models.html#compresso_recsys.models.BaseColdStartRecommender.fit">fit() (compresso_recsys.models.BaseColdStartRecommender method)</a>
 
       <ul>
@@ -514,6 +619,10 @@
         <li><a href="api/models.html#compresso_recsys.models.EASE.fit">(compresso_recsys.models.EASE method)</a>
 </li>
         <li><a href="api/models.html#compresso_recsys.models.ELSATrainer.fit">(compresso_recsys.models.ELSATrainer method)</a>
+</li>
+        <li><a href="api/models.html#compresso_recsys.models.SimpleGPTTrainer.fit">(compresso_recsys.models.SimpleGPTTrainer method)</a>
+</li>
+        <li><a href="api/models.html#compresso_recsys.models.SimpleRNNTrainer.fit">(compresso_recsys.models.SimpleRNNTrainer method)</a>
 </li>
         <li><a href="api/models.html#compresso_recsys.models.TEASER.fit">(compresso_recsys.models.TEASER method)</a>
 </li>
@@ -527,14 +636,26 @@
       <ul>
         <li><a href="api/models.html#compresso_recsys.models.ELSA.forward">(compresso_recsys.models.ELSA method)</a>
 </li>
+        <li><a href="api/models.html#compresso_recsys.models.SimpleGPT.forward">(compresso_recsys.models.SimpleGPT method)</a>
+</li>
+        <li><a href="api/models.html#compresso_recsys.models.SimpleRNN.forward">(compresso_recsys.models.SimpleRNN method)</a>
+</li>
         <li><a href="api/models.html#compresso_recsys.models.TEASERGD.forward">(compresso_recsys.models.TEASERGD method)</a>
 </li>
       </ul></li>
+      <li><a href="api/models.html#compresso_recsys.models.ItemTokenizer.from_dict">from_dict() (compresso_recsys.models.ItemTokenizer class method)</a>
+</li>
+      <li><a href="api/sequences.html#compresso_recsys.ItemSequences.from_rows">from_rows() (compresso_recsys.ItemSequences class method)</a>
+</li>
   </ul></td>
 </tr></table>
 
 <h2 id="G">G</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/models.html#compresso_recsys.models.SequenceBatcher.gather_final">gather_final() (compresso_recsys.models.SequenceBatcher method)</a>
+</li>
+  </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/compresso_recsys.html#compresso_recsys.Goodbooks">Goodbooks (class in compresso_recsys)</a>
 </li>
@@ -544,10 +665,16 @@
 <h2 id="H">H</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/evaluation.html#compresso_recsys.evaluation.EvaluationResult.has_per_user">has_per_user (compresso_recsys.evaluation.EvaluationResult property)</a>
+      <li><a href="api/models.html#compresso_recsys.models.SequenceBatcher.has_history">has_history() (compresso_recsys.models.SequenceBatcher static method)</a>
+</li>
+      <li><a href="api/models.html#compresso_recsys.models.ItemTokenizer.has_ids">has_ids (compresso_recsys.models.ItemTokenizer property)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/evaluation.html#compresso_recsys.evaluation.EvaluationResult.has_per_user">has_per_user (compresso_recsys.evaluation.EvaluationResult property)</a>
+</li>
+      <li><a href="api/models.html#compresso_recsys.models.TransformerConfig.head_dim">head_dim (compresso_recsys.models.TransformerConfig property)</a>
+</li>
       <li><a href="api/evaluation.html#compresso_recsys.metrics.HitRate">HitRate (class in compresso_recsys.metrics)</a>
 </li>
   </ul></td>
@@ -556,7 +683,11 @@
 <h2 id="I">I</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/models.html#compresso_recsys.models.IdentifiedRecommender">IdentifiedRecommender (class in compresso_recsys.models)</a>
+</li>
       <li><a href="api/models.html#compresso_recsys.models.CandidateCatalog.ids_for">ids_for() (compresso_recsys.models.CandidateCatalog method)</a>
+</li>
+      <li><a href="api/models.html#compresso_recsys.models.MutableCandidateCatalog.install">install() (compresso_recsys.models.MutableCandidateCatalog method)</a>
 </li>
       <li><a href="api/models.html#compresso_recsys.models.InteractionBatch">InteractionBatch (class in compresso_recsys.models)</a>
 </li>
@@ -569,11 +700,19 @@
       <ul>
         <li><a href="api/models.html#compresso_recsys.models.BaseCollaborativeRecommender.is_fitted">(compresso_recsys.models.BaseCollaborativeRecommender property)</a>
 </li>
+        <li><a href="api/models.html#compresso_recsys.models.BasePersistableRecommender.is_fitted">(compresso_recsys.models.BasePersistableRecommender property)</a>
+</li>
+        <li><a href="api/models.html#compresso_recsys.models.BaseSequentialRecommender.is_fitted">(compresso_recsys.models.BaseSequentialRecommender property)</a>
+</li>
         <li><a href="api/models.html#compresso_recsys.models.ContentRecommender.is_fitted">(compresso_recsys.models.ContentRecommender property)</a>
 </li>
         <li><a href="api/models.html#compresso_recsys.models.EASE.is_fitted">(compresso_recsys.models.EASE property)</a>
 </li>
         <li><a href="api/models.html#compresso_recsys.models.ELSATrainer.is_fitted">(compresso_recsys.models.ELSATrainer property)</a>
+</li>
+        <li><a href="api/models.html#compresso_recsys.models.SimpleGPTTrainer.is_fitted">(compresso_recsys.models.SimpleGPTTrainer property)</a>
+</li>
+        <li><a href="api/models.html#compresso_recsys.models.SimpleRNNTrainer.is_fitted">(compresso_recsys.models.SimpleRNNTrainer property)</a>
 </li>
         <li><a href="api/models.html#compresso_recsys.models.TEASER.is_fitted">(compresso_recsys.models.TEASER property)</a>
 </li>
@@ -582,7 +721,15 @@
       </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/models.html#compresso_recsys.models.MutableCandidateCatalog.is_installed">is_installed (compresso_recsys.models.MutableCandidateCatalog property)</a>
+</li>
       <li><a href="api/models.html#compresso_recsys.models.CompressedELSA.is_sparse">is_sparse (compresso_recsys.models.CompressedELSA property)</a>
+</li>
+      <li><a href="api/models.html#compresso_recsys.models.ItemTokenizer.item_ids">item_ids (compresso_recsys.models.ItemTokenizer property)</a>
+</li>
+      <li><a href="api/sequences.html#compresso_recsys.ItemSequences">ItemSequences (class in compresso_recsys)</a>
+</li>
+      <li><a href="api/models.html#compresso_recsys.models.ItemTokenizer">ItemTokenizer (class in compresso_recsys.models)</a>
 </li>
       <li><a href="api/models.html#compresso_recsys.models.ItemVocabulary">ItemVocabulary (class in compresso_recsys.models)</a>
 </li>
@@ -592,14 +739,28 @@
 <h2 id="L">L</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/models.html#compresso_recsys.models.BasePersistableRecommender.load">load() (compresso_recsys.models.BasePersistableRecommender class method)</a>
+
+      <ul>
+        <li><a href="api/models.html#compresso_recsys.models.TEASER.load">(compresso_recsys.models.TEASER class method)</a>
+</li>
+      </ul></li>
       <li><a href="api/compresso_recsys.html#compresso_recsys.load_cluster_graph_stage">load_cluster_graph_stage() (in module compresso_recsys)</a>
+</li>
+      <li><a href="api/models.html#compresso_recsys.models.BasePersistableRecommender.load_from_checkpoint">load_from_checkpoint() (compresso_recsys.models.BasePersistableRecommender class method)</a>
+
+      <ul>
+        <li><a href="api/models.html#compresso_recsys.models.TEASER.load_from_checkpoint">(compresso_recsys.models.TEASER class method)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/sequences.html#compresso_recsys.load_item_sequences">load_item_sequences() (in module compresso_recsys)</a>
 </li>
       <li><a href="api/compresso_recsys.html#compresso_recsys.load_json">load_json() (in module compresso_recsys)</a>
 </li>
       <li><a href="api/compresso_recsys.html#compresso_recsys.load_manifest">load_manifest() (in module compresso_recsys)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/compresso_recsys.html#compresso_recsys.load_recsys_split">load_recsys_split() (in module compresso_recsys)</a>
 </li>
       <li><a href="api/compresso_recsys.html#compresso_recsys.AmazonReviews2023.load_source_dataframe">load_source_dataframe() (compresso_recsys.AmazonReviews2023 method)</a>
@@ -616,6 +777,10 @@
 </li>
       <li><a href="api/models.html#compresso_recsys.models.CandidateCatalog.metadata">metadata (compresso_recsys.models.CandidateCatalog property)</a>
 </li>
+      <li><a href="api/persistence.html#compresso_recsys.ModelCheckpointReader">ModelCheckpointReader (class in compresso_recsys)</a>
+</li>
+      <li><a href="api/persistence.html#compresso_recsys.ModelCheckpointWriter">ModelCheckpointWriter (class in compresso_recsys)</a>
+</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/compresso_recsys.html#compresso_recsys.MovieLens1M">MovieLens1M (class in compresso_recsys)</a>
@@ -624,32 +789,44 @@
 </li>
       <li><a href="api/evaluation.html#compresso_recsys.metrics.MRR">MRR (class in compresso_recsys.metrics)</a>
 </li>
+      <li><a href="api/models.html#compresso_recsys.models.MutableCandidateCatalog">MutableCandidateCatalog (class in compresso_recsys.models)</a>
+</li>
   </ul></td>
 </tr></table>
 
 <h2 id="N">N</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/models.html#compresso_recsys.models.BaseColdStartRecommender.n_candidates_">n_candidates_ (compresso_recsys.models.BaseColdStartRecommender property)</a>
-
-      <ul>
-        <li><a href="api/models.html#compresso_recsys.models.TEASER.n_candidates_">(compresso_recsys.models.TEASER property)</a>
+      <li><a href="api/models.html#compresso_recsys.models.MutableCandidateCatalog.n_input_features">n_input_features (compresso_recsys.models.MutableCandidateCatalog property)</a>
 </li>
-      </ul></li>
       <li><a href="api/models.html#compresso_recsys.models.BaseCollaborativeRecommender.n_items">n_items (compresso_recsys.models.BaseCollaborativeRecommender property)</a>
 
       <ul>
+        <li><a href="api/models.html#compresso_recsys.models.BaseSequentialRecommender.n_items">(compresso_recsys.models.BaseSequentialRecommender property)</a>
+</li>
         <li><a href="api/models.html#compresso_recsys.models.CandidateCatalog.n_items">(compresso_recsys.models.CandidateCatalog property)</a>
 </li>
         <li><a href="api/models.html#compresso_recsys.models.EASE.n_items">(compresso_recsys.models.EASE property)</a>
 </li>
         <li><a href="api/models.html#compresso_recsys.models.ELSATrainer.n_items">(compresso_recsys.models.ELSATrainer property)</a>
 </li>
+        <li><a href="api/models.html#compresso_recsys.models.ItemTokenizer.n_items">(compresso_recsys.models.ItemTokenizer property)</a>
+</li>
         <li><a href="api/models.html#compresso_recsys.models.ItemVocabulary.n_items">(compresso_recsys.models.ItemVocabulary property)</a>
+</li>
+        <li><a href="api/models.html#compresso_recsys.models.MutableCandidateCatalog.n_items">(compresso_recsys.models.MutableCandidateCatalog property)</a>
+</li>
+        <li><a href="api/models.html#compresso_recsys.models.SimpleGPTTrainer.n_items">(compresso_recsys.models.SimpleGPTTrainer property)</a>
+</li>
+        <li><a href="api/models.html#compresso_recsys.models.SimpleRNNTrainer.n_items">(compresso_recsys.models.SimpleRNNTrainer property)</a>
 </li>
       </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/models.html#compresso_recsys.models.ItemTokenizer.n_reserved">n_reserved (compresso_recsys.models.ItemTokenizer property)</a>
+</li>
+      <li><a href="api/sequences.html#compresso_recsys.ItemSequences.n_rows">n_rows (compresso_recsys.ItemSequences property)</a>
+</li>
       <li><a href="api/evaluation.html#compresso_recsys.evaluation.EvaluationResult.n_units">n_units (compresso_recsys.evaluation.EvaluationResult property)</a>
 </li>
       <li><a href="api/evaluation.html#compresso_recsys.metrics.NDCG">NDCG (class in compresso_recsys.metrics)</a>
@@ -665,10 +842,28 @@
   </ul></td>
 </tr></table>
 
+<h2 id="O">O</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/persistence.html#compresso_recsys.ModelCheckpointReader.optimizer_included">optimizer_included (compresso_recsys.ModelCheckpointReader property)</a>
+</li>
+  </ul></td>
+</tr></table>
+
 <h2 id="P">P</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/models.html#compresso_recsys.models.ItemTokenizer.pad_id">pad_id (compresso_recsys.models.ItemTokenizer property)</a>
+
+      <ul>
+        <li><a href="api/models.html#compresso_recsys.models.SequenceBatcher.pad_id">(compresso_recsys.models.SequenceBatcher property)</a>
+</li>
+      </ul></li>
       <li><a href="api/statistics.html#compresso_recsys.stats.PairwiseComparison">PairwiseComparison (class in compresso_recsys.stats)</a>
+</li>
+      <li><a href="api/models.html#compresso_recsys.models.PersistableRecommender">PersistableRecommender (class in compresso_recsys.models)</a>
+</li>
+      <li><a href="api/models.html#compresso_recsys.models.ItemVocabulary.positional">positional() (compresso_recsys.models.ItemVocabulary class method)</a>
 </li>
       <li><a href="api/evaluation.html#compresso_recsys.metrics.Precision">Precision (class in compresso_recsys.metrics)</a>
 </li>
@@ -676,6 +871,8 @@
 
       <ul>
         <li><a href="api/models.html#compresso_recsys.models.BaseCollaborativeRecommender.predict">(compresso_recsys.models.BaseCollaborativeRecommender method)</a>
+</li>
+        <li><a href="api/models.html#compresso_recsys.models.BaseSequentialRecommender.predict">(compresso_recsys.models.BaseSequentialRecommender method)</a>
 </li>
         <li><a href="api/models.html#compresso_recsys.models.EASE.predict">(compresso_recsys.models.EASE method)</a>
 </li>
@@ -691,6 +888,8 @@
       <ul>
         <li><a href="api/models.html#compresso_recsys.models.BaseCollaborativeRecommender.predict_on_batch">(compresso_recsys.models.BaseCollaborativeRecommender method)</a>
 </li>
+        <li><a href="api/models.html#compresso_recsys.models.BaseSequentialRecommender.predict_on_batch">(compresso_recsys.models.BaseSequentialRecommender method)</a>
+</li>
         <li><a href="api/models.html#compresso_recsys.models.ContentRecommender.predict_on_batch">(compresso_recsys.models.ContentRecommender method)</a>
 </li>
         <li><a href="api/models.html#compresso_recsys.models.EASE.predict_on_batch">(compresso_recsys.models.EASE method)</a>
@@ -698,6 +897,12 @@
         <li><a href="api/models.html#compresso_recsys.models.ELSATrainer.predict_on_batch">(compresso_recsys.models.ELSATrainer method)</a>
 </li>
         <li><a href="api/models.html#compresso_recsys.models.Recommender.predict_on_batch">(compresso_recsys.models.Recommender method)</a>
+</li>
+        <li><a href="api/models.html#compresso_recsys.models.SequentialRecommender.predict_on_batch">(compresso_recsys.models.SequentialRecommender method)</a>
+</li>
+        <li><a href="api/models.html#compresso_recsys.models.SimpleGPTTrainer.predict_on_batch">(compresso_recsys.models.SimpleGPTTrainer method)</a>
+</li>
+        <li><a href="api/models.html#compresso_recsys.models.SimpleRNNTrainer.predict_on_batch">(compresso_recsys.models.SimpleRNNTrainer method)</a>
 </li>
         <li><a href="api/models.html#compresso_recsys.models.TEASER.predict_on_batch">(compresso_recsys.models.TEASER method)</a>
 </li>
@@ -726,39 +931,139 @@
 </li>
       <li><a href="api/compresso_recsys.html#compresso_recsys.read_checkpoint">read_checkpoint() (in module compresso_recsys)</a>
 </li>
+      <li><a href="api/persistence.html#compresso_recsys.ModelCheckpointReader.read_dataframe">read_dataframe() (compresso_recsys.ModelCheckpointReader method)</a>
+</li>
+      <li><a href="api/persistence.html#compresso_recsys.ModelCheckpointReader.read_features">read_features() (compresso_recsys.ModelCheckpointReader method)</a>
+</li>
+      <li><a href="api/persistence.html#compresso_recsys.ModelCheckpointReader.read_item_ids">read_item_ids() (compresso_recsys.ModelCheckpointReader method)</a>
+</li>
+      <li><a href="api/persistence.html#compresso_recsys.ModelCheckpointReader.read_json">read_json() (compresso_recsys.ModelCheckpointReader method)</a>
+</li>
+      <li><a href="api/persistence.html#compresso_recsys.ModelCheckpointReader.read_json_value">read_json_value() (compresso_recsys.ModelCheckpointReader method)</a>
+</li>
+      <li><a href="api/persistence.html#compresso_recsys.ModelCheckpointReader.read_numpy">read_numpy() (compresso_recsys.ModelCheckpointReader method)</a>
+</li>
+      <li><a href="api/persistence.html#compresso_recsys.ModelCheckpointReader.read_sparse">read_sparse() (compresso_recsys.ModelCheckpointReader method)</a>
+</li>
+      <li><a href="api/persistence.html#compresso_recsys.ModelCheckpointReader.read_torch">read_torch() (compresso_recsys.ModelCheckpointReader method)</a>
+</li>
       <li><a href="api/evaluation.html#compresso_recsys.metrics.Recall">Recall (class in compresso_recsys.metrics)</a>
 </li>
+      <li><a href="api/models.html#compresso_recsys.models.BaseIdentifiedRecommender.recommend">recommend() (compresso_recsys.models.BaseIdentifiedRecommender method)</a>
+
+      <ul>
+        <li><a href="api/models.html#compresso_recsys.models.TEASER.recommend">(compresso_recsys.models.TEASER method)</a>
+</li>
+      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/models.html#compresso_recsys.models.Recommendations">Recommendations (class in compresso_recsys.models)</a>
+</li>
       <li><a href="api/models.html#compresso_recsys.models.Recommender">Recommender (class in compresso_recsys.models)</a>
 </li>
       <li><a href="api/compresso_recsys.html#compresso_recsys.RecSysDataset">RecSysDataset (class in compresso_recsys)</a>
 </li>
+      <li><a href="api/models.html#compresso_recsys.models.MutableCandidateCatalog.remove">remove() (compresso_recsys.models.MutableCandidateCatalog method)</a>
+</li>
+      <li><a href="api/models.html#compresso_recsys.models.BaseColdStartRecommender.remove_candidates">remove_candidates() (compresso_recsys.models.BaseColdStartRecommender method)</a>
+
+      <ul>
+        <li><a href="api/models.html#compresso_recsys.models.TEASER.remove_candidates">(compresso_recsys.models.TEASER method)</a>
+</li>
+      </ul></li>
       <li><a href="api/evaluation.html#compresso_recsys.metrics.RankingMetric.required_k">required_k (compresso_recsys.metrics.RankingMetric property)</a>
 </li>
       <li><a href="api/evaluation.html#compresso_recsys.metrics.RankingMetric.reset">reset() (compresso_recsys.metrics.RankingMetric method)</a>
 </li>
       <li><a href="api/evaluation.html#compresso_recsys.metrics.RankingMetric.result_keys">result_keys (compresso_recsys.metrics.RankingMetric property)</a>
 </li>
-      <li><a href="api/models.html#compresso_recsys.models.CandidateCatalog.rows_for">rows_for() (compresso_recsys.models.CandidateCatalog method)</a>
+      <li><a href="api/sequences.html#compresso_recsys.ItemSequences.row">row() (compresso_recsys.ItemSequences method)</a>
 </li>
+      <li><a href="api/sequences.html#compresso_recsys.ItemSequences.row_lengths">row_lengths (compresso_recsys.ItemSequences property)</a>
+</li>
+      <li><a href="api/models.html#compresso_recsys.models.CandidateCatalog.rows_for">rows_for() (compresso_recsys.models.CandidateCatalog method)</a>
+
+      <ul>
+        <li><a href="api/models.html#compresso_recsys.models.ItemVocabulary.rows_for">(compresso_recsys.models.ItemVocabulary method)</a>
+</li>
+      </ul></li>
   </ul></td>
 </tr></table>
 
 <h2 id="S">S</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/models.html#compresso_recsys.models.BasePersistableRecommender.save">save() (compresso_recsys.models.BasePersistableRecommender method)</a>
+
+      <ul>
+        <li><a href="api/models.html#compresso_recsys.models.TEASER.save">(compresso_recsys.models.TEASER method)</a>
+</li>
+      </ul></li>
       <li><a href="api/compresso_recsys.html#compresso_recsys.save_cluster_graph_stage">save_cluster_graph_stage() (in module compresso_recsys)</a>
+</li>
+      <li><a href="api/sequences.html#compresso_recsys.save_item_sequences">save_item_sequences() (in module compresso_recsys)</a>
 </li>
       <li><a href="api/compresso_recsys.html#compresso_recsys.save_json">save_json() (in module compresso_recsys)</a>
 </li>
       <li><a href="api/compresso_recsys.html#compresso_recsys.save_manifest">save_manifest() (in module compresso_recsys)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/compresso_recsys.html#compresso_recsys.save_recsys_split">save_recsys_split() (in module compresso_recsys)</a>
 </li>
+      <li><a href="api/models.html#compresso_recsys.models.BasePersistableRecommender.save_to_checkpoint">save_to_checkpoint() (compresso_recsys.models.BasePersistableRecommender method)</a>
+
+      <ul>
+        <li><a href="api/models.html#compresso_recsys.models.TEASER.save_to_checkpoint">(compresso_recsys.models.TEASER method)</a>
+</li>
+      </ul></li>
+      <li><a href="api/models.html#compresso_recsys.models.SimpleGPT.score">score() (compresso_recsys.models.SimpleGPT method)</a>
+
+      <ul>
+        <li><a href="api/models.html#compresso_recsys.models.SimpleRNN.score">(compresso_recsys.models.SimpleRNN method)</a>
+</li>
+      </ul></li>
       <li><a href="api/models.html#compresso_recsys.models.CompressedELSA.score_all_items">score_all_items() (compresso_recsys.models.CompressedELSA method)</a>
+</li>
+      <li><a href="api/sequences.html#compresso_recsys.ItemSequences.select_rows">select_rows() (compresso_recsys.ItemSequences method)</a>
+</li>
+      <li><a href="api/models.html#compresso_recsys.models.SequenceBatcher">SequenceBatcher (class in compresso_recsys.models)</a>
+</li>
+      <li><a href="api/models.html#compresso_recsys.models.SequentialRecommender">SequentialRecommender (class in compresso_recsys.models)</a>
+</li>
+      <li><a href="api/models.html#compresso_recsys.models.SimpleGPT">SimpleGPT (class in compresso_recsys.models)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/models.html#compresso_recsys.models.SimpleGPTConfig">SimpleGPTConfig (class in compresso_recsys.models)</a>
+</li>
+      <li><a href="api/models.html#compresso_recsys.models.SimpleGPTTrainer">SimpleGPTTrainer (class in compresso_recsys.models)</a>
+</li>
+      <li><a href="api/models.html#compresso_recsys.models.SimpleRNN">SimpleRNN (class in compresso_recsys.models)</a>
+</li>
+      <li><a href="api/models.html#compresso_recsys.models.SimpleRNNConfig">SimpleRNNConfig (class in compresso_recsys.models)</a>
+</li>
+      <li><a href="api/models.html#compresso_recsys.models.SimpleRNNTrainer">SimpleRNNTrainer (class in compresso_recsys.models)</a>
+</li>
+      <li><a href="api/models.html#compresso_recsys.models.MutableCandidateCatalog.snapshot">snapshot() (compresso_recsys.models.MutableCandidateCatalog method)</a>
+</li>
+      <li><a href="api/models.html#compresso_recsys.models.MutableCandidateCatalog.source_id_to_row">source_id_to_row (compresso_recsys.models.MutableCandidateCatalog property)</a>
+</li>
+      <li><a href="api/models.html#compresso_recsys.models.BaseColdStartRecommender.source_item_ids">source_item_ids (compresso_recsys.models.BaseColdStartRecommender property)</a>
+
+      <ul>
+        <li><a href="api/models.html#compresso_recsys.models.BaseIdentifiedRecommender.source_item_ids">(compresso_recsys.models.BaseIdentifiedRecommender property)</a>
+</li>
+        <li><a href="api/models.html#compresso_recsys.models.MutableCandidateCatalog.source_item_ids">(compresso_recsys.models.MutableCandidateCatalog property)</a>
+</li>
+        <li><a href="api/models.html#compresso_recsys.models.TEASER.source_item_ids">(compresso_recsys.models.TEASER property)</a>
+</li>
+        <li><a href="api/models.html#compresso_recsys.models.WarmCatalogAdapter.source_item_ids">(compresso_recsys.models.WarmCatalogAdapter property)</a>
+</li>
+      </ul></li>
+      <li><a href="api/models.html#compresso_recsys.models.MutableCandidateCatalog.source_popularity">source_popularity (compresso_recsys.models.MutableCandidateCatalog property)</a>
+</li>
+      <li><a href="api/models.html#compresso_recsys.models.MutableCandidateCatalog.source_vocabulary">source_vocabulary (compresso_recsys.models.MutableCandidateCatalog property)</a>
+</li>
+      <li><a href="api/models.html#compresso_recsys.models.ItemTokenizer.special_tokens">special_tokens (compresso_recsys.models.ItemTokenizer property)</a>
 </li>
       <li><a href="api/compresso_recsys.html#compresso_recsys.SplitBundle">SplitBundle (class in compresso_recsys)</a>
 </li>
@@ -768,6 +1073,8 @@
 <h2 id="T">T</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/sequences.html#compresso_recsys.ItemSequences.take_rows">take_rows() (compresso_recsys.ItemSequences method)</a>
+</li>
       <li><a href="api/models.html#compresso_recsys.models.TEASER">TEASER (class in compresso_recsys.models)</a>
 </li>
       <li><a href="api/models.html#compresso_recsys.models.TEASERConfig">TEASERConfig (class in compresso_recsys.models)</a>
@@ -780,25 +1087,41 @@
 </li>
       <li><a href="api/statistics.html#compresso_recsys.stats.PairwiseComparison.tie_rate">tie_rate (compresso_recsys.stats.PairwiseComparison property)</a>
 </li>
-      <li><a href="api/models.html#compresso_recsys.models.ContentRecommender.to">to() (compresso_recsys.models.ContentRecommender method)</a>
+      <li><a href="api/models.html#compresso_recsys.models.BasePersistableRecommender.to">to() (compresso_recsys.models.BasePersistableRecommender method)</a>
+
+      <ul>
+        <li><a href="api/models.html#compresso_recsys.models.TEASER.to">(compresso_recsys.models.TEASER method)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
+      </ul></li>
       <li><a href="api/evaluation.html#compresso_recsys.evaluation.EvaluationResult.to_dict">to_dict() (compresso_recsys.evaluation.EvaluationResult method)</a>
 
       <ul>
+        <li><a href="api/models.html#compresso_recsys.models.ItemTokenizer.to_dict">(compresso_recsys.models.ItemTokenizer method)</a>
+</li>
         <li><a href="api/statistics.html#compresso_recsys.stats.PairwiseComparison.to_dict">(compresso_recsys.stats.PairwiseComparison method)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/models.html#compresso_recsys.models.Recommendations.to_dicts">to_dicts() (compresso_recsys.models.Recommendations method)</a>
+</li>
       <li><a href="api/statistics.html#compresso_recsys.stats.ComparisonReport.to_frame">to_frame() (compresso_recsys.stats.ComparisonReport method)</a>
 </li>
       <li><a href="api/compresso_recsys.html#compresso_recsys.RecSysDataset.to_hf_dataset">to_hf_dataset() (compresso_recsys.RecSysDataset method)</a>
 </li>
       <li><a href="api/compresso_recsys.html#compresso_recsys.RecSysDataset.to_sparse_matrix">to_sparse_matrix() (compresso_recsys.RecSysDataset static method)</a>
 </li>
+      <li><a href="api/models.html#compresso_recsys.models.ItemTokenizer.token_id">token_id() (compresso_recsys.models.ItemTokenizer method)</a>
+</li>
+      <li><a href="api/models.html#compresso_recsys.models.Tokenizer">Tokenizer (class in compresso_recsys.models)</a>
+</li>
       <li><a href="api/models.html#compresso_recsys.models.CompressedELSA.train">train() (compresso_recsys.models.CompressedELSA method)</a>
 </li>
       <li><a href="api/models.html#compresso_recsys.models.ELSATrainer.train_step">train_step() (compresso_recsys.models.ELSATrainer method)</a>
+</li>
+      <li><a href="api/models.html#compresso_recsys.models.TransformerConfig">TransformerConfig (class in compresso_recsys.models)</a>
+</li>
+      <li><a href="api/models.html#compresso_recsys.models.SequenceBatcher.truncated_lengths">truncated_lengths() (compresso_recsys.models.SequenceBatcher method)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -806,8 +1129,14 @@
 <h2 id="U">U</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/evaluation.html#compresso_recsys.metrics.RankingMetric.update">update() (compresso_recsys.metrics.RankingMetric method)</a>
+      <li><a href="api/models.html#compresso_recsys.models.ItemTokenizer.unk_id">unk_id (compresso_recsys.models.ItemTokenizer property)</a>
 </li>
+      <li><a href="api/evaluation.html#compresso_recsys.metrics.RankingMetric.update">update() (compresso_recsys.metrics.RankingMetric method)</a>
+
+      <ul>
+        <li><a href="api/models.html#compresso_recsys.models.MutableCandidateCatalog.update">(compresso_recsys.models.MutableCandidateCatalog method)</a>
+</li>
+      </ul></li>
       <li><a href="api/models.html#compresso_recsys.models.BaseColdStartRecommender.update_candidates">update_candidates() (compresso_recsys.models.BaseColdStartRecommender method)</a>
 
       <ul>
@@ -825,10 +1154,38 @@
   </ul></td>
 </tr></table>
 
+<h2 id="V">V</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/models.html#compresso_recsys.models.Recommendations.valid_counts">valid_counts (compresso_recsys.models.Recommendations property)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/models.html#compresso_recsys.models.ItemTokenizer.vocab_size">vocab_size (compresso_recsys.models.ItemTokenizer property)</a>
+</li>
+  </ul></td>
+</tr></table>
+
 <h2 id="W">W</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/models.html#compresso_recsys.models.WarmCatalogAdapter">WarmCatalogAdapter (class in compresso_recsys.models)</a>
+</li>
+      <li><a href="api/persistence.html#compresso_recsys.ModelCheckpointWriter.write_dataframe">write_dataframe() (compresso_recsys.ModelCheckpointWriter method)</a>
+</li>
+      <li><a href="api/persistence.html#compresso_recsys.ModelCheckpointWriter.write_features">write_features() (compresso_recsys.ModelCheckpointWriter method)</a>
+</li>
+      <li><a href="api/persistence.html#compresso_recsys.ModelCheckpointWriter.write_item_ids">write_item_ids() (compresso_recsys.ModelCheckpointWriter method)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/persistence.html#compresso_recsys.ModelCheckpointWriter.write_json">write_json() (compresso_recsys.ModelCheckpointWriter method)</a>
+</li>
+      <li><a href="api/persistence.html#compresso_recsys.ModelCheckpointWriter.write_numpy">write_numpy() (compresso_recsys.ModelCheckpointWriter method)</a>
+</li>
+      <li><a href="api/persistence.html#compresso_recsys.ModelCheckpointWriter.write_sparse">write_sparse() (compresso_recsys.ModelCheckpointWriter method)</a>
+</li>
+      <li><a href="api/persistence.html#compresso_recsys.ModelCheckpointWriter.write_torch">write_torch() (compresso_recsys.ModelCheckpointWriter method)</a>
 </li>
   </ul></td>
 </tr></table>

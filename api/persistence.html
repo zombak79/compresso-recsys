@@ -1,0 +1,794 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fitted Model Persistence &mdash; Compresso Recsys 0.3.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=83a61292"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Sequences API" href="sequences.html" />
+    <link rel="prev" title="Checkpoint API" href="checkpoint.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Compresso Recsys
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../installation.html#install-from-pypi">Install from PyPI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../installation.html#optional-extras">Optional Extras</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../installation.html#local-development">Local Development</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../installation.html#install-from-github">Install from GitHub</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../installation.html#build-the-documentation-locally">Build the Documentation Locally</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-started.html">Getting Started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started.html#basic-python-usage">Basic Python Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started.html#checkpoint-workflow">Checkpoint Workflow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started.html#what-goes-into-a-checkpoint">What Goes Into a Checkpoint</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started.html#split-modes">Split Modes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started.html#retrieval-metrics">Retrieval Metrics</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../quickstart.html#choose-a-split-mode">Choose a Split Mode</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../examples.html">Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../examples.html#dataset-loader">Dataset Loader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples.html#building-checkpoints">Building Checkpoints</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples.html#checkpoint-read-write">Checkpoint Read/Write</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples.html#evaluate-embeddings-from-python">Evaluate Embeddings From Python</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples.html#evaluate-model-predictions">Evaluate Model Predictions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples.html#train-teaser-for-cold-items">Train TEASER for Cold Items</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples.html#train-teaser-with-gradient-descent">Train TEASER with Gradient Descent</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples.html#serve-new-teaser-candidates">Serve New TEASER Candidates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples.html#train-and-evaluate-elsa">Train and Evaluate ELSA</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../bring-your-own-dataset.html">Bringing Your Own Dataset</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../bring-your-own-dataset.html#What-a-dataset-has-to-produce">What a dataset has to produce</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../bring-your-own-dataset.html#The-dataset">The dataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../bring-your-own-dataset.html#The-dataset-class">The dataset class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../bring-your-own-dataset.html#Two-defaults-that-will-empty-your-dataset">Two defaults that will empty your dataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../bring-your-own-dataset.html#What-is-in-it">What is in it</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../bring-your-own-dataset.html#Does-it-work?">Does it work?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../bring-your-own-dataset.html#Cold-items,-for-free">Cold items, for free</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../bring-your-own-dataset.html#What-timestamps-would-have-added">What timestamps would have added</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../bring-your-own-dataset.html#You-do-not-need-a-dataset-class-at-all">You do not need a dataset class at all</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../statistical-comparison.html">Comparing Models Statistically</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../statistical-comparison.html#why-the-aggregates-are-not-enough">Why the aggregates are not enough</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../statistical-comparison.html#do-the-comparison">Do the comparison</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../statistical-comparison.html#a-complete-worked-example">A complete worked example</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../statistical-comparison.html#build-the-split">Build the split</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../statistical-comparison.html#train-both-models">Train both models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../statistical-comparison.html#evaluate-both-on-identical-users">Evaluate both on identical users</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../statistical-comparison.html#compare">Compare</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../statistical-comparison.html#reading-it">Reading it</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../statistical-comparison.html#reading-the-output">Reading the output</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../statistical-comparison.html#the-effect">The effect</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../statistical-comparison.html#how-precisely-you-know-it">How precisely you know it</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../statistical-comparison.html#how-often-the-two-models-tied">How often the two models tied</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../statistical-comparison.html#whether-it-could-be-chance">Whether it could be chance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../statistical-comparison.html#the-verdict">The verdict</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../statistical-comparison.html#five-traps">Five traps</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../statistical-comparison.html#p-values-have-a-floor">p-values have a floor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../statistical-comparison.html#ties-are-not-missing-data">Ties are not missing data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../statistical-comparison.html#the-interval-and-the-p-value-can-disagree">The interval and the p-value can disagree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../statistical-comparison.html#confidence-level-also-moves-the-significance-bar"><code class="docutils literal notranslate"><span class="pre">confidence_level</span></code> also moves the significance bar</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../statistical-comparison.html#one-trained-model-is-not-the-method">One trained model is not the method</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../statistical-comparison.html#choosing-the-settings">Choosing the settings</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../statistical-comparison.html#n-resamples"><code class="docutils literal notranslate"><span class="pre">n_resamples</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../statistical-comparison.html#test-method"><code class="docutils literal notranslate"><span class="pre">test_method</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../statistical-comparison.html#test-method-why-not-a-t-test"><code class="docutils literal notranslate"><span class="pre">test_method</span></code>: why not a t-test?</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../statistical-comparison.html#alternative"><code class="docutils literal notranslate"><span class="pre">alternative</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../statistical-comparison.html#correction"><code class="docutils literal notranslate"><span class="pre">correction</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../statistical-comparison.html#when-one-user-owns-several-rows">When one user owns several rows</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../statistical-comparison.html#what-the-methods-do-formally">What the methods do, formally</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../statistical-comparison.html#reporting-the-result">Reporting the result</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../statistical-comparison.html#methods">Methods</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../statistical-comparison.html#results">Results</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../statistical-comparison.html#checklist">Checklist</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../statistical-comparison.html#references">References</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../statistical-comparison.html#see-also">See also</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../citing.html">Citing Compresso Recsys</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../citing.html#compresso">Compresso</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../citing.html#ease">EASE</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../citing.html#teaser">TEASER</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../citing.html#elsa">ELSA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../citing.html#elsa-with-sampled-output-candidates">ELSA with sampled output candidates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../citing.html#compressed-elsa">Compressed ELSA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../citing.html#evaluation-protocol">Evaluation Protocol</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../citing.html#statistical-comparison">Statistical Comparison</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../cli-reference.html">Checkpoint CLI Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../cli-reference.html#amazon-reviews-2023">Amazon Reviews 2023</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../cli-reference.html#leave-last-out-checkpoint">Leave-Last-Out Checkpoint</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../cli-reference.html#temporal-checkpoint">Temporal Checkpoint</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../cli-reference.html#checkpoint-split-schema">Checkpoint Split Schema</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../cli-reference.html#builder-parameters">Builder Parameters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../cli-reference.html#supported-amazon-reviews-2023-datasets">Supported Amazon Reviews 2023 Datasets</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">API Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="compresso_recsys.html">Core API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="compresso_recsys.html#datasets">Datasets</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="compresso_recsys.html#compresso_recsys.SplitBundle"><code class="docutils literal notranslate"><span class="pre">SplitBundle</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="compresso_recsys.html#compresso_recsys.RecSysDataset"><code class="docutils literal notranslate"><span class="pre">RecSysDataset</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="compresso_recsys.html#compresso_recsys.Goodbooks"><code class="docutils literal notranslate"><span class="pre">Goodbooks</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="compresso_recsys.html#compresso_recsys.MovieLens1M"><code class="docutils literal notranslate"><span class="pre">MovieLens1M</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="compresso_recsys.html#compresso_recsys.MovieLens20M"><code class="docutils literal notranslate"><span class="pre">MovieLens20M</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="compresso_recsys.html#compresso_recsys.AmazonReviews2023"><code class="docutils literal notranslate"><span class="pre">AmazonReviews2023</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="compresso_recsys.html#checkpoint-helpers">Checkpoint Helpers</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="compresso_recsys.html#compresso_recsys.build_recsys_checkpoint"><code class="docutils literal notranslate"><span class="pre">build_recsys_checkpoint()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="compresso_recsys.html#compresso_recsys.update_checkpoint"><code class="docutils literal notranslate"><span class="pre">update_checkpoint()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="compresso_recsys.html#compresso_recsys.read_checkpoint"><code class="docutils literal notranslate"><span class="pre">read_checkpoint()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="compresso_recsys.html#compresso_recsys.load_manifest"><code class="docutils literal notranslate"><span class="pre">load_manifest()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="compresso_recsys.html#compresso_recsys.save_manifest"><code class="docutils literal notranslate"><span class="pre">save_manifest()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="compresso_recsys.html#compresso_recsys.update_stage_manifest"><code class="docutils literal notranslate"><span class="pre">update_stage_manifest()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="compresso_recsys.html#compresso_recsys.save_json"><code class="docutils literal notranslate"><span class="pre">save_json()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="compresso_recsys.html#compresso_recsys.load_json"><code class="docutils literal notranslate"><span class="pre">load_json()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="compresso_recsys.html#compresso_recsys.save_recsys_split"><code class="docutils literal notranslate"><span class="pre">save_recsys_split()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="compresso_recsys.html#compresso_recsys.load_recsys_split"><code class="docutils literal notranslate"><span class="pre">load_recsys_split()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="compresso_recsys.html#compresso_recsys.save_cluster_graph_stage"><code class="docutils literal notranslate"><span class="pre">save_cluster_graph_stage()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="compresso_recsys.html#compresso_recsys.load_cluster_graph_stage"><code class="docutils literal notranslate"><span class="pre">load_cluster_graph_stage()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html">Datasets API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="checkpoint.html">Checkpoint API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="checkpoint.html#checkpoint-contexts">Checkpoint Contexts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="checkpoint.html#manifest-and-json-helpers">Manifest and JSON Helpers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="checkpoint.html#split-and-cluster-stages">Split and Cluster Stages</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="checkpoint.html#item-partitions">Item partitions</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Fitted Model Persistence</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#embedding-models-in-data-checkpoints">Embedding Models in Data Checkpoints</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#stable-item-ids">Stable Item IDs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#optimizer-state">Optimizer State</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#checkpoint-format">Checkpoint Format</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#compresso_recsys.ModelCheckpointWriter"><code class="docutils literal notranslate"><span class="pre">ModelCheckpointWriter</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#compresso_recsys.ModelCheckpointReader"><code class="docutils literal notranslate"><span class="pre">ModelCheckpointReader</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#extending-persistence">Extending Persistence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#warm-catalog-adapters">Warm Catalog Adapters</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="sequences.html">Sequences API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="sequences.html#interaction-histories">Interaction Histories</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="sequences.html#compresso_recsys.ItemSequences"><code class="docutils literal notranslate"><span class="pre">ItemSequences</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="sequences.html#compresso_recsys.save_item_sequences"><code class="docutils literal notranslate"><span class="pre">save_item_sequences()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="sequences.html#compresso_recsys.load_item_sequences"><code class="docutils literal notranslate"><span class="pre">load_item_sequences()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="sequences.html#which-split-modes-produce-them">Which Split Modes Produce Them</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="models.html">Models API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="models.html#recommender-contract">Recommender Contract</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.Recommender"><code class="docutils literal notranslate"><span class="pre">Recommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.ColdStartRecommender"><code class="docutils literal notranslate"><span class="pre">ColdStartRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.ItemVocabulary"><code class="docutils literal notranslate"><span class="pre">ItemVocabulary</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.SequentialRecommender"><code class="docutils literal notranslate"><span class="pre">SequentialRecommender</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="models.html#production-recommendations">Production Recommendations</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.IdentifiedRecommender"><code class="docutils literal notranslate"><span class="pre">IdentifiedRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.Recommendations"><code class="docutils literal notranslate"><span class="pre">Recommendations</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="models.html#fitted-model-persistence">Fitted Model Persistence</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.PersistableRecommender"><code class="docutils literal notranslate"><span class="pre">PersistableRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.BasePersistableRecommender"><code class="docutils literal notranslate"><span class="pre">BasePersistableRecommender</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="models.html#implementing-new-models">Implementing New Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.BaseIdentifiedRecommender"><code class="docutils literal notranslate"><span class="pre">BaseIdentifiedRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.BaseCollaborativeRecommender"><code class="docutils literal notranslate"><span class="pre">BaseCollaborativeRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.BaseColdStartRecommender"><code class="docutils literal notranslate"><span class="pre">BaseColdStartRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.BaseSequentialRecommender"><code class="docutils literal notranslate"><span class="pre">BaseSequentialRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="models.html#the-owned-candidate-catalog">The Owned Candidate Catalog</a></li>
+<li class="toctree-l4"><a class="reference internal" href="models.html#training-interaction-batches">Training Interaction Batches</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="models.html#transductive-models-in-expanding-catalogs">Transductive Models in Expanding Catalogs</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="models.html#when-to-reach-for-it-outside-temporal">When to Reach for It Outside <code class="docutils literal notranslate"><span class="pre">temporal</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="models.html#collaborative-filtering-models">Collaborative Filtering Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="models.html#ease">EASE</a></li>
+<li class="toctree-l4"><a class="reference internal" href="models.html#elsa">ELSA</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="models.html#cold-start-models">Cold-Start Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="models.html#contentrecommender">ContentRecommender</a></li>
+<li class="toctree-l4"><a class="reference internal" href="models.html#teaser">TEASER</a></li>
+<li class="toctree-l4"><a class="reference internal" href="models.html#teasergd">TEASERGD</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="models.html#sequential-models">Sequential Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="models.html#tokenizing-histories">Tokenizing Histories</a></li>
+<li class="toctree-l4"><a class="reference internal" href="models.html#simplernn">SimpleRNN</a></li>
+<li class="toctree-l4"><a class="reference internal" href="models.html#simplegpt">SimpleGPT</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="retrieval.html">Retrieval API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="retrieval.html#holdout-builders">Holdout Builders</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="retrieval.html#compresso_recsys.retrieval.build_eval_holdout"><code class="docutils literal notranslate"><span class="pre">build_eval_holdout()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="retrieval.html#compresso_recsys.retrieval.build_item_cold_holdout"><code class="docutils literal notranslate"><span class="pre">build_item_cold_holdout()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="retrieval.html#compresso_recsys.retrieval.build_leave_last_out_holdout"><code class="docutils literal notranslate"><span class="pre">build_leave_last_out_holdout()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="retrieval.html#compresso_recsys.retrieval.build_temporal_holdout"><code class="docutils literal notranslate"><span class="pre">build_temporal_holdout()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="retrieval.html#embedding-evaluation">Embedding Evaluation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="retrieval.html#compresso_recsys.retrieval.evaluate_item_embeddings"><code class="docutils literal notranslate"><span class="pre">evaluate_item_embeddings()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="retrieval.html#compresso_recsys.retrieval.evaluate_item_embeddings_with_holdout"><code class="docutils literal notranslate"><span class="pre">evaluate_item_embeddings_with_holdout()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="evaluation.html">Ranking Evaluation API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="evaluation.html#predictions-and-targets">Predictions and Targets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="evaluation.html#evaluation-results">Evaluation Results</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="evaluation.html#compresso_recsys.evaluation.EvaluationResult"><code class="docutils literal notranslate"><span class="pre">EvaluationResult</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="evaluation.html#custom-metrics">Custom Metrics</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="evaluation.html#compresso_recsys.evaluation.evaluate_recommender"><code class="docutils literal notranslate"><span class="pre">evaluate_recommender()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="evaluation.html#compresso_recsys.evaluation.evaluate_ranked_predictions"><code class="docutils literal notranslate"><span class="pre">evaluate_ranked_predictions()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="evaluation.html#compresso_recsys.evaluation.RankingEvaluator"><code class="docutils literal notranslate"><span class="pre">RankingEvaluator</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="evaluation.html#metrics">Metrics</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="evaluation.html#default-metrics">Default Metrics</a></li>
+<li class="toctree-l4"><a class="reference internal" href="evaluation.html#optional-metrics">Optional Metrics</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="statistics.html">Statistics API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="statistics.html#comparison-functions">Comparison Functions</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="statistics.html#compresso_recsys.stats.compare_models"><code class="docutils literal notranslate"><span class="pre">compare_models()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="statistics.html#compresso_recsys.stats.compare_pair"><code class="docutils literal notranslate"><span class="pre">compare_pair()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="statistics.html#results">Results</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="statistics.html#compresso_recsys.stats.PairwiseComparison"><code class="docutils literal notranslate"><span class="pre">PairwiseComparison</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="statistics.html#compresso_recsys.stats.ComparisonReport"><code class="docutils literal notranslate"><span class="pre">ComparisonReport</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="statistics.html#parameter-values">Parameter Values</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Compresso Recsys</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">API Reference</a></li>
+      <li class="breadcrumb-item active">Fitted Model Persistence</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/api/persistence.rst" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="fitted-model-persistence">
+<h1>Fitted Model Persistence<a class="headerlink" href="#fitted-model-persistence" title="Link to this heading"></a></h1>
+<p>Every built-in fitted recommender exposes the same self-contained API:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">EASE</span>
+
+<span class="n">model</span> <span class="o">=</span> <span class="n">EASE</span><span class="p">()</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">interactions</span><span class="p">,</span> <span class="n">item_ids</span><span class="o">=</span><span class="n">item_ids</span><span class="p">)</span>
+<span class="n">model</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s2">"artifacts/ease.ckpt"</span><span class="p">)</span>
+
+<span class="n">restored</span> <span class="o">=</span> <span class="n">EASE</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">"artifacts/ease.ckpt"</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The loaded object is fitted and ready to predict. Checkpoints contain the model
+configuration, learned state, and the vocabulary, mappings, or candidate catalog
+needed to interpret its prediction columns. Loading defaults to CPU regardless
+of the device used during training:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">on_cpu</span> <span class="o">=</span> <span class="n">ELSATrainer</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">"artifacts/elsa.ckpt"</span><span class="p">)</span>
+<span class="n">on_gpu</span> <span class="o">=</span> <span class="n">ELSATrainer</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">"artifacts/elsa.ckpt"</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">"cuda"</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>A device-backed recommender can also be moved after loading. <code class="docutils literal notranslate"><span class="pre">to</span></code> updates the
+model, its runtime configuration, optional optimizer tensors, and any
+device-specific caches, and returns the same recommender:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">restored</span> <span class="o">=</span> <span class="n">SimpleGPTTrainer</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">"artifacts/gpt.ckpt"</span><span class="p">)</span>
+<span class="n">restored</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s2">"cuda"</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>NumPy-only recommenders such as EASE have no device-backed state and reject
+<code class="docutils literal notranslate"><span class="pre">to</span></code> rather than implying that their computation moved.</p>
+<p>Calling <code class="docutils literal notranslate"><span class="pre">load</span></code> through a different model class, reading an unsupported format
+version, or saving an unfitted model raises rather than guessing.</p>
+<section id="embedding-models-in-data-checkpoints">
+<h2>Embedding Models in Data Checkpoints<a class="headerlink" href="#embedding-models-in-data-checkpoints" title="Link to this heading"></a></h2>
+<p>A model may remain a standalone checkpoint or travel inside an existing data
+checkpoint. The convenience methods preserve the same model format under
+<code class="docutils literal notranslate"><span class="pre">models/&lt;name&gt;.zip</span></code> while hiding the outer archive’s temporary workspace:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">rnn</span><span class="o">.</span><span class="n">save_to_checkpoint</span><span class="p">(</span>
+    <span class="s2">"artifacts/ml20m/recsys_checkpoint.zip"</span><span class="p">,</span>
+    <span class="s2">"gru"</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">restored</span> <span class="o">=</span> <span class="n">SimpleRNNTrainer</span><span class="o">.</span><span class="n">load_from_checkpoint</span><span class="p">(</span>
+    <span class="s2">"artifacts/ml20m/recsys_checkpoint.zip"</span><span class="p">,</span>
+    <span class="s2">"gru"</span><span class="p">,</span>
+    <span class="n">device</span><span class="o">=</span><span class="s2">"cuda"</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">name</span></code> is an extension-free identifier; the example creates
+<code class="docutils literal notranslate"><span class="pre">models/gru.zip</span></code>. Saving the same model type under that name replaces it, but
+using an existing name for another model type raises. The outer manifest records
+the embedded path, model type, and whether optimizer state is included. The data
+checkpoint must already exist, preventing a misspelled path from silently
+creating a model-only outer archive.</p>
+<p>Embedding is convenient for a self-contained experiment artifact, while a
+standalone model avoids rewriting a potentially large data checkpoint on every
+save. Both forms use the same inner model archive and the same device and
+optimizer options.</p>
+</section>
+<section id="stable-item-ids">
+<h2>Stable Item IDs<a class="headerlink" href="#stable-item-ids" title="Link to this heading"></a></h2>
+<p>Fitted item identities are part of the model checkpoint, so the production
+interface is unchanged after loading:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">before</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">recommend</span><span class="p">([[</span><span class="s2">"item-14"</span><span class="p">,</span> <span class="s2">"item-87"</span><span class="p">]],</span> <span class="n">k</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span>
+<span class="n">restored</span> <span class="o">=</span> <span class="n">EASE</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">"artifacts/ease.ckpt"</span><span class="p">)</span>
+<span class="n">after</span> <span class="o">=</span> <span class="n">restored</span><span class="o">.</span><span class="n">recommend</span><span class="p">([[</span><span class="s2">"item-14"</span><span class="p">,</span> <span class="s2">"item-87"</span><span class="p">]],</span> <span class="n">k</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Checkpoint item IDs use an explicit pickle-free encoding for strings, integers,
+finite floats, and booleans. A fixed-catalog model fitted without <code class="docutils literal notranslate"><span class="pre">item_ids</span></code>
+uses positional integer IDs. Cold-start checkpoints preserve both the fitted
+source vocabulary and the current mutable candidate catalog.</p>
+</section>
+<section id="optimizer-state">
+<h2>Optimizer State<a class="headerlink" href="#optimizer-state" title="Link to this heading"></a></h2>
+<p>Optimizer state is excluded by default because prediction does not need it. A
+trainer can include and restore it explicitly:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s2">"artifacts/elsa-with-optimizer.ckpt"</span><span class="p">,</span> <span class="n">include_optimizer</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">restored</span> <span class="o">=</span> <span class="n">ELSATrainer</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+    <span class="s2">"artifacts/elsa-with-optimizer.ckpt"</span><span class="p">,</span>
+    <span class="n">load_optimizer</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>This preserves optimizer continuity for training APIs that can use it. It does
+not promise exact training resumption: scheduler, random-number-generator,
+data-order, and partial-epoch state are not stored. A model without an optimizer
+rejects <code class="docutils literal notranslate"><span class="pre">include_optimizer=True</span></code>.</p>
+</section>
+<section id="checkpoint-format">
+<h2>Checkpoint Format<a class="headerlink" href="#checkpoint-format" title="Link to this heading"></a></h2>
+<p>Model checkpoints are atomic, versioned ZIP files, separate from dataset
+checkpoints. The framework owns their manifest and layout. Configurations and
+IDs use explicit JSON-safe encodings, NumPy arrays load with
+<code class="docutils literal notranslate"><span class="pre">allow_pickle=False</span></code>, candidate metadata uses Parquet, sparse matrices use
+SciPy <code class="docutils literal notranslate"><span class="pre">.npz</span></code>, and Torch state is loaded with <code class="docutils literal notranslate"><span class="pre">weights_only=True</span></code>.</p>
+<p>The public reader and writer helpers give third-party model implementations the
+same typed storage operations without requiring them to invent a manifest or
+archive convention.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="compresso_recsys.ModelCheckpointWriter">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">compresso_recsys.</span></span><span class="sig-name descname"><span class="pre">ModelCheckpointWriter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimizer_included</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/persistence.html#ModelCheckpointWriter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.ModelCheckpointWriter" title="Link to this definition"></a></dt>
+<dd><p>Build one model checkpoint while owning its manifest and ZIP layout.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> (<em>str</em><em> | </em><em>Path</em>)</p></li>
+<li><p><strong>model_type</strong> (<em>str</em>)</p></li>
+<li><p><strong>optimizer_included</strong> (<em>bool</em>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.ModelCheckpointWriter.write_json">
+<span class="sig-name descname"><span class="pre">write_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">relpath</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/persistence.html#ModelCheckpointWriter.write_json"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.ModelCheckpointWriter.write_json" title="Link to this definition"></a></dt>
+<dd><p>Write dataclasses and JSON-safe values without non-finite numbers.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>relpath</strong> (<em>str</em><em> | </em><em>Path</em>)</p></li>
+<li><p><strong>value</strong> (<em>Any</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.ModelCheckpointWriter.write_numpy">
+<span class="sig-name descname"><span class="pre">write_numpy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">relpath</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/persistence.html#ModelCheckpointWriter.write_numpy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.ModelCheckpointWriter.write_numpy" title="Link to this definition"></a></dt>
+<dd><p>Write a non-object NumPy array with pickle disabled.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>relpath</strong> (<em>str</em><em> | </em><em>Path</em>)</p></li>
+<li><p><strong>value</strong> (<em>ndarray</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.ModelCheckpointWriter.write_sparse">
+<span class="sig-name descname"><span class="pre">write_sparse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">relpath</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/persistence.html#ModelCheckpointWriter.write_sparse"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.ModelCheckpointWriter.write_sparse" title="Link to this definition"></a></dt>
+<dd><p>Write a CSR matrix in SciPy’s compressed NPZ representation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>relpath</strong> (<em>str</em><em> | </em><em>Path</em>)</p></li>
+<li><p><strong>value</strong> (<em>csr_matrix</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.ModelCheckpointWriter.write_features">
+<span class="sig-name descname"><span class="pre">write_features</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">relpath</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/persistence.html#ModelCheckpointWriter.write_features"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.ModelCheckpointWriter.write_features" title="Link to this definition"></a></dt>
+<dd><p>Write dense or CSR features and return their storage discriminator.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>relpath</strong> (<em>str</em><em> | </em><em>Path</em>)</p></li>
+<li><p><strong>value</strong> (<em>csr_matrix</em><em> | </em><em>ndarray</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.ModelCheckpointWriter.write_dataframe">
+<span class="sig-name descname"><span class="pre">write_dataframe</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">relpath</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/persistence.html#ModelCheckpointWriter.write_dataframe"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.ModelCheckpointWriter.write_dataframe" title="Link to this definition"></a></dt>
+<dd><p>Write candidate metadata as Parquet without an index.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>relpath</strong> (<em>str</em><em> | </em><em>Path</em>)</p></li>
+<li><p><strong>value</strong> (<em>DataFrame</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.ModelCheckpointWriter.write_torch">
+<span class="sig-name descname"><span class="pre">write_torch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">relpath</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/persistence.html#ModelCheckpointWriter.write_torch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.ModelCheckpointWriter.write_torch" title="Link to this definition"></a></dt>
+<dd><p>Write a Torch state mapping intended for <code class="docutils literal notranslate"><span class="pre">weights_only</span></code> loading.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>relpath</strong> (<em>str</em><em> | </em><em>Path</em>)</p></li>
+<li><p><strong>value</strong> (<em>Mapping</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.ModelCheckpointWriter.write_item_ids">
+<span class="sig-name descname"><span class="pre">write_item_ids</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">relpath</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/persistence.html#ModelCheckpointWriter.write_item_ids"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.ModelCheckpointWriter.write_item_ids" title="Link to this definition"></a></dt>
+<dd><p>Write stable scalar item IDs with explicit, pickle-free type tags.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>relpath</strong> (<em>str</em><em> | </em><em>Path</em>)</p></li>
+<li><p><strong>values</strong> (<em>Sequence</em><em>[</em><em>Hashable</em><em>] </em><em>| </em><em>ndarray</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="compresso_recsys.ModelCheckpointReader">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">compresso_recsys.</span></span><span class="sig-name descname"><span class="pre">ModelCheckpointReader</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">expected_model_type</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/persistence.html#ModelCheckpointReader"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.ModelCheckpointReader" title="Link to this definition"></a></dt>
+<dd><p>Validate and read one fitted-recommender checkpoint.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> (<em>str</em><em> | </em><em>Path</em>)</p></li>
+<li><p><strong>expected_model_type</strong> (<em>str</em>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="compresso_recsys.ModelCheckpointReader.optimizer_included">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">optimizer_included</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><a class="headerlink" href="#compresso_recsys.ModelCheckpointReader.optimizer_included" title="Link to this definition"></a></dt>
+<dd><p>Whether the checkpoint manifest advertises optimizer state.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.ModelCheckpointReader.read_json">
+<span class="sig-name descname"><span class="pre">read_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">relpath</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/persistence.html#ModelCheckpointReader.read_json"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.ModelCheckpointReader.read_json" title="Link to this definition"></a></dt>
+<dd><p>Read a JSON object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>]</span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>relpath</strong> (<em>str</em><em> | </em><em>Path</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.ModelCheckpointReader.read_json_value">
+<span class="sig-name descname"><span class="pre">read_json_value</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">relpath</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/persistence.html#ModelCheckpointReader.read_json_value"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.ModelCheckpointReader.read_json_value" title="Link to this definition"></a></dt>
+<dd><p>Read any JSON value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>relpath</strong> (<em>str</em><em> | </em><em>Path</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.ModelCheckpointReader.read_numpy">
+<span class="sig-name descname"><span class="pre">read_numpy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">relpath</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/persistence.html#ModelCheckpointReader.read_numpy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.ModelCheckpointReader.read_numpy" title="Link to this definition"></a></dt>
+<dd><p>Read a NumPy array with pickle disabled.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>relpath</strong> (<em>str</em><em> | </em><em>Path</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.ModelCheckpointReader.read_sparse">
+<span class="sig-name descname"><span class="pre">read_sparse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">relpath</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/persistence.html#ModelCheckpointReader.read_sparse"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.ModelCheckpointReader.read_sparse" title="Link to this definition"></a></dt>
+<dd><p>Read a SciPy sparse matrix and canonicalize it to CSR.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">csr_matrix</span></code></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>relpath</strong> (<em>str</em><em> | </em><em>Path</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.ModelCheckpointReader.read_features">
+<span class="sig-name descname"><span class="pre">read_features</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">relpath</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">storage</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/persistence.html#ModelCheckpointReader.read_features"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.ModelCheckpointReader.read_features" title="Link to this definition"></a></dt>
+<dd><p>Read features according to a writer-provided storage discriminator.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">csr_matrix</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>relpath</strong> (<em>str</em><em> | </em><em>Path</em>)</p></li>
+<li><p><strong>storage</strong> (<em>str</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.ModelCheckpointReader.read_dataframe">
+<span class="sig-name descname"><span class="pre">read_dataframe</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">relpath</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/persistence.html#ModelCheckpointReader.read_dataframe"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.ModelCheckpointReader.read_dataframe" title="Link to this definition"></a></dt>
+<dd><p>Read Parquet metadata.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>relpath</strong> (<em>str</em><em> | </em><em>Path</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.ModelCheckpointReader.read_torch">
+<span class="sig-name descname"><span class="pre">read_torch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">relpath</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cpu'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/persistence.html#ModelCheckpointReader.read_torch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.ModelCheckpointReader.read_torch" title="Link to this definition"></a></dt>
+<dd><p>Read Torch state as data using <code class="docutils literal notranslate"><span class="pre">weights_only=True</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>]</span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>relpath</strong> (<em>str</em><em> | </em><em>Path</em>)</p></li>
+<li><p><strong>device</strong> (<em>str</em><em> | </em><em>device</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.ModelCheckpointReader.read_item_ids">
+<span class="sig-name descname"><span class="pre">read_item_ids</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">relpath</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/persistence.html#ModelCheckpointReader.read_item_ids"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.ModelCheckpointReader.read_item_ids" title="Link to this definition"></a></dt>
+<dd><p>Read explicitly typed stable item IDs into an object array.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>relpath</strong> (<em>str</em><em> | </em><em>Path</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<p>Compiled Torch wrappers and runtime caches are not serialized. Torch models are
+stored through their eager <code class="docutils literal notranslate"><span class="pre">state_dict</span></code> and loaded uncompiled. A direct
+<code class="docutils literal notranslate"><span class="pre">nn.Module</span></code> recommender can use the inherited Torch behavior after declaring
+how its JSON configuration reconstructs the module; wrappers add only the
+tokenizer, catalog, or other state outside that module.</p>
+</section>
+<section id="extending-persistence">
+<h2>Extending Persistence<a class="headerlink" href="#extending-persistence" title="Link to this heading"></a></h2>
+<p>A model base subclass declares a stable <code class="docutils literal notranslate"><span class="pre">checkpoint_type</span></code> and implements
+<code class="docutils literal notranslate"><span class="pre">_from_checkpoint_config</span></code> so loading can reconstruct its fitted shape. A
+dataclass stored as <code class="docutils literal notranslate"><span class="pre">self.cfg</span></code> supplies the default JSON configuration. For a
+recommender that is itself an <code class="docutils literal notranslate"><span class="pre">nn.Module</span></code>, those pieces are sufficient for
+configuration and learned weights; the inherited implementation saves and
+strictly reloads its <code class="docutils literal notranslate"><span class="pre">state_dict</span></code>.</p>
+<p>Trainer wrappers return their nested module from <code class="docutils literal notranslate"><span class="pre">_checkpoint_module</span></code>.
+Non-Torch learned state belongs in <code class="docutils literal notranslate"><span class="pre">_save_checkpoint_state</span></code> and
+<code class="docutils literal notranslate"><span class="pre">_load_checkpoint_state</span></code>, using <code class="xref py py-class docutils literal notranslate"><span class="pre">ModelCheckpointWriter</span></code> and
+<code class="xref py py-class docutils literal notranslate"><span class="pre">ModelCheckpointReader</span></code>. A trainer that supports optional optimizer
+restoration also implements <code class="docutils literal notranslate"><span class="pre">_build_checkpoint_optimizer</span></code>. Derived caches and
+other runtime-only state are rebuilt in <code class="docutils literal notranslate"><span class="pre">_finish_checkpoint_load</span></code>.</p>
+</section>
+<section id="warm-catalog-adapters">
+<h2>Warm Catalog Adapters<a class="headerlink" href="#warm-catalog-adapters" title="Link to this heading"></a></h2>
+<p><a class="reference internal" href="models.html#compresso_recsys.models.WarmCatalogAdapter" title="compresso_recsys.models.WarmCatalogAdapter"><code class="xref py py-class docutils literal notranslate"><span class="pre">compresso_recsys.models.WarmCatalogAdapter</span></code></a> is a projection onto a
+particular evaluation-stage catalog rather than learned model state. Save its
+nested fitted model and rebuild the adapter from the dataset checkpoint:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s2">"artifacts/rnn.ckpt"</span><span class="p">)</span>
+<span class="n">restored</span> <span class="o">=</span> <span class="n">SimpleRNNTrainer</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">"artifacts/rnn.ckpt"</span><span class="p">)</span>
+<span class="n">restored</span> <span class="o">=</span> <span class="n">WarmCatalogAdapter</span><span class="p">(</span>
+    <span class="n">restored</span><span class="p">,</span>
+    <span class="n">train_item_ids</span><span class="o">=</span><span class="n">split</span><span class="p">[</span><span class="s2">"train_item_ids"</span><span class="p">],</span>
+    <span class="n">catalog_item_ids</span><span class="o">=</span><span class="n">split</span><span class="p">[</span><span class="s2">"test_item_ids"</span><span class="p">],</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="checkpoint.html" class="btn btn-neutral float-left" title="Checkpoint API" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="sequences.html" class="btn btn-neutral float-right" title="Sequences API" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

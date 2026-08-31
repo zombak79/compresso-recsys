@@ -34,7 +34,7 @@ Split and Cluster Stages
 Item partitions
 ~~~~~~~~~~~~~~~
 
-``train_item_indices``, ``val_item_indices`` and ``test_item_indices`` are
+``warm_item_indices``, ``val_cold_item_indices`` and ``test_cold_item_indices`` are
 positions into ``item_ids`` naming the items **each phase introduces**, not the
 items it may score:
 
@@ -52,8 +52,8 @@ items it may score:
      - Warm items
      - The disjoint cold items held out of training
    * - ``leave_last_out``
-     - Items never used as a target
-     - The target items
+     - Every item; nothing is withheld from the catalog
+     - Only items whose every occurrence falls in a held-out tail
    * - ``temporal``
      - Items in the first window
      - Items first seen in each later window
@@ -66,10 +66,16 @@ phase its own item space (only ``temporal`` does, flagged by
 ``has_stage_item_spaces`` in the split metadata).
 
 So to select feature or metadata rows for a phase, index with that phase's
-``*_item_ids``, not by mirroring ``train_item_indices``: for splits that hold no
+``*_item_ids``, not by mirroring ``warm_item_indices``: for splits that hold no
 items out, the latter yields an empty selection that fails much later and far
 from its cause. ``has_item_partitions`` in the split metadata tells you whether
 a split partitions items at all.
+
+Chronological split modes additionally store sequence views —
+``x_train_sequences`` and ``{stage}_source_sequences`` — holding the same events
+as the matrices in order, with duplicates preserved. They load as ``None`` for
+``user_split`` and ``item_split``, and for any checkpoint built before sequences
+existed.
 
 .. autofunction:: compresso_recsys.checkpoint.save_recsys_split
    :no-index:

@@ -38,11 +38,16 @@ consistently.
 Leave-Last-Out Checkpoint
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-``leave_last_out`` is computed locally from timestamps. For every eligible
-user, the latest interaction becomes the target and earlier interactions
-become the source profile. This respects time within each user, but it is not
-globally future-blind because other users may contribute later interactions to
-training.
+``leave_last_out`` is computed locally from timestamps. Each user's latest
+interaction is the test target, the one before it the validation target, and the
+one before that the training target; sources are the corresponding prefixes, so
+each stage sees everything up to its own target. A user needs at least four
+interactions to contribute to all three stages.
+
+The catalog is left whole — nothing is withheld from training merely for being
+someone's target. This respects time within each user, but it is not globally
+future-blind, because another user's training interactions may post-date this
+user's test target.
 
 .. code-block:: bash
 
@@ -129,9 +134,9 @@ Each array defines the columns of both matrices in that split. Temporal item
 spaces are cumulative, so source and target shapes match within a split while
 the number and order of columns may differ between splits.
 
-For temporal checkpoints, ``train_item_indices`` maps the training catalog into
-the global ``item_ids`` array, while ``val_item_indices`` and
-``test_item_indices`` identify items newly admitted in those stages. The
+For temporal checkpoints, ``warm_item_indices`` maps the training catalog into
+the global ``item_ids`` array, while ``val_cold_item_indices`` and
+``test_cold_item_indices`` identify items newly admitted in those stages. The
 stage-specific ``*_item_ids`` arrays, not these index subsets, define matrix
 columns.
 
@@ -143,8 +148,8 @@ Depending on the split mode, the checkpoint also stores partition ids:
    treat all items as train items.
 
 ``item_split``
-   Stores ``train_item_indices.npy``, ``val_item_indices.npy``, and
-   ``test_item_indices.npy``.
+   Stores ``warm_item_indices.npy``, ``val_cold_item_indices.npy``, and
+   ``test_cold_item_indices.npy``.
 
 ``leave_last_out``
    Stores source/target matrices built from per-user latest interactions. It is

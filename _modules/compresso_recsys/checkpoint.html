@@ -5,16 +5,17 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>compresso_recsys.checkpoint &mdash; Compresso Recsys 0.2.0 documentation</title>
+  <title>compresso_recsys.checkpoint &mdash; Compresso Recsys 0.3.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
 
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=938c9ccc"></script>
+      <script src="../../_static/documentation_options.js?v=83a61292"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" /> 
@@ -74,6 +75,18 @@
 <li class="toctree-l2"><a class="reference internal" href="../../examples.html#train-teaser-with-gradient-descent">Train TEASER with Gradient Descent</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples.html#serve-new-teaser-candidates">Serve New TEASER Candidates</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples.html#train-and-evaluate-elsa">Train and Evaluate ELSA</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../bring-your-own-dataset.html">Bringing Your Own Dataset</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../bring-your-own-dataset.html#What-a-dataset-has-to-produce">What a dataset has to produce</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../bring-your-own-dataset.html#The-dataset">The dataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../bring-your-own-dataset.html#The-dataset-class">The dataset class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../bring-your-own-dataset.html#Two-defaults-that-will-empty-your-dataset">Two defaults that will empty your dataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../bring-your-own-dataset.html#What-is-in-it">What is in it</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../bring-your-own-dataset.html#Does-it-work?">Does it work?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../bring-your-own-dataset.html#Cold-items,-for-free">Cold items, for free</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../bring-your-own-dataset.html#What-timestamps-would-have-added">What timestamps would have added</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../bring-your-own-dataset.html#You-do-not-need-a-dataset-class-at-all">You do not need a dataset class at all</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../statistical-comparison.html">Comparing Models Statistically</a><ul>
@@ -186,45 +199,75 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/persistence.html">Fitted Model Persistence</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/persistence.html#embedding-models-in-data-checkpoints">Embedding Models in Data Checkpoints</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/persistence.html#stable-item-ids">Stable Item IDs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/persistence.html#optimizer-state">Optimizer State</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/persistence.html#checkpoint-format">Checkpoint Format</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/persistence.html#compresso_recsys.ModelCheckpointWriter"><code class="docutils literal notranslate"><span class="pre">ModelCheckpointWriter</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/persistence.html#compresso_recsys.ModelCheckpointReader"><code class="docutils literal notranslate"><span class="pre">ModelCheckpointReader</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/persistence.html#extending-persistence">Extending Persistence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/persistence.html#warm-catalog-adapters">Warm Catalog Adapters</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/sequences.html">Sequences API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/sequences.html#interaction-histories">Interaction Histories</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/sequences.html#compresso_recsys.ItemSequences"><code class="docutils literal notranslate"><span class="pre">ItemSequences</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/sequences.html#compresso_recsys.save_item_sequences"><code class="docutils literal notranslate"><span class="pre">save_item_sequences()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/sequences.html#compresso_recsys.load_item_sequences"><code class="docutils literal notranslate"><span class="pre">load_item_sequences()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/sequences.html#which-split-modes-produce-them">Which Split Modes Produce Them</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/models.html">Models API</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../api/models.html#recommender-contract">Recommender Contract</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.Recommender"><code class="docutils literal notranslate"><span class="pre">Recommender</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.ColdStartRecommender"><code class="docutils literal notranslate"><span class="pre">ColdStartRecommender</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.ItemVocabulary"><code class="docutils literal notranslate"><span class="pre">ItemVocabulary</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.SequentialRecommender"><code class="docutils literal notranslate"><span class="pre">SequentialRecommender</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models.html#production-recommendations">Production Recommendations</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.IdentifiedRecommender"><code class="docutils literal notranslate"><span class="pre">IdentifiedRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.Recommendations"><code class="docutils literal notranslate"><span class="pre">Recommendations</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models.html#fitted-model-persistence">Fitted Model Persistence</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.PersistableRecommender"><code class="docutils literal notranslate"><span class="pre">PersistableRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.BasePersistableRecommender"><code class="docutils literal notranslate"><span class="pre">BasePersistableRecommender</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/models.html#implementing-new-models">Implementing New Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.BaseIdentifiedRecommender"><code class="docutils literal notranslate"><span class="pre">BaseIdentifiedRecommender</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.BaseCollaborativeRecommender"><code class="docutils literal notranslate"><span class="pre">BaseCollaborativeRecommender</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.BaseColdStartRecommender"><code class="docutils literal notranslate"><span class="pre">BaseColdStartRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.BaseSequentialRecommender"><code class="docutils literal notranslate"><span class="pre">BaseSequentialRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#the-owned-candidate-catalog">The Owned Candidate Catalog</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/models.html#training-interaction-batches">Training Interaction Batches</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/models.html#transductive-models-in-expanding-catalogs">Transductive Models in Expanding Catalogs</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.WarmCatalogAdapter"><code class="docutils literal notranslate"><span class="pre">WarmCatalogAdapter</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#when-to-reach-for-it-outside-temporal">When to Reach for It Outside <code class="docutils literal notranslate"><span class="pre">temporal</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/models.html#ease">EASE</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.EASEConfig"><code class="docutils literal notranslate"><span class="pre">EASEConfig</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.EASE"><code class="docutils literal notranslate"><span class="pre">EASE</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models.html#collaborative-filtering-models">Collaborative Filtering Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#ease">EASE</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#elsa">ELSA</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/models.html#elsa">ELSA</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/models.html#contentrecommender">ContentRecommender</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.ContentRecommenderConfig"><code class="docutils literal notranslate"><span class="pre">ContentRecommenderConfig</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.ContentRecommender"><code class="docutils literal notranslate"><span class="pre">ContentRecommender</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models.html#cold-start-models">Cold-Start Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#contentrecommender">ContentRecommender</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#teaser">TEASER</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#teasergd">TEASERGD</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/models.html#teaser">TEASER</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.TEASERConfig"><code class="docutils literal notranslate"><span class="pre">TEASERConfig</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.TEASER"><code class="docutils literal notranslate"><span class="pre">TEASER</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.CandidateCatalog"><code class="docutils literal notranslate"><span class="pre">CandidateCatalog</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/models.html#teasergd">TEASERGD</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.TEASERGDConfig"><code class="docutils literal notranslate"><span class="pre">TEASERGDConfig</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.TEASERGD"><code class="docutils literal notranslate"><span class="pre">TEASERGD</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.TEASERGDTrainer"><code class="docutils literal notranslate"><span class="pre">TEASERGDTrainer</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#backend-performance">Backend Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/models.html#sequential-models">Sequential Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#tokenizing-histories">Tokenizing Histories</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#simplernn">SimpleRNN</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#simplegpt">SimpleGPT</a></li>
 </ul>
 </li>
 </ul>
@@ -322,6 +365,12 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">compresso.clustering.types</span><span class="w"> </span><span class="kn">import</span> <span class="n">SparseClusterSet</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">scipy.sparse</span><span class="w"> </span><span class="kn">import</span> <span class="n">csr_matrix</span><span class="p">,</span> <span class="n">load_npz</span><span class="p">,</span> <span class="n">save_npz</span>
 
+<span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.sequences</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">ItemSequences</span><span class="p">,</span>
+    <span class="n">load_item_sequences</span><span class="p">,</span>
+    <span class="n">save_item_sequences</span><span class="p">,</span>
+<span class="p">)</span>
+
 
 <span class="n">MANIFEST_NAME</span> <span class="o">=</span> <span class="s2">"manifest.json"</span>
 <span class="n">SPLIT_DIR</span> <span class="o">=</span> <span class="s2">"data"</span>
@@ -351,6 +400,11 @@
     <span class="k">return</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">x</span><span class="o">.</span><span class="n">tolist</span><span class="p">()]</span>
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_load_optional_sequences</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ItemSequences</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Read sequences if the checkpoint has them, else ``None``."""</span>
+    <span class="k">return</span> <span class="n">load_item_sequences</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">if</span> <span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span> <span class="k">else</span> <span class="kc">None</span>
+
+
 <span class="k">def</span><span class="w"> </span><span class="nf">_indices_to_csr</span><span class="p">(</span><span class="n">rows</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span> <span class="o">*</span><span class="p">,</span> <span class="n">n_cols</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">csr_matrix</span><span class="p">:</span>
     <span class="n">indptr</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">indices</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
@@ -374,6 +428,14 @@
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_load_optional_str_array</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
     <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">allow_pickle</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span> <span class="k">if</span> <span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span> <span class="k">else</span> <span class="kc">None</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_first_existing</span><span class="p">(</span><span class="o">*</span><span class="n">paths</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""The first path that exists, or the first given so the default applies."""</span>
+    <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">paths</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="k">return</span> <span class="n">path</span>
+    <span class="k">return</span> <span class="n">paths</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_load_optional_int_array</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">default</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
@@ -473,6 +535,78 @@
 
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_check_stage_catalogs_nest</span><span class="p">(</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">train_item_ids</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">val_item_ids</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">test_item_ids</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Every stage catalog must extend the previous one by appending.</span>
+
+<span class="sd">    A warm item therefore keeps its column index in every later stage, which is</span>
+<span class="sd">    what lets a model fitted on the training catalog read a later stage's</span>
+<span class="sd">    indices directly: below its own item count is one of its items, at or above</span>
+<span class="sd">    is one it has never seen. ``temporal`` grows the catalog window by window and</span>
+<span class="sd">    the other modes hold it fixed, so this already held everywhere -- but nothing</span>
+<span class="sd">    enforced it, and a mode that re-sorted item IDs per stage would silently</span>
+<span class="sd">    change what an index means between stages rather than failing.</span>
+<span class="sd">    """</span>
+    <span class="k">for</span> <span class="n">earlier_name</span><span class="p">,</span> <span class="n">earlier</span><span class="p">,</span> <span class="n">later_name</span><span class="p">,</span> <span class="n">later</span> <span class="ow">in</span> <span class="p">(</span>
+        <span class="p">(</span><span class="s2">"train_item_ids"</span><span class="p">,</span> <span class="n">train_item_ids</span><span class="p">,</span> <span class="s2">"val_item_ids"</span><span class="p">,</span> <span class="n">val_item_ids</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"val_item_ids"</span><span class="p">,</span> <span class="n">val_item_ids</span><span class="p">,</span> <span class="s2">"test_item_ids"</span><span class="p">,</span> <span class="n">test_item_ids</span><span class="p">),</span>
+    <span class="p">):</span>
+        <span class="k">if</span> <span class="n">earlier</span><span class="o">.</span><span class="n">size</span> <span class="o">&gt;</span> <span class="n">later</span><span class="o">.</span><span class="n">size</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">later_name</span><span class="si">}</span><span class="s2"> has </span><span class="si">{</span><span class="n">later</span><span class="o">.</span><span class="n">size</span><span class="si">}</span><span class="s2"> items but </span><span class="si">{</span><span class="n">earlier_name</span><span class="si">}</span><span class="s2"> has "</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">earlier</span><span class="o">.</span><span class="n">size</span><span class="si">}</span><span class="s2">; a stage catalog may only grow"</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">array_equal</span><span class="p">(</span><span class="n">earlier</span><span class="p">,</span> <span class="n">later</span><span class="p">[:</span> <span class="n">earlier</span><span class="o">.</span><span class="n">size</span><span class="p">]):</span>
+            <span class="n">disagreement</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="n">earlier</span> <span class="o">!=</span> <span class="n">later</span><span class="p">[:</span> <span class="n">earlier</span><span class="o">.</span><span class="n">size</span><span class="p">])[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">later_name</span><span class="si">}</span><span class="s2"> must extend </span><span class="si">{</span><span class="n">earlier_name</span><span class="si">}</span><span class="s2"> by appending, but they "</span>
+                <span class="sa">f</span><span class="s2">"differ at index </span><span class="si">{</span><span class="n">disagreement</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">earlier</span><span class="p">[</span><span class="n">disagreement</span><span class="p">]</span><span class="si">!r}</span><span class="s2"> "</span>
+                <span class="sa">f</span><span class="s2">"versus </span><span class="si">{</span><span class="n">later</span><span class="p">[</span><span class="n">disagreement</span><span class="p">]</span><span class="si">!r}</span><span class="s2">. Stage catalogs that reorder "</span>
+                <span class="s2">"make a column index mean different items in different stages"</span>
+            <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_check_sequence_matches_sibling</span><span class="p">(</span>
+    <span class="n">sequences</span><span class="p">:</span> <span class="n">ItemSequences</span><span class="p">,</span>
+    <span class="n">sibling</span><span class="p">:</span> <span class="n">csr_matrix</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span>
+    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">sibling_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""A sequence and the view beside it must describe the same events.</span>
+
+<span class="sd">    Sharing a column space is not enough: two views built from different filter</span>
+<span class="sd">    passes can agree on their shape and disagree on their contents, which trains</span>
+<span class="sd">    a sequential model and a matrix model on different data while every shape</span>
+<span class="sd">    check passes. Order and repeats are the sequence view's whole purpose, so the</span>
+<span class="sd">    comparison is per row and set-wise -- the matrix view cannot express either.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sibling</span><span class="p">,</span> <span class="n">csr_matrix</span><span class="p">):</span>
+        <span class="n">rows</span> <span class="o">=</span> <span class="n">sibling</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">member_sets</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="nb">set</span><span class="p">(</span><span class="n">sibling</span><span class="o">.</span><span class="n">indices</span><span class="p">[</span><span class="n">sibling</span><span class="o">.</span><span class="n">indptr</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="p">:</span> <span class="n">sibling</span><span class="o">.</span><span class="n">indptr</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]]</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">rows</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">sibling</span><span class="p">)</span>
+        <span class="n">member_sets</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span> <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">sibling</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">rows</span> <span class="o">!=</span> <span class="n">sequences</span><span class="o">.</span><span class="n">n_rows</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> has </span><span class="si">{</span><span class="n">sequences</span><span class="o">.</span><span class="n">n_rows</span><span class="si">}</span><span class="s2"> rows but </span><span class="si">{</span><span class="n">sibling_name</span><span class="si">}</span><span class="s2"> has </span><span class="si">{</span><span class="n">rows</span><span class="si">}</span><span class="s2">; "</span>
+            <span class="s2">"the two views must address the same rows"</span>
+        <span class="p">)</span>
+    <span class="k">for</span> <span class="n">row</span><span class="p">,</span> <span class="n">members</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">member_sets</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">set</span><span class="p">(</span><span class="n">sequences</span><span class="o">.</span><span class="n">row</span><span class="p">(</span><span class="n">row</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span> <span class="o">!=</span> <span class="nb">set</span><span class="p">(</span><span class="n">members</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> and </span><span class="si">{</span><span class="n">sibling_name</span><span class="si">}</span><span class="s2"> disagree on row </span><span class="si">{</span><span class="n">row</span><span class="si">}</span><span class="s2">; the two views "</span>
+                <span class="s2">"must describe the same events"</span>
+            <span class="p">)</span>
+
+
 <div class="viewcode-block" id="save_recsys_split">
 <a class="viewcode-back" href="../../api/compresso_recsys.html#compresso_recsys.checkpoint.save_recsys_split">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">save_recsys_split</span><span class="p">(</span>
@@ -498,9 +632,13 @@
     <span class="n">test_user_ids</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">val_eval_user_ids</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">test_eval_user_ids</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">train_item_indices</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">val_item_indices</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">test_item_indices</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">warm_item_indices</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">val_cold_item_indices</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">test_cold_item_indices</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">x_train_sequences</span><span class="p">:</span> <span class="n">ItemSequences</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">train_source_sequences</span><span class="p">:</span> <span class="n">ItemSequences</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">val_source_sequences</span><span class="p">:</span> <span class="n">ItemSequences</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">test_source_sequences</span><span class="p">:</span> <span class="n">ItemSequences</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">entity_tag_matrix</span><span class="p">:</span> <span class="n">csr_matrix</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">tag_names</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">entity_metadata</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -508,18 +646,87 @@
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Write the split stage of a checkpoint.</span>
 
+<span class="sd">    Training matrices</span>
+<span class="sd">    -----------------</span>
+<span class="sd">    Three keys describe the same training data, and the relationship between</span>
+<span class="sd">    them is fixed::</span>
+
+<span class="sd">        x_train = train_source_matrix ∪ train_target_matrix</span>
+
+<span class="sd">    ``x_train`` is what a symmetric model trains on — an autoencoder reconstructs</span>
+<span class="sd">    the whole window. The pair is what an asymmetric model trains on, mapping</span>
+<span class="sd">    source to target. They must agree, and this function refuses a checkpoint</span>
+<span class="sd">    where they do not.</span>
+
+<span class="sd">    How the training data is partitioned follows each split mode's protocol, and</span>
+<span class="sd">    only the chronological modes have one to follow:</span>
+
+<span class="sd">    - ``temporal``: by time. Source is everything before the first target</span>
+<span class="sd">      window, target is the events inside it.</span>
+<span class="sd">    - ``leave_last_out``: by position. Target is the last interaction of the</span>
+<span class="sd">      training window, source is everything earlier.</span>
+<span class="sd">    - ``user_split`` and ``item_split``: no partition. Both keys equal</span>
+<span class="sd">      ``x_train``, and the invariant holds trivially.</span>
+
+<span class="sd">    The last case is deliberate rather than a gap. A non-chronological split has</span>
+<span class="sd">    no boundary to divide on, so any per-user division would be an arbitrary</span>
+<span class="sd">    choice invented here rather than a property of the protocol. A model wanting</span>
+<span class="sd">    asymmetric training on those modes can partition ``x_train`` itself, under</span>
+<span class="sd">    its own seed, and own that choice. The same absence of an ordering is why</span>
+<span class="sd">    sequences exist only for the chronological modes.</span>
+
+<span class="sd">    Sequence views</span>
+<span class="sd">    --------------</span>
+<span class="sd">    ``x_train_sequences`` and ``{stage}_source_sequences`` carry the same events</span>
+<span class="sd">    as their matrix counterparts, in chronological order and with duplicates</span>
+<span class="sd">    kept. A matrix row is a set; a sequence row is a history. Targets have no</span>
+<span class="sd">    sequence view because a ranking target is a set — order is irrelevant to</span>
+<span class="sd">    every metric — so ``{stage}_target_matrix`` serves both model families.</span>
+
+<span class="sd">    They are written only when the split mode produced them, which means the</span>
+<span class="sd">    chronological modes. ``user_split`` and ``item_split`` have no ordering to</span>
+<span class="sd">    preserve, and the same absence that makes their training partition arbitrary</span>
+<span class="sd">    (above) makes a sequence meaningless.</span>
+
+<span class="sd">    Loading a checkpoint without them yields ``None`` rather than an error. A</span>
+<span class="sd">    checkpoint that predates sequences, or comes from a non-chronological mode, is</span>
+<span class="sd">    still complete for every matrix model, so refusing it would break working</span>
+<span class="sd">    setups over a field they never touch. A sequential model fails later, where</span>
+<span class="sd">    the message can name the split mode that would have produced them.</span>
+
+<span class="sd">    A sequence whose ``n_items`` disagrees with **its own stage's** item IDs is</span>
+<span class="sd">    refused: the two views must share a column space or a model scores one item</span>
+<span class="sd">    and is credited for another. Per stage rather than globally, because temporal</span>
+<span class="sd">    windows each have their own catalog — it grows window by window — which is the</span>
+<span class="sd">    same allowance the matrix check above makes.</span>
+
 <span class="sd">    Item partitions</span>
 <span class="sd">    ---------------</span>
-<span class="sd">    ``train_item_indices``, ``val_item_indices`` and ``test_item_indices`` are</span>
-<span class="sd">    positions into ``item_ids`` naming the items **that phase introduces**, not</span>
-<span class="sd">    the items it may score. They partition the catalog by first appearance:</span>
+<span class="sd">    ``warm_item_indices``, ``val_cold_item_indices`` and</span>
+<span class="sd">    ``test_cold_item_indices`` are positions into ``item_ids`` naming the items</span>
+<span class="sd">    **that phase introduces**, not the items it may score. Together they</span>
+<span class="sd">    partition the catalog by first appearance: the warm partition is exactly the</span>
+<span class="sd">    columns present in ``x_train``, and each cold partition holds the items that</span>
+<span class="sd">    become observable only at that stage.</span>
+
+<span class="sd">    They are named for what they hold rather than for their phase because the</span>
+<span class="sd">    older ``{phase}_item_indices`` spelling promised a relationship to</span>
+<span class="sd">    ``{phase}_item_ids`` that does not exist. The two answer different</span>
+<span class="sd">    questions: ``*_item_ids`` is the column space a phase lives in, while these</span>
+<span class="sd">    are a partition by first appearance. The two agree only by coincidence, and</span>
+<span class="sd">    only under ``temporal`` and ``user_split``, where the catalogs already encode</span>
+<span class="sd">    the partition; under ``leave_last_out`` and ``item_split`` all three phases</span>
+<span class="sd">    share one catalog and the partition is *observed*, so it cannot be recovered</span>
+<span class="sd">    from the catalogs at all.</span>
 
 <span class="sd">    - ``user_split``: training spans every item and the later phases introduce</span>
 <span class="sd">      none, so the train partition is the full range and val/test are empty.</span>
 <span class="sd">    - ``item_split``: three disjoint partitions, the val/test ones being the</span>
 <span class="sd">      cold items held out of training.</span>
-<span class="sd">    - ``leave_last_out``: train holds the items that never appear as a target,</span>
-<span class="sd">      val/test hold the target items.</span>
+<span class="sd">    - ``leave_last_out``: nothing is held out of the catalog. An item lands in</span>
+<span class="sd">      the val or test partition only when every one of its occurrences falls in</span>
+<span class="sd">      a held-out tail, so on dense data both partitions are empty and on sparse</span>
+<span class="sd">      data they hold the genuinely new items.</span>
 <span class="sd">    - ``temporal``: each phase introduces the items first seen in its window,</span>
 <span class="sd">      so the partitions are consecutive ranges of the growing catalog.</span>
 
@@ -528,12 +735,14 @@
 <span class="sd">    of a phase is ``{phase}_item_ids``, which defaults to ``item_ids`` when not</span>
 <span class="sd">    given. Callers that select feature or metadata rows for a phase should index</span>
 <span class="sd">    with that phase's ``*_item_ids`` (or the union of partitions up to it),</span>
-<span class="sd">    because mirroring ``train_item_indices`` into a later phase silently yields</span>
+<span class="sd">    because mirroring ``warm_item_indices`` into a later phase silently yields</span>
 <span class="sd">    an empty selection for splits that hold no items out.</span>
 
 <span class="sd">    Passing ``None`` for a partition omits its file, and</span>
-<span class="sd">    :func:`load_recsys_split` then falls back to the whole catalog for train and</span>
-<span class="sd">    to an empty array for val/test. Prefer writing all three explicitly.</span>
+<span class="sd">    :func:`load_recsys_split` then falls back to the whole catalog for the warm</span>
+<span class="sd">    partition and to an empty array for the cold ones. Prefer writing all three</span>
+<span class="sd">    explicitly, since those defaults turn an omission into a confident wrong</span>
+<span class="sd">    answer rather than an error.</span>
 <span class="sd">    """</span>
     <span class="n">root</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">root</span><span class="p">)</span>
     <span class="n">data_dir</span> <span class="o">=</span> <span class="n">root</span> <span class="o">/</span> <span class="n">SPLIT_DIR</span>
@@ -550,6 +759,11 @@
     <span class="n">test_item_ids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span>
         <span class="n">item_ids</span> <span class="k">if</span> <span class="n">test_item_ids</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">test_item_ids</span>
     <span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span>
+    <span class="n">_check_stage_catalogs_nest</span><span class="p">(</span>
+        <span class="n">train_item_ids</span><span class="o">=</span><span class="n">train_item_ids</span><span class="p">,</span>
+        <span class="n">val_item_ids</span><span class="o">=</span><span class="n">val_item_ids</span><span class="p">,</span>
+        <span class="n">test_item_ids</span><span class="o">=</span><span class="n">test_item_ids</span><span class="p">,</span>
+    <span class="p">)</span>
     <span class="n">train_source_matrix</span> <span class="o">=</span> <span class="n">x_train</span> <span class="k">if</span> <span class="n">train_source_matrix</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">train_source_matrix</span>
     <span class="n">train_target_matrix</span> <span class="o">=</span> <span class="n">train_source_matrix</span> <span class="k">if</span> <span class="n">train_target_matrix</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">train_target_matrix</span>
     <span class="n">val_source_matrix</span> <span class="o">=</span> <span class="p">(</span>
@@ -587,6 +801,20 @@
             <span class="p">)</span>
     <span class="k">if</span> <span class="n">x_train</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="n">train_source_matrix</span><span class="o">.</span><span class="n">shape</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"x_train shape must match train source matrix shape"</span><span class="p">)</span>
+    <span class="c1"># x_train is derived from the training pair, not stored beside it: a</span>
+    <span class="c1"># symmetric model trains on the whole window, an asymmetric one on the two</span>
+    <span class="c1"># halves, and they must describe the same interactions. Checking it here</span>
+    <span class="c1"># means a new split mode cannot quietly disagree with itself.</span>
+    <span class="n">union</span> <span class="o">=</span> <span class="n">train_source_matrix</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">train_target_matrix</span><span class="p">)</span><span class="o">.</span><span class="n">tocsr</span><span class="p">()</span>
+    <span class="n">union</span><span class="o">.</span><span class="n">eliminate_zeros</span><span class="p">()</span>
+    <span class="n">canonical</span> <span class="o">=</span> <span class="n">x_train</span><span class="o">.</span><span class="n">tocsr</span><span class="p">(</span><span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">canonical</span><span class="o">.</span><span class="n">eliminate_zeros</span><span class="p">()</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">canonical</span> <span class="o">!=</span> <span class="n">union</span><span class="p">)</span><span class="o">.</span><span class="n">nnz</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">"x_train must equal the union of train_source_matrix and "</span>
+            <span class="s2">"train_target_matrix; the split mode that produced this checkpoint "</span>
+            <span class="s2">"partitions its training data inconsistently"</span>
+        <span class="p">)</span>
 
     <span class="n">save_npz</span><span class="p">(</span><span class="n">data_dir</span> <span class="o">/</span> <span class="s2">"train_source_matrix.npz"</span><span class="p">,</span> <span class="n">train_source_matrix</span><span class="o">.</span><span class="n">tocsr</span><span class="p">())</span>
     <span class="n">save_npz</span><span class="p">(</span><span class="n">data_dir</span> <span class="o">/</span> <span class="s2">"train_target_matrix.npz"</span><span class="p">,</span> <span class="n">train_target_matrix</span><span class="o">.</span><span class="n">tocsr</span><span class="p">())</span>
@@ -596,6 +824,34 @@
     <span class="n">save_npz</span><span class="p">(</span><span class="n">data_dir</span> <span class="o">/</span> <span class="s2">"test_target_matrix.npz"</span><span class="p">,</span> <span class="n">test_target_matrix</span><span class="o">.</span><span class="n">tocsr</span><span class="p">())</span>
     <span class="c1"># Backward-compatible training matrix; temporal checkpoints store the</span>
     <span class="c1"># source/target union here while retaining each side separately above.</span>
+    <span class="c1"># Each sequence is checked against its own stage's item IDs, not the global</span>
+    <span class="c1"># catalog. Temporal stages have different column spaces -- the catalog grows</span>
+    <span class="c1"># window by window -- which is exactly what the matrix check above allows for.</span>
+    <span class="n">sequence_stages</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="p">(</span><span class="s2">"x_train_sequences"</span><span class="p">,</span> <span class="n">x_train_sequences</span><span class="p">,</span> <span class="s2">"train"</span><span class="p">,</span> <span class="n">train_item_ids</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"train_source_sequences"</span><span class="p">,</span> <span class="n">train_source_sequences</span><span class="p">,</span> <span class="s2">"train"</span><span class="p">,</span> <span class="n">train_item_ids</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"val_source_sequences"</span><span class="p">,</span> <span class="n">val_source_sequences</span><span class="p">,</span> <span class="s2">"validation"</span><span class="p">,</span> <span class="n">val_item_ids</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">"test_source_sequences"</span><span class="p">,</span> <span class="n">test_source_sequences</span><span class="p">,</span> <span class="s2">"test"</span><span class="p">,</span> <span class="n">test_item_ids</span><span class="p">),</span>
+    <span class="p">)</span>
+    <span class="n">sequence_siblings</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">"x_train_sequences"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"x_train"</span><span class="p">,</span> <span class="n">x_train</span><span class="p">),</span>
+        <span class="s2">"train_source_sequences"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"train_source_matrix"</span><span class="p">,</span> <span class="n">train_source_matrix</span><span class="p">),</span>
+        <span class="s2">"val_source_sequences"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"val_source_indices"</span><span class="p">,</span> <span class="n">val_source_indices</span><span class="p">),</span>
+        <span class="s2">"test_source_sequences"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"test_source_indices"</span><span class="p">,</span> <span class="n">test_source_indices</span><span class="p">),</span>
+    <span class="p">}</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">sequences</span><span class="p">,</span> <span class="n">stage</span><span class="p">,</span> <span class="n">stage_item_ids</span> <span class="ow">in</span> <span class="n">sequence_stages</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">sequences</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="k">if</span> <span class="n">sequences</span><span class="o">.</span><span class="n">n_items</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">stage_item_ids</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> spans </span><span class="si">{</span><span class="n">sequences</span><span class="o">.</span><span class="n">n_items</span><span class="si">}</span><span class="s2"> items but the </span><span class="si">{</span><span class="n">stage</span><span class="si">}</span><span class="s2"> stage "</span>
+                <span class="sa">f</span><span class="s2">"has </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">stage_item_ids</span><span class="p">)</span><span class="si">}</span><span class="s2">; a sequence and the matrix beside it "</span>
+                <span class="s2">"must share a column space"</span>
+            <span class="p">)</span>
+        <span class="n">sibling_name</span><span class="p">,</span> <span class="n">sibling</span> <span class="o">=</span> <span class="n">sequence_siblings</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+        <span class="n">_check_sequence_matches_sibling</span><span class="p">(</span><span class="n">sequences</span><span class="p">,</span> <span class="n">sibling</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">sibling_name</span><span class="p">)</span>
+        <span class="n">save_item_sequences</span><span class="p">(</span><span class="n">data_dir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">.npz"</span><span class="p">,</span> <span class="n">sequences</span><span class="p">)</span>
+
     <span class="n">save_npz</span><span class="p">(</span><span class="n">data_dir</span> <span class="o">/</span> <span class="s2">"train_matrix.npz"</span><span class="p">,</span> <span class="n">x_train</span><span class="o">.</span><span class="n">tocsr</span><span class="p">())</span>
     <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">data_dir</span> <span class="o">/</span> <span class="s2">"train_item_ids.npy"</span><span class="p">,</span> <span class="n">train_item_ids</span><span class="p">)</span>
     <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">data_dir</span> <span class="o">/</span> <span class="s2">"val_item_ids.npy"</span><span class="p">,</span> <span class="n">val_item_ids</span><span class="p">)</span>
@@ -613,12 +869,21 @@
     <span class="n">_save_optional_str_array</span><span class="p">(</span><span class="n">data_dir</span> <span class="o">/</span> <span class="s2">"test_user_ids.npy"</span><span class="p">,</span> <span class="n">test_user_ids</span><span class="p">)</span>
     <span class="n">_save_optional_str_array</span><span class="p">(</span><span class="n">data_dir</span> <span class="o">/</span> <span class="s2">"val_eval_user_ids.npy"</span><span class="p">,</span> <span class="n">val_eval_user_ids</span><span class="p">)</span>
     <span class="n">_save_optional_str_array</span><span class="p">(</span><span class="n">data_dir</span> <span class="o">/</span> <span class="s2">"test_eval_user_ids.npy"</span><span class="p">,</span> <span class="n">test_eval_user_ids</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">train_item_indices</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">data_dir</span> <span class="o">/</span> <span class="s2">"train_item_indices.npy"</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">train_item_indices</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">))</span>
-    <span class="k">if</span> <span class="n">val_item_indices</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">data_dir</span> <span class="o">/</span> <span class="s2">"val_item_indices.npy"</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">val_item_indices</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">))</span>
-    <span class="k">if</span> <span class="n">test_item_indices</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">data_dir</span> <span class="o">/</span> <span class="s2">"test_item_indices.npy"</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">test_item_indices</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">warm_item_indices</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span>
+            <span class="n">data_dir</span> <span class="o">/</span> <span class="s2">"warm_item_indices.npy"</span><span class="p">,</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">warm_item_indices</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">),</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="n">val_cold_item_indices</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span>
+            <span class="n">data_dir</span> <span class="o">/</span> <span class="s2">"val_cold_item_indices.npy"</span><span class="p">,</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">val_cold_item_indices</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">),</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="n">test_cold_item_indices</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span>
+            <span class="n">data_dir</span> <span class="o">/</span> <span class="s2">"test_cold_item_indices.npy"</span><span class="p">,</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">test_cold_item_indices</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">),</span>
+        <span class="p">)</span>
     <span class="k">if</span> <span class="n">entity_tag_matrix</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">entity_tag_matrix</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">item_ids</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"entity_tag_matrix rows must match item_ids length"</span><span class="p">)</span>
@@ -651,17 +916,32 @@
 <span class="sd">    ``item_ids``.</span>
 
 <span class="sd">    For checkpoints written before every partition was stored explicitly, a</span>
-<span class="sd">    missing ``train_item_indices.npy`` loads as the full catalog range and</span>
-<span class="sd">    missing val/test files load as empty arrays.</span>
+<span class="sd">    missing ``warm_item_indices.npy`` loads as the full catalog range and</span>
+<span class="sd">    missing cold files load as empty arrays. Checkpoints written before the</span>
+<span class="sd">    rename are read under their old names first, because those defaults would</span>
+<span class="sd">    otherwise turn a missing file into a confident wrong answer.</span>
 <span class="sd">    """</span>
     <span class="n">root</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">root</span><span class="p">)</span>
     <span class="n">split</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">root</span> <span class="o">/</span> <span class="n">SPLIT_DIR</span> <span class="o">/</span> <span class="s2">"split.npz"</span><span class="p">,</span> <span class="n">allow_pickle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">tags_path</span> <span class="o">=</span> <span class="n">root</span> <span class="o">/</span> <span class="n">SPLIT_DIR</span> <span class="o">/</span> <span class="s2">"entity_tags.npz"</span>
     <span class="n">tag_names_path</span> <span class="o">=</span> <span class="n">root</span> <span class="o">/</span> <span class="n">SPLIT_DIR</span> <span class="o">/</span> <span class="s2">"tag_names.npy"</span>
     <span class="n">metadata_path</span> <span class="o">=</span> <span class="n">root</span> <span class="o">/</span> <span class="n">SPLIT_DIR</span> <span class="o">/</span> <span class="s2">"entity_metadata.csv"</span>
-    <span class="n">train_item_indices_path</span> <span class="o">=</span> <span class="n">root</span> <span class="o">/</span> <span class="n">SPLIT_DIR</span> <span class="o">/</span> <span class="s2">"train_item_indices.npy"</span>
-    <span class="n">val_item_indices_path</span> <span class="o">=</span> <span class="n">root</span> <span class="o">/</span> <span class="n">SPLIT_DIR</span> <span class="o">/</span> <span class="s2">"val_item_indices.npy"</span>
-    <span class="n">test_item_indices_path</span> <span class="o">=</span> <span class="n">root</span> <span class="o">/</span> <span class="n">SPLIT_DIR</span> <span class="o">/</span> <span class="s2">"test_item_indices.npy"</span>
+    <span class="c1"># Renamed keys, read with a fallback to what they were called before. The</span>
+    <span class="c1"># fallback is not politeness: a missing warm file defaults to the whole</span>
+    <span class="c1"># catalog and a missing cold file to nothing, so reading only the new name</span>
+    <span class="c1"># would report every item warm on an older checkpoint rather than failing.</span>
+    <span class="n">warm_item_indices_path</span> <span class="o">=</span> <span class="n">_first_existing</span><span class="p">(</span>
+        <span class="n">root</span> <span class="o">/</span> <span class="n">SPLIT_DIR</span> <span class="o">/</span> <span class="s2">"warm_item_indices.npy"</span><span class="p">,</span>
+        <span class="n">root</span> <span class="o">/</span> <span class="n">SPLIT_DIR</span> <span class="o">/</span> <span class="s2">"train_item_indices.npy"</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">val_cold_item_indices_path</span> <span class="o">=</span> <span class="n">_first_existing</span><span class="p">(</span>
+        <span class="n">root</span> <span class="o">/</span> <span class="n">SPLIT_DIR</span> <span class="o">/</span> <span class="s2">"val_cold_item_indices.npy"</span><span class="p">,</span>
+        <span class="n">root</span> <span class="o">/</span> <span class="n">SPLIT_DIR</span> <span class="o">/</span> <span class="s2">"val_item_indices.npy"</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">test_cold_item_indices_path</span> <span class="o">=</span> <span class="n">_first_existing</span><span class="p">(</span>
+        <span class="n">root</span> <span class="o">/</span> <span class="n">SPLIT_DIR</span> <span class="o">/</span> <span class="s2">"test_cold_item_indices.npy"</span><span class="p">,</span>
+        <span class="n">root</span> <span class="o">/</span> <span class="n">SPLIT_DIR</span> <span class="o">/</span> <span class="s2">"test_item_indices.npy"</span><span class="p">,</span>
+    <span class="p">)</span>
     <span class="n">train_user_ids_path</span> <span class="o">=</span> <span class="n">root</span> <span class="o">/</span> <span class="n">SPLIT_DIR</span> <span class="o">/</span> <span class="s2">"train_user_ids.npy"</span>
     <span class="n">val_user_ids_path</span> <span class="o">=</span> <span class="n">root</span> <span class="o">/</span> <span class="n">SPLIT_DIR</span> <span class="o">/</span> <span class="s2">"val_user_ids.npy"</span>
     <span class="n">test_user_ids_path</span> <span class="o">=</span> <span class="n">root</span> <span class="o">/</span> <span class="n">SPLIT_DIR</span> <span class="o">/</span> <span class="s2">"test_user_ids.npy"</span>
@@ -744,12 +1024,32 @@
         <span class="s2">"test_user_ids"</span><span class="p">:</span> <span class="n">_load_optional_str_array</span><span class="p">(</span><span class="n">test_user_ids_path</span><span class="p">),</span>
         <span class="s2">"val_eval_user_ids"</span><span class="p">:</span> <span class="n">_load_optional_str_array</span><span class="p">(</span><span class="n">val_eval_user_ids_path</span><span class="p">),</span>
         <span class="s2">"test_eval_user_ids"</span><span class="p">:</span> <span class="n">_load_optional_str_array</span><span class="p">(</span><span class="n">test_eval_user_ids_path</span><span class="p">),</span>
-        <span class="s2">"train_item_indices"</span><span class="p">:</span> <span class="n">_load_optional_int_array</span><span class="p">(</span>
-            <span class="n">train_item_indices_path</span><span class="p">,</span>
+        <span class="s2">"warm_item_indices"</span><span class="p">:</span> <span class="n">_load_optional_int_array</span><span class="p">(</span>
+            <span class="n">warm_item_indices_path</span><span class="p">,</span>
             <span class="n">default</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">item_ids</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">),</span>
         <span class="p">),</span>
-        <span class="s2">"val_item_indices"</span><span class="p">:</span> <span class="n">_load_optional_int_array</span><span class="p">(</span><span class="n">val_item_indices_path</span><span class="p">),</span>
-        <span class="s2">"test_item_indices"</span><span class="p">:</span> <span class="n">_load_optional_int_array</span><span class="p">(</span><span class="n">test_item_indices_path</span><span class="p">),</span>
+        <span class="s2">"val_cold_item_indices"</span><span class="p">:</span> <span class="n">_load_optional_int_array</span><span class="p">(</span><span class="n">val_cold_item_indices_path</span><span class="p">),</span>
+        <span class="s2">"test_cold_item_indices"</span><span class="p">:</span> <span class="n">_load_optional_int_array</span><span class="p">(</span>
+            <span class="n">test_cold_item_indices_path</span>
+        <span class="p">),</span>
+        <span class="c1"># ``None`` when the split mode has no ordering to preserve, and when a</span>
+        <span class="c1"># checkpoint predates sequences entirely. Both are legitimate: a</span>
+        <span class="c1"># checkpoint without them is still complete for every matrix model, so</span>
+        <span class="c1"># refusing to load one would break working setups over a field they never</span>
+        <span class="c1"># touch. A sequential model fails later, where the message can name the</span>
+        <span class="c1"># split mode that would have produced them.</span>
+        <span class="s2">"x_train_sequences"</span><span class="p">:</span> <span class="n">_load_optional_sequences</span><span class="p">(</span>
+            <span class="n">root</span> <span class="o">/</span> <span class="n">SPLIT_DIR</span> <span class="o">/</span> <span class="s2">"x_train_sequences.npz"</span>
+        <span class="p">),</span>
+        <span class="s2">"train_source_sequences"</span><span class="p">:</span> <span class="n">_load_optional_sequences</span><span class="p">(</span>
+            <span class="n">root</span> <span class="o">/</span> <span class="n">SPLIT_DIR</span> <span class="o">/</span> <span class="s2">"train_source_sequences.npz"</span>
+        <span class="p">),</span>
+        <span class="s2">"val_source_sequences"</span><span class="p">:</span> <span class="n">_load_optional_sequences</span><span class="p">(</span>
+            <span class="n">root</span> <span class="o">/</span> <span class="n">SPLIT_DIR</span> <span class="o">/</span> <span class="s2">"val_source_sequences.npz"</span>
+        <span class="p">),</span>
+        <span class="s2">"test_source_sequences"</span><span class="p">:</span> <span class="n">_load_optional_sequences</span><span class="p">(</span>
+            <span class="n">root</span> <span class="o">/</span> <span class="n">SPLIT_DIR</span> <span class="o">/</span> <span class="s2">"test_source_sequences.npz"</span>
+        <span class="p">),</span>
         <span class="s2">"entity_tag_matrix"</span><span class="p">:</span> <span class="n">load_npz</span><span class="p">(</span><span class="n">tags_path</span><span class="p">)</span><span class="o">.</span><span class="n">tocsr</span><span class="p">()</span> <span class="k">if</span> <span class="n">tags_path</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
         <span class="s2">"tag_names"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">tag_names_path</span><span class="p">,</span> <span class="n">allow_pickle</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="k">if</span> <span class="n">tag_names_path</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
         <span class="s2">"entity_metadata"</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">metadata_path</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="p">{</span><span class="s2">"item_id"</span><span class="p">:</span> <span class="nb">str</span><span class="p">})</span> <span class="k">if</span> <span class="n">metadata_path</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>

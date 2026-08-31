@@ -6,16 +6,17 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Ranking Evaluation API &mdash; Compresso Recsys 0.2.0 documentation</title>
+  <title>Ranking Evaluation API &mdash; Compresso Recsys 0.3.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
 
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=938c9ccc"></script>
+      <script src="../_static/documentation_options.js?v=83a61292"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -77,6 +78,18 @@
 <li class="toctree-l2"><a class="reference internal" href="../examples.html#train-teaser-with-gradient-descent">Train TEASER with Gradient Descent</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../examples.html#serve-new-teaser-candidates">Serve New TEASER Candidates</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../examples.html#train-and-evaluate-elsa">Train and Evaluate ELSA</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../bring-your-own-dataset.html">Bringing Your Own Dataset</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../bring-your-own-dataset.html#What-a-dataset-has-to-produce">What a dataset has to produce</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../bring-your-own-dataset.html#The-dataset">The dataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../bring-your-own-dataset.html#The-dataset-class">The dataset class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../bring-your-own-dataset.html#Two-defaults-that-will-empty-your-dataset">Two defaults that will empty your dataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../bring-your-own-dataset.html#What-is-in-it">What is in it</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../bring-your-own-dataset.html#Does-it-work?">Does it work?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../bring-your-own-dataset.html#Cold-items,-for-free">Cold items, for free</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../bring-your-own-dataset.html#What-timestamps-would-have-added">What timestamps would have added</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../bring-your-own-dataset.html#You-do-not-need-a-dataset-class-at-all">You do not need a dataset class at all</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../statistical-comparison.html">Comparing Models Statistically</a><ul>
@@ -189,45 +202,75 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="persistence.html">Fitted Model Persistence</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="persistence.html#embedding-models-in-data-checkpoints">Embedding Models in Data Checkpoints</a></li>
+<li class="toctree-l3"><a class="reference internal" href="persistence.html#stable-item-ids">Stable Item IDs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="persistence.html#optimizer-state">Optimizer State</a></li>
+<li class="toctree-l3"><a class="reference internal" href="persistence.html#checkpoint-format">Checkpoint Format</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="persistence.html#compresso_recsys.ModelCheckpointWriter"><code class="docutils literal notranslate"><span class="pre">ModelCheckpointWriter</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="persistence.html#compresso_recsys.ModelCheckpointReader"><code class="docutils literal notranslate"><span class="pre">ModelCheckpointReader</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="persistence.html#extending-persistence">Extending Persistence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="persistence.html#warm-catalog-adapters">Warm Catalog Adapters</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="sequences.html">Sequences API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="sequences.html#interaction-histories">Interaction Histories</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="sequences.html#compresso_recsys.ItemSequences"><code class="docutils literal notranslate"><span class="pre">ItemSequences</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="sequences.html#compresso_recsys.save_item_sequences"><code class="docutils literal notranslate"><span class="pre">save_item_sequences()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="sequences.html#compresso_recsys.load_item_sequences"><code class="docutils literal notranslate"><span class="pre">load_item_sequences()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="sequences.html#which-split-modes-produce-them">Which Split Modes Produce Them</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="models.html">Models API</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="models.html#recommender-contract">Recommender Contract</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.Recommender"><code class="docutils literal notranslate"><span class="pre">Recommender</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.ColdStartRecommender"><code class="docutils literal notranslate"><span class="pre">ColdStartRecommender</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.ItemVocabulary"><code class="docutils literal notranslate"><span class="pre">ItemVocabulary</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.SequentialRecommender"><code class="docutils literal notranslate"><span class="pre">SequentialRecommender</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="models.html#production-recommendations">Production Recommendations</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.IdentifiedRecommender"><code class="docutils literal notranslate"><span class="pre">IdentifiedRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.Recommendations"><code class="docutils literal notranslate"><span class="pre">Recommendations</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="models.html#fitted-model-persistence">Fitted Model Persistence</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.PersistableRecommender"><code class="docutils literal notranslate"><span class="pre">PersistableRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.BasePersistableRecommender"><code class="docutils literal notranslate"><span class="pre">BasePersistableRecommender</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="models.html#implementing-new-models">Implementing New Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.BaseIdentifiedRecommender"><code class="docutils literal notranslate"><span class="pre">BaseIdentifiedRecommender</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.BaseCollaborativeRecommender"><code class="docutils literal notranslate"><span class="pre">BaseCollaborativeRecommender</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.BaseColdStartRecommender"><code class="docutils literal notranslate"><span class="pre">BaseColdStartRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.BaseSequentialRecommender"><code class="docutils literal notranslate"><span class="pre">BaseSequentialRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="models.html#the-owned-candidate-catalog">The Owned Candidate Catalog</a></li>
 <li class="toctree-l4"><a class="reference internal" href="models.html#training-interaction-batches">Training Interaction Batches</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="models.html#transductive-models-in-expanding-catalogs">Transductive Models in Expanding Catalogs</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.WarmCatalogAdapter"><code class="docutils literal notranslate"><span class="pre">WarmCatalogAdapter</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="models.html#when-to-reach-for-it-outside-temporal">When to Reach for It Outside <code class="docutils literal notranslate"><span class="pre">temporal</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="models.html#ease">EASE</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.EASEConfig"><code class="docutils literal notranslate"><span class="pre">EASEConfig</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.EASE"><code class="docutils literal notranslate"><span class="pre">EASE</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="models.html#collaborative-filtering-models">Collaborative Filtering Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="models.html#ease">EASE</a></li>
+<li class="toctree-l4"><a class="reference internal" href="models.html#elsa">ELSA</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="models.html#elsa">ELSA</a></li>
-<li class="toctree-l3"><a class="reference internal" href="models.html#contentrecommender">ContentRecommender</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.ContentRecommenderConfig"><code class="docutils literal notranslate"><span class="pre">ContentRecommenderConfig</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.ContentRecommender"><code class="docutils literal notranslate"><span class="pre">ContentRecommender</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="models.html#cold-start-models">Cold-Start Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="models.html#contentrecommender">ContentRecommender</a></li>
+<li class="toctree-l4"><a class="reference internal" href="models.html#teaser">TEASER</a></li>
+<li class="toctree-l4"><a class="reference internal" href="models.html#teasergd">TEASERGD</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="models.html#teaser">TEASER</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.TEASERConfig"><code class="docutils literal notranslate"><span class="pre">TEASERConfig</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.TEASER"><code class="docutils literal notranslate"><span class="pre">TEASER</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.CandidateCatalog"><code class="docutils literal notranslate"><span class="pre">CandidateCatalog</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="models.html#teasergd">TEASERGD</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.TEASERGDConfig"><code class="docutils literal notranslate"><span class="pre">TEASERGDConfig</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.TEASERGD"><code class="docutils literal notranslate"><span class="pre">TEASERGD</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="models.html#compresso_recsys.models.TEASERGDTrainer"><code class="docutils literal notranslate"><span class="pre">TEASERGDTrainer</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="models.html#backend-performance">Backend Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="models.html#sequential-models">Sequential Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="models.html#tokenizing-histories">Tokenizing Histories</a></li>
+<li class="toctree-l4"><a class="reference internal" href="models.html#simplernn">SimpleRNN</a></li>
+<li class="toctree-l4"><a class="reference internal" href="models.html#simplegpt">SimpleGPT</a></li>
 </ul>
 </li>
 </ul>
@@ -301,7 +344,7 @@
           <li class="breadcrumb-item"><a href="index.html">API Reference</a></li>
       <li class="breadcrumb-item active">Ranking Evaluation API</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../_sources/api/evaluation.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../_sources/api/evaluation.rst" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -448,19 +491,17 @@ values stay aligned with <code class="docutils literal notranslate"><span class=
 <dt class="sig sig-object py" id="compresso_recsys.evaluation.evaluate_recommender">
 <span class="sig-prename descclassname"><span class="pre">compresso_recsys.evaluation.</span></span><span class="sig-name descname"><span class="pre">evaluate_recommender</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">targets</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metrics</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sample_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">collect_per_user</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1024</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">match_backend</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'auto'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_dense_cells</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20000000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">validate_predictions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">debug</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">debug_users</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_progress</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/evaluation.html#evaluate_recommender"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.evaluation.evaluate_recommender" title="Link to this definition"></a></dt>
 <dd><p>Evaluate a recommender without retaining predictions between batches.</p>
-<p>The largest metric cutoff determines the <code class="docutils literal notranslate"><span class="pre">k</span></code> passed to the model’s
-<code class="docutils literal notranslate"><span class="pre">predict_on_batch</span></code> method. Source and target rows are sliced together,
-and each prediction batch is immediately sent to <a class="reference internal" href="#compresso_recsys.evaluation.RankingEvaluator" title="compresso_recsys.evaluation.RankingEvaluator"><code class="xref py py-class docutils literal notranslate"><span class="pre">RankingEvaluator</span></code></a>.
-Source and target column counts may differ: source columns describe the
-model’s history vocabulary, while target columns describe its candidates.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#compresso_recsys.evaluation.EvaluationResult" title="compresso_recsys.evaluation.EvaluationResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">EvaluationResult</span></code></a></span></p>
+<dt class="field-odd">Overloads<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> (<span class="sphinx_autodoc_typehints-type">Recommender</span>), <strong>source</strong> (<span class="sphinx_autodoc_typehints-type">csr_matrix</span>), <strong>targets</strong> (<span class="sphinx_autodoc_typehints-type">csr_matrix</span>), <strong>metrics</strong> (<span class="sphinx_autodoc_typehints-type">Sequence[RankingMetric]</span>), <strong>sample_ids</strong> (<span class="sphinx_autodoc_typehints-type">Sequence[Any] | np.ndarray | None</span>), <strong>collect_per_user</strong> (<span class="sphinx_autodoc_typehints-type">bool</span>), <strong>metadata</strong> (<span class="sphinx_autodoc_typehints-type">Mapping[str, Any] | None</span>), <strong>batch_size</strong> (<span class="sphinx_autodoc_typehints-type">int</span>), <strong>match_backend</strong> (<span class="sphinx_autodoc_typehints-type">MatchBackend</span>), <strong>max_dense_cells</strong> (<span class="sphinx_autodoc_typehints-type">int</span>), <strong>validate_predictions</strong> (<span class="sphinx_autodoc_typehints-type">bool</span>), <strong>debug</strong> (<span class="sphinx_autodoc_typehints-type">bool</span>), <strong>debug_users</strong> (<span class="sphinx_autodoc_typehints-type">int</span>), <strong>show_progress</strong> (<span class="sphinx_autodoc_typehints-type">bool</span>) → <span class="sphinx_autodoc_typehints-type">EvaluationResult</span></p></li>
+<li><p><strong>model</strong> (<span class="sphinx_autodoc_typehints-type">SequentialRecommender</span>), <strong>source</strong> (<span class="sphinx_autodoc_typehints-type">ItemSequences</span>), <strong>targets</strong> (<span class="sphinx_autodoc_typehints-type">csr_matrix</span>), <strong>metrics</strong> (<span class="sphinx_autodoc_typehints-type">Sequence[RankingMetric]</span>), <strong>sample_ids</strong> (<span class="sphinx_autodoc_typehints-type">Sequence[Any] | np.ndarray | None</span>), <strong>collect_per_user</strong> (<span class="sphinx_autodoc_typehints-type">bool</span>), <strong>metadata</strong> (<span class="sphinx_autodoc_typehints-type">Mapping[str, Any] | None</span>), <strong>batch_size</strong> (<span class="sphinx_autodoc_typehints-type">int</span>), <strong>match_backend</strong> (<span class="sphinx_autodoc_typehints-type">MatchBackend</span>), <strong>max_dense_cells</strong> (<span class="sphinx_autodoc_typehints-type">int</span>), <strong>validate_predictions</strong> (<span class="sphinx_autodoc_typehints-type">bool</span>), <strong>debug</strong> (<span class="sphinx_autodoc_typehints-type">bool</span>), <strong>debug_users</strong> (<span class="sphinx_autodoc_typehints-type">int</span>), <strong>show_progress</strong> (<span class="sphinx_autodoc_typehints-type">bool</span>) → <span class="sphinx_autodoc_typehints-type">EvaluationResult</span></p></li>
+</ul>
 </dd>
 <dt class="field-even">Parameters<span class="colon">:</span></dt>
 <dd class="field-even"><ul class="simple">
-<li><p><strong>model</strong> (<a class="reference internal" href="models.html#compresso_recsys.models.Recommender" title="compresso_recsys.models.base.Recommender"><em>Recommender</em></a>)</p></li>
-<li><p><strong>source</strong> (<em>csr_matrix</em>)</p></li>
+<li><p><strong>model</strong> (<a class="reference internal" href="models.html#compresso_recsys.models.Recommender" title="compresso_recsys.models.base.Recommender"><em>Recommender</em></a><em> | </em><a class="reference internal" href="models.html#compresso_recsys.models.SequentialRecommender" title="compresso_recsys.models.base.SequentialRecommender"><em>SequentialRecommender</em></a>)</p></li>
+<li><p><strong>source</strong> (<em>csr_matrix</em><em> | </em><a class="reference internal" href="sequences.html#compresso_recsys.ItemSequences" title="compresso_recsys.sequences.ItemSequences"><em>ItemSequences</em></a>)</p></li>
 <li><p><strong>targets</strong> (<em>csr_matrix</em>)</p></li>
 <li><p><strong>metrics</strong> (<em>Sequence</em><em>[</em><a class="reference internal" href="#compresso_recsys.metrics.RankingMetric" title="compresso_recsys.metrics.RankingMetric"><em>RankingMetric</em></a><em>]</em>)</p></li>
 <li><p><strong>sample_ids</strong> (<em>Sequence</em><em>[</em><em>Any</em><em>] </em><em>| </em><em>ndarray</em><em> | </em><em>None</em>)</p></li>
@@ -475,7 +516,21 @@ model’s history vocabulary, while target columns describe its candidates.</p>
 <li><p><strong>show_progress</strong> (<em>bool</em>)</p></li>
 </ul>
 </dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#compresso_recsys.evaluation.EvaluationResult" title="compresso_recsys.evaluation.EvaluationResult"><em>EvaluationResult</em></a></p>
+</dd>
 </dl>
+<p>The largest metric cutoff determines the <code class="docutils literal notranslate"><span class="pre">k</span></code> passed to the model’s
+<code class="docutils literal notranslate"><span class="pre">predict_on_batch</span></code> method. Source and target rows are sliced together,
+and each prediction batch is immediately sent to <a class="reference internal" href="#compresso_recsys.evaluation.RankingEvaluator" title="compresso_recsys.evaluation.RankingEvaluator"><code class="xref py py-class docutils literal notranslate"><span class="pre">RankingEvaluator</span></code></a>.
+Source and target column counts may differ: source columns describe the
+model’s history vocabulary, while target columns describe its candidates.</p>
+<p><code class="docutils literal notranslate"><span class="pre">source</span></code> may be a <code class="docutils literal notranslate"><span class="pre">csr_matrix</span></code> of interactions or an
+<a class="reference internal" href="sequences.html#compresso_recsys.ItemSequences" title="compresso_recsys.sequences.ItemSequences"><code class="xref py py-class docutils literal notranslate"><span class="pre">ItemSequences</span></code></a> of chronological
+histories, matching whichever the model reads. Only the row count has to
+agree with <code class="docutils literal notranslate"><span class="pre">targets</span></code>; nothing downstream of <code class="docutils literal notranslate"><span class="pre">predict_on_batch</span></code> knows or
+cares which was given, which is why sequential and matrix models can be
+compared against each other with no statistics-side changes.</p>
 </dd></dl>
 
 <p><code class="docutils literal notranslate"><span class="pre">evaluate_recommender</span></code> requires matching source and target row counts, but
