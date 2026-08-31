@@ -12,7 +12,11 @@ from scipy.sparse import csr_matrix, issparse
 
 from compresso import SRPTensor
 from compresso_recsys import ItemSequences
-from compresso_recsys.checkpoint import update_checkpoint
+from compresso_recsys.checkpoint import (
+    load_manifest,
+    read_checkpoint,
+    update_checkpoint,
+)
 from compresso_recsys.models import (
     ContentRecommender,
     BaseCollaborativeRecommender,
@@ -304,6 +308,119 @@ def test_optimizer_state_is_explicitly_optional(tmp_path):
         EASE().fit(
             csr_matrix(np.eye(2, dtype=np.float32))
         ).save(tmp_path / "ease.ckpt", include_optimizer=True)
+
+
+def test_model_round_trips_inside_a_data_checkpoint(tmp_path):
+    sequences = _sequence_data()
+    model = SimpleRNNTrainer(
+        SimpleRNNConfig(
+            embedding_dim=8,
+            hidden_dim=12,
+            epochs=1,
+            batch_size=2,
+            show_progress=False,
+        )
+    ).fit(sequences)
+    before = model.predict_on_batch(sequences, k=3, exclude_seen=False)
+    checkpoint = tmp_path / "dataset.zip"
+    with update_checkpoint(checkpoint) as root:
+        (root / "sentinel.txt").write_text("dataset", encoding="utf-8")
+
+    model.save_to_checkpoint(checkpoint, "gru", include_optimizer=True)
+
+    with read_checkpoint(checkpoint) as root:
+        assert (root / "sentinel.txt").read_text(encoding="utf-8") == "dataset"
+        assert (root / "models" / "gru.zip").is_file()
+        manifest = load_manifest(root)
+    assert manifest["models"]["gru"] == {
+        "path": "models/gru.zip",
+        "model_type": "simple_rnn_trainer",
+        "optimizer_included": True,
+    }
+
+    restored = SimpleRNNTrainer.load_from_checkpoint(
+        checkpoint,
+        "gru",
+        load_optimizer=True,
+    )
+    assert restored.optimizer is not None
+    _assert_same_predictions(
+        before,
+        restored.predict_on_batch(sequences, k=3, exclude_seen=False),
+    )
+
+
+def test_embedded_model_can_be_replaced_by_the_same_type(tmp_path):
+    sequences = _sequence_data()
+    model = SimpleRNNTrainer(
+        SimpleRNNConfig(
+            embedding_dim=8,
+            hidden_dim=12,
+            epochs=1,
+            batch_size=2,
+            show_progress=False,
+        )
+    ).fit(sequences)
+    checkpoint = tmp_path / "dataset.zip"
+    with update_checkpoint(checkpoint):
+        pass
+
+    model.save_to_checkpoint(checkpoint, "primary", include_optimizer=True)
+    model.save_to_checkpoint(checkpoint, "primary")
+
+    restored = SimpleRNNTrainer.load_from_checkpoint(checkpoint, "primary")
+    assert restored.optimizer is None
+    with pytest.raises(ValueError, match="does not contain optimizer"):
+        SimpleRNNTrainer.load_from_checkpoint(
+            checkpoint,
+            "primary",
+            load_optimizer=True,
+        )
+
+
+def test_embedded_model_name_cannot_change_model_type(tmp_path, interactions):
+    checkpoint = tmp_path / "dataset.zip"
+    with update_checkpoint(checkpoint):
+        pass
+    ease = EASE().fit(interactions)
+    ease.save_to_checkpoint(checkpoint, "primary")
+
+    rnn = SimpleRNNTrainer(
+        SimpleRNNConfig(
+            embedding_dim=8,
+            hidden_dim=12,
+            epochs=1,
+            batch_size=2,
+            show_progress=False,
+        )
+    ).fit(_sequence_data())
+    with pytest.raises(ValueError, match="not 'simple_rnn_trainer'"):
+        rnn.save_to_checkpoint(checkpoint, "primary")
+    with pytest.raises(ValueError, match="not 'simple_rnn_trainer'"):
+        SimpleRNNTrainer.load_from_checkpoint(checkpoint, "primary")
+
+
+@pytest.mark.parametrize("name", ["", "../gru", "models/gru", "gru.zip", "gru model"])
+def test_embedded_model_names_are_safe(tmp_path, interactions, name):
+    checkpoint = tmp_path / "dataset.zip"
+    with update_checkpoint(checkpoint):
+        pass
+    model = EASE().fit(interactions)
+
+    with pytest.raises(ValueError, match="model name"):
+        model.save_to_checkpoint(checkpoint, name)
+    with pytest.raises(ValueError, match="model name"):
+        EASE.load_from_checkpoint(checkpoint, name)
+
+
+def test_embedded_model_requires_an_existing_data_checkpoint(tmp_path, interactions):
+    checkpoint = tmp_path / "missing.zip"
+    model = EASE().fit(interactions)
+
+    with pytest.raises(FileNotFoundError):
+        model.save_to_checkpoint(checkpoint, "ease")
+    with pytest.raises(FileNotFoundError):
+        EASE.load_from_checkpoint(checkpoint, "ease")
 
 
 def test_loading_defaults_to_cpu_even_if_saved_config_says_cuda(tmp_path):

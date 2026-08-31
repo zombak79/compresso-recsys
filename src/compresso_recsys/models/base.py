@@ -3,6 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import asdict, is_dataclass, replace
 from pathlib import Path
+import re
 from typing import (
     Any,
     ClassVar,
@@ -20,6 +21,12 @@ from scipy.sparse import csr_matrix
 from torch import nn
 
 from compresso import SRPTensor
+from compresso_recsys.checkpoint import (
+    load_manifest,
+    read_checkpoint,
+    save_manifest,
+    update_checkpoint,
+)
 from compresso_recsys.persistence import (
     ModelCheckpointReader,
     ModelCheckpointWriter,
@@ -40,6 +47,19 @@ __all__ = [
 ]
 
 _PersistableT = TypeVar("_PersistableT", bound="BasePersistableRecommender")
+_MODEL_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
+_MODELS_DIR = "models"
+
+
+def _embedded_model_path(root: Path, name: str) -> Path:
+    if not isinstance(name, str) or _MODEL_NAME.fullmatch(name) is None:
+        raise ValueError(
+            "model name must start with an ASCII letter or digit and contain "
+            "only letters, digits, '.', '_', or '-'"
+        )
+    if name.lower().endswith(".zip"):
+        raise ValueError("model name must omit the .zip extension")
+    return root / _MODELS_DIR / f"{name}.zip"
 
 
 @runtime_checkable
@@ -58,10 +78,28 @@ class PersistableRecommender(Protocol):
         include_optimizer: bool = False,
     ) -> None: ...
 
+    def save_to_checkpoint(
+        self,
+        checkpoint_path: str | Path,
+        name: str,
+        *,
+        include_optimizer: bool = False,
+    ) -> None: ...
+
     @classmethod
     def load(
         cls,
         path: str | Path,
+        *,
+        device: str | torch.device = "cpu",
+        load_optimizer: bool = False,
+    ) -> "PersistableRecommender": ...
+
+    @classmethod
+    def load_from_checkpoint(
+        cls,
+        checkpoint_path: str | Path,
+        name: str,
         *,
         device: str | torch.device = "cpu",
         load_optimizer: bool = False,
@@ -477,6 +515,56 @@ class BasePersistableRecommender(BaseIdentifiedRecommender):
                 assert optimizer is not None
                 writer.write_torch("state/optimizer.pt", optimizer.state_dict())
 
+    def save_to_checkpoint(
+        self,
+        checkpoint_path: str | Path,
+        name: str,
+        *,
+        include_optimizer: bool = False,
+    ) -> None:
+        """Save this model under ``models/<name>.zip`` in a data checkpoint."""
+        checkpoint_path = Path(checkpoint_path)
+        if not checkpoint_path.is_file():
+            raise FileNotFoundError(checkpoint_path)
+        model_type = getattr(type(self), "checkpoint_type", None)
+        if not isinstance(model_type, str) or not model_type:
+            raise RuntimeError(
+                f"{type(self).__name__} does not declare checkpoint_type"
+            )
+
+        with update_checkpoint(checkpoint_path) as root:
+            destination = _embedded_model_path(root, name)
+            manifest = load_manifest(root)
+            models = manifest.setdefault("models", {})
+            if not isinstance(models, dict):
+                raise ValueError("checkpoint manifest models must be an object")
+            existing = models.get(name)
+            if existing is not None:
+                if not isinstance(existing, dict):
+                    raise ValueError(
+                        f"checkpoint manifest model {name!r} must be an object"
+                    )
+                existing_type = existing.get("model_type")
+                if existing_type != model_type:
+                    raise ValueError(
+                        f"checkpoint model {name!r} contains type "
+                        f"{existing_type!r}, not {model_type!r}"
+                    )
+            if destination.exists():
+                with ModelCheckpointReader(
+                    destination,
+                    expected_model_type=model_type,
+                ):
+                    pass
+
+            self.save(destination, include_optimizer=include_optimizer)
+            models[name] = {
+                "path": f"{_MODELS_DIR}/{name}.zip",
+                "model_type": model_type,
+                "optimizer_included": bool(include_optimizer),
+            }
+            save_manifest(root, manifest)
+
     @classmethod
     def load(
         cls: type[_PersistableT],
@@ -540,6 +628,30 @@ class BasePersistableRecommender(BaseIdentifiedRecommender):
                     f"checkpoint did not restore a fitted {cls.__name__}"
                 )
             return model
+
+    @classmethod
+    def load_from_checkpoint(
+        cls: type[_PersistableT],
+        checkpoint_path: str | Path,
+        name: str,
+        *,
+        device: str | torch.device = "cpu",
+        load_optimizer: bool = False,
+    ) -> _PersistableT:
+        """Load ``models/<name>.zip`` from a data checkpoint."""
+        checkpoint_path = Path(checkpoint_path)
+        with read_checkpoint(checkpoint_path) as root:
+            source = _embedded_model_path(root, name)
+            if not source.is_file():
+                raise FileNotFoundError(
+                    f"model {name!r} is not stored in checkpoint "
+                    f"{str(checkpoint_path)!r}"
+                )
+            return cls.load(
+                source,
+                device=device,
+                load_optimizer=load_optimizer,
+            )
 
 
 @runtime_checkable

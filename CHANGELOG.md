@@ -60,6 +60,11 @@ adjacency in cold-item sequences is removed.
   Torch-backed recommenders can be moved after loading with ``model.to(device)``;
   the shared operation keeps model, configuration, optimizer tensors, and
   device-specific caches synchronized.
+  Models may alternatively be stored inside an existing data checkpoint with
+  `model.save_to_checkpoint(checkpoint, name)` and restored with
+  `ModelClass.load_from_checkpoint(checkpoint, name)`. Embedded models retain
+  the standalone format under `models/<name>.zip` and are registered in the
+  outer manifest.
   Optimizer state is excluded by default and can be included and restored
   explicitly; scheduler, RNG, partial-epoch, compiled-wrapper, and cache state
   remain runtime concerns rather than an exact-resumption promise.

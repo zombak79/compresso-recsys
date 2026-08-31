@@ -37,6 +37,38 @@ NumPy-only recommenders such as EASE have no device-backed state and reject
 Calling ``load`` through a different model class, reading an unsupported format
 version, or saving an unfitted model raises rather than guessing.
 
+Embedding Models in Data Checkpoints
+------------------------------------
+
+A model may remain a standalone checkpoint or travel inside an existing data
+checkpoint. The convenience methods preserve the same model format under
+``models/<name>.zip`` while hiding the outer archive's temporary workspace:
+
+.. code-block:: python
+
+   rnn.save_to_checkpoint(
+       "artifacts/ml20m/recsys_checkpoint.zip",
+       "gru",
+   )
+
+   restored = SimpleRNNTrainer.load_from_checkpoint(
+       "artifacts/ml20m/recsys_checkpoint.zip",
+       "gru",
+       device="cuda",
+   )
+
+``name`` is an extension-free identifier; the example creates
+``models/gru.zip``. Saving the same model type under that name replaces it, but
+using an existing name for another model type raises. The outer manifest records
+the embedded path, model type, and whether optimizer state is included. The data
+checkpoint must already exist, preventing a misspelled path from silently
+creating a model-only outer archive.
+
+Embedding is convenient for a self-contained experiment artifact, while a
+standalone model avoids rewriting a potentially large data checkpoint on every
+save. Both forms use the same inner model archive and the same device and
+optimizer options.
+
 Stable Item IDs
 ---------------
 
