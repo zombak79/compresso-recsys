@@ -1,4 +1,4 @@
-## [Unreleased]
+## [0.3.0] — 2026-08-31
 
 Sequential recommendation as four replaceable parts -- tokenizer, batcher,
 model, trainer -- with `SimpleGPT` as the worked example and `SimpleRNN`
