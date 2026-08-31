@@ -105,8 +105,9 @@ Fitted Model Persistence
 Built-in fitted recommenders inherit
 :class:`compresso_recsys.models.BasePersistableRecommender` and expose
 ``model.save(path)`` plus ``ModelClass.load(path, device="cpu")``. The archive
-is self-contained and loading produces a prediction-ready model. Optimizer state
-is optional and exact training resumption is outside this contract. See
+is self-contained and loading produces a prediction-ready model. Torch-backed
+recommenders can subsequently be moved with ``model.to(device)``. Optimizer
+state is optional and exact training resumption is outside this contract. See
 :doc:`persistence` for the format, device behavior, extension helpers, and the
 reason a :class:`compresso_recsys.models.WarmCatalogAdapter` is rebuilt rather
 than persisted.

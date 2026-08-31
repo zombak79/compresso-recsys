@@ -335,6 +335,28 @@ def test_loading_defaults_to_cpu_even_if_saved_config_says_cuda(tmp_path):
     assert all(parameter.device.type == "cpu" for parameter in restored.model.parameters())
 
 
+@pytest.mark.parametrize(
+    "model",
+    [
+        ContentRecommender(),
+        ELSATrainer(),
+        TEASERGDTrainer(),
+        SimpleRNNTrainer(),
+        SimpleGPTTrainer(),
+    ],
+    ids=["content", "elsa", "teaser-gd", "simple-rnn", "simple-gpt"],
+)
+def test_torch_backed_recommenders_share_the_to_contract(model):
+    assert model.to("cpu") is model
+    assert model.device == torch.device("cpu")
+    assert model.cfg.device == "cpu"
+
+
+def test_numpy_only_recommenders_reject_device_transfer():
+    with pytest.raises(TypeError, match="no device-backed state"):
+        EASE().to("cuda")
+
+
 @pytest.mark.parametrize("compressed", [False, True])
 def test_dense_and_compressed_elsa_round_trip(
     tmp_path,

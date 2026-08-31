@@ -397,6 +397,10 @@ class TEASERGDTrainer(BaseColdStartRecommender):
     def _checkpoint_module(self) -> nn.Module | None:
         return self.teaser
 
+    def _move_checkpoint_state(self, device: torch.device) -> None:
+        self._training_tensor_cache = None
+        self._candidate_tensor_cache = None
+
     def _save_checkpoint_state(self, writer: ModelCheckpointWriter) -> None:
         assert self.train_item_indices_ is not None
         assert self.train_item_mask_ is not None

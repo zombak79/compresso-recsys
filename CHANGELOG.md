@@ -57,6 +57,9 @@ adjacency in cold-item sequences is removed.
   sparse and dense arrays, metadata, histories, tokenizers, mappings, and the
   current mutable candidate catalog travel with the fitted model. Loading is
   CPU-first and rejects the wrong model class or unsupported format version.
+  Torch-backed recommenders can be moved after loading with ``model.to(device)``;
+  the shared operation keeps model, configuration, optimizer tensors, and
+  device-specific caches synchronized.
   Optimizer state is excluded by default and can be included and restored
   explicitly; scheduler, RNG, partial-epoch, compiled-wrapper, and cache state
   remain runtime concerns rather than an exact-resumption promise.

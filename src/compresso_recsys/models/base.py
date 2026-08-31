@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from dataclasses import asdict, is_dataclass
+from dataclasses import asdict, is_dataclass, replace
 from pathlib import Path
 from typing import (
     Any,
@@ -45,6 +45,11 @@ _PersistableT = TypeVar("_PersistableT", bound="BasePersistableRecommender")
 @runtime_checkable
 class PersistableRecommender(Protocol):
     """A fitted recommender with the package model-checkpoint API."""
+
+    def to(
+        self,
+        device: str | torch.device,
+    ) -> "PersistableRecommender": ...
 
     def save(
         self,
@@ -379,6 +384,58 @@ class BasePersistableRecommender(BaseIdentifiedRecommender):
 
     def _finish_checkpoint_load(self) -> None:
         """Restore derived inference state after the checkpoint is installed."""
+
+    def _move_checkpoint_state(self, device: torch.device) -> None:
+        """Move non-module tensors or clear device-specific caches."""
+
+    @staticmethod
+    def _move_optimizer_value(value: Any, device: torch.device) -> Any:
+        if isinstance(value, torch.Tensor):
+            return value.to(device)
+        if isinstance(value, dict):
+            return {
+                key: BasePersistableRecommender._move_optimizer_value(item, device)
+                for key, item in value.items()
+            }
+        if isinstance(value, list):
+            return [
+                BasePersistableRecommender._move_optimizer_value(item, device)
+                for item in value
+            ]
+        if isinstance(value, tuple):
+            return tuple(
+                BasePersistableRecommender._move_optimizer_value(item, device)
+                for item in value
+            )
+        return value
+
+    def to(self: _PersistableT, device: str | torch.device) -> _PersistableT:
+        """Move this recommender's Torch state to ``device`` and return ``self``."""
+        resolved_device = torch.device(device)
+        module = self._checkpoint_module()
+        if module is None and not hasattr(self, "device"):
+            raise TypeError(
+                f"{type(self).__name__} has no device-backed state to move"
+            )
+        if module is not None:
+            nn.Module.to(module, resolved_device)
+
+        self.device = resolved_device
+        config = getattr(self, "cfg", None)
+        if config is not None and hasattr(config, "device"):
+            if is_dataclass(config):
+                self.cfg = replace(config, device=str(resolved_device))
+            else:
+                config.device = str(resolved_device)
+
+        optimizer = self._checkpoint_optimizer()
+        if optimizer is not None:
+            for state in optimizer.state.values():
+                for key, value in state.items():
+                    state[key] = self._move_optimizer_value(value, resolved_device)
+
+        self._move_checkpoint_state(resolved_device)
+        return self
 
     def save(
         self,

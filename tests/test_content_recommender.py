@@ -275,4 +275,6 @@ def test_content_recommender_to_moves_stored_features():
     model.to(_accelerator())
 
     assert model.source_features_.device.type == _accelerator()
+    assert model.device == torch.device(_accelerator())
+    assert model.cfg.device == _accelerator()
     assert model.predict_on_batch(source[:8], k=10).cols.shape == (8, 10)

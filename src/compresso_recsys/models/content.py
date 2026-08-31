@@ -97,13 +97,11 @@ class ContentRecommender(BaseColdStartRecommender):
         """Whether the model is ready for prediction."""
         return self.source_features_ is not None
 
-    def to(self, device: str | torch.device) -> "ContentRecommender":
-        """Move stored features to ``device`` and return ``self``."""
-        self.device = torch.device(device)
+    def _move_checkpoint_state(self, device: torch.device) -> None:
+        """Move stored features and discard a candidate tensor cached elsewhere."""
         if self.source_features_ is not None:
-            self.source_features_ = self.source_features_.to(self.device)
+            self.source_features_ = self.source_features_.to(device)
         self._candidate_cache = None
-        return self
 
     def fit(
         self,

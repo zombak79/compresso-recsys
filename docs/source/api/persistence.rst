@@ -22,6 +22,18 @@ of the device used during training:
    on_cpu = ELSATrainer.load("artifacts/elsa.ckpt")
    on_gpu = ELSATrainer.load("artifacts/elsa.ckpt", device="cuda")
 
+A device-backed recommender can also be moved after loading. ``to`` updates the
+model, its runtime configuration, optional optimizer tensors, and any
+device-specific caches, and returns the same recommender:
+
+.. code-block:: python
+
+   restored = SimpleGPTTrainer.load("artifacts/gpt.ckpt")
+   restored.to("cuda")
+
+NumPy-only recommenders such as EASE have no device-backed state and reject
+``to`` rather than implying that their computation moved.
+
 Calling ``load`` through a different model class, reading an unsupported format
 version, or saving an unfitted model raises rather than guessing.
 
