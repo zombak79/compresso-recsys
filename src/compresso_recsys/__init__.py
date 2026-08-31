@@ -15,6 +15,7 @@ from .checkpoint import (
 )
 from .builder import build_recsys_checkpoint
 from .datasets import AmazonReviews2023, Goodbooks, MovieLens1M, MovieLens20M, RecSysDataset, SplitBundle
+from .persistence import ModelCheckpointReader, ModelCheckpointWriter
 from .sequences import ItemSequences, load_item_sequences, save_item_sequences
 
 __all__ = [
@@ -24,6 +25,8 @@ __all__ = [
     "ItemSequences",
     "MovieLens1M",
     "MovieLens20M",
+    "ModelCheckpointReader",
+    "ModelCheckpointWriter",
     "RecSysDataset",
     "SplitBundle",
     "load_cluster_graph_stage",

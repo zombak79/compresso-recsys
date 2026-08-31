@@ -11,6 +11,7 @@ retrieval, metric, evaluation, and statistics submodules.
    compresso_recsys
    datasets
    checkpoint
+   persistence
    sequences
    models
    retrieval

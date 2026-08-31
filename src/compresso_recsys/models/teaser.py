@@ -5,6 +5,7 @@ from typing import Hashable, Literal, Sequence
 
 import numpy as np
 import pandas as pd
+import torch
 from scipy.sparse import csr_matrix, issparse, isspmatrix_csr
 
 from compresso_recsys.models._validation import (
@@ -21,6 +22,7 @@ from compresso_recsys.models.cold_start import (
     canonical_item_ids,
     canonical_metadata,
 )
+from compresso_recsys.persistence import ModelCheckpointReader, ModelCheckpointWriter
 
 __all__ = ["CandidateCatalog", "TEASER", "TEASERConfig"]
 
@@ -115,6 +117,7 @@ class TEASER(_LinearFeatureRecommenderMixin):
     """
 
     _model_name = "TEASER"
+    checkpoint_type = "teaser"
 
     def __init__(self, config: TEASERConfig | None = None) -> None:
         super().__init__()
@@ -326,3 +329,81 @@ class TEASER(_LinearFeatureRecommenderMixin):
             include_popularity=self.cfg.include_popularity,
         )
         return self
+
+    @classmethod
+    def _from_checkpoint_config(
+        cls,
+        config: dict,
+        reader: ModelCheckpointReader,
+        *,
+        device: torch.device,
+    ) -> TEASER:
+        del reader, device
+        return cls(TEASERConfig(**config))
+
+    def _save_checkpoint_state(self, writer: ModelCheckpointWriter) -> None:
+        assert self.encoder_ is not None
+        assert self.diagonal_ is not None
+        assert self.dual_ is not None
+        assert self.train_item_indices_ is not None
+        assert self.train_item_mask_ is not None
+        assert self.n_items_ is not None
+        assert self.n_features_ is not None
+        writer.write_numpy("state/encoder.npy", self.encoder_)
+        writer.write_numpy("state/diagonal.npy", self.diagonal_)
+        writer.write_numpy("state/dual.npy", self.dual_)
+        writer.write_numpy("state/train_item_indices.npy", self.train_item_indices_)
+        writer.write_numpy("state/train_item_mask.npy", self.train_item_mask_)
+        writer.write_json(
+            "state/trainer.json",
+            {
+                "n_items": self.n_items_,
+                "n_features": self.n_features_,
+                "feature_names": self.feature_names_,
+                "admm_history": self.admm_history_,
+            },
+        )
+        self.candidates._save_checkpoint(writer)
+
+    def _load_checkpoint_state(self, reader: ModelCheckpointReader) -> None:
+        state = reader.read_json("state/trainer.json")
+        self.encoder_ = np.asarray(
+            reader.read_numpy("state/encoder.npy"),
+            dtype=self.dtype,
+        )
+        self.diagonal_ = np.asarray(
+            reader.read_numpy("state/diagonal.npy"),
+            dtype=self.dtype,
+        )
+        self.dual_ = np.asarray(
+            reader.read_numpy("state/dual.npy"),
+            dtype=self.dtype,
+        )
+        self.train_item_indices_ = np.asarray(
+            reader.read_numpy("state/train_item_indices.npy"),
+            dtype=np.int64,
+        )
+        self.train_item_mask_ = np.asarray(
+            reader.read_numpy("state/train_item_mask.npy"),
+            dtype=bool,
+        )
+        self.n_items_ = int(state["n_items"])
+        self.n_features_ = int(state["n_features"])
+        names = state.get("feature_names")
+        self.feature_names_ = None if names is None else tuple(map(str, names))
+        history = state.get("admm_history")
+        if not isinstance(history, list):
+            raise ValueError("TEASER ADMM history must be a list")
+        self.admm_history_ = list(history)
+        n_train = int(self.train_item_indices_.size)
+        if self.encoder_.shape != (n_train, self.n_features_):
+            raise ValueError("TEASER encoder shape does not match its metadata")
+        if self.diagonal_.shape != (n_train,) or self.dual_.shape != (n_train,):
+            raise ValueError("TEASER diagnostic vectors do not match training items")
+        if self.train_item_mask_.shape != (self.n_items_,):
+            raise ValueError("TEASER training-item mask does not match n_items")
+        self.candidates._load_checkpoint(reader)
+        source_ids = self.candidates.source_item_ids
+        assert source_ids is not None
+        if source_ids.size != self.n_items_:
+            raise ValueError("TEASER source catalog does not match n_items")

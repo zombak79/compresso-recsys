@@ -12,6 +12,7 @@ from scipy.sparse import csr_matrix, isspmatrix_csr
 from torch import nn
 
 from compresso import SRPTensor
+from compresso_recsys.persistence import ModelCheckpointReader, ModelCheckpointWriter
 from compresso_recsys.models._batching import (
     InteractionBatchSampler,
     dense_training_target,
@@ -332,6 +333,7 @@ class TEASERGDTrainer(BaseColdStartRecommender):
     """Fit TEASER with PyTorch, sampled outputs, and cold candidate catalogs."""
 
     _fit_name = "TEASERGD"
+    checkpoint_type = "teaser_gd_trainer"
 
     def __init__(self, config: TEASERGDConfig | None = None) -> None:
         super().__init__()
@@ -372,6 +374,106 @@ class TEASERGDTrainer(BaseColdStartRecommender):
             lr=float(self.cfg.lr),
             weight_decay=float(self.cfg.weight_decay),
         )
+
+    @classmethod
+    def _from_checkpoint_config(
+        cls,
+        config: dict,
+        reader: ModelCheckpointReader,
+        *,
+        device: torch.device,
+    ) -> TEASERGDTrainer:
+        config = dict(config)
+        config["device"] = str(device)
+        config["compile"] = False
+        trainer = cls(TEASERGDConfig(**config))
+        state = reader.read_json("state/trainer.json")
+        trainer.teaser = trainer._build_base_model(
+            input_dim=int(state["n_train_items"]),
+            feature_dim=int(state["n_features"]),
+        ).to(device)
+        return trainer
+
+    def _checkpoint_module(self) -> nn.Module | None:
+        return self.teaser
+
+    def _move_checkpoint_state(self, device: torch.device) -> None:
+        self._training_tensor_cache = None
+        self._candidate_tensor_cache = None
+
+    def _save_checkpoint_state(self, writer: ModelCheckpointWriter) -> None:
+        assert self.train_item_indices_ is not None
+        assert self.train_item_mask_ is not None
+        assert self.n_items_ is not None
+        assert self.n_features_ is not None
+        assert self._training_features is not None
+        assert self._n_training_users is not None
+        writer.write_numpy("state/train_item_indices.npy", self.train_item_indices_)
+        writer.write_numpy("state/train_item_mask.npy", self.train_item_mask_)
+        training_storage = writer.write_features(
+            "state/training_features",
+            self._training_features,
+        )
+        writer.write_json(
+            "state/trainer.json",
+            {
+                "n_items": self.n_items_,
+                "n_features": self.n_features_,
+                "n_train_items": int(self.train_item_indices_.size),
+                "n_training_users": self._n_training_users,
+                "training_feature_storage": training_storage,
+                "feature_names": self.feature_names_,
+                "history": self.history,
+            },
+        )
+        self.candidates._save_checkpoint(writer)
+
+    def _load_checkpoint_state(self, reader: ModelCheckpointReader) -> None:
+        state = reader.read_json("state/trainer.json")
+        self.train_item_indices_ = np.asarray(
+            reader.read_numpy("state/train_item_indices.npy"),
+            dtype=np.int64,
+        )
+        self.train_item_mask_ = np.asarray(
+            reader.read_numpy("state/train_item_mask.npy"),
+            dtype=bool,
+        )
+        self.n_items_ = int(state["n_items"])
+        self.n_features_ = int(state["n_features"])
+        self._n_training_users = int(state["n_training_users"])
+        self._training_features = reader.read_features(
+            "state/training_features",
+            storage=str(state["training_feature_storage"]),
+        )
+        names = state.get("feature_names")
+        self.feature_names_ = None if names is None else tuple(map(str, names))
+        history = state.get("history")
+        if not isinstance(history, list):
+            raise ValueError("TEASERGD training history must be a list")
+        self.history = list(history)
+        n_train = int(self.train_item_indices_.size)
+        if n_train != int(state["n_train_items"]):
+            raise ValueError("TEASERGD training-item count is inconsistent")
+        if self.train_item_mask_.shape != (self.n_items_,):
+            raise ValueError("TEASERGD training-item mask does not match n_items")
+        if self._training_features.shape != (n_train, self.n_features_):
+            raise ValueError("TEASERGD training features have the wrong shape")
+        self._training_tensor_cache = None
+        self._candidate_tensor_cache = None
+        self._regularizer_rng = np.random.default_rng(self.cfg.seed + 1)
+        self.candidates._load_checkpoint(reader)
+        source_ids = self.candidates.source_item_ids
+        assert source_ids is not None
+        if source_ids.size != self.n_items_:
+            raise ValueError("TEASERGD source catalog does not match n_items")
+
+    def _build_checkpoint_optimizer(self) -> None:
+        self._reset_optimizer()
+
+    def _finish_checkpoint_load(self) -> None:
+        self._is_fitted = True
+        if self.teaser is not None:
+            self.teaser.eval()
 
     def _build_base_model(self, *, input_dim: int, feature_dim: int) -> TEASERGD:
         return TEASERGD(

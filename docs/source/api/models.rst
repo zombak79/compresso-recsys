@@ -38,6 +38,87 @@ no statistics-side changes.
 .. autoclass:: compresso_recsys.models.SequentialRecommender
    :members:
 
+Production Recommendations
+--------------------------
+
+The low-level ``predict`` methods consume catalog-shaped matrices or
+:class:`compresso_recsys.ItemSequences` and return catalog column indices. For
+serving, every built-in model also inherits one identified interface that works
+with stable item IDs:
+
+.. code-block:: python
+
+   model = EASE().fit(interactions, item_ids=item_ids)
+
+   ranked = model.recommend(
+       [["item-14", "item-87"], ["item-32"]],
+       k=20,
+       exclude_seen=True,
+       allowlist=eligible_item_ids,
+       blocklist=unavailable_item_ids,
+       on_insufficient="truncate",
+   )
+
+   ranked.item_ids   # shape: (2, 20)
+   ranked.scores     # shape: (2, 20)
+   payload = ranked.to_dicts()
+
+``histories`` is always a batch. To recommend for one user, pass one nested
+history such as ``[["item-14", "item-87"]]``. Collaborative models interpret
+a history as binary interactions, while sequential models preserve its order
+and repeated IDs. ``allowlist`` and ``blocklist`` are optional batch-wide
+candidate filters; both apply before top-k and the blocklist wins when an ID is
+present in both. Unknown history or filter IDs raise.
+
+Unlike the evaluation-oriented ``predict`` methods, ``recommend`` defaults to
+``exclude_seen=False``. Recommending a previously seen item is legal in serving,
+and a caller such as a worker can put whichever seen IDs are inappropriate into
+``blocklist``. Pass ``exclude_seen=True`` to apply the conventional offline
+evaluation policy to the complete history.
+
+``k`` is a requested maximum. By default, a row with fewer than ``k`` eligible
+candidates is truncated independently; when ``exclude_seen=True``, eligibility
+is calculated after removing seen items. Other users in the same batch still
+receive all available results up to ``k``. The arrays remain ``(users, k)``:
+unused item positions contain ``None``, their scores are ``-inf``, and
+``valid_mask`` plus ``valid_counts`` distinguish them from recommendations.
+``to_dicts()`` omits those positions. Pass ``on_insufficient="raise"`` when a
+short row should instead fail the complete request. Neither policy reintroduces
+blocked items, or seen items when their exclusion was requested.
+
+:class:`compresso_recsys.models.Recommendations` holds immutable ``(users, k)``
+arrays. :meth:`~compresso_recsys.models.Recommendations.to_dicts` returns one
+insertion-ordered ``item_id: score`` dictionary per user, so dictionary order
+is rank order and short rows become shorter dictionaries. Fixed-catalog models
+use positional integer IDs when ``item_ids`` is omitted from fitting. The
+mapping is stored in fitted-model checkpoints.
+
+.. autoclass:: compresso_recsys.models.IdentifiedRecommender
+   :members:
+
+.. autoclass:: compresso_recsys.models.Recommendations
+   :members:
+
+Fitted Model Persistence
+------------------------
+
+Built-in fitted recommenders inherit
+:class:`compresso_recsys.models.BasePersistableRecommender` and expose
+``model.save(path)`` plus ``ModelClass.load(path, device="cpu")``. The archive
+is self-contained and loading produces a prediction-ready model. Torch-backed
+recommenders can subsequently be moved with ``model.to(device)``. Optimizer
+state is optional and exact training resumption is outside this contract. See
+:doc:`persistence` for the format, device behavior, extension helpers, and the
+reason a :class:`compresso_recsys.models.WarmCatalogAdapter` is rebuilt rather
+than persisted.
+
+.. autoclass:: compresso_recsys.models.PersistableRecommender
+   :members:
+
+.. autoclass:: compresso_recsys.models.BasePersistableRecommender
+   :members:
+   :private-members: _checkpoint_config, _from_checkpoint_config, _checkpoint_module, _checkpoint_optimizer, _save_checkpoint_state, _load_checkpoint_state, _build_checkpoint_optimizer, _finish_checkpoint_load
+
 Implementing New Models
 -----------------------
 
@@ -46,11 +127,24 @@ evaluation API. Model authors who want Compresso RecSys validation, batched
 prediction, and catalog management can instead inherit one of the abstract
 bases.
 
+All three bases derive from
+:class:`compresso_recsys.models.BaseIdentifiedRecommender`, which supplies the
+complete ``recommend`` workflow. A fixed-catalog model records identities with
+``self._set_item_ids(item_ids, n_items=...)`` during fitting and supports the
+optional ``candidate_ids`` selection in ``predict_on_batch``. The source base
+then handles ID validation, history conversion, candidate filters, seen-item
+capacity checks, and result decoding automatically.
+
+.. autoclass:: compresso_recsys.models.BaseIdentifiedRecommender
+   :members:
+   :private-members: _set_item_ids, _recommendation_source, _predict_identified
+
 Use :class:`compresso_recsys.models.BaseCollaborativeRecommender` for a model
 whose fitted source and candidate catalog has one fixed positional item space.
-Implement ``fit``, ``is_fitted``, ``n_items``, and ``predict_on_batch``. Call
-the inherited ``_prepare_source`` at the start of ``predict_on_batch``; the
-base then supplies ``predict`` with bounded batching and optional progress.
+Implement ``fit``, ``is_fitted``, ``n_items``, and candidate-aware
+``predict_on_batch``. Call the inherited ``_prepare_source`` at the start of
+``predict_on_batch``; the base then supplies ``predict`` with bounded batching
+and optional progress, plus ``recommend`` for stable IDs.
 
 .. autoclass:: compresso_recsys.models.BaseCollaborativeRecommender
    :members:
@@ -83,8 +177,8 @@ from it, because crossing the two source representations with cold-start
 capability in the type hierarchy would give four classes for two ideas. Candidate
 capability is composed instead: a model that scores unseen items owns a catalog
 rather than inheriting one. Implement ``is_fitted``, ``n_items`` and
-``predict_on_batch``; the base supplies ``predict`` with bounded batching over
-row slices.
+candidate-aware ``predict_on_batch``; the base supplies ``predict`` with bounded
+batching over row slices and ``recommend`` with order-preserving ID histories.
 
 ``fit`` is deliberately outside the contract. Trainers keep the package's
 existing ``SomeTrainer(config).fit(data)`` shape and a fitted model owes only
@@ -386,9 +480,10 @@ within ``change_threshold`` for ``stability_window`` updates. Set
 ``max_epochs_per_stage`` to force a stage to accept its latest proposed mask
 after a fixed number of epochs. This bounds training time but may select a less
 stable ticket. Training checkpoints during this phase are not currently
-resumable, and ``torch.compile`` is not supported. When ``max_output`` limits
-the candidate set, mask search projects only those ``MaskedParam`` rows and
-sparse fine-tuning selects only those gradient-connected ``SRPParam`` rows.
+resumable, although a fitted ELSA model can be saved and loaded after training;
+``torch.compile`` is not supported. When ``max_output`` limits the candidate
+set, mask search projects only those ``MaskedParam`` rows and sparse
+fine-tuning selects only those gradient-connected ``SRPParam`` rows.
 The default dense fine-tuning backend densifies that selection, while the COO
 backend keeps it sparse through differentiable sparse matrix multiplications.
 COO can reduce both memory and runtime for highly sparse tickets, while dense
@@ -946,15 +1041,15 @@ temperature, and pooling strategies other than reading the final real position
 are also not implemented.
 
 Saving carries the vocabulary with the weights, because a served model that
-cannot say what column 41 means is not much use. The file is read with
-``weights_only=True``, so loading parses data rather than executing a pickle:
+cannot say what column 41 means is not much use. It uses the same persistence
+API as every other fitted recommender:
 
 .. code-block:: python
 
-   from compresso_recsys.models import load_simple_gpt, save_simple_gpt
+   from compresso_recsys.models import SimpleGPTTrainer
 
-   save_simple_gpt("artifacts/simple_gpt.pt", model)
-   restored = load_simple_gpt("artifacts/simple_gpt.pt")   # nothing else needed
+   model.save("artifacts/simple_gpt.ckpt")
+   restored = SimpleGPTTrainer.load("artifacts/simple_gpt.ckpt")
 
 .. autoclass:: compresso_recsys.models.TransformerConfig
    :members:
@@ -967,7 +1062,3 @@ cannot say what column 41 means is not much use. The file is read with
 
 .. autoclass:: compresso_recsys.models.SimpleGPTTrainer
    :members:
-
-.. autofunction:: compresso_recsys.models.save_simple_gpt
-
-.. autofunction:: compresso_recsys.models.load_simple_gpt

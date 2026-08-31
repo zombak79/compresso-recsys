@@ -16,8 +16,6 @@ from compresso_recsys.models.simple_gpt import (
     SimpleGPTConfig,
     SimpleGPTTrainer,
     TransformerConfig,
-    load_simple_gpt,
-    save_simple_gpt,
 )
 from compresso_recsys.models.tokenizer import ItemTokenizer
 from compresso_recsys.sequences import ItemSequences
@@ -685,8 +683,8 @@ def test_a_reloaded_model_predicts_identically(tmp_path):
     before = model.predict(sources, k=4)
     path = tmp_path / "gpt.pt"
 
-    save_simple_gpt(path, model)
-    reloaded = load_simple_gpt(path)
+    model.save(path)
+    reloaded = SimpleGPTTrainer.load(path)
     after = reloaded.predict(sources, k=4)
 
     assert after.cols.tolist() == before.cols.tolist()
@@ -696,9 +694,9 @@ def test_a_reloaded_model_predicts_identically(tmp_path):
 def test_loading_needs_nothing_but_the_file(tmp_path):
     """The point of carrying the tokenizer: a checkpoint is self-describing."""
     path = tmp_path / "gpt.pt"
-    save_simple_gpt(path, _fitted_on_cycle(epochs=2))
+    _fitted_on_cycle(epochs=2).save(path)
 
-    reloaded = load_simple_gpt(path)
+    reloaded = SimpleGPTTrainer.load(path)
 
     assert reloaded.is_fitted
     assert reloaded.n_items == N_ITEMS
@@ -718,8 +716,8 @@ def test_the_vocabulary_survives_including_item_ids(tmp_path):
     )
     path = tmp_path / "gpt.pt"
 
-    save_simple_gpt(path, model)
-    reloaded = load_simple_gpt(path)
+    model.save(path)
+    reloaded = SimpleGPTTrainer.load(path)
 
     predictions = reloaded.predict(_seqs([[0, 1, 2]]), k=2)
     resolved = reloaded.batcher.tokenizer.decode_ids(
@@ -732,32 +730,37 @@ def test_history_travels_with_the_weights(tmp_path):
     model = _fitted_on_cycle(epochs=3)
     path = tmp_path / "gpt.pt"
 
-    save_simple_gpt(path, model)
+    model.save(path)
 
-    assert load_simple_gpt(path).history == model.history
+    assert SimpleGPTTrainer.load(path).history == model.history
 
 
 def test_saving_an_unfitted_trainer_is_refused(tmp_path):
     with pytest.raises(RuntimeError, match="must be fitted before saving"):
-        save_simple_gpt(tmp_path / "gpt.pt", SimpleGPTTrainer(_trainer_config()))
+        SimpleGPTTrainer(_trainer_config()).save(tmp_path / "gpt.pt")
 
 
 def test_an_unknown_format_is_refused(tmp_path):
     path = tmp_path / "gpt.pt"
-    save_simple_gpt(path, _fitted_on_cycle(epochs=1))
-    state = torch.load(path, weights_only=True)
-    state["format"] = 99
-    torch.save(state, path)
+    _fitted_on_cycle(epochs=1).save(path)
+    from compresso_recsys.checkpoint import update_checkpoint
+    import json
 
-    with pytest.raises(ValueError, match="unsupported SimpleGPT checkpoint format"):
-        load_simple_gpt(path)
+    with update_checkpoint(path) as root:
+        manifest_path = root / "manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest["version"] = 99
+        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="unsupported model checkpoint version"):
+        SimpleGPTTrainer.load(path)
 
 
 def test_the_device_can_be_overridden_on_load(tmp_path):
     path = tmp_path / "gpt.pt"
-    save_simple_gpt(path, _fitted_on_cycle(epochs=1))
+    _fitted_on_cycle(epochs=1).save(path)
 
-    reloaded = load_simple_gpt(path, device="cpu")
+    reloaded = SimpleGPTTrainer.load(path, device="cpu")
 
     assert reloaded.device == torch.device("cpu")
     assert reloaded.cfg.device == "cpu"
@@ -766,42 +769,17 @@ def test_the_device_can_be_overridden_on_load(tmp_path):
 def test_the_file_reads_as_data_not_as_a_pickle(tmp_path):
     """``weights_only=True`` means loading cannot execute what the file says."""
     path = tmp_path / "gpt.pt"
-    save_simple_gpt(path, _fitted_on_cycle(epochs=1))
+    _fitted_on_cycle(epochs=1).save(path)
+    from compresso_recsys.persistence import ModelCheckpointReader
 
-    state = torch.load(path, weights_only=True)
+    with ModelCheckpointReader(
+        path, expected_model_type="simple_gpt_trainer"
+    ) as checkpoint:
+        state = checkpoint.read_torch("state/model.pt")
+        config = checkpoint.read_json("config.json")
 
-    assert set(state) == {
-        "format",
-        "model_state",
-        "config",
-        "tokenizer",
-        "max_length",
-        "history",
-    }
-    assert isinstance(state["config"]["device"], str)
-
-
-def test_loading_accepts_legacy_right_padding_metadata(tmp_path):
-    path = tmp_path / "gpt.pt"
-    save_simple_gpt(path, _fitted_on_cycle(epochs=1))
-    state = torch.load(path, weights_only=True)
-    state["pad_side"] = "right"
-    torch.save(state, path)
-
-    reloaded = load_simple_gpt(path)
-
-    assert reloaded.is_fitted
-
-
-def test_loading_refuses_legacy_left_padding_metadata(tmp_path):
-    path = tmp_path / "gpt.pt"
-    save_simple_gpt(path, _fitted_on_cycle(epochs=1))
-    state = torch.load(path, weights_only=True)
-    state["pad_side"] = "left"
-    torch.save(state, path)
-
-    with pytest.raises(ValueError, match="only right padding is valid"):
-        load_simple_gpt(path)
+    assert state
+    assert isinstance(config["device"], str)
 
 
 def test_only_the_scored_positions_reach_the_head():
@@ -919,8 +897,8 @@ def test_tying_round_trips_through_a_checkpoint(tmp_path):
     sources = _seqs([[0, 1, 2], [5], [3, 4]])
     path = tmp_path / "tied.pt"
 
-    save_simple_gpt(path, model)
-    reloaded = load_simple_gpt(path)
+    model.save(path)
+    reloaded = SimpleGPTTrainer.load(path)
 
     assert reloaded.cfg.tie_embeddings is True
     assert reloaded.model.head is None
@@ -939,8 +917,8 @@ def test_an_untied_checkpoint_still_loads_untied(tmp_path):
     """
     path = tmp_path / "untied.pt"
 
-    save_simple_gpt(path, _fitted_on_cycle(epochs=2, tie_embeddings=False))
-    reloaded = load_simple_gpt(path)
+    _fitted_on_cycle(epochs=2, tie_embeddings=False).save(path)
+    reloaded = SimpleGPTTrainer.load(path)
 
     assert reloaded.cfg.tie_embeddings is False
     assert isinstance(reloaded.model.head, nn.Linear)
@@ -1099,8 +1077,8 @@ def test_the_schedule_survives_a_checkpoint(tmp_path):
     model = _fitted_on_cycle(epochs=2, lr_schedule="cosine", min_lr_ratio=0.25)
     path = tmp_path / "scheduled.pt"
 
-    save_simple_gpt(path, model)
-    reloaded = load_simple_gpt(path)
+    model.save(path)
+    reloaded = SimpleGPTTrainer.load(path)
 
     assert reloaded.cfg.lr_schedule == "cosine"
     assert reloaded.cfg.min_lr_ratio == 0.25

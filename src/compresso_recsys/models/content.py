@@ -9,6 +9,7 @@ from scipy.sparse import csr_matrix, issparse
 
 from compresso import SRPTensor
 from compresso_recsys.models.cold_start import BaseColdStartRecommender
+from compresso_recsys.persistence import ModelCheckpointReader, ModelCheckpointWriter
 
 __all__ = ["ContentRecommender", "ContentRecommenderConfig"]
 
@@ -81,6 +82,8 @@ class ContentRecommender(BaseColdStartRecommender):
     ``elsa_forward`` exist at all.
     """
 
+    checkpoint_type = "content_recommender"
+
     def __init__(self, config: ContentRecommenderConfig | None = None) -> None:
         super().__init__()
         self.cfg = config if config is not None else ContentRecommenderConfig()
@@ -94,13 +97,11 @@ class ContentRecommender(BaseColdStartRecommender):
         """Whether the model is ready for prediction."""
         return self.source_features_ is not None
 
-    def to(self, device: str | torch.device) -> "ContentRecommender":
-        """Move stored features to ``device`` and return ``self``."""
-        self.device = torch.device(device)
+    def _move_checkpoint_state(self, device: torch.device) -> None:
+        """Move stored features and discard a candidate tensor cached elsewhere."""
         if self.source_features_ is not None:
-            self.source_features_ = self.source_features_.to(self.device)
+            self.source_features_ = self.source_features_.to(device)
         self._candidate_cache = None
-        return self
 
     def fit(
         self,
@@ -158,6 +159,46 @@ class ContentRecommender(BaseColdStartRecommender):
             include_popularity=False,
         )
         return self
+
+    @classmethod
+    def _from_checkpoint_config(
+        cls,
+        config: dict,
+        reader: ModelCheckpointReader,
+        *,
+        device: torch.device,
+    ) -> "ContentRecommender":
+        del reader
+        config = dict(config)
+        config["device"] = str(device)
+        return cls(ContentRecommenderConfig(**config))
+
+    def _save_checkpoint_state(self, writer: ModelCheckpointWriter) -> None:
+        assert self.source_features_ is not None
+        writer.write_torch(
+            "state/content.pt",
+            {"source_features": self.source_features_.detach()},
+        )
+        self.candidates._save_checkpoint(writer)
+
+    def _load_checkpoint_state(self, reader: ModelCheckpointReader) -> None:
+        state = reader.read_torch("state/content.pt", device=self.device)
+        source_features = state.get("source_features")
+        if not isinstance(source_features, torch.Tensor) or source_features.ndim != 2:
+            raise ValueError("ContentRecommender source features must be 2D")
+        if source_features.dtype != self._torch_dtype:
+            raise ValueError(
+                "ContentRecommender source feature dtype does not match config"
+            )
+        self.source_features_ = source_features.to(self.device).contiguous()
+        self._candidate_cache = None
+        self.candidates._load_checkpoint(reader)
+        source_ids = self.candidates.source_item_ids
+        assert source_ids is not None
+        if self.source_features_.shape[0] != source_ids.size:
+            raise ValueError(
+                "ContentRecommender source features do not align with its catalog"
+            )
 
     def _candidate_matrix(
         self, features: csr_matrix | np.ndarray

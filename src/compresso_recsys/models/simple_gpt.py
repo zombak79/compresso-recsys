@@ -49,9 +49,8 @@ absent.
 from __future__ import annotations
 
 import math
-from dataclasses import asdict, dataclass, field
-from pathlib import Path
-from typing import Literal
+from dataclasses import dataclass, field
+from typing import Hashable, Literal, Sequence
 
 import numpy as np
 import torch
@@ -61,9 +60,11 @@ from torch import nn
 from compresso import SRPTensor
 
 from compresso_recsys.sequences import ItemSequences
+from compresso_recsys.persistence import ModelCheckpointReader, ModelCheckpointWriter
 
 from ._schedule import LRSchedule, build_scheduler, check_schedule
 from .base import BaseSequentialRecommender
+from .identifiers import ItemVocabulary
 from .sequence_batching import SequenceBatcher
 from .tokenizer import ItemTokenizer
 
@@ -72,8 +73,6 @@ __all__ = [
     "SimpleGPTConfig",
     "SimpleGPTTrainer",
     "TransformerConfig",
-    "load_simple_gpt",
-    "save_simple_gpt",
 ]
 
 OptimizerName = Literal["NAdam", "AdamW"]
@@ -421,6 +420,7 @@ class SimpleGPTTrainer(BaseSequentialRecommender):
 
     #: Context window used when ``fit`` has to build its own batcher.
     DEFAULT_MAX_LENGTH = 200
+    checkpoint_type = "simple_gpt_trainer"
 
     def __init__(
         self,
@@ -431,6 +431,7 @@ class SimpleGPTTrainer(BaseSequentialRecommender):
         self.device = torch.device(self.cfg.device)
         self.history: list[dict[str, float]] = []
         self.model: SimpleGPT | None = None
+        self.optimizer: torch.optim.Optimizer | None = None
         self.batcher = batcher
         self._owns_batcher = batcher is None
         self._n_items: int | None = None
@@ -447,7 +448,12 @@ class SimpleGPTTrainer(BaseSequentialRecommender):
 
     # -- training -----------------------------------------------------------
 
-    def fit(self, sequences: ItemSequences) -> SimpleGPTTrainer:
+    def fit(
+        self,
+        sequences: ItemSequences,
+        *,
+        item_ids: Sequence[Hashable] | np.ndarray | None = None,
+    ) -> SimpleGPTTrainer:
         """Train on chronological histories, one example per position."""
         if not isinstance(sequences, ItemSequences):
             raise TypeError(
@@ -475,6 +481,17 @@ class SimpleGPTTrainer(BaseSequentialRecommender):
                 f"{self.batcher.tokenizer.n_items} items, but training sequences "
                 f"have {sequences.n_items}"
             )
+        tokenizer_ids = getattr(self.batcher.tokenizer, "item_ids", None)
+        if item_ids is not None and tokenizer_ids is not None:
+            supplied = ItemVocabulary.from_ids(item_ids).item_ids
+            if not np.array_equal(supplied, tokenizer_ids):
+                raise ValueError(
+                    "item_ids must match the batcher tokenizer item IDs"
+                )
+        self._set_item_ids(
+            tokenizer_ids if item_ids is None else item_ids,
+            n_items=sequences.n_items,
+        )
         self._check_batcher(self.batcher)
 
         torch.manual_seed(int(self.cfg.seed))
@@ -483,11 +500,12 @@ class SimpleGPTTrainer(BaseSequentialRecommender):
         self._n_items = self.batcher.tokenizer.n_items
         self.model = self._build_model()
 
-        optimizer = getattr(torch.optim, self.cfg.optimizer)(
+        self.optimizer = getattr(torch.optim, self.cfg.optimizer)(
             self.model.parameters(),
             lr=self.cfg.lr,
             weight_decay=self.cfg.weight_decay,
         )
+        optimizer = self.optimizer
         objective = nn.CrossEntropyLoss()
         self.history = []
 
@@ -570,8 +588,8 @@ class SimpleGPTTrainer(BaseSequentialRecommender):
     def _build_model(self) -> SimpleGPT:
         """The module this trainer's config and batcher describe.
 
-        Shared by :meth:`fit` and :func:`load_simple_gpt` so a reloaded model is
-        built by exactly the path that trained it.
+        Shared by fitting and checkpoint loading so a reloaded model is built
+        by exactly the path that trained it.
         """
         assert self.batcher is not None
         tokenizer = self.batcher.tokenizer
@@ -584,6 +602,78 @@ class SimpleGPTTrainer(BaseSequentialRecommender):
             config=self.cfg.transformer,
             tie_embeddings=self.cfg.tie_embeddings,
         ).to(self.device)
+
+    @classmethod
+    def _from_checkpoint_config(
+        cls,
+        config: dict,
+        reader: ModelCheckpointReader,
+        *,
+        device: torch.device,
+    ) -> SimpleGPTTrainer:
+        config = dict(config)
+        transformer = TransformerConfig(**dict(config.pop("transformer")))
+        config["device"] = str(device)
+        trainer_state = reader.read_json("state/trainer.json")
+        tokenizer_state = reader.read_json("state/tokenizer.json")
+        if reader.exists("state/tokenizer_item_ids.json"):
+            tokenizer_state["item_ids"] = reader.read_item_ids(
+                "state/tokenizer_item_ids.json"
+            )
+        tokenizer = ItemTokenizer.from_dict(tokenizer_state)
+        batcher = SequenceBatcher(
+            tokenizer,
+            max_length=int(trainer_state["max_length"]),
+        )
+        trainer = cls(
+            SimpleGPTConfig(transformer=transformer, **config),
+            batcher,
+        )
+        trainer._n_items = tokenizer.n_items
+        trainer.model = trainer._build_model()
+        return trainer
+
+    def _checkpoint_module(self) -> nn.Module | None:
+        return self.model
+
+    def _save_checkpoint_state(self, writer: ModelCheckpointWriter) -> None:
+        if self.batcher is None or not isinstance(
+            self.batcher.tokenizer, ItemTokenizer
+        ):
+            raise TypeError(
+                "SimpleGPTTrainer checkpoints support ItemTokenizer only"
+            )
+        assert self.batcher.max_length is not None
+        writer.write_json(
+            "state/trainer.json",
+            {
+                "max_length": int(self.batcher.max_length),
+                "history": self.history,
+            },
+        )
+        writer.write_json(
+            "state/tokenizer.json",
+            self.batcher.tokenizer.to_dict(include_item_ids=False),
+        )
+        item_ids = self.batcher.tokenizer.item_ids
+        if item_ids is not None:
+            writer.write_item_ids("state/tokenizer_item_ids.json", item_ids)
+
+    def _load_checkpoint_state(self, reader: ModelCheckpointReader) -> None:
+        state = reader.read_json("state/trainer.json")
+        history = state.get("history")
+        if not isinstance(history, list):
+            raise ValueError("SimpleGPT training history must be a list")
+        self.history = list(history)
+
+    def _build_checkpoint_optimizer(self) -> None:
+        if self.model is None:
+            raise RuntimeError("SimpleGPT model must be built before its optimizer")
+        self.optimizer = getattr(torch.optim, self.cfg.optimizer)(
+            self.model.parameters(),
+            lr=self.cfg.lr,
+            weight_decay=self.cfg.weight_decay,
+        )
 
     @staticmethod
     def _check_batcher(batcher: SequenceBatcher) -> None:
@@ -662,6 +752,7 @@ class SimpleGPTTrainer(BaseSequentialRecommender):
         *,
         k: int,
         exclude_seen: bool = True,
+        candidate_ids: Sequence[Hashable] | np.ndarray | None = None,
     ) -> SRPTensor:
         """Rank the catalog for each history from its last real state."""
         if self.model is None or self.batcher is None or self._n_items is None:
@@ -672,10 +763,17 @@ class SimpleGPTTrainer(BaseSequentialRecommender):
                 f"{type(source).__name__}"
             )
         n_items = self._n_items
-        if not 1 <= k <= n_items:
-            raise ValueError(f"k must be in [1, {n_items}], got {k}")
+        candidate_rows = self._candidate_rows(candidate_ids)
+        candidate_count = int(candidate_rows.size)
+        if not 1 <= k <= candidate_count:
+            raise ValueError(f"k must be in [1, {candidate_count}], got {k}")
         if exclude_seen:
-            self._check_unseen_capacity(source, n_items=n_items, k=k)
+            self._check_unseen_capacity(
+                source,
+                n_items=n_items,
+                k=k,
+                candidate_rows=candidate_rows,
+            )
 
         rows = source.n_rows
         if rows == 0:
@@ -703,7 +801,9 @@ class SimpleGPTTrainer(BaseSequentialRecommender):
             logits = self.model.score(final)
             if exclude_seen:
                 self._mask_seen(logits, source)
-            vals, cols = torch.topk(logits, k, dim=1)
+            candidates = torch.from_numpy(candidate_rows).long().to(self.device)
+            vals, local_cols = torch.topk(logits[:, candidates], k, dim=1)
+            cols = candidates[local_cols]
 
         return SRPTensor(cols=cols, vals=vals, shape=(rows, n_items))
 
@@ -754,75 +854,3 @@ def _progress_bar(enabled: bool, *, total: int, desc: str):
     if not enabled or tqdm is None:
         return None
     return tqdm(total=total, desc=desc)
-
-
-def save_simple_gpt(path: str | Path, trainer: SimpleGPTTrainer) -> None:
-    """Write weights, configuration and vocabulary to one file.
-
-    The tokenizer travels with the weights because a served model without it
-    cannot say what column 41 means. It is the only part that cannot be
-    reconstructed from the config: the config describes the network, while the
-    vocabulary describes the data it was fitted on.
-
-    The batcher's ``max_length`` is stored rather than the batcher itself. Its
-    other behavior is fixed, while the tokenizer is persisted separately.
-    """
-    if trainer.model is None or trainer.batcher is None:
-        raise RuntimeError("SimpleGPTTrainer must be fitted before saving")
-    config = asdict(trainer.cfg)
-    # torch.device is picklable but a string keeps the file readable by
-    # weights_only=True and by anything that is not torch.
-    config["device"] = str(trainer.cfg.device)
-    torch.save(
-        {
-            "format": 1,
-            "model_state": trainer.model.state_dict(),
-            "config": config,
-            "tokenizer": trainer.batcher.tokenizer.to_dict(),
-            "max_length": int(trainer.batcher.max_length),
-            "history": list(trainer.history),
-        },
-        Path(path),
-    )
-
-
-def load_simple_gpt(
-    path: str | Path, *, device: str | torch.device | None = None
-) -> SimpleGPTTrainer:
-    """Read back a trainer saved by :func:`save_simple_gpt`, ready to predict.
-
-    Self-contained: no config, tokenizer or batcher is needed at the call site,
-    which is the point — those are what a checkpoint exists to carry.
-
-    Read with ``weights_only=True``, so the file is parsed as data rather than
-    executed as a pickle.
-    """
-    state = torch.load(
-        Path(path), map_location=device or "cpu", weights_only=True
-    )
-    if state.get("format") != 1:
-        raise ValueError(
-            f"unsupported SimpleGPT checkpoint format {state.get('format')!r}"
-        )
-    if state.get("pad_side", "right") != "right":
-        raise ValueError(
-            "unsupported SimpleGPT checkpoint padding: only right padding is valid"
-        )
-
-    config_state = dict(state["config"])
-    transformer = TransformerConfig(**config_state.pop("transformer"))
-    if device is not None:
-        config_state["device"] = str(device)
-    config = SimpleGPTConfig(transformer=transformer, **config_state)
-
-    batcher = SequenceBatcher(
-        ItemTokenizer.from_dict(state["tokenizer"]),
-        max_length=int(state["max_length"]),
-    )
-    trainer = SimpleGPTTrainer(config, batcher)
-    trainer._n_items = batcher.tokenizer.n_items
-    trainer.model = trainer._build_model()
-    trainer.model.load_state_dict(state["model_state"])
-    trainer.model.eval()
-    trainer.history = list(state["history"])
-    return trainer
