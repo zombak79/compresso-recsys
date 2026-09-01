@@ -1,0 +1,121 @@
+from __future__ import annotations
+
+import numpy as np
+import pytest
+import torch
+from scipy.sparse import csr_matrix
+
+from compresso_recsys.models import MultDAE, MultDAEConfig, MultDAETrainer
+
+
+@pytest.fixture
+def interactions() -> csr_matrix:
+    return csr_matrix(
+        np.array(
+            [
+                [1, 1, 0, 0, 0, 0],
+                [0, 1, 1, 0, 0, 0],
+                [1, 0, 0, 1, 0, 0],
+                [0, 0, 1, 1, 1, 0],
+                [0, 1, 0, 0, 1, 1],
+            ],
+            dtype=np.float32,
+        )
+    )
+
+
+def _config(**changes) -> MultDAEConfig:
+    values = {
+        "latent_dim": 4,
+        "dropout": 0.2,
+        "epochs": 2,
+        "batch_size": 2,
+        "lr": 1e-2,
+        "show_progress": False,
+        "seed": 7,
+    }
+    values.update(changes)
+    return MultDAEConfig(**values)
+
+
+def test_mult_dae_module_shape_and_eval_determinism():
+    model = MultDAE(n_items=6, latent_dim=3, dropout=0.5).eval()
+    inputs = torch.eye(6)[:2]
+
+    first = model(inputs)
+    second = model(inputs)
+
+    assert first.shape == (2, 6)
+    torch.testing.assert_close(first, second)
+
+
+def test_mult_dae_fit_records_history_and_rebuilds_catalog(interactions):
+    trainer = MultDAETrainer(_config()).fit(interactions)
+
+    assert trainer.is_fitted
+    assert trainer.n_items == interactions.shape[1]
+    assert len(trainer.history) == 2
+    assert all(np.isfinite(entry["loss"]) for entry in trainer.history)
+
+    wider = csr_matrix(np.pad(interactions.toarray(), ((0, 0), (0, 1))))
+    trainer.fit(wider)
+    assert trainer.n_items == wider.shape[1]
+    assert trainer.model.n_items == wider.shape[1]
+
+
+def test_mult_dae_prediction_excludes_seen_and_selects_candidates(interactions):
+    item_ids = np.array([f"item-{i}" for i in range(interactions.shape[1])])
+    trainer = MultDAETrainer(_config()).fit(interactions, item_ids=item_ids)
+    source = interactions[:2]
+
+    predictions = trainer.predict_on_batch(
+        source,
+        k=2,
+        candidate_ids=["item-0", "item-2", "item-3", "item-5"],
+    )
+
+    for row in range(source.shape[0]):
+        assert set(predictions.cols[row].tolist()) <= {0, 2, 3, 5}
+        assert set(predictions.cols[row].tolist()).isdisjoint(source[row].indices)
+
+
+def test_mult_dae_round_trip_with_optimizer(tmp_path, interactions):
+    trainer = MultDAETrainer(_config()).fit(interactions)
+    source = interactions[:2]
+    before = trainer.predict_on_batch(source, k=2)
+    path = tmp_path / "mult-dae.zip"
+
+    trainer.save(path, include_optimizer=True)
+    restored = MultDAETrainer.load(path, load_optimizer=True)
+    after = restored.predict_on_batch(source, k=2)
+
+    torch.testing.assert_close(after.cols, before.cols)
+    torch.testing.assert_close(after.vals, before.vals)
+    assert restored.history == trainer.history
+    assert restored.optimizer is not None
+    assert restored.optimizer.state_dict()["state"]
+    assert restored.to("cpu") is restored
+
+
+def test_mult_dae_rejects_invalid_training_data():
+    trainer = MultDAETrainer(_config())
+    with pytest.raises(ValueError, match="nonempty user"):
+        trainer.fit(csr_matrix((2, 3), dtype=np.float32))
+    with pytest.raises(ValueError, match="nonnegative"):
+        trainer.fit(csr_matrix(np.array([[1, -1, 0]], dtype=np.float32)))
+
+
+@pytest.mark.parametrize(
+    ("changes", "message"),
+    [
+        ({"latent_dim": 0}, "latent_dim"),
+        ({"dropout": 1.0}, "dropout"),
+        ({"epochs": 0}, "epochs"),
+        ({"batch_size": 0}, "batch_size"),
+        ({"lr": 0.0}, "lr"),
+        ({"weight_decay": -1.0}, "weight_decay"),
+    ],
+)
+def test_mult_dae_config_validation(changes, message):
+    with pytest.raises((TypeError, ValueError), match=message):
+        _config(**changes)

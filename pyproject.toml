@@ -57,8 +57,12 @@ dependencies = [
 datasets = [
     "datasets>=2.19",
 ]
+knn = [
+    "scikit-learn>=1.4",
+]
 test = [
     "pytest>=8.0",
+    "scikit-learn>=1.4",
 ]
 docs = [
     "sphinx>=8.0",
@@ -66,6 +70,7 @@ docs = [
     "sphinx-autodoc-typehints>=2.0",
     "myst-parser>=4.0",
     "nbsphinx>=0.9",
+    "ipykernel>=6.0",
     "ipython-pygments-lexers>=1.0",
     # conf.py reads the version from pyproject rather than from installed
     # metadata, which can be stale. tomllib is stdlib from 3.11.

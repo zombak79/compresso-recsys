@@ -435,6 +435,97 @@ the adapter do anything at all in that mode.
 Collaborative Filtering Models
 ------------------------------
 
+Baselines
+~~~~~~~~~
+
+Two deliberately simple models provide checks that every experiment should
+include. :class:`~compresso_recsys.models.RandomBaseline` produces a stable
+pseudorandom ranking for each source history, independent of evaluation batch
+size. :class:`~compresso_recsys.models.PopularityBaseline` ranks the catalog by
+the number of interacting training users, or optionally by summed interaction
+values. Both support stable item IDs, candidate selection, seen-item exclusion,
+and fitted-model checkpoints through the same API as learned models.
+
+.. autoclass:: compresso_recsys.models.RandomBaselineConfig
+   :members:
+
+.. autoclass:: compresso_recsys.models.RandomBaseline
+   :members:
+
+.. autoclass:: compresso_recsys.models.PopularityBaselineConfig
+   :members:
+
+.. autoclass:: compresso_recsys.models.PopularityBaseline
+   :members:
+
+Neighborhood Models
+~~~~~~~~~~~~~~~~~~~
+
+UserKNN finds the ``k`` fitted users with greatest cosine similarity to each
+source history. It scores candidates by their similarity-weighted interactions,
+normalized by the absolute sum of neighbor similarities. ItemKNN builds a
+sparse cosine-neighbor graph between item columns and applies the corresponding
+normalized weighted sum over the source user's interacted items.
+
+Both accept nonnegative implicit or weighted interactions. Install their
+neighbor-search dependency with ``pip install "compresso-recsys[knn]"``.
+Checkpoints store only the fitted sparse matrices; transient scikit-learn
+indexes are rebuilt when needed. See :doc:`../citing` for the foundational
+neighborhood-method references.
+
+.. autoclass:: compresso_recsys.models.UserKNNConfig
+   :members:
+
+.. autoclass:: compresso_recsys.models.UserKNNRecommender
+   :members:
+
+.. autoclass:: compresso_recsys.models.ItemKNNConfig
+   :members:
+
+.. autoclass:: compresso_recsys.models.ItemKNNRecommender
+   :members:
+
+Multinomial Autoencoders
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Mult-DAE is a deterministic multinomial denoising autoencoder for implicit
+feedback. It L2-normalizes a dense user vector, corrupts it with dropout during
+training, passes it through a tanh bottleneck, and reconstructs logits over the
+catalog. :class:`~compresso_recsys.models.MultDAETrainer` optimizes multinomial
+log likelihood and serves the fitted network through the standard collaborative
+recommender API.
+
+Mult-VAE replaces the deterministic bottleneck with a diagonal Gaussian
+posterior. Its symmetric encoder produces a mean and log variance, training
+samples with the reparameterization trick, and inference decodes the posterior
+mean for deterministic rankings. The trainer linearly anneals the KL coefficient
+to ``MultVAEConfig.kl_cap`` over ``kl_anneal_steps`` optimizer updates; set the
+step count to zero to use the cap immediately.
+
+The network is intentionally exposed separately from its configuration and
+trainer. :doc:`../implementing-a-recommender` builds a compact educational
+version of all three and then compares the production implementation with the
+baselines, KNN, EASE, ELSA, and Mult-VAE. See :doc:`../citing` for the
+Mult-VAE/Mult-DAE paper and AutoRec, its autoencoder predecessor.
+
+.. autoclass:: compresso_recsys.models.MultDAEConfig
+   :members:
+
+.. autoclass:: compresso_recsys.models.MultDAE
+   :members:
+
+.. autoclass:: compresso_recsys.models.MultDAETrainer
+   :members:
+
+.. autoclass:: compresso_recsys.models.MultVAEConfig
+   :members:
+
+.. autoclass:: compresso_recsys.models.MultVAE
+   :members:
+
+.. autoclass:: compresso_recsys.models.MultVAETrainer
+   :members:
+
 EASE
 ~~~~
 

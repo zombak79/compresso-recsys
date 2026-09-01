@@ -1,3 +1,24 @@
+## [Unreleased]
+
+### Added
+
+- `RandomBaseline` and `PopularityBaseline` as reproducible experiment sanity
+  checks, with the same stable-ID recommendation and persistence APIs as learned
+  collaborative models.
+- Normalized cosine `UserKNNRecommender` and `ItemKNNRecommender` models. Their
+  scikit-learn neighbor search is available through the new `knn` optional
+  dependency; checkpoints store safe sparse state instead of pickled estimators.
+- `MultDAE`, `MultDAEConfig`, and `MultDAETrainer`, implementing the deterministic
+  multinomial denoising autoencoder for implicit feedback.
+- `MultVAE`, `MultVAEConfig`, and `MultVAETrainer`, with Gaussian latent
+  sampling, deterministic posterior-mean inference, configurable KL annealing,
+  fitted-model persistence, and the common recommendation API.
+- An executable “Implementing a Recommender” notebook that develops a compact
+  Mult-DAE from config through trainer, evaluates the production implementation
+  with baselines, KNN, EASE, ELSA, and Mult-VAE on MovieLens 1M, reports
+  five-seed variability for the SGD models, performs paired comparisons over
+  seed-averaged per-user scores, and demonstrates fitted-model persistence.
+
 ## [0.3.0] — 2026-08-31
 
 Sequential recommendation as four replaceable parts -- tokenizer, batcher,
@@ -534,7 +555,8 @@ depends on, and two evaluation-protocol corrections found while validating it.
 Initial release. EASE, ELSA and CompressedELSA, checkpoint building and the
 dataset loaders.
 
-[Unreleased]: https://github.com/zombak79/compresso-recsys/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/zombak79/compresso-recsys/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/zombak79/compresso-recsys/releases/tag/v0.3.0
 [0.2.0]: https://github.com/zombak79/compresso-recsys/releases/tag/v0.2.0
 [0.1.2]: https://github.com/zombak79/compresso-recsys/releases/tag/v0.1.2
 [0.1.1]: https://github.com/zombak79/compresso-recsys/releases/tag/v0.1.1
