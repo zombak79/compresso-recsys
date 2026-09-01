@@ -11,28 +11,19 @@ def prepare_dense_training_data(
     device: torch.device,
     preload: bool,
 ) -> torch.Tensor | None:
-    """Materialize training rows once when requested or safe on CUDA."""
+    """Materialize training rows once when requested."""
     if not preload:
         return None
-
-    if device.type == "cuda":
-        dense_bytes = (
-            int(interactions.shape[0])
-            * int(interactions.shape[1])
-            * np.dtype(np.float32).itemsize
-        )
-        try:
-            free_bytes, _ = torch.cuda.mem_get_info(device)
-        except (AssertionError, RuntimeError):
-            free_bytes = 0
-        if dense_bytes > free_bytes // 2:
-            return None
 
     dense = interactions.toarray().astype(np.float32, copy=False)
     try:
         return torch.from_numpy(dense).to(device)
-    except torch.OutOfMemoryError:
-        return None
+    except torch.OutOfMemoryError as error:
+        raise torch.OutOfMemoryError(
+            "the dense autoencoder training matrix does not fit on "
+            f"{device}; set preload_training_data=False to stream CSR "
+            "minibatches instead"
+        ) from error
 
 
 def dense_training_batch(

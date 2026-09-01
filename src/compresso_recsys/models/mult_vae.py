@@ -44,8 +44,8 @@ class MultVAEConfig:
     after ``kl_cap * kl_anneal_steps`` updates. Set the step count to zero to
     use ``kl_cap`` from the first update.
     ``preload_training_data=True`` caches the dense interaction matrix on the
-    training device by default. On CUDA it falls back to CSR minibatch streaming
-    when the matrix would use more than half of currently free device memory.
+    training device by default. Set it to ``False`` to stream CSR minibatches
+    when the complete dense matrix does not fit.
     """
 
     latent_dim: int = 200

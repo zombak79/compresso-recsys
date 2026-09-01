@@ -14,10 +14,10 @@
 - `MultVAE`, `MultVAEConfig`, and `MultVAETrainer`, with Gaussian latent
   sampling, deterministic posterior-mean inference, configurable KL annealing,
   fitted-model persistence, and the common recommendation API.
-- Automatic dense CUDA preloading for Mult-DAE and Mult-VAE when the training
-  matrix safely fits, enabled by default with an explicit disable control and
-  epoch-level metric synchronization to avoid starving the GPU between
-  minibatches.
+- Dense device preloading for Mult-DAE and Mult-VAE, enabled by default with an
+  explicit bounded-memory streaming mode and a clear error when forced
+  preloading does not fit. Epoch-level metric synchronization avoids starving
+  the GPU between minibatches.
 - An executable “Implementing a Recommender” notebook that develops a compact
   Mult-DAE from config through trainer, evaluates the production implementation
   with baselines, KNN, EASE, ELSA, and Mult-VAE on MovieLens 1M, reports

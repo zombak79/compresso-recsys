@@ -495,13 +495,13 @@ catalog. :class:`~compresso_recsys.models.MultDAETrainer` optimizes multinomial
 log likelihood plus ``l2_reg * (||W_encoder||^2 + ||W_decoder||^2)`` and serves
 the fitted network through the standard collaborative recommender API. The L2
 term applies only to weight matrices, not biases, matching the original
-implementation. On CUDA, both Mult-DAE and Mult-VAE automatically preload a
-dense training matrix when it consumes no more than half of currently free
-device memory. This fast path is enabled by default with
-``preload_training_data=True``; ``False`` retains bounded-memory CSR minibatch
-streaming. Training statistics are transferred to the host only once per epoch
-in either mode. After fitting, ``training_data_preloaded_`` reports which path
-was selected.
+implementation. Both Mult-DAE and Mult-VAE preload a dense training matrix on
+the configured device by default. Set ``preload_training_data=False`` to retain
+bounded-memory CSR minibatch streaming when the matrix does not fit. A failed
+preload raises a clear memory error rather than silently selecting the slower
+path. Training statistics are transferred to the host only once per epoch in
+either mode. After fitting, ``training_data_preloaded_`` reports which path was
+selected.
 
 Mult-VAE replaces the deterministic bottleneck with a diagonal Gaussian
 posterior. Its symmetric encoder produces a mean and log variance, training
