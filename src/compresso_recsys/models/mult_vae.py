@@ -35,9 +35,10 @@ class MultVAEConfig:
     """Configuration for :class:`MultVAETrainer`.
 
     ``kl_cap`` is the maximum coefficient on KL divergence.
-    ``kl_anneal_steps`` linearly increases that coefficient from zero over the
-    configured number of optimizer updates. Set it to zero to use ``kl_cap``
-    from the first update.
+    ``kl_anneal_steps`` is the denominator in ``updates / kl_anneal_steps``;
+    the coefficient is clipped at ``kl_cap``. It therefore reaches the cap
+    after ``kl_cap * kl_anneal_steps`` updates. Set the step count to zero to
+    use ``kl_cap`` from the first update.
     """
 
     latent_dim: int = 200
@@ -174,8 +175,10 @@ class MultVAETrainer(BaseCollaborativeRecommender):
     def _kl_weight(self) -> float:
         if self.cfg.kl_anneal_steps == 0:
             return float(self.cfg.kl_cap)
-        progress = self._updates / int(self.cfg.kl_anneal_steps)
-        return float(self.cfg.kl_cap) * min(1.0, progress)
+        return min(
+            float(self.cfg.kl_cap),
+            self._updates / float(self.cfg.kl_anneal_steps),
+        )
 
     def fit(
         self,

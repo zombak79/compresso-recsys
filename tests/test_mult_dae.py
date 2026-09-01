@@ -97,6 +97,26 @@ def test_mult_dae_round_trip_with_optimizer(tmp_path, interactions):
     assert restored.to("cpu") is restored
 
 
+def test_mult_dae_l2_regularizes_only_weight_matrices():
+    trainer = MultDAETrainer(_config(l2_reg=2e-5))
+    trainer._n_items = 6
+    trainer.model = trainer._build_model()
+    trainer._build_checkpoint_optimizer()
+
+    assert trainer.optimizer is not None
+    weight_group, bias_group = trainer.optimizer.param_groups
+    assert weight_group["weight_decay"] == pytest.approx(4e-5)
+    assert bias_group["weight_decay"] == 0.0
+    assert {id(parameter) for parameter in weight_group["params"]} == {
+        id(trainer.model.encoder.weight),
+        id(trainer.model.decoder.weight),
+    }
+    assert {id(parameter) for parameter in bias_group["params"]} == {
+        id(trainer.model.encoder.bias),
+        id(trainer.model.decoder.bias),
+    }
+
+
 def test_mult_dae_rejects_invalid_training_data():
     trainer = MultDAETrainer(_config())
     with pytest.raises(ValueError, match="nonempty user"):
@@ -113,7 +133,7 @@ def test_mult_dae_rejects_invalid_training_data():
         ({"epochs": 0}, "epochs"),
         ({"batch_size": 0}, "batch_size"),
         ({"lr": 0.0}, "lr"),
-        ({"weight_decay": -1.0}, "weight_decay"),
+        ({"l2_reg": -1.0}, "l2_reg"),
     ],
 )
 def test_mult_dae_config_validation(changes, message):

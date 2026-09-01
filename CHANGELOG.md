@@ -9,7 +9,8 @@
   scikit-learn neighbor search is available through the new `knn` optional
   dependency; checkpoints store safe sparse state instead of pickled estimators.
 - `MultDAE`, `MultDAEConfig`, and `MultDAETrainer`, implementing the deterministic
-  multinomial denoising autoencoder for implicit feedback.
+  multinomial denoising autoencoder for implicit feedback, including the
+  original weight-only L2 objective.
 - `MultVAE`, `MultVAEConfig`, and `MultVAETrainer`, with Gaussian latent
   sampling, deterministic posterior-mean inference, configurable KL annealing,
   fitted-model persistence, and the common recommendation API.

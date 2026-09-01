@@ -33,7 +33,7 @@ def _config(**changes) -> MultVAEConfig:
         "batch_size": 2,
         "lr": 1e-2,
         "kl_cap": 0.2,
-        "kl_anneal_steps": 3,
+        "kl_anneal_steps": 20,
         "show_progress": False,
         "seed": 7,
     }
@@ -81,6 +81,19 @@ def test_mult_vae_zero_anneal_uses_cap_immediately(interactions):
     trainer = MultVAETrainer(_config(epochs=1, kl_anneal_steps=0)).fit(interactions)
 
     assert trainer.history[0]["kl_weight"] == pytest.approx(0.2)
+
+
+@pytest.mark.parametrize(
+    ("updates", "expected"),
+    [(0, 0.0), (20_000, 0.1), (40_000, 0.2), (200_000, 0.2)],
+)
+def test_mult_vae_annealing_matches_original_schedule(updates, expected):
+    trainer = MultVAETrainer(
+        _config(kl_cap=0.2, kl_anneal_steps=200_000)
+    )
+    trainer._updates = updates
+
+    assert trainer._kl_weight() == pytest.approx(expected)
 
 
 def test_mult_vae_prediction_is_deterministic_and_filters_candidates(interactions):

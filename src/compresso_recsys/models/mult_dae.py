@@ -36,6 +36,9 @@ class MultDAEConfig:
 
     ``latent_dim`` is the deterministic bottleneck width. ``dropout`` corrupts
     normalized interaction vectors during training only, as in Mult-DAE.
+    ``l2_reg`` is the coefficient on the squared L2 norm of the encoder and
+    decoder weight matrices; biases are not regularized. The default matches
+    the original implementation's ``0.01 / 500`` setting.
     """
 
     latent_dim: int = 200
@@ -43,7 +46,7 @@ class MultDAEConfig:
     epochs: int = 20
     batch_size: int = 256
     lr: float = 1e-3
-    weight_decay: float = 0.0
+    l2_reg: float = 0.01 / 500
     device: str | torch.device = "cpu"
     show_progress: bool = True
     seed: int = 0
@@ -61,10 +64,10 @@ class MultDAEConfig:
             raise ValueError(f"dropout must be in [0, 1), got {self.dropout}")
         if not np.isfinite(self.lr) or self.lr <= 0.0:
             raise ValueError(f"lr must be finite and > 0, got {self.lr}")
-        if not np.isfinite(self.weight_decay) or self.weight_decay < 0.0:
+        if not np.isfinite(self.l2_reg) or self.l2_reg < 0.0:
             raise ValueError(
-                "weight_decay must be finite and >= 0, got "
-                f"{self.weight_decay}"
+                "l2_reg must be finite and >= 0, got "
+                f"{self.l2_reg}"
             )
         if isinstance(self.seed, (bool, np.bool_)) or not isinstance(
             self.seed, (int, np.integer)
@@ -284,7 +287,21 @@ class MultDAETrainer(BaseCollaborativeRecommender):
         if self.model is None:
             raise RuntimeError("MultDAE model must be built before its optimizer")
         self.optimizer = torch.optim.Adam(
-            self.model.parameters(),
+            [
+                {
+                    "params": [
+                        self.model.encoder.weight,
+                        self.model.decoder.weight,
+                    ],
+                    "weight_decay": 2.0 * float(self.cfg.l2_reg),
+                },
+                {
+                    "params": [
+                        self.model.encoder.bias,
+                        self.model.decoder.bias,
+                    ],
+                    "weight_decay": 0.0,
+                },
+            ],
             lr=float(self.cfg.lr),
-            weight_decay=float(self.cfg.weight_decay),
         )

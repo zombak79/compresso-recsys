@@ -492,14 +492,17 @@ Mult-DAE is a deterministic multinomial denoising autoencoder for implicit
 feedback. It L2-normalizes a dense user vector, corrupts it with dropout during
 training, passes it through a tanh bottleneck, and reconstructs logits over the
 catalog. :class:`~compresso_recsys.models.MultDAETrainer` optimizes multinomial
-log likelihood and serves the fitted network through the standard collaborative
-recommender API.
+log likelihood plus ``l2_reg * (||W_encoder||^2 + ||W_decoder||^2)`` and serves
+the fitted network through the standard collaborative recommender API. The L2
+term applies only to weight matrices, not biases, matching the original
+implementation.
 
 Mult-VAE replaces the deterministic bottleneck with a diagonal Gaussian
 posterior. Its symmetric encoder produces a mean and log variance, training
 samples with the reparameterization trick, and inference decodes the posterior
-mean for deterministic rankings. The trainer linearly anneals the KL coefficient
-to ``MultVAEConfig.kl_cap`` over ``kl_anneal_steps`` optimizer updates; set the
+mean for deterministic rankings. The trainer computes the KL coefficient as
+``min(kl_cap, updates / kl_anneal_steps)``, matching the original implementation;
+it reaches the cap after ``kl_cap * kl_anneal_steps`` optimizer updates. Set the
 step count to zero to use the cap immediately.
 
 The network is intentionally exposed separately from its configuration and
