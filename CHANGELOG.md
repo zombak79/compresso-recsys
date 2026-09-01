@@ -18,11 +18,10 @@
   explicit bounded-memory streaming mode and a clear error when forced
   preloading does not fit. Epoch-level metric synchronization avoids starving
   the GPU between minibatches.
-- An executable “Implementing a Recommender” notebook that develops a compact
-  Mult-DAE from config through trainer, evaluates the production implementation
-  with baselines, KNN, EASE, ELSA, and Mult-VAE on MovieLens 1M, reports
-  five-seed variability for the SGD models, performs paired comparisons over
-  seed-averaged per-user scores, and demonstrates fitted-model persistence.
+- An executable “Implementing a Recommender” notebook that builds a complete
+  Top Popular model from scratch, including validation, candidate filtering,
+  stable-ID recommendation, standalone and embedded persistence, evaluation,
+  and executable contract checks.
 
 ## [0.3.0] — 2026-08-31
 

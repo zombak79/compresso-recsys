@@ -157,28 +157,29 @@ def test_implementing_a_recommender_notebook_executes():
         if cell["cell_type"] != "code":
             continue
         code = "".join(cell["source"])
-        if "build_recsys_checkpoint" in code:
+        if "requires-data" in cell.get("metadata", {}).get("tags", []):
             from scipy.sparse import csr_matrix
 
-            n_items = 30
-            train = np.zeros((12, n_items), dtype=np.float32)
-            source = np.zeros((4, n_items), dtype=np.float32)
-            targets = np.zeros((4, n_items), dtype=np.float32)
-            for row in range(train.shape[0]):
-                train[row, [row % 10, (row + 3) % 20, (row + 9) % n_items]] = 1
-            for row in range(source.shape[0]):
-                source[row, [row, row + 4, row + 8]] = 1
-                targets[row, row + 20] = 1
-            namespace.update(
-                x_train=csr_matrix(train),
-                test_source=csr_matrix(source),
-                test_targets=csr_matrix(targets),
-                item_ids=np.array([f"item-{i}" for i in range(n_items)]),
-                test_user_ids=np.array([f"user-{i}" for i in range(4)]),
-            )
+            if "x_train" not in namespace:
+                n_items = 30
+                train = np.zeros((12, n_items), dtype=np.float32)
+                source = np.zeros((4, n_items), dtype=np.float32)
+                targets = np.zeros((4, n_items), dtype=np.float32)
+                for row in range(train.shape[0]):
+                    train[
+                        row,
+                        [row % 10, (row + 3) % 20, (row + 9) % n_items],
+                    ] = 1
+                for row in range(source.shape[0]):
+                    source[row, [row, row + 4, row + 8]] = 1
+                    targets[row, row + 20] = 1
+                namespace.update(
+                    x_train=csr_matrix(train),
+                    test_source=csr_matrix(source),
+                    test_targets=csr_matrix(targets),
+                    item_ids=np.array([f"item-{i}" for i in range(n_items)]),
+                )
             continue
-        if "from compresso_recsys.models import (" in code:
-            break
         exec(compile(code, f"{path.name}#cell-{index}", "exec"), namespace)
 
     assert namespace["tutorial_model"].is_fitted

@@ -137,7 +137,8 @@ Academic references and copy-ready BibTeX for EASE, TEASER, ELSA,
 large-scale ELSA, compressed ELSA, neighborhood models, Mult-DAE, and Mult-VAE are available in the
 [citation guide](https://zombak79.github.io/compresso-recsys/citing.html).
 The [implementing a recommender tutorial](https://zombak79.github.io/compresso-recsys/implementing-a-recommender.html)
-develops an educational Mult-DAE and compares it with the model zoo.
+builds a complete Top Popular model with validation, stable-ID recommendation,
+persistence, evaluation, and executable contract checks.
 
 Build the docs locally:
 

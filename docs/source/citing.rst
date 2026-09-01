@@ -88,7 +88,7 @@ both models:
    }
 
 AutoRec established the collaborative-filtering autoencoder architecture that
-motivates the tutorial's progression to Mult-DAE:
+preceded Mult-DAE:
 
 .. code-block:: bibtex
 

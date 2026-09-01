@@ -512,10 +512,10 @@ it reaches the cap after ``kl_cap * kl_anneal_steps`` optimizer updates. Set the
 step count to zero to use the cap immediately.
 
 The network is intentionally exposed separately from its configuration and
-trainer. :doc:`../implementing-a-recommender` builds a compact educational
-version of all three and then compares the production implementation with the
-baselines, KNN, EASE, ELSA, and Mult-VAE. See :doc:`../citing` for the
-Mult-VAE/Mult-DAE paper and AutoRec, its autoencoder predecessor.
+trainer. See :doc:`../citing` for the Mult-VAE/Mult-DAE paper and AutoRec, its
+autoencoder predecessor. :doc:`../implementing-a-recommender` uses a simpler
+Top Popular algorithm to show the complete integration contract without hiding
+serving or persistence details behind a large training loop.
 
 .. autoclass:: compresso_recsys.models.MultDAEConfig
    :members:
