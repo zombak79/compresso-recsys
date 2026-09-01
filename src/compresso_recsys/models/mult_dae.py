@@ -12,6 +12,10 @@ from torch import nn
 from torch.nn import functional as F
 
 from compresso import SRPTensor
+from compresso_recsys.models._autoencoder_batching import (
+    dense_training_batch,
+    prepare_dense_training_data,
+)
 from compresso_recsys.models._ranking import validate_candidate_topk
 from compresso_recsys.models._validation import canonical_csr
 from compresso_recsys.models.base import BaseCollaborativeRecommender
@@ -39,6 +43,9 @@ class MultDAEConfig:
     ``l2_reg`` is the coefficient on the squared L2 norm of the encoder and
     decoder weight matrices; biases are not regularized. The default matches
     the original implementation's ``0.01 / 500`` setting.
+    ``preload_training_data=True`` caches the dense interaction matrix on the
+    training device by default. On CUDA it falls back to CSR minibatch streaming
+    when the matrix would use more than half of currently free device memory.
     """
 
     latent_dim: int = 200
@@ -47,6 +54,7 @@ class MultDAEConfig:
     batch_size: int = 256
     lr: float = 1e-3
     l2_reg: float = 0.01 / 500
+    preload_training_data: bool = True
     device: str | torch.device = "cpu"
     show_progress: bool = True
     seed: int = 0
@@ -69,6 +77,8 @@ class MultDAEConfig:
                 "l2_reg must be finite and >= 0, got "
                 f"{self.l2_reg}"
             )
+        if not isinstance(self.preload_training_data, (bool, np.bool_)):
+            raise TypeError("preload_training_data must be a bool")
         if isinstance(self.seed, (bool, np.bool_)) or not isinstance(
             self.seed, (int, np.integer)
         ):
@@ -116,6 +126,7 @@ class MultDAETrainer(BaseCollaborativeRecommender):
         self.optimizer: torch.optim.Optimizer | None = None
         self.history: list[dict[str, float]] = []
         self._n_items: int | None = None
+        self.training_data_preloaded_: bool | None = None
 
     @property
     def is_fitted(self) -> bool:
@@ -151,6 +162,12 @@ class MultDAETrainer(BaseCollaborativeRecommender):
         self._build_checkpoint_optimizer()
         assert self.optimizer is not None
         self.history = []
+        training_data = prepare_dense_training_data(
+            interactions,
+            device=self.device,
+            preload=self.cfg.preload_training_data,
+        )
+        self.training_data_preloaded_ = training_data is not None
 
         epochs = _progress(
             range(1, int(self.cfg.epochs) + 1),
@@ -160,21 +177,25 @@ class MultDAETrainer(BaseCollaborativeRecommender):
         for epoch in epochs:
             self.model.train()
             order = rng.permutation(active_rows)
-            loss_sum = 0.0
+            loss_sum = torch.zeros((), device=self.device)
             users = 0
             for start in range(0, order.size, int(self.cfg.batch_size)):
                 selected = order[start : start + int(self.cfg.batch_size)]
-                dense = interactions[selected].toarray().astype(np.float32, copy=False)
-                target = torch.from_numpy(dense).to(self.device)
+                target = dense_training_batch(
+                    interactions,
+                    selected,
+                    device=self.device,
+                    preloaded=training_data,
+                )
                 logits = self.model(target)
                 loss = -(target * F.log_softmax(logits, dim=1)).sum(dim=1).mean()
                 self.optimizer.zero_grad(set_to_none=True)
                 loss.backward()
                 self.optimizer.step()
                 batch_users = int(selected.size)
-                loss_sum += float(loss.detach()) * batch_users
+                loss_sum += loss.detach() * batch_users
                 users += batch_users
-            mean_loss = loss_sum / users
+            mean_loss = float((loss_sum / users).item())
             self.history.append({"epoch": float(epoch), "loss": mean_loss})
             if hasattr(epochs, "set_postfix"):
                 epochs.set_postfix({"loss": f"{mean_loss:.4f}"})

@@ -138,6 +138,23 @@ def test_mult_vae_round_trip_with_optimizer(tmp_path, interactions):
     assert restored.to("cpu") is restored
 
 
+def test_mult_vae_preloaded_and_streamed_training_match(interactions):
+    streamed = MultVAETrainer(
+        _config(dropout=0.0, preload_training_data=False)
+    ).fit(interactions)
+    preloaded = MultVAETrainer(
+        _config(dropout=0.0, preload_training_data=True)
+    ).fit(interactions)
+
+    assert streamed.training_data_preloaded_ is False
+    assert preloaded.training_data_preloaded_ is True
+    assert streamed.history == pytest.approx(preloaded.history)
+    for streamed_parameter, preloaded_parameter in zip(
+        streamed.model.parameters(), preloaded.model.parameters(), strict=True
+    ):
+        torch.testing.assert_close(streamed_parameter, preloaded_parameter)
+
+
 def test_mult_vae_refit_rebuilds_catalog(interactions):
     trainer = MultVAETrainer(_config()).fit(interactions)
     wider = csr_matrix(np.pad(interactions.toarray(), ((0, 0), (0, 1))))
@@ -168,6 +185,7 @@ def test_mult_vae_rejects_invalid_training_data():
         ({"weight_decay": -1.0}, "weight_decay"),
         ({"kl_cap": -0.1}, "kl_cap"),
         ({"kl_anneal_steps": -1}, "kl_anneal_steps"),
+        ({"preload_training_data": None}, "preload_training_data"),
     ],
 )
 def test_mult_vae_config_validation(changes, message):

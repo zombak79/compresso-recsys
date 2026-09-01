@@ -117,6 +117,23 @@ def test_mult_dae_l2_regularizes_only_weight_matrices():
     }
 
 
+def test_mult_dae_preloaded_and_streamed_training_match(interactions):
+    streamed = MultDAETrainer(
+        _config(dropout=0.0, preload_training_data=False)
+    ).fit(interactions)
+    preloaded = MultDAETrainer(
+        _config(dropout=0.0, preload_training_data=True)
+    ).fit(interactions)
+
+    assert streamed.training_data_preloaded_ is False
+    assert preloaded.training_data_preloaded_ is True
+    assert streamed.history == pytest.approx(preloaded.history)
+    for streamed_parameter, preloaded_parameter in zip(
+        streamed.model.parameters(), preloaded.model.parameters(), strict=True
+    ):
+        torch.testing.assert_close(streamed_parameter, preloaded_parameter)
+
+
 def test_mult_dae_rejects_invalid_training_data():
     trainer = MultDAETrainer(_config())
     with pytest.raises(ValueError, match="nonempty user"):
@@ -134,6 +151,7 @@ def test_mult_dae_rejects_invalid_training_data():
         ({"batch_size": 0}, "batch_size"),
         ({"lr": 0.0}, "lr"),
         ({"l2_reg": -1.0}, "l2_reg"),
+        ({"preload_training_data": None}, "preload_training_data"),
     ],
 )
 def test_mult_dae_config_validation(changes, message):

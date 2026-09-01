@@ -12,6 +12,10 @@ from torch import nn
 from torch.nn import functional as F
 
 from compresso import SRPTensor
+from compresso_recsys.models._autoencoder_batching import (
+    dense_training_batch,
+    prepare_dense_training_data,
+)
 from compresso_recsys.models._ranking import validate_candidate_topk
 from compresso_recsys.models._validation import canonical_csr
 from compresso_recsys.models.base import BaseCollaborativeRecommender
@@ -39,6 +43,9 @@ class MultVAEConfig:
     the coefficient is clipped at ``kl_cap``. It therefore reaches the cap
     after ``kl_cap * kl_anneal_steps`` updates. Set the step count to zero to
     use ``kl_cap`` from the first update.
+    ``preload_training_data=True`` caches the dense interaction matrix on the
+    training device by default. On CUDA it falls back to CSR minibatch streaming
+    when the matrix would use more than half of currently free device memory.
     """
 
     latent_dim: int = 200
@@ -50,6 +57,7 @@ class MultVAEConfig:
     weight_decay: float = 0.0
     kl_cap: float = 0.2
     kl_anneal_steps: int = 200_000
+    preload_training_data: bool = True
     device: str | torch.device = "cpu"
     show_progress: bool = True
     seed: int = 0
@@ -80,6 +88,8 @@ class MultVAEConfig:
             )
         if not np.isfinite(self.kl_cap) or self.kl_cap < 0.0:
             raise ValueError(f"kl_cap must be finite and >= 0, got {self.kl_cap}")
+        if not isinstance(self.preload_training_data, (bool, np.bool_)):
+            raise TypeError("preload_training_data must be a bool")
         if isinstance(self.seed, (bool, np.bool_)) or not isinstance(
             self.seed, (int, np.integer)
         ):
@@ -163,6 +173,7 @@ class MultVAETrainer(BaseCollaborativeRecommender):
         self.history: list[dict[str, float]] = []
         self._n_items: int | None = None
         self._updates = 0
+        self.training_data_preloaded_: bool | None = None
 
     @property
     def is_fitted(self) -> bool:
@@ -207,6 +218,12 @@ class MultVAETrainer(BaseCollaborativeRecommender):
         assert self.optimizer is not None
         self.history = []
         self._updates = 0
+        training_data = prepare_dense_training_data(
+            interactions,
+            device=self.device,
+            preload=self.cfg.preload_training_data,
+        )
+        self.training_data_preloaded_ = training_data is not None
 
         epochs = _progress(
             range(1, int(self.cfg.epochs) + 1),
@@ -216,15 +233,19 @@ class MultVAETrainer(BaseCollaborativeRecommender):
         for epoch in epochs:
             self.model.train()
             order = rng.permutation(active_rows)
-            loss_sum = 0.0
-            reconstruction_sum = 0.0
-            kl_sum = 0.0
+            loss_sum = torch.zeros((), device=self.device)
+            reconstruction_sum = torch.zeros((), device=self.device)
+            kl_sum = torch.zeros((), device=self.device)
             users = 0
             last_kl_weight = self._kl_weight()
             for start in range(0, order.size, int(self.cfg.batch_size)):
                 selected = order[start : start + int(self.cfg.batch_size)]
-                dense = interactions[selected].toarray().astype(np.float32, copy=False)
-                target = torch.from_numpy(dense).to(self.device)
+                target = dense_training_batch(
+                    interactions,
+                    selected,
+                    device=self.device,
+                    preloaded=training_data,
+                )
                 logits, mean, log_variance = self.model(target, sample=True)
                 reconstruction = -(
                     target * F.log_softmax(logits, dim=1)
@@ -240,17 +261,23 @@ class MultVAETrainer(BaseCollaborativeRecommender):
                 self._updates += 1
 
                 batch_users = int(selected.size)
-                loss_sum += float(loss.detach()) * batch_users
-                reconstruction_sum += float(reconstruction.detach()) * batch_users
-                kl_sum += float(kl.detach()) * batch_users
+                loss_sum += loss.detach() * batch_users
+                reconstruction_sum += reconstruction.detach() * batch_users
+                kl_sum += kl.detach() * batch_users
                 users += batch_users
-            mean_loss = loss_sum / users
+            mean_loss, mean_reconstruction, mean_kl = torch.stack(
+                (
+                    loss_sum / users,
+                    reconstruction_sum / users,
+                    kl_sum / users,
+                )
+            ).tolist()
             self.history.append(
                 {
                     "epoch": float(epoch),
                     "loss": mean_loss,
-                    "reconstruction_loss": reconstruction_sum / users,
-                    "kl_loss": kl_sum / users,
+                    "reconstruction_loss": mean_reconstruction,
+                    "kl_loss": mean_kl,
                     "kl_weight": last_kl_weight,
                 }
             )
