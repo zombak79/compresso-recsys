@@ -980,6 +980,10 @@ class ELSATrainer(BaseCollaborativeRecommender):
         interactions = canonical_csr(interactions, name="interactions")
         if interactions.shape[0] < 1 or interactions.shape[1] < 1:
             raise ValueError("interactions must contain at least one user and one item")
+        vocabulary = self._prepare_item_vocabulary(
+            item_ids,
+            n_items=int(interactions.shape[1]),
+        )
         self.build(interactions.shape[1])
         dataset = _ELSAInteractionDataset(
             interactions,
@@ -1017,9 +1021,9 @@ class ELSATrainer(BaseCollaborativeRecommender):
                 reporter=reporter,
             )
             model.prepare_inference()
-        self._is_fitted = True
         assert self.input_dim is not None
-        self._set_item_ids(item_ids, n_items=self.input_dim)
+        self._publish_item_vocabulary(vocabulary)
+        self._is_fitted = True
         reporter.log(
             f"fit finished: {_format_duration(time.monotonic() - fit_started)} total | "
             f"{len(self.history)} epochs recorded"

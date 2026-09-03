@@ -53,6 +53,36 @@ def test_item_knn_prediction_contract(interactions):
     assert 0 not in predictions.cols[0].tolist()
 
 
+def test_failed_item_knn_fit_does_not_publish_state(interactions):
+    model = ItemKNNRecommender(ItemKNNConfig(n_neighbors=2))
+
+    with pytest.raises(ValueError, match="item_ids has 1 entries"):
+        model.fit(interactions, item_ids=["too-short"])
+
+    assert not model.is_fitted
+    assert model.n_items is None
+
+
+def test_failed_item_knn_refit_preserves_state(interactions):
+    item_ids = np.array([f"item-{index}" for index in range(interactions.shape[1])])
+    model = ItemKNNRecommender(ItemKNNConfig(n_neighbors=2)).fit(
+        interactions,
+        item_ids=item_ids,
+    )
+    old_similarity = model.similarity_.copy()
+    wider = csr_matrix((interactions.shape[0], interactions.shape[1] + 1))
+
+    with pytest.raises(ValueError, match="item_ids has 1 entries"):
+        model.fit(wider, item_ids=["too-short"])
+
+    assert model.n_items == interactions.shape[1]
+    np.testing.assert_array_equal(model.source_item_ids, item_ids)
+    np.testing.assert_array_equal(
+        model.similarity_.toarray(),
+        old_similarity.toarray(),
+    )
+
+
 def test_item_knn_uses_normalized_target_neighborhood_scores(interactions):
     model = ItemKNNRecommender(ItemKNNConfig(n_neighbors=3)).fit(interactions)
     source = csr_matrix(np.array([[1, 0, 0, 0, 0]], dtype=np.float32))

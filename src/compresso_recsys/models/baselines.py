@@ -15,6 +15,7 @@ from compresso_recsys.models._ranking import (
 )
 from compresso_recsys.models._validation import canonical_csr
 from compresso_recsys.models.base import BaseCollaborativeRecommender
+from compresso_recsys.models.identifiers import ItemVocabulary
 from compresso_recsys.persistence import ModelCheckpointReader, ModelCheckpointWriter
 
 __all__ = [
@@ -71,19 +72,21 @@ class _FixedCatalogBaseline(BaseCollaborativeRecommender):
     def n_items(self) -> int | None:
         return self.n_items_
 
-    def _install_catalog(
+    def _prepare_catalog(
         self,
         interactions: csr_matrix,
         item_ids: Sequence[Hashable] | np.ndarray | None,
-    ) -> csr_matrix:
+    ) -> tuple[csr_matrix, ItemVocabulary]:
         interactions = canonical_csr(interactions, name="interactions")
         if interactions.shape[0] < 1 or interactions.shape[1] < 1:
             raise ValueError(
                 "interactions must contain at least one user and one item"
             )
-        self.n_items_ = int(interactions.shape[1])
-        self._set_item_ids(item_ids, n_items=self.n_items_)
-        return interactions
+        vocabulary = self._prepare_item_vocabulary(
+            item_ids,
+            n_items=int(interactions.shape[1]),
+        )
+        return interactions, vocabulary
 
     def _checkpoint_state(self, reader: ModelCheckpointReader) -> int:
         state = reader.read_json("state/baseline.json")
@@ -109,7 +112,9 @@ class RandomBaseline(_FixedCatalogBaseline):
         item_ids: Sequence[Hashable] | np.ndarray | None = None,
     ) -> RandomBaseline:
         """Record the fitted catalog used by the random baseline."""
-        self._install_catalog(interactions, item_ids)
+        interactions, vocabulary = self._prepare_catalog(interactions, item_ids)
+        self.n_items_ = int(interactions.shape[1])
+        self._publish_item_vocabulary(vocabulary)
         return self
 
     @staticmethod
@@ -205,14 +210,17 @@ class PopularityBaseline(_FixedCatalogBaseline):
         item_ids: Sequence[Hashable] | np.ndarray | None = None,
     ) -> PopularityBaseline:
         """Count item popularity in the fitted interaction matrix."""
-        interactions = self._install_catalog(interactions, item_ids)
+        interactions, vocabulary = self._prepare_catalog(interactions, item_ids)
         if np.any(interactions.data < 0):
             raise ValueError("interactions must contain nonnegative values")
         if self.cfg.use_values:
             popularity = np.asarray(interactions.sum(axis=0)).ravel()
         else:
             popularity = np.asarray(interactions.getnnz(axis=0))
-        self.popularity_ = popularity.astype(np.float64, copy=False)
+        popularity = popularity.astype(np.float64, copy=False)
+        self.popularity_ = popularity
+        self.n_items_ = int(interactions.shape[1])
+        self._publish_item_vocabulary(vocabulary)
         return self
 
     def predict_on_batch(

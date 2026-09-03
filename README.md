@@ -40,7 +40,7 @@ For local development:
 
 ```bash
 pip install -e ../compresso
-pip install -e ".[dev,datasets]"
+pip install -e ".[dev,datasets,test]"
 ```
 
 ## Quickstart

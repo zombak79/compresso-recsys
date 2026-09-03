@@ -16,6 +16,20 @@ class _Inherit:
 _INHERIT = _Inherit()
 
 
+def _validate_show_progress(
+    value: Any,
+    *,
+    allow_inherit: bool,
+) -> bool | None | _Inherit:
+    """Validate a resolved value or a public per-call override."""
+    if isinstance(value, bool):
+        return value
+    if allow_inherit and (value is None or value is _INHERIT):
+        return value
+    expected = "a bool or None" if allow_inherit else "a bool"
+    raise ValueError(f"show_progress must be {expected}")
+
+
 def _format_duration(seconds: float, unit_name: str | None = None) -> str:
     """Render a duration in whichever of s / ms / us keeps it readable."""
     suffix = f"/{unit_name}" if unit_name is not None else ""
@@ -74,7 +88,12 @@ class _Reporter:
     ) -> None:
         self.logger = logger
         # A logger and tqdm carry the same progress. The logger always wins.
-        self.show_progress = bool(show_progress) and logger is None
+        resolved_progress = _validate_show_progress(
+            show_progress,
+            allow_inherit=False,
+        )
+        assert isinstance(resolved_progress, bool)
+        self.show_progress = resolved_progress and logger is None
         self.prefix = str(prefix)
         validated_interval = _validate_log_every_n_steps(log_every_n_steps)
         self.log_every_n_steps = validated_interval if logger is not None else 0
@@ -174,14 +193,25 @@ def _resolve_reporter(
     log_every_n_steps: int,
 ) -> _Reporter:
     """Resolve constructor/config defaults against one call's overrides."""
+    if isinstance(logger, _Reporter):
+        # Internal callers may carry one already-resolved reporter through
+        # nested prediction paths. Preserve its call-scoped failure latch.
+        return logger
     inherited_logger = logger is _INHERIT
     resolved_logger = default_logger if inherited_logger else logger
     # ``None`` historically meant "inherit" on ELSA/TEASERGD progress
     # overrides. Keep accepting it while the sentinel makes new signatures
     # unambiguous.
-    inherited_progress = show_progress is _INHERIT or show_progress is None
+    validated_progress = _validate_show_progress(
+        show_progress,
+        allow_inherit=True,
+    )
+    inherited_progress = (
+        validated_progress is _INHERIT or validated_progress is None
+    )
     if not inherited_progress:
-        bar = bool(show_progress)
+        assert isinstance(validated_progress, bool)
+        bar = validated_progress
     elif not inherited_logger and resolved_logger is None:
         # Explicit logger=None means a deliberately quiet call unless a bar was
         # requested explicitly alongside it.

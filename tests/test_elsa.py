@@ -777,6 +777,29 @@ def test_fit_and_prediction_validate_inputs(interactions, source):
         trainer.predict(source, k=2, batch_size=0)
 
 
+def test_invalid_item_ids_do_not_publish_or_mutate_elsa(interactions):
+    trainer = _trainer(epochs=1)
+
+    with pytest.raises(ValueError, match="item_ids has 1 entries"):
+        trainer.fit(interactions, item_ids=["too-short"])
+
+    assert not trainer.is_built
+    assert not trainer.is_fitted
+    assert trainer.input_dim is None
+
+    item_ids = np.array([f"item-{index}" for index in range(interactions.shape[1])])
+    trainer.fit(interactions, item_ids=item_ids)
+    old_model = trainer.elsa
+    old_history = list(trainer.history)
+
+    with pytest.raises(ValueError, match="item_ids has 1 entries"):
+        trainer.fit(interactions, item_ids=["too-short"])
+
+    assert trainer.elsa is old_model
+    assert trainer.history == old_history
+    np.testing.assert_array_equal(trainer.source_item_ids, item_ids)
+
+
 def test_predict_matches_predict_on_batch_across_batch_sizes(interactions, source):
     trainer = _trainer(epochs=1).fit(interactions)
 

@@ -57,6 +57,58 @@ def test_user_knn_prediction_contract(interactions):
     assert 0 not in predictions.cols[0].tolist()
 
 
+def test_failed_user_knn_fit_does_not_publish_state(interactions):
+    model = UserKNNRecommender(UserKNNConfig(n_neighbors=2))
+
+    with pytest.raises(ValueError, match="item_ids has 1 entries"):
+        model.fit(interactions, item_ids=["too-short"])
+
+    assert not model.is_fitted
+    assert model.n_items is None
+
+
+def test_failed_user_knn_refit_preserves_state(interactions):
+    item_ids = np.array([f"item-{index}" for index in range(interactions.shape[1])])
+    model = UserKNNRecommender(UserKNNConfig(n_neighbors=2)).fit(
+        interactions,
+        item_ids=item_ids,
+    )
+    old_interactions = model.training_interactions_.copy()
+    old_index = model._index
+    wider = csr_matrix((interactions.shape[0], interactions.shape[1] + 1))
+
+    with pytest.raises(ValueError, match="item_ids has 1 entries"):
+        model.fit(wider, item_ids=["too-short"])
+
+    assert model.n_items == interactions.shape[1]
+    assert model._index is old_index
+    np.testing.assert_array_equal(model.source_item_ids, item_ids)
+    np.testing.assert_array_equal(
+        model.training_interactions_.toarray(),
+        old_interactions.toarray(),
+    )
+
+
+def test_user_knn_index_failure_preserves_state(interactions, monkeypatch):
+    model = UserKNNRecommender(UserKNNConfig(n_neighbors=2)).fit(interactions)
+    old_interactions = model.training_interactions_.copy()
+    old_index = model._index
+
+    def fail_index(_interactions):
+        raise RuntimeError("index failed")
+
+    monkeypatch.setattr(model, "_make_index", fail_index)
+    with pytest.raises(RuntimeError, match="index failed"):
+        model.fit(interactions)
+
+    assert model.is_fitted
+    assert model._index is old_index
+    np.testing.assert_array_equal(
+        model.training_interactions_.toarray(),
+        old_interactions.toarray(),
+    )
+
+
 def test_user_knn_round_trip_rebuilds_transient_index(tmp_path, interactions):
     model = UserKNNRecommender(UserKNNConfig(n_neighbors=3)).fit(interactions)
     source = interactions[:2]

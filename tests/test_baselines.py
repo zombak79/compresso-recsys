@@ -67,6 +67,53 @@ def test_popularity_rejects_negative_interactions():
 
 
 @pytest.mark.parametrize("model", [RandomBaseline(), PopularityBaseline()])
+def test_failed_initial_fit_does_not_publish_baseline_state(model, interactions):
+    with pytest.raises(ValueError, match="item_ids has 1 entries"):
+        model.fit(interactions, item_ids=["too-short"])
+
+    assert not model.is_fitted
+    assert model.n_items is None
+
+
+@pytest.mark.parametrize("model", [RandomBaseline(), PopularityBaseline()])
+def test_failed_refit_preserves_baseline_state(model, interactions, source):
+    item_ids = np.array([f"item-{index}" for index in range(interactions.shape[1])])
+    model.fit(interactions, item_ids=item_ids)
+    old_popularity = getattr(model, "popularity_", None)
+    if old_popularity is not None:
+        old_popularity = old_popularity.copy()
+
+    wider = csr_matrix((interactions.shape[0], interactions.shape[1] + 1))
+    with pytest.raises(ValueError, match="item_ids has 1 entries"):
+        model.fit(wider, item_ids=["too-short"])
+
+    assert model.is_fitted
+    assert model.n_items == interactions.shape[1]
+    np.testing.assert_array_equal(model.source_item_ids, item_ids)
+    if old_popularity is not None:
+        np.testing.assert_array_equal(model.popularity_, old_popularity)
+    model.predict_on_batch(source, k=1)
+
+
+def test_failed_popularity_refit_preserves_learned_state(interactions):
+    model = PopularityBaseline().fit(interactions)
+    old_popularity = model.popularity_.copy()
+    invalid = csr_matrix(
+        np.array([[1, 0, 0, 0, 0, 0, -1]], dtype=np.float32)
+    )
+
+    with pytest.raises(ValueError, match="nonnegative"):
+        model.fit(invalid)
+
+    assert model.n_items == interactions.shape[1]
+    np.testing.assert_array_equal(model.popularity_, old_popularity)
+    np.testing.assert_array_equal(
+        model.source_item_ids,
+        np.arange(interactions.shape[1]),
+    )
+
+
+@pytest.mark.parametrize("model", [RandomBaseline(), PopularityBaseline()])
 def test_baselines_exclude_seen_and_respect_candidates(model, interactions, source):
     item_ids = np.array([f"item-{i}" for i in range(interactions.shape[1])])
     model.fit(interactions, item_ids=item_ids)

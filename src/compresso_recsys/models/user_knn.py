@@ -81,15 +81,18 @@ class UserKNNRecommender(BaseCollaborativeRecommender):
             ) from error
         return NearestNeighbors
 
-    def _build_index(self) -> None:
-        if self.training_interactions_ is None:
-            raise RuntimeError("UserKNN training interactions are unavailable")
+    def _make_index(self, interactions: csr_matrix):
         nearest_neighbors = self._nearest_neighbors_class()
-        self._index = nearest_neighbors(
+        return nearest_neighbors(
             metric="cosine",
             algorithm="brute",
             n_jobs=self.cfg.n_jobs,
-        ).fit(self.training_interactions_)
+        ).fit(interactions)
+
+    def _build_index(self) -> None:
+        if self.training_interactions_ is None:
+            raise RuntimeError("UserKNN training interactions are unavailable")
+        self._index = self._make_index(self.training_interactions_)
 
     def fit(
         self,
@@ -105,10 +108,14 @@ class UserKNNRecommender(BaseCollaborativeRecommender):
             )
         if np.any(interactions.data < 0):
             raise ValueError("interactions must contain nonnegative values")
-        self.training_interactions_ = interactions.astype(self.dtype, copy=True)
-        self.n_items_ = int(interactions.shape[1])
-        self._set_item_ids(item_ids, n_items=self.n_items_)
-        self._build_index()
+        n_items = int(interactions.shape[1])
+        vocabulary = self._prepare_item_vocabulary(item_ids, n_items=n_items)
+        training_interactions = interactions.astype(self.dtype, copy=True)
+        index = self._make_index(training_interactions)
+        self.training_interactions_ = training_interactions
+        self.n_items_ = n_items
+        self._publish_item_vocabulary(vocabulary)
+        self._index = index
         return self
 
     def predict_on_batch(

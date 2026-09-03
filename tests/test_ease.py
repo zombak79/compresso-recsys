@@ -149,6 +149,30 @@ def test_fit_requires_nonempty_finite_csr():
         model.fit(csr_matrix(np.array([[1.0, np.nan]])))
 
 
+def test_failed_ease_fit_does_not_publish_state(interactions):
+    model = EASE()
+
+    with pytest.raises(ValueError, match="item_ids has 1 entries"):
+        model.fit(interactions, item_ids=["too-short"])
+
+    assert not model.is_fitted
+    assert model.n_items is None
+
+
+def test_failed_ease_refit_preserves_state(interactions):
+    item_ids = np.array([f"item-{index}" for index in range(interactions.shape[1])])
+    model = EASE().fit(interactions, item_ids=item_ids)
+    old_coefficients = model.coefficients_.copy()
+    wider = csr_matrix((interactions.shape[0], interactions.shape[1] + 1))
+
+    with pytest.raises(ValueError, match="item_ids has 1 entries"):
+        model.fit(wider, item_ids=["too-short"])
+
+    assert model.n_items == interactions.shape[1]
+    np.testing.assert_array_equal(model.source_item_ids, item_ids)
+    np.testing.assert_array_equal(model.coefficients_, old_coefficients)
+
+
 def test_prediction_requires_fitted_model(source):
     with pytest.raises(RuntimeError, match="fitted"):
         EASE().predict_on_batch(source, k=2)

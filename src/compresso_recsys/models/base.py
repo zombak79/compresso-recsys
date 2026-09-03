@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import asdict, is_dataclass, replace
+import inspect
 from pathlib import Path
 import re
 import time
@@ -136,6 +137,20 @@ def _unwrapped_module(module: nn.Module) -> nn.Module:
     return module if not isinstance(original, nn.Module) else original
 
 
+def _accepts_reporting_keywords(method: Any) -> bool:
+    """Whether a prediction override accepts the new reporting keywords."""
+    try:
+        parameters = inspect.signature(method).parameters.values()
+    except (TypeError, ValueError):
+        return False
+    if any(
+        parameter.kind is inspect.Parameter.VAR_KEYWORD for parameter in parameters
+    ):
+        return True
+    names = {parameter.name for parameter in parameters}
+    return {"logger", "show_progress"} <= names
+
+
 class BaseIdentifiedRecommender(ABC):
     """Shared production-facing recommendation workflow.
 
@@ -157,12 +172,13 @@ class BaseIdentifiedRecommender(ABC):
         self._item_vocabulary = vocabulary
         return vocabulary
 
-    def _set_item_ids(
+    def _prepare_item_vocabulary(
         self,
         item_ids: Sequence[Hashable] | np.ndarray | None,
         *,
         n_items: int,
-    ) -> None:
+    ) -> ItemVocabulary:
+        """Validate a fitted catalog without publishing it on the model."""
         vocabulary = (
             ItemVocabulary.positional(n_items)
             if item_ids is None
@@ -173,6 +189,20 @@ class BaseIdentifiedRecommender(ABC):
                 f"item_ids has {vocabulary.n_items} entries, but the fitted "
                 f"catalog has {n_items} items"
             )
+        return vocabulary
+
+    def _set_item_ids(
+        self,
+        item_ids: Sequence[Hashable] | np.ndarray | None,
+        *,
+        n_items: int,
+    ) -> None:
+        """Validate and publish the fitted catalog on the model."""
+        vocabulary = self._prepare_item_vocabulary(item_ids, n_items=n_items)
+        self._publish_item_vocabulary(vocabulary)
+
+    def _publish_item_vocabulary(self, vocabulary: ItemVocabulary) -> None:
+        """Publish a vocabulary previously prepared for a successful fit."""
         self._item_vocabulary = vocabulary
 
     @property
@@ -232,6 +262,24 @@ class BaseIdentifiedRecommender(ABC):
     ) -> SRPTensor:
         """Predict after candidate IDs have been resolved and filtered."""
 
+    def _predict_identified_with_reporting(
+        self,
+        source: csr_matrix | ItemSequences,
+        *,
+        k: int,
+        exclude_seen: bool,
+        candidate_ids: np.ndarray,
+        reporter: _Reporter,
+    ) -> SRPTensor:
+        """Reporting-aware prediction hook with a legacy-compatible fallback."""
+        del reporter
+        return self._predict_identified(
+            source,
+            k=k,
+            exclude_seen=exclude_seen,
+            candidate_ids=candidate_ids,
+        )
+
     def _candidate_rows(
         self,
         candidate_ids: Sequence[Hashable] | np.ndarray | None,
@@ -277,8 +325,15 @@ class BaseIdentifiedRecommender(ABC):
         allowlist: Sequence[Hashable] | np.ndarray | None = None,
         blocklist: Sequence[Hashable] | np.ndarray | None = None,
         on_insufficient: Literal["truncate", "raise"] = "truncate",
+        logger: Any | None = _INHERIT,
+        show_progress: bool | None | _Inherit = _INHERIT,
     ) -> Recommendations:
-        """Recommend up to ``k`` item IDs for each item-ID history."""
+        """Recommend up to ``k`` item IDs for each item-ID history.
+
+        ``logger`` and ``show_progress`` override prediction reporting for this
+        call. Passing ``logger=None`` makes the request quiet even when the
+        recommender has a constructor logger.
+        """
         if isinstance(k, (bool, np.bool_)) or not isinstance(k, (int, np.integer)):
             raise TypeError("k must be an integer")
         if int(k) < 1:
@@ -295,6 +350,14 @@ class BaseIdentifiedRecommender(ABC):
             raise TypeError(
                 "histories must be a sequence of item-ID sequences"
             ) from error
+
+        reporter = self._prediction_reporter(logger, show_progress)
+        reporting_override = logger is not _INHERIT or not (
+            show_progress is _INHERIT or show_progress is None
+        )
+        use_reporting_path = (
+            reporting_override or reporter.active or reporter.show_progress
+        )
 
         source_vocabulary, candidate_vocabulary = self._recommend_vocabularies()
         rows = [
@@ -359,12 +422,21 @@ class BaseIdentifiedRecommender(ABC):
                 [rows[row] for row in batch_rows],
                 vocabulary=source_vocabulary,
             )
-            predictions = self._predict_identified(
-                source,
-                k=count,
-                exclude_seen=exclude_seen,
-                candidate_ids=selected_ids,
-            )
+            if not use_reporting_path:
+                predictions = self._predict_identified(
+                    source,
+                    k=count,
+                    exclude_seen=exclude_seen,
+                    candidate_ids=selected_ids,
+                )
+            else:
+                predictions = self._predict_identified_with_reporting(
+                    source,
+                    k=count,
+                    exclude_seen=exclude_seen,
+                    candidate_ids=selected_ids,
+                    reporter=reporter,
+                )
             if (
                 predictions.rows != batch_rows.size
                 or predictions.cols_total != candidate_vocabulary.n_items
@@ -775,6 +847,31 @@ class BaseCollaborativeRecommender(BasePersistableRecommender):
             candidate_ids=candidate_ids,
         )
 
+    def _predict_identified_with_reporting(
+        self,
+        source: csr_matrix | ItemSequences,
+        *,
+        k: int,
+        exclude_seen: bool,
+        candidate_ids: np.ndarray,
+        reporter: _Reporter,
+    ) -> SRPTensor:
+        if not isinstance(source, csr_matrix):
+            raise TypeError("collaborative recommendations require a CSR source")
+        predict = self.predict
+        if not _accepts_reporting_keywords(predict):
+            # Fall back to base batching for extensions overriding the released
+            # predict() signature without a logger keyword.
+            predict = BaseCollaborativeRecommender.predict.__get__(self)
+        return predict(
+            source,
+            k=k,
+            exclude_seen=exclude_seen,
+            candidate_ids=candidate_ids,
+            logger=reporter,
+            show_progress=_INHERIT,
+        )
+
     def _prepare_source(self, source: csr_matrix) -> csr_matrix:
         """Validate a source matrix against the fitted item catalog."""
         if not self.is_fitted or self.n_items is None:
@@ -975,6 +1072,31 @@ class BaseSequentialRecommender(BasePersistableRecommender):
             k=k,
             exclude_seen=exclude_seen,
             candidate_ids=candidate_ids,
+        )
+
+    def _predict_identified_with_reporting(
+        self,
+        source: csr_matrix | ItemSequences,
+        *,
+        k: int,
+        exclude_seen: bool,
+        candidate_ids: np.ndarray,
+        reporter: _Reporter,
+    ) -> SRPTensor:
+        if not isinstance(source, ItemSequences):
+            raise TypeError(
+                "sequential recommendations require an ItemSequences source"
+            )
+        predict = self.predict
+        if not _accepts_reporting_keywords(predict):
+            predict = BaseSequentialRecommender.predict.__get__(self)
+        return predict(
+            source,
+            k=k,
+            exclude_seen=exclude_seen,
+            candidate_ids=candidate_ids,
+            logger=reporter,
+            show_progress=_INHERIT,
         )
 
     def _prepare_source(self, source: ItemSequences) -> ItemSequences:

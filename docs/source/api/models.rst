@@ -104,10 +104,10 @@ Training and Prediction Progress
 
 Every iterative trainer accepts a duck-typed ``logger`` in its constructor;
 the object only needs an ``info(message: str)`` method. Pass the logger on an
-individual ``fit`` or ``predict`` call to override that job-level default. A
-logger always replaces tqdm, even if ``show_progress=True``, so service logs
-never receive carriage-return progress bars and callers do not have to disable
-the bar separately::
+individual ``fit``, ``predict``, or ``recommend`` call to override that
+job-level default. A logger always replaces tqdm, even if
+``show_progress=True``, so service logs never receive carriage-return progress
+bars and callers do not have to disable the bar separately::
 
    trainer = ELSATrainer(
        ELSAConfig(log_every_n_steps=1_000),
@@ -123,12 +123,13 @@ one call quiet. If ``logger.info`` raises, the first failure emits a warning,
 logging is disabled for that call, and the training or prediction continues.
 
 Without a logger, notebook behavior remains controlled by ``show_progress``.
-The standard training display uses two bars: an outer epoch bar and one batch
-bar that is reset and reused at each epoch. Reusing the batch bar is the
-recommended pattern for new trainers because creating one bar per epoch leaves
-a growing stack of completed bars in notebooks and terminals. ELSA,
-Mult-DAE, Mult-VAE, SimpleGPT, SimpleRNN, and TEASER-GD all follow this
-reporting contract.
+Fixed-epoch training uses two bars: an outer epoch bar and one batch bar that
+is reset and reused at each epoch. Reusing the batch bar is the recommended
+pattern for new trainers because creating one bar per epoch leaves a growing
+stack of completed bars in notebooks and terminals. Compressed ELSA's
+unbounded mask-search phase has no fixed epoch total, so it uses only one
+reusable batch bar. ELSA, Mult-DAE, Mult-VAE, SimpleGPT, SimpleRNN, and
+TEASER-GD all follow the logger reporting contract above.
 
 Fitted Model Persistence
 ------------------------
@@ -161,14 +162,24 @@ bases.
 All three bases derive from
 :class:`compresso_recsys.models.BaseIdentifiedRecommender`, which supplies the
 complete ``recommend`` workflow. A fixed-catalog model records identities with
-``self._set_item_ids(item_ids, n_items=...)`` during fitting and supports the
-optional ``candidate_ids`` selection in ``predict_on_batch``. The source base
-then handles ID validation, history conversion, candidate filters, seen-item
-capacity checks, and result decoding automatically.
+``self._set_item_ids(item_ids, n_items=...)`` during a simple fitting path and
+supports the optional ``candidate_ids`` selection in ``predict_on_batch``. When
+fitting also computes learned state, prepare the vocabulary first with
+``self._prepare_item_vocabulary(...)`` and publish it together with the learned
+fields using ``self._publish_item_vocabulary(...)`` only after computation
+succeeds. This keeps failed fits and refits from exposing mixed model and
+catalog state. The source base then handles ID validation, history conversion,
+candidate filters, seen-item capacity checks, and result decoding automatically.
+
+The original ``_predict_identified`` hook remains the compatibility path for
+subclasses implementing custom prediction. Reporting-aware dispatch uses a
+separate hook supplied by the standard bases, so adding logger support does not
+require existing subclasses to change their ``predict`` or
+``_predict_identified`` signatures.
 
 .. autoclass:: compresso_recsys.models.BaseIdentifiedRecommender
    :members:
-   :private-members: _set_item_ids, _recommendation_source, _predict_identified
+   :private-members: _prepare_item_vocabulary, _publish_item_vocabulary, _set_item_ids, _recommendation_source, _predict_identified, _predict_identified_with_reporting
 
 Use :class:`compresso_recsys.models.BaseCollaborativeRecommender` for a model
 whose fitted source and candidate catalog has one fixed positional item space.
@@ -526,13 +537,17 @@ catalog. :class:`~compresso_recsys.models.MultDAETrainer` optimizes multinomial
 log likelihood plus ``l2_reg * (||W_encoder||^2 + ||W_decoder||^2)`` and serves
 the fitted network through the standard collaborative recommender API. The L2
 term applies only to weight matrices, not biases, matching the original
-implementation. Both Mult-DAE and Mult-VAE preload a dense training matrix on
-the configured device by default. Set ``preload_training_data=False`` to retain
-bounded-memory CSR minibatch streaming when the matrix does not fit. A failed
-preload raises a clear memory error rather than silently selecting the slower
-path. Training statistics are transferred to the host only once per epoch in
-either mode. After fitting, ``training_data_preloaded_`` reports which path was
-selected.
+implementation. Mult-DAE history and progress output name the data term
+``reconstruction_loss``; the L2 term is applied by the optimizer and is not
+included in that reported metric. Both Mult-DAE and Mult-VAE preload a dense
+training matrix on the configured device by default. Set
+``preload_training_data=False`` to retain bounded-memory CSR minibatch streaming
+when the matrix does not fit. A failed preload raises a clear memory error
+rather than silently selecting the slower path. Training statistics are
+accumulated on the device and transferred to the host only at reporting
+points: each epoch boundary and, when a logger is present, each configured
+``log_every_n_steps`` interval. After fitting, ``training_data_preloaded_``
+reports which path was selected.
 
 Mult-DAE and Mult-VAE use the standard two-bar training display described in
 `Training and Prediction Progress`_: one outer epoch bar and one batch bar

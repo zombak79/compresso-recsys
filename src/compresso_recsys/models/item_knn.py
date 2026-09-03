@@ -92,6 +92,7 @@ class ItemKNNRecommender(BaseCollaborativeRecommender):
             ) from error
 
         n_items = int(interactions.shape[1])
+        vocabulary = self._prepare_item_vocabulary(item_ids, n_items=n_items)
         item_vectors = interactions.T.tocsr().astype(self.dtype, copy=False)
         requested = min(n_items, int(self.cfg.n_neighbors) + 1)
         index = NearestNeighbors(
@@ -123,7 +124,7 @@ class ItemKNNRecommender(BaseCollaborativeRecommender):
                 if kept == int(self.cfg.n_neighbors):
                     break
 
-        self.similarity_ = csr_matrix(
+        similarity = csr_matrix(
             (
                 np.asarray(values, dtype=self.dtype),
                 (np.asarray(rows, dtype=np.int64), np.asarray(columns, dtype=np.int64)),
@@ -131,8 +132,9 @@ class ItemKNNRecommender(BaseCollaborativeRecommender):
             shape=(n_items, n_items),
             dtype=self.dtype,
         )
+        self.similarity_ = similarity
         self.n_items_ = n_items
-        self._set_item_ids(item_ids, n_items=n_items)
+        self._publish_item_vocabulary(vocabulary)
         return self
 
     def predict_on_batch(

@@ -148,7 +148,6 @@ def test_documented_keywords_exist_in_their_signatures(source, line, code):
 
 def test_implementing_a_recommender_notebook_executes():
     """Run the educational path without downloading the benchmark dataset."""
-    pytest.importorskip("sklearn")
     path = DOCS / "implementing-a-recommender.ipynb"
     cells = json.loads(path.read_text())["cells"]
     namespace = {"__name__": "__main__"}
@@ -184,3 +183,11 @@ def test_implementing_a_recommender_notebook_executes():
 
     assert namespace["tutorial_model"].is_fitted
     assert namespace["tutorial_result"].metrics["ndcg@20"] >= 0.0
+
+    tutorial_model = namespace["tutorial_model"]
+    old_popularity = tutorial_model.popularity_.copy()
+    old_item_ids = tutorial_model.source_item_ids.copy()
+    with pytest.raises(ValueError, match="item_ids has 1 entries"):
+        tutorial_model.fit(namespace["x_train"], item_ids=["too-short"])
+    np.testing.assert_array_equal(tutorial_model.popularity_, old_popularity)
+    np.testing.assert_array_equal(tutorial_model.source_item_ids, old_item_ids)

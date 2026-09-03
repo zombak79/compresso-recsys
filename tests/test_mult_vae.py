@@ -77,6 +77,73 @@ def test_mult_vae_fit_records_annealed_loss_components(interactions):
         assert all(np.isfinite(value) for value in entry.values())
 
 
+def test_mult_vae_failed_initial_fit_leaves_trainer_unfitted(
+    interactions,
+    monkeypatch,
+    tmp_path,
+):
+    trainer = MultVAETrainer(_config())
+
+    def fail_train_step(target):
+        del target
+        raise RuntimeError("injected training failure")
+
+    monkeypatch.setattr(trainer, "_train_step", fail_train_step)
+
+    with pytest.raises(RuntimeError, match="injected training failure"):
+        trainer.fit(interactions)
+
+    assert not trainer.is_fitted
+    assert trainer.n_items is None
+    assert trainer.model is None
+    assert trainer.optimizer is None
+    assert trainer.history == []
+    assert trainer._updates == 0
+    assert trainer.training_data_preloaded_ is None
+    assert "_item_vocabulary" not in trainer.__dict__
+    with pytest.raises(RuntimeError, match="must be fitted"):
+        trainer.predict_on_batch(interactions[:1], k=1)
+    with pytest.raises(RuntimeError, match="must be fitted"):
+        trainer.save(tmp_path / "failed-mult-vae.zip")
+
+
+def test_mult_vae_failed_refit_preserves_previous_model(
+    interactions,
+    tmp_path,
+):
+    item_ids = np.array([f"item-{i}" for i in range(interactions.shape[1])])
+    trainer = MultVAETrainer(_config()).fit(interactions, item_ids=item_ids)
+    before = trainer.predict_on_batch(interactions[:2], k=2)
+    previous_model = trainer.model
+    previous_optimizer = trainer.optimizer
+    previous_history = trainer.history
+    previous_updates = trainer._updates
+    previous_preloaded = trainer.training_data_preloaded_
+    wider = csr_matrix(np.pad(interactions.toarray(), ((0, 0), (0, 1))))
+
+    with pytest.raises(ValueError, match="item_ids has 1 entries"):
+        trainer.fit(wider, item_ids=["invalid"])
+
+    assert trainer.is_fitted
+    assert trainer.n_items == interactions.shape[1]
+    assert trainer.model is previous_model
+    assert trainer.optimizer is previous_optimizer
+    assert trainer.history is previous_history
+    assert trainer._updates == previous_updates
+    assert trainer.training_data_preloaded_ is previous_preloaded
+    np.testing.assert_array_equal(trainer.source_item_ids, item_ids)
+    after = trainer.predict_on_batch(interactions[:2], k=2)
+    torch.testing.assert_close(after.cols, before.cols)
+    torch.testing.assert_close(after.vals, before.vals)
+
+    path = tmp_path / "preserved-mult-vae.zip"
+    trainer.save(path)
+    restored = MultVAETrainer.load(path)
+    assert restored.is_fitted
+    assert restored.n_items == interactions.shape[1]
+    np.testing.assert_array_equal(restored.source_item_ids, item_ids)
+
+
 def test_mult_vae_zero_anneal_uses_cap_immediately(interactions):
     trainer = MultVAETrainer(_config(epochs=1, kl_anneal_steps=0)).fit(interactions)
 

@@ -11,6 +11,7 @@ from scipy.sparse import csr_matrix
 from compresso_recsys.evaluation import evaluate_recommender
 from compresso_recsys.metrics import CalibratedRecall
 from compresso_recsys.models import (
+    EASE,
     ELSACompressionConfig,
     ELSAConfig,
     ELSATrainer,
@@ -27,6 +28,7 @@ from compresso_recsys.models import (
     TEASERGDConfig,
     TEASERGDTrainer,
     TransformerConfig,
+    WarmCatalogAdapter,
 )
 from compresso_recsys.sequences import ItemSequences
 
@@ -50,6 +52,51 @@ class _RaisingLogger:
     def info(self, message: str) -> None:
         self.calls += 1
         raise RuntimeError("collector unavailable")
+
+
+class _LegacyPredictionOverrides(EASE):
+    """A v0.3.0-style extension with the released prediction signatures."""
+
+    def __init__(self):
+        super().__init__()
+        self.hook_calls = 0
+        self.predict_calls = 0
+
+    def _predict_identified(
+        self,
+        source,
+        *,
+        k,
+        exclude_seen,
+        candidate_ids,
+    ):
+        self.hook_calls += 1
+        return super()._predict_identified(
+            source,
+            k=k,
+            exclude_seen=exclude_seen,
+            candidate_ids=candidate_ids,
+        )
+
+    def predict(
+        self,
+        source,
+        *,
+        k=100,
+        batch_size=1024,
+        exclude_seen=True,
+        candidate_ids=None,
+        show_progress=False,
+    ):
+        self.predict_calls += 1
+        return super().predict(
+            source,
+            k=k,
+            batch_size=batch_size,
+            exclude_seen=exclude_seen,
+            candidate_ids=candidate_ids,
+            show_progress=show_progress,
+        )
 
 
 class _StubBar:
@@ -354,6 +401,28 @@ def test_logger_replaces_both_bars_and_reports_steps_and_epochs(
     assert captured.err == ""
 
 
+def test_mult_dae_names_reconstruction_metric_in_logger_and_tqdm(bars):
+    logger = _RecordingLogger()
+
+    logged = _fit_mult_dae(
+        show_progress=True,
+        logger=logger,
+        log_every_n_steps=1,
+    )
+
+    assert bars == []
+    assert set(logged.history[0]) == {"epoch", "reconstruction_loss"}
+    assert any("reconstruction_loss:" in line for line in logger.lines)
+
+    displayed = _fit_mult_dae(show_progress=True)
+
+    assert len(bars) == 2
+    (postfix,) = bars[0].postfixes[-1]
+    assert postfix == {
+        "reconstruction_loss": f"{displayed.history[-1]['reconstruction_loss']:.4f}"
+    }
+
+
 def test_per_call_logger_overrides_constructor_logger_and_explicit_bar(bars):
     constructor_logger = _RecordingLogger()
     call_logger = _RecordingLogger()
@@ -461,6 +530,167 @@ def test_logger_replaces_prediction_bar(bars, fit, source):
     )
     assert any(f"predict@1 step 1/{batches}" in line for line in logger.lines)
     assert logger.lines[-1].endswith(f"{rows} rows")
+
+
+@pytest.mark.parametrize(
+    ("fit", "label"),
+    [
+        (_fit_mult_dae, "MultDAE"),
+        (_fit_simple_gpt, "SimpleGPT"),
+        (_fit_teaser_gd, "TEASERGD"),
+    ],
+)
+def test_recommend_can_override_constructor_reporting(bars, fit, label):
+    constructor_logger = _RecordingLogger()
+    trainer = fit(
+        show_progress=True,
+        logger=constructor_logger,
+        log_every_n_steps=1,
+    )
+    constructor_logger.lines.clear()
+
+    inherited = trainer.recommend([[0]], k=1, exclude_seen=False)
+
+    assert inherited.valid_counts.tolist() == [1]
+    assert constructor_logger.lines[0].startswith(f"[{label}] predict@1 started:")
+    assert constructor_logger.lines[-1].startswith(f"[{label}] predict@1 finished:")
+    assert bars == []
+
+    constructor_logger.lines.clear()
+    quiet = trainer.recommend(
+        [[0]],
+        k=1,
+        exclude_seen=False,
+        logger=None,
+    )
+
+    assert quiet.valid_counts.tolist() == [1]
+    assert constructor_logger.lines == []
+    assert bars == []
+
+    call_logger = _RecordingLogger()
+    redirected = trainer.recommend(
+        [[0]],
+        k=1,
+        exclude_seen=False,
+        logger=call_logger,
+        show_progress=True,
+    )
+
+    assert redirected.valid_counts.tolist() == [1]
+    assert call_logger.lines[0].startswith(f"[{label}] predict@1 started:")
+    assert call_logger.lines[-1].startswith(f"[{label}] predict@1 finished:")
+    assert constructor_logger.lines == []
+    assert bars == []
+
+
+def test_recommend_override_reaches_optimized_predict_and_catalog_adapter(bars):
+    logger = _RecordingLogger()
+    ease = EASE().fit(_interactions())
+
+    ease_result = ease.recommend(
+        [[0]],
+        k=1,
+        exclude_seen=False,
+        logger=logger,
+        show_progress=True,
+    )
+
+    assert ease_result.valid_counts.tolist() == [1]
+    assert logger.lines[0].startswith("[EASE] predict@1 started:")
+    assert logger.lines[-1].startswith("[EASE] predict@1 finished:")
+    assert bars == []
+
+    constructor_logger = _RecordingLogger()
+    wrapped = _fit_mult_dae(
+        show_progress=True,
+        logger=constructor_logger,
+        log_every_n_steps=1,
+    )
+    adapter = WarmCatalogAdapter(
+        wrapped,
+        train_item_ids=np.arange(6),
+        catalog_item_ids=np.arange(7),
+    )
+    constructor_logger.lines.clear()
+
+    adapter_result = adapter.recommend(
+        [[0, 6]],
+        k=1,
+        exclude_seen=False,
+        logger=None,
+    )
+
+    assert adapter_result.valid_counts.tolist() == [1]
+    assert constructor_logger.lines == []
+    assert bars == []
+
+
+def test_recommend_preserves_released_prediction_override_signatures(bars):
+    model = _LegacyPredictionOverrides().fit(_interactions())
+
+    result = model.recommend([[0]], k=1, exclude_seen=False)
+
+    assert result.valid_counts.tolist() == [1]
+    assert model.hook_calls == 1
+    assert model.predict_calls == 1
+
+    logger = _RecordingLogger()
+    reported = model.recommend(
+        [[0]],
+        k=1,
+        exclude_seen=False,
+        logger=logger,
+    )
+
+    assert reported.valid_counts.tolist() == [1]
+    assert model.hook_calls == 1
+    assert model.predict_calls == 1
+    assert logger.lines[0].startswith("[_LegacyPredictionOverrides] predict@1 started:")
+    assert logger.lines[-1].startswith(
+        "[_LegacyPredictionOverrides] predict@1 finished:"
+    )
+    assert bars == []
+
+
+def test_recommend_latches_a_raising_logger_across_prediction_groups():
+    trainer = _fit_mult_dae(show_progress=False)
+    logger = _RaisingLogger()
+
+    with pytest.warns(RuntimeWarning, match="logging disabled") as caught:
+        result = trainer.recommend(
+            [[], [0]],
+            k=6,
+            exclude_seen=True,
+            logger=logger,
+        )
+
+    assert result.valid_counts.tolist() == [6, 5]
+    assert logger.calls == 1
+    assert len(caught) == 1
+
+
+@pytest.mark.parametrize("show_progress", ["false", 0, 1, [], object()])
+def test_empty_recommend_validates_show_progress(show_progress):
+    trainer = _fit_mult_dae(show_progress=False)
+
+    with pytest.raises(ValueError, match="show_progress must be a bool or None"):
+        trainer.recommend([], k=1, show_progress=show_progress)
+
+
+@pytest.mark.parametrize("show_progress", ["false", 0, 1, [], object()])
+def test_evaluation_validates_show_progress(show_progress):
+    trainer = _fit_elsa(show_progress=False)
+    source = csr_matrix((0, trainer.n_items), dtype=np.float32)
+
+    with pytest.raises(ValueError, match="show_progress must be a bool"):
+        evaluate_recommender(
+            trainer,
+            source=source,
+            targets=source,
+            metrics=[CalibratedRecall(1)],
+            show_progress=show_progress,
+        )
 
 
 def test_logger_replaces_evaluation_bar(bars, capsys):

@@ -134,10 +134,11 @@ class MultDAETrainer(BaseCollaborativeRecommender):
         self.history: list[dict[str, float]] = []
         self._n_items: int | None = None
         self.training_data_preloaded_: bool | None = None
+        self._is_fitted = False
 
     @property
     def is_fitted(self) -> bool:
-        return self.model is not None
+        return self._is_fitted
 
     @property
     def n_items(self) -> int | None:
@@ -154,14 +155,16 @@ class MultDAETrainer(BaseCollaborativeRecommender):
         )
 
     def _train_step(self, target: torch.Tensor) -> torch.Tensor:
-        """Optimize one dense user batch and return its detached loss."""
+        """Optimize one dense user batch and return reconstruction loss."""
         assert self.model is not None and self.optimizer is not None
         logits = self.model(target)
-        loss = -(target * F.log_softmax(logits, dim=1)).sum(dim=1).mean()
+        reconstruction_loss = -(
+            target * F.log_softmax(logits, dim=1)
+        ).sum(dim=1).mean()
         self.optimizer.zero_grad(set_to_none=True)
-        loss.backward()
+        reconstruction_loss.backward()
         self.optimizer.step()
-        return loss.detach()
+        return reconstruction_loss.detach()
 
     def fit(
         self,
@@ -184,6 +187,52 @@ class MultDAETrainer(BaseCollaborativeRecommender):
         if active_rows.size == 0:
             raise ValueError("interactions must contain at least one nonempty user")
 
+        # A full fit installs a fresh model, optimizer, and history before any
+        # update. The shallow snapshot therefore remains untouched and can be
+        # restored if setup or training fails.
+        previous_state = (
+            self.model,
+            self.optimizer,
+            self.history,
+            self._n_items,
+            self.training_data_preloaded_,
+            self._is_fitted,
+        )
+        had_vocabulary = "_item_vocabulary" in self.__dict__
+        previous_vocabulary = self.__dict__.get("_item_vocabulary")
+        self._is_fitted = False
+        try:
+            return self._fit_validated(
+                interactions,
+                active_rows=active_rows,
+                item_ids=item_ids,
+                reporter=reporter,
+            )
+        except BaseException:
+            (
+                self.model,
+                self.optimizer,
+                self.history,
+                self._n_items,
+                self.training_data_preloaded_,
+                self._is_fitted,
+            ) = previous_state
+            if had_vocabulary:
+                self.__dict__["_item_vocabulary"] = previous_vocabulary
+            else:
+                self.__dict__.pop("_item_vocabulary", None)
+            raise
+
+    def _fit_validated(
+        self,
+        interactions: csr_matrix,
+        *,
+        active_rows: np.ndarray,
+        item_ids: Sequence[Hashable] | np.ndarray | None,
+        reporter: _Reporter,
+    ) -> MultDAETrainer:
+        """Train replacement state after public input validation."""
+
         torch.manual_seed(int(self.cfg.seed))
         rng = np.random.default_rng(int(self.cfg.seed))
         self._n_items = int(interactions.shape[1])
@@ -192,13 +241,6 @@ class MultDAETrainer(BaseCollaborativeRecommender):
         self._build_checkpoint_optimizer()
         assert self.optimizer is not None
         self.history = []
-        training_data = prepare_dense_training_data(
-            interactions,
-            device=self.device,
-            preload=self.cfg.preload_training_data,
-        )
-        self.training_data_preloaded_ = training_data is not None
-
         steps_per_epoch = (active_rows.size + int(self.cfg.batch_size) - 1) // int(
             self.cfg.batch_size
         )
@@ -209,6 +251,13 @@ class MultDAETrainer(BaseCollaborativeRecommender):
             f"{interactions.nnz} interactions | {steps_per_epoch} batches of "
             f"{self.cfg.batch_size} | {self.cfg.epochs} epochs | device {self.device}"
         )
+        training_data = prepare_dense_training_data(
+            interactions,
+            device=self.device,
+            preload=self.cfg.preload_training_data,
+        )
+        self.training_data_preloaded_ = training_data is not None
+
         epochs = reporter.wrap(
             range(1, int(self.cfg.epochs) + 1),
             total=int(self.cfg.epochs),
@@ -220,7 +269,7 @@ class MultDAETrainer(BaseCollaborativeRecommender):
                 epoch_started = time.monotonic()
                 self.model.train()
                 order = rng.permutation(active_rows)
-                loss_sum = torch.zeros((), device=self.device)
+                reconstruction_sum = torch.zeros((), device=self.device)
                 users = 0
                 if batch_bar is not None:
                     batch_bar.reset(total=steps_per_epoch)
@@ -236,9 +285,9 @@ class MultDAETrainer(BaseCollaborativeRecommender):
                         device=self.device,
                         preloaded=training_data,
                     )
-                    loss = self._train_step(target)
+                    reconstruction_loss = self._train_step(target)
                     batch_users = int(selected.size)
-                    loss_sum += loss * batch_users
+                    reconstruction_sum += reconstruction_loss * batch_users
                     users += batch_users
                     if batch_bar is not None:
                         batch_bar.update(1)
@@ -249,10 +298,17 @@ class MultDAETrainer(BaseCollaborativeRecommender):
                             step,
                             steps_per_epoch,
                             epoch_started,
-                            {"loss": float((loss_sum / users).item())},
+                            {
+                                "reconstruction_loss": float(
+                                    (reconstruction_sum / users).item()
+                                )
+                            },
                         )
-                mean_loss = float((loss_sum / users).item())
-                record = {"epoch": float(epoch), "loss": mean_loss}
+                mean_reconstruction = float((reconstruction_sum / users).item())
+                record = {
+                    "epoch": float(epoch),
+                    "reconstruction_loss": mean_reconstruction,
+                }
                 self.history.append(record)
                 reporter.epoch(
                     f"epoch {epoch}/{self.cfg.epochs}",
@@ -260,12 +316,15 @@ class MultDAETrainer(BaseCollaborativeRecommender):
                     epoch_started,
                 )
                 if hasattr(epochs, "set_postfix"):
-                    epochs.set_postfix({"loss": f"{mean_loss:.4f}"})
+                    epochs.set_postfix(
+                        {"reconstruction_loss": f"{mean_reconstruction:.4f}"}
+                    )
         finally:
             if batch_bar is not None:
                 batch_bar.close()
             if hasattr(epochs, "close"):
                 epochs.close()
+        self._is_fitted = True
         reporter.log(
             f"fit finished: {_format_duration(time.monotonic() - fit_started)} total | "
             f"{len(self.history)} epochs recorded"
@@ -305,13 +364,22 @@ class MultDAETrainer(BaseCollaborativeRecommender):
                 shape=source.shape,
             )
 
-        dense = source.toarray().astype(np.float32, copy=False)
+        # Cast while still sparse so a non-float32 source does not create a
+        # second catalog-wide dense allocation.
+        dense = source.astype(np.float32, copy=False).toarray()
         inputs = torch.from_numpy(dense).to(self.device)
         candidates = torch.from_numpy(candidate_rows).long().to(self.device)
         self.model.eval()
         with torch.no_grad():
             logits = self.model(inputs)
-            selected_logits = logits[:, candidates]
+            # _candidate_rows returns sorted unique rows, so matching the
+            # catalog width means this is the identity selection. Reuse the
+            # model output instead of advanced-indexing a full-size copy.
+            selected_logits = (
+                logits
+                if candidate_rows.size == self._n_items
+                else logits[:, candidates]
+            )
             if exclude_seen and source.indices.size:
                 candidate_to_local = np.full(source.shape[1], -1, dtype=np.int64)
                 candidate_to_local[candidate_rows] = np.arange(candidate_rows.size)
@@ -374,6 +442,9 @@ class MultDAETrainer(BaseCollaborativeRecommender):
         if not isinstance(history, list):
             raise ValueError("MultDAE training history must be a list")
         self.history = list(history)
+
+    def _finish_checkpoint_load(self) -> None:
+        self._is_fitted = True
 
     def _build_checkpoint_optimizer(self) -> None:
         if self.model is None:

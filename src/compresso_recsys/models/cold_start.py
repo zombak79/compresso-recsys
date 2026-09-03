@@ -3,7 +3,9 @@ from __future__ import annotations
 from abc import abstractmethod
 from dataclasses import dataclass, field
 from threading import RLock
+import time
 from typing import (
+    Any,
     Callable,
     Hashable,
     Literal,
@@ -19,6 +21,7 @@ import torch
 from scipy.sparse import csr_matrix, hstack, issparse, isspmatrix_csr, vstack
 
 from compresso import SRPTensor
+from compresso_recsys._reporting import _INHERIT, _Inherit, _Reporter, _format_duration
 from compresso_recsys.persistence import ModelCheckpointReader, ModelCheckpointWriter
 from compresso_recsys.models._validation import canonical_csr
 from compresso_recsys.models.base import (
@@ -26,6 +29,7 @@ from compresso_recsys.models.base import (
     BasePersistableRecommender,
     Recommender,
     SequentialRecommender,
+    _accepts_reporting_keywords,
 )
 from compresso_recsys.models.identifiers import (
     ItemVocabulary,
@@ -329,6 +333,11 @@ class WarmCatalogAdapter(BaseIdentifiedRecommender):
     ) -> tuple[ItemVocabulary, ItemVocabulary]:
         return self._catalog_vocabulary, self._catalog_vocabulary
 
+    def _prediction_reporter(self, logger: Any, show_progress: Any) -> _Reporter:
+        if isinstance(self.model, BaseIdentifiedRecommender):
+            return self.model._prediction_reporter(logger, show_progress)
+        return super()._prediction_reporter(logger, show_progress)
+
     def _scoreable_candidate_rows(
         self,
         vocabulary: ItemVocabulary,
@@ -357,14 +366,47 @@ class WarmCatalogAdapter(BaseIdentifiedRecommender):
         exclude_seen: bool,
         candidate_ids: np.ndarray,
     ) -> SRPTensor:
+        if not isinstance(self.model, BaseIdentifiedRecommender):
+            raise TypeError(
+                "recommend() requires the wrapped model to inherit an "
+                "identified recommender base"
+            )
         if isinstance(source, csr_matrix):
             source = self.align_source(source)
-        return self.predict_on_batch(
+        predictions = self.model._predict_identified(
             source,
             k=k,
             exclude_seen=exclude_seen,
             candidate_ids=candidate_ids,
         )
+        n_rows = source.shape[0] if isinstance(source, csr_matrix) else source.n_rows
+        return self._remap_predictions(predictions, n_rows=n_rows)
+
+    def _predict_identified_with_reporting(
+        self,
+        source: csr_matrix | ItemSequences,
+        *,
+        k: int,
+        exclude_seen: bool,
+        candidate_ids: np.ndarray,
+        reporter: _Reporter,
+    ) -> SRPTensor:
+        if not isinstance(self.model, BaseIdentifiedRecommender):
+            raise TypeError(
+                "recommend() requires the wrapped model to inherit an "
+                "identified recommender base"
+            )
+        if isinstance(source, csr_matrix):
+            source = self.align_source(source)
+        predictions = self.model._predict_identified_with_reporting(
+            source,
+            k=k,
+            exclude_seen=exclude_seen,
+            candidate_ids=candidate_ids,
+            reporter=reporter,
+        )
+        n_rows = source.shape[0] if isinstance(source, csr_matrix) else source.n_rows
+        return self._remap_predictions(predictions, n_rows=n_rows)
 
     def align_source(self, source: csr_matrix) -> csr_matrix:
         """Select the fitted training-item columns from an expanded-catalog matrix.
@@ -404,6 +446,31 @@ class WarmCatalogAdapter(BaseIdentifiedRecommender):
                 )
                 self._mapping_by_device[device] = mapping
             return mapping
+
+    def _remap_predictions(
+        self,
+        predictions: SRPTensor,
+        *,
+        n_rows: int,
+    ) -> SRPTensor:
+        """Express wrapped-model prediction columns in the expanded catalog."""
+        if not isinstance(predictions, SRPTensor):
+            raise TypeError("model prediction must be an SRPTensor")
+        if predictions.rows != n_rows:
+            raise ValueError("model prediction rows must match the source rows")
+        if predictions.cols_total != len(self.train_item_ids):
+            raise ValueError(
+                "model prediction items must match train_item_ids: expected "
+                f"{len(self.train_item_ids)}, got {predictions.cols_total}"
+            )
+
+        mapping = self._mapping_on(predictions.cols.device)
+        return SRPTensor(
+            cols=mapping[predictions.cols],
+            vals=predictions.vals,
+            shape=(predictions.rows, self.catalog_size),
+            validate=False,
+        )
 
     def predict_on_batch(
         self,
@@ -448,25 +515,7 @@ class WarmCatalogAdapter(BaseIdentifiedRecommender):
             exclude_seen=exclude_seen,
             **kwargs,
         )
-        if not isinstance(predictions, SRPTensor):
-            raise TypeError("model.predict_on_batch() must return an SRPTensor")
-        if predictions.rows != n_rows:
-            raise ValueError(
-                "model prediction rows must match the source rows"
-            )
-        if predictions.cols_total != len(self.train_item_ids):
-            raise ValueError(
-                "model prediction items must match train_item_ids: expected "
-                f"{len(self.train_item_ids)}, got {predictions.cols_total}"
-            )
-
-        mapping = self._mapping_on(predictions.cols.device)
-        return SRPTensor(
-            cols=mapping[predictions.cols],
-            vals=predictions.vals,
-            shape=(predictions.rows, self.catalog_size),
-            validate=False,
-        )
+        return self._remap_predictions(predictions, n_rows=n_rows)
 
 
 @dataclass(frozen=True, init=False)
@@ -1291,6 +1340,29 @@ class BaseColdStartRecommender(BasePersistableRecommender):
             candidate_ids=candidate_ids,
         )
 
+    def _predict_identified_with_reporting(
+        self,
+        source: csr_matrix | ItemSequences,
+        *,
+        k: int,
+        exclude_seen: bool,
+        candidate_ids: np.ndarray,
+        reporter: _Reporter,
+    ) -> SRPTensor:
+        if not isinstance(source, csr_matrix):
+            raise TypeError("cold-start recommendations require a CSR source")
+        predict = self.predict
+        if not _accepts_reporting_keywords(predict):
+            predict = BaseColdStartRecommender.predict.__get__(self)
+        return predict(
+            source,
+            k=k,
+            exclude_seen=exclude_seen,
+            candidate_ids=candidate_ids,
+            logger=reporter,
+            show_progress=_INHERIT,
+        )
+
     @property
     @abstractmethod
     def is_fitted(self) -> bool:
@@ -1340,9 +1412,11 @@ class BaseColdStartRecommender(BasePersistableRecommender):
         batch_size: int = 1024,
         exclude_seen: bool = True,
         candidate_ids: Sequence[Hashable] | np.ndarray | None = None,
-        show_progress: bool = False,
+        logger: Any | None = _INHERIT,
+        show_progress: bool | None | _Inherit = _INHERIT,
     ) -> SRPTensor:
         """Predict all source rows by repeatedly calling ``predict_on_batch``."""
+        reporter = self._prediction_reporter(logger, show_progress)
         source = self._prepare_source(source)
         if batch_size < 1:
             raise ValueError("batch_size must be >= 1")
@@ -1358,17 +1432,20 @@ class BaseColdStartRecommender(BasePersistableRecommender):
         columns: list[torch.Tensor] = []
         values: list[torch.Tensor] = []
         starts = range(0, source.shape[0], batch_size)
-        if show_progress:
-            try:
-                from tqdm.auto import tqdm
-
-                starts = tqdm(
-                    starts,
-                    desc=f"{type(self).__name__} predict@{k}",
-                )
-            except Exception:  # pragma: no cover - optional display helper
-                pass
-        for start in starts:
+        steps = len(starts)
+        started = time.monotonic()
+        reporter.log(
+            f"predict@{k} started: {source.shape[0]} rows | "
+            f"{steps} batches of {batch_size}"
+        )
+        for step, start in enumerate(
+            reporter.wrap(
+                starts,
+                total=steps,
+                desc=f"{type(self).__name__} predict@{k}",
+            ),
+            start=1,
+        ):
             result = self.predict_on_batch(
                 source[start : start + batch_size],
                 k=k,
@@ -1381,20 +1458,35 @@ class BaseColdStartRecommender(BasePersistableRecommender):
                 )
             columns.append(result.cols)
             values.append(result.vals)
+            log_steps = reporter.log_every_n_steps
+            if log_steps and step % log_steps == 0:
+                reporter.step(
+                    f"predict@{k} step {step}/{steps}",
+                    step,
+                    steps,
+                    started,
+                )
 
         if not columns:
-            return self.predict_on_batch(
+            prediction = self.predict_on_batch(
                 source,
                 k=k,
                 exclude_seen=exclude_seen,
                 candidate_ids=candidate_ids,
             )
-        return SRPTensor(
-            cols=torch.vstack(columns),
-            vals=torch.vstack(values),
-            shape=(source.shape[0], catalog.n_items),
-            validate=False,
+        else:
+            prediction = SRPTensor(
+                cols=torch.vstack(columns),
+                vals=torch.vstack(values),
+                shape=(source.shape[0], catalog.n_items),
+                validate=False,
+            )
+        reporter.log(
+            f"predict@{k} finished: "
+            f"{_format_duration(time.monotonic() - started)} total | "
+            f"{source.shape[0]} rows"
         )
+        return prediction
 
     def _on_catalog_published(self, catalog: CandidateCatalog) -> None:
         """Called with each new snapshot, for dropping caches derived from it."""
@@ -1611,9 +1703,11 @@ class _LinearFeatureRecommenderMixin(BaseColdStartRecommender):
         batch_size: int = 1024,
         exclude_seen: bool = True,
         candidate_ids: Sequence[Hashable] | np.ndarray | None = None,
-        show_progress: bool = False,
+        logger: Any | None = _INHERIT,
+        show_progress: bool | None | _Inherit = _INHERIT,
     ) -> SRPTensor:
         """Predict ranked top-``k`` items for all source rows in batches."""
+        reporter = self._prediction_reporter(logger, show_progress)
         source = self._prepare_source(source)
         if batch_size < 1:
             raise ValueError("batch_size must be >= 1")
@@ -1624,14 +1718,20 @@ class _LinearFeatureRecommenderMixin(BaseColdStartRecommender):
         columns: list[torch.Tensor] = []
         values: list[torch.Tensor] = []
         starts = range(0, source.shape[0], batch_size)
-        if show_progress:
-            try:
-                from tqdm.auto import tqdm
-
-                starts = tqdm(starts, desc=f"{self._model_name} predict@{k}")
-            except Exception:  # pragma: no cover - optional display helper
-                pass
-        for start in starts:
+        steps = len(starts)
+        started = time.monotonic()
+        reporter.log(
+            f"predict@{k} started: {source.shape[0]} rows | "
+            f"{steps} batches of {batch_size}"
+        )
+        for step, start in enumerate(
+            reporter.wrap(
+                starts,
+                total=steps,
+                desc=f"{self._model_name} predict@{k}",
+            ),
+            start=1,
+        ):
             end = min(start + batch_size, source.shape[0])
             predictions = self._predict_prepared_batch(
                 source[start:end],
@@ -1645,9 +1745,17 @@ class _LinearFeatureRecommenderMixin(BaseColdStartRecommender):
             )
             columns.append(predictions.cols)
             values.append(predictions.vals)
+            log_steps = reporter.log_every_n_steps
+            if log_steps and step % log_steps == 0:
+                reporter.step(
+                    f"predict@{k} step {step}/{steps}",
+                    step,
+                    steps,
+                    started,
+                )
 
         if not columns:
-            return self._predict_prepared_batch(
+            prediction = self._predict_prepared_batch(
                 source,
                 k=k,
                 exclude_seen=exclude_seen,
@@ -1657,8 +1765,15 @@ class _LinearFeatureRecommenderMixin(BaseColdStartRecommender):
                 source_to_candidate_rows=selection.source_to_candidate,
                 candidate_to_local=selection.candidate_to_local,
             )
-        return SRPTensor(
-            cols=torch.vstack(columns),
-            vals=torch.vstack(values),
-            shape=(source.shape[0], selection.catalog.n_items),
+        else:
+            prediction = SRPTensor(
+                cols=torch.vstack(columns),
+                vals=torch.vstack(values),
+                shape=(source.shape[0], selection.catalog.n_items),
+            )
+        reporter.log(
+            f"predict@{k} finished: "
+            f"{_format_duration(time.monotonic() - started)} total | "
+            f"{source.shape[0]} rows"
         )
+        return prediction

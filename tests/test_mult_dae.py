@@ -55,12 +55,80 @@ def test_mult_dae_fit_records_history_and_rebuilds_catalog(interactions):
     assert trainer.is_fitted
     assert trainer.n_items == interactions.shape[1]
     assert len(trainer.history) == 2
-    assert all(np.isfinite(entry["loss"]) for entry in trainer.history)
+    assert all(
+        set(entry) == {"epoch", "reconstruction_loss"}
+        and np.isfinite(entry["reconstruction_loss"])
+        for entry in trainer.history
+    )
 
     wider = csr_matrix(np.pad(interactions.toarray(), ((0, 0), (0, 1))))
     trainer.fit(wider)
     assert trainer.n_items == wider.shape[1]
     assert trainer.model.n_items == wider.shape[1]
+
+
+def test_mult_dae_failed_initial_fit_leaves_trainer_unfitted(
+    interactions,
+    monkeypatch,
+    tmp_path,
+):
+    trainer = MultDAETrainer(_config())
+
+    def fail_train_step(target):
+        del target
+        raise RuntimeError("injected training failure")
+
+    monkeypatch.setattr(trainer, "_train_step", fail_train_step)
+
+    with pytest.raises(RuntimeError, match="injected training failure"):
+        trainer.fit(interactions)
+
+    assert not trainer.is_fitted
+    assert trainer.n_items is None
+    assert trainer.model is None
+    assert trainer.optimizer is None
+    assert trainer.history == []
+    assert trainer.training_data_preloaded_ is None
+    assert "_item_vocabulary" not in trainer.__dict__
+    with pytest.raises(RuntimeError, match="must be fitted"):
+        trainer.predict_on_batch(interactions[:1], k=1)
+    with pytest.raises(RuntimeError, match="must be fitted"):
+        trainer.save(tmp_path / "failed-mult-dae.zip")
+
+
+def test_mult_dae_failed_refit_preserves_previous_model(
+    interactions,
+    tmp_path,
+):
+    item_ids = np.array([f"item-{i}" for i in range(interactions.shape[1])])
+    trainer = MultDAETrainer(_config()).fit(interactions, item_ids=item_ids)
+    before = trainer.predict_on_batch(interactions[:2], k=2)
+    previous_model = trainer.model
+    previous_optimizer = trainer.optimizer
+    previous_history = trainer.history
+    previous_preloaded = trainer.training_data_preloaded_
+    wider = csr_matrix(np.pad(interactions.toarray(), ((0, 0), (0, 1))))
+
+    with pytest.raises(ValueError, match="item_ids has 1 entries"):
+        trainer.fit(wider, item_ids=["invalid"])
+
+    assert trainer.is_fitted
+    assert trainer.n_items == interactions.shape[1]
+    assert trainer.model is previous_model
+    assert trainer.optimizer is previous_optimizer
+    assert trainer.history is previous_history
+    assert trainer.training_data_preloaded_ is previous_preloaded
+    np.testing.assert_array_equal(trainer.source_item_ids, item_ids)
+    after = trainer.predict_on_batch(interactions[:2], k=2)
+    torch.testing.assert_close(after.cols, before.cols)
+    torch.testing.assert_close(after.vals, before.vals)
+
+    path = tmp_path / "preserved-mult-dae.zip"
+    trainer.save(path)
+    restored = MultDAETrainer.load(path)
+    assert restored.is_fitted
+    assert restored.n_items == interactions.shape[1]
+    np.testing.assert_array_equal(restored.source_item_ids, item_ids)
 
 
 def test_mult_dae_prediction_excludes_seen_and_selects_candidates(interactions):

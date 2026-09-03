@@ -17,16 +17,6 @@ __all__ = ["EASE", "EASEConfig"]
 EASEDataType = Literal["float32", "float64"]
 
 
-def _progress(iterable, *, enabled: bool, desc: str):
-    if not enabled:
-        return iterable
-    try:
-        from tqdm.auto import tqdm
-    except Exception:  # pragma: no cover - optional display helper
-        return iterable
-    return tqdm(iterable, desc=desc)
-
-
 @dataclass(frozen=True)
 class EASEConfig:
     """Configuration for :class:`EASE`.
@@ -93,6 +83,8 @@ class EASE(BaseCollaborativeRecommender):
         if interactions.shape[0] < 1 or interactions.shape[1] < 1:
             raise ValueError("interactions must contain at least one user and one item")
 
+        n_items = int(interactions.shape[1])
+        vocabulary = self._prepare_item_vocabulary(item_ids, n_items=n_items)
         x = interactions.astype(self.dtype, copy=False)
         gram = (x.T @ x).toarray()
         diagonal_indices = np.diag_indices(gram.shape[0])
@@ -107,8 +99,8 @@ class EASE(BaseCollaborativeRecommender):
         coefficients /= -precision_diagonal
         coefficients[diagonal_indices] = 0
         self.coefficients_ = coefficients
-        self.n_items_ = int(interactions.shape[1])
-        self._set_item_ids(item_ids, n_items=self.n_items_)
+        self.n_items_ = n_items
+        self._publish_item_vocabulary(vocabulary)
         return self
 
     @classmethod
@@ -218,50 +210,5 @@ class EASE(BaseCollaborativeRecommender):
         return SRPTensor(
             cols=global_rows[local.cols],
             vals=local.vals,
-            shape=source.shape,
-        )
-
-    def predict(
-        self,
-        source: csr_matrix,
-        *,
-        k: int = 100,
-        batch_size: int = 1024,
-        exclude_seen: bool = True,
-        candidate_ids: Sequence[Hashable] | np.ndarray | None = None,
-        show_progress: bool = False,
-    ) -> SRPTensor:
-        """Predict ranked top-``k`` items for all source rows in batches."""
-        source = self._prepare_source(source)
-        if batch_size < 1:
-            raise ValueError("batch_size must be >= 1")
-        candidate_count = int(self._candidate_rows(candidate_ids).size)
-        if not 1 <= int(k) <= candidate_count:
-            raise ValueError(f"k must be in [1, {candidate_count}], got {k}")
-
-        columns: list[torch.Tensor] = []
-        values: list[torch.Tensor] = []
-        starts = range(0, source.shape[0], batch_size)
-        for start in _progress(starts, enabled=show_progress, desc=f"EASE predict@{k}"):
-            end = min(start + batch_size, source.shape[0])
-            predictions = self.predict_on_batch(
-                source[start:end],
-                k=k,
-                exclude_seen=exclude_seen,
-                candidate_ids=candidate_ids,
-            )
-            columns.append(predictions.cols)
-            values.append(predictions.vals)
-
-        if not columns:
-            return self.predict_on_batch(
-                source,
-                k=k,
-                exclude_seen=exclude_seen,
-                candidate_ids=candidate_ids,
-            )
-        return SRPTensor(
-            cols=torch.vstack(columns),
-            vals=torch.vstack(values),
             shape=source.shape,
         )
