@@ -76,6 +76,7 @@ def _trainer(**overrides) -> ELSATrainer:
 def _compressed_trainer(
     *,
     compression: ELSACompressionConfig | None = None,
+    logger=None,
     **overrides,
 ) -> ELSATrainer:
     defaults = {
@@ -99,7 +100,8 @@ def _compressed_trainer(
                 change_threshold=100.0,
                 mask_update_interval=1,
             ),
-        )
+        ),
+        logger=logger,
     )
 
 
@@ -563,6 +565,40 @@ def test_compressed_stage_can_be_forced_after_epoch_limit(
     assert output.count("[ELSATrainer] Forced rewind") == 2
     assert "max_epochs_per_stage=1" in output
     assert "'schedule_done': True" in output
+
+
+def test_forced_rewind_uses_logger_without_writing_stdout(
+    interactions,
+    capsys,
+):
+    class RecordingLogger:
+        def __init__(self):
+            self.lines: list[str] = []
+
+        def info(self, message: str) -> None:
+            self.lines.append(message)
+
+    logger = RecordingLogger()
+    trainer = _compressed_trainer(
+        epochs=1,
+        logger=logger,
+        compression=ELSACompressionConfig(
+            k_target=2,
+            k_schedule=(4, 3, 2),
+            stability_window=100,
+            change_threshold=0.0,
+            mask_update_interval=1,
+            max_epochs_per_stage=1,
+        ),
+    ).fit(interactions)
+
+    forced = [line for line in logger.lines if "Forced rewind" in line]
+    assert len(forced) == 2
+    assert all(line.startswith("[ELSA] Forced rewind") for line in forced)
+    assert any("max_epochs_per_stage=1" in line for line in forced)
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err == ""
 
 
 def test_compressed_export_is_l2_normalized(interactions):

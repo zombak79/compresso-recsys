@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from dataclasses import asdict, is_dataclass, replace
 from pathlib import Path
 import re
+import time
 from typing import (
     Any,
     ClassVar,
@@ -21,6 +22,13 @@ from scipy.sparse import csr_matrix
 from torch import nn
 
 from compresso import SRPTensor
+from compresso_recsys._reporting import (
+    _INHERIT,
+    _Inherit,
+    _Reporter,
+    _format_duration,
+    _resolve_reporter,
+)
 from compresso_recsys.checkpoint import (
     load_manifest,
     read_checkpoint,
@@ -241,6 +249,24 @@ class BaseIdentifiedRecommender(ABC):
     ) -> np.ndarray:
         """Candidate rows eligible before request-specific filters."""
         return np.arange(vocabulary.n_items, dtype=np.int64)
+
+    def _prediction_reporter(
+        self,
+        logger: Any,
+        show_progress: Any,
+    ) -> _Reporter:
+        """Resolve reporting for a base-provided batched prediction call."""
+        config = getattr(self, "cfg", None)
+        return _resolve_reporter(
+            default_logger=getattr(self, "logger", None),
+            logger=logger,
+            # Base prediction has always defaulted to a quiet serving path,
+            # independently of a trainer's fit-time progress setting.
+            default_show_progress=False,
+            show_progress=show_progress,
+            prefix=getattr(config, "log_prefix", type(self).__name__),
+            log_every_n_steps=getattr(config, "log_every_n_steps", 0),
+        )
 
     def recommend(
         self,
@@ -771,9 +797,11 @@ class BaseCollaborativeRecommender(BasePersistableRecommender):
         batch_size: int = 1024,
         exclude_seen: bool = True,
         candidate_ids: Sequence[Hashable] | np.ndarray | None = None,
-        show_progress: bool = False,
+        logger: Any | None = _INHERIT,
+        show_progress: bool | None | _Inherit = _INHERIT,
     ) -> SRPTensor:
         """Predict all source rows by repeatedly calling ``predict_on_batch``."""
+        reporter = self._prediction_reporter(logger, show_progress)
         source = self._prepare_source(source)
         if batch_size < 1:
             raise ValueError("batch_size must be >= 1")
@@ -784,17 +812,20 @@ class BaseCollaborativeRecommender(BasePersistableRecommender):
         columns: list[torch.Tensor] = []
         values: list[torch.Tensor] = []
         starts = range(0, source.shape[0], batch_size)
-        if show_progress:
-            try:
-                from tqdm.auto import tqdm
-
-                starts = tqdm(
-                    starts,
-                    desc=f"{type(self).__name__} predict@{k}",
-                )
-            except Exception:  # pragma: no cover - optional display helper
-                pass
-        for start in starts:
+        steps = len(starts)
+        started = time.monotonic()
+        reporter.log(
+            f"predict@{k} started: {source.shape[0]} rows | "
+            f"{steps} batches of {batch_size}"
+        )
+        for step, start in enumerate(
+            reporter.wrap(
+                starts,
+                total=steps,
+                desc=f"{type(self).__name__} predict@{k}",
+            ),
+            start=1,
+        ):
             kwargs = (
                 {}
                 if candidate_ids is None
@@ -812,6 +843,14 @@ class BaseCollaborativeRecommender(BasePersistableRecommender):
                 )
             columns.append(result.cols)
             values.append(result.vals)
+            log_steps = reporter.log_every_n_steps
+            if log_steps and step % log_steps == 0:
+                reporter.step(
+                    f"predict@{k} step {step}/{steps}",
+                    step,
+                    steps,
+                    started,
+                )
 
         if not columns:
             kwargs = (
@@ -819,18 +858,25 @@ class BaseCollaborativeRecommender(BasePersistableRecommender):
                 if candidate_ids is None
                 else {"candidate_ids": candidate_ids}
             )
-            return self.predict_on_batch(
+            prediction = self.predict_on_batch(
                 source,
                 k=k,
                 exclude_seen=exclude_seen,
                 **kwargs,
             )
-        return SRPTensor(
-            cols=torch.vstack(columns),
-            vals=torch.vstack(values),
-            shape=source.shape,
-            validate=False,
+        else:
+            prediction = SRPTensor(
+                cols=torch.vstack(columns),
+                vals=torch.vstack(values),
+                shape=source.shape,
+                validate=False,
+            )
+        reporter.log(
+            f"predict@{k} finished: "
+            f"{_format_duration(time.monotonic() - started)} total | "
+            f"{source.shape[0]} rows"
         )
+        return prediction
 
 
 @runtime_checkable
@@ -980,9 +1026,11 @@ class BaseSequentialRecommender(BasePersistableRecommender):
         batch_size: int = 1024,
         exclude_seen: bool = True,
         candidate_ids: Sequence[Hashable] | np.ndarray | None = None,
-        show_progress: bool = False,
+        logger: Any | None = _INHERIT,
+        show_progress: bool | None | _Inherit = _INHERIT,
     ) -> SRPTensor:
         """Predict all histories by repeatedly calling ``predict_on_batch``."""
+        reporter = self._prediction_reporter(logger, show_progress)
         source = self._prepare_source(source)
         if batch_size < 1:
             raise ValueError("batch_size must be >= 1")
@@ -993,14 +1041,20 @@ class BaseSequentialRecommender(BasePersistableRecommender):
         columns: list[torch.Tensor] = []
         values: list[torch.Tensor] = []
         starts = range(0, source.n_rows, batch_size)
-        if show_progress:
-            try:
-                from tqdm.auto import tqdm
-
-                starts = tqdm(starts, desc=f"{type(self).__name__} predict@{k}")
-            except Exception:  # pragma: no cover - optional display helper
-                pass
-        for start in starts:
+        steps = len(starts)
+        started = time.monotonic()
+        reporter.log(
+            f"predict@{k} started: {source.n_rows} rows | "
+            f"{steps} batches of {batch_size}"
+        )
+        for step, start in enumerate(
+            reporter.wrap(
+                starts,
+                total=steps,
+                desc=f"{type(self).__name__} predict@{k}",
+            ),
+            start=1,
+        ):
             kwargs = (
                 {}
                 if candidate_ids is None
@@ -1018,6 +1072,14 @@ class BaseSequentialRecommender(BasePersistableRecommender):
                 )
             columns.append(result.cols)
             values.append(result.vals)
+            log_steps = reporter.log_every_n_steps
+            if log_steps and step % log_steps == 0:
+                reporter.step(
+                    f"predict@{k} step {step}/{steps}",
+                    step,
+                    steps,
+                    started,
+                )
 
         if not columns:
             kwargs = (
@@ -1025,14 +1087,21 @@ class BaseSequentialRecommender(BasePersistableRecommender):
                 if candidate_ids is None
                 else {"candidate_ids": candidate_ids}
             )
-            return self.predict_on_batch(
+            prediction = self.predict_on_batch(
                 source,
                 k=k,
                 exclude_seen=exclude_seen,
                 **kwargs,
             )
-        return SRPTensor(
-            cols=torch.vstack(columns),
-            vals=torch.vstack(values),
-            shape=(source.n_rows, self.n_items),
+        else:
+            prediction = SRPTensor(
+                cols=torch.vstack(columns),
+                vals=torch.vstack(values),
+                shape=(source.n_rows, self.n_items),
+            )
+        reporter.log(
+            f"predict@{k} finished: "
+            f"{_format_duration(time.monotonic() - started)} total | "
+            f"{source.n_rows} rows"
         )
+        return prediction

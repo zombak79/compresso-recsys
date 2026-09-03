@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import time
 import warnings
 from dataclasses import dataclass
-from typing import Hashable, Literal, Sequence
+from typing import Any, Hashable, Literal, Sequence
 
 import numpy as np
 import torch
@@ -11,6 +12,14 @@ from scipy.sparse import csr_matrix
 from torch import nn
 
 from compresso import MaskedParam, SRPParam, SRPTensor, SparsityController
+from compresso_recsys._reporting import (
+    _INHERIT,
+    _Inherit,
+    _Reporter,
+    _format_duration,
+    _resolve_reporter,
+    _validate_log_every_n_steps,
+)
 from compresso_recsys.persistence import ModelCheckpointReader, ModelCheckpointWriter
 from compresso_recsys.models._batching import (
     InteractionBatchSampler,
@@ -204,8 +213,11 @@ class ELSAConfig:
     use_relu: bool = True
     optimizer: OptimizerName = "NAdam"
     compression: ELSACompressionConfig | None = None
+    log_prefix: str = "ELSA"
+    log_every_n_steps: int = 1000
 
     def __post_init__(self) -> None:
+        _validate_log_every_n_steps(self.log_every_n_steps)
         if self.latent_dim < 1:
             raise ValueError("latent_dim must be >= 1")
         if self.batch_size < 1:
@@ -512,8 +524,13 @@ class ELSATrainer(BaseCollaborativeRecommender):
 
     checkpoint_type = "elsa_trainer"
 
-    def __init__(self, config: ELSAConfig | None = None) -> None:
+    def __init__(
+        self,
+        config: ELSAConfig | None = None,
+        logger: Any | None = None,
+    ) -> None:
         self.cfg = config if config is not None else ELSAConfig()
+        self.logger = logger
         self.input_dim: int | None = None
         self.elsa: ELSA | CompressedELSA | nn.Module | None = None
         self.optimizer: torch.optim.Optimizer | None = None
@@ -677,24 +694,15 @@ class ELSATrainer(BaseCollaborativeRecommender):
         if isinstance(self.elsa, CompressedELSA):
             self.elsa.prepare_inference()
 
-    def _progress(self, iterable, *, total: int, desc: str):
-        if not self.cfg.show_progress:
-            return iterable
-        try:
-            from tqdm.auto import tqdm
-        except Exception:  # pragma: no cover - optional dependency fallback
-            return iterable
-        return tqdm(iterable, total=total, desc=desc)
-
-    def _progress_bar(self, *, total: int, desc: str):
-        """A bar to drive by hand, or ``None`` when progress is unavailable."""
-        if not self.cfg.show_progress:
-            return None
-        try:
-            from tqdm.auto import tqdm
-        except Exception:  # pragma: no cover - optional dependency fallback
-            return None
-        return tqdm(total=total, desc=desc)
+    def _reporter(self, logger: Any, show_progress: Any) -> _Reporter:
+        return _resolve_reporter(
+            default_logger=self.logger,
+            logger=logger,
+            default_show_progress=self.cfg.show_progress,
+            show_progress=show_progress,
+            prefix=self.cfg.log_prefix,
+            log_every_n_steps=self.cfg.log_every_n_steps,
+        )
 
     def _set_lr(self, learning_rate: float) -> None:
         if self.optimizer is None:
@@ -758,6 +766,8 @@ class ELSATrainer(BaseCollaborativeRecommender):
         dataset: _ELSAInteractionDataset,
         *,
         desc: str,
+        reporter: _Reporter,
+        started: float,
         bar=None,
     ) -> tuple[dict[str, float], bool]:
         """Run one epoch, reporting into a caller-owned bar when given.
@@ -778,6 +788,18 @@ class ELSATrainer(BaseCollaborativeRecommender):
             n_batches += 1
             if bar is not None:
                 bar.update(1)
+            log_steps = reporter.log_every_n_steps
+            if log_steps and n_batches % log_steps == 0:
+                reporter.step(
+                    f"{desc} step {n_batches}/{len(dataset)}",
+                    n_batches,
+                    len(dataset),
+                    started,
+                    {
+                        key: value / n_batches
+                        for key, value in sums.items()
+                    },
+                )
             if bool(self._last_controller_info.get("rewind_triggered", False)):
                 rewind_triggered = True
                 break
@@ -792,6 +814,7 @@ class ELSATrainer(BaseCollaborativeRecommender):
         dataset: _ELSAInteractionDataset,
         *,
         phase: str | None,
+        reporter: _Reporter,
     ) -> None:
         self._set_lr(float(self.cfg.lr))
         assert self.optimizer is not None
@@ -804,17 +827,20 @@ class ELSATrainer(BaseCollaborativeRecommender):
             if self.cfg.decay
             else None
         )
-        epoch_iter = self._progress(
+        epoch_iter = reporter.wrap(
             range(1, self.cfg.epochs + 1),
             total=self.cfg.epochs,
             desc="ELSA fit" if phase is None else "ELSA sparse fine-tune",
         )
-        batch_bar = self._progress_bar(total=len(dataset), desc="ELSA epoch 1")
+        batch_bar = reporter.bar(total=len(dataset), desc="ELSA epoch 1")
         try:
             for epoch in epoch_iter:
+                epoch_started = time.monotonic()
                 record: dict[str, float | str] = self._run_epoch(
                     dataset,
                     desc=f"ELSA epoch {epoch}",
+                    reporter=reporter,
+                    started=epoch_started,
                     bar=batch_bar,
                 )[0]
                 record["epoch"] = float(epoch)
@@ -822,6 +848,11 @@ class ELSATrainer(BaseCollaborativeRecommender):
                 if phase is not None:
                     record["phase"] = phase
                 self.history.append(record)
+                reporter.epoch(
+                    f"epoch {epoch}/{self.cfg.epochs}",
+                    record,
+                    epoch_started,
+                )
                 if hasattr(epoch_iter, "set_postfix"):
                     epoch_iter.set_postfix(
                         {
@@ -841,6 +872,8 @@ class ELSATrainer(BaseCollaborativeRecommender):
     def _fit_compressed_mask_search(
         self,
         dataset: _ELSAInteractionDataset,
+        *,
+        reporter: _Reporter,
     ) -> CompressedELSA:
         if not isinstance(self.elsa, CompressedELSA):
             raise RuntimeError("compressed ELSA model was not built")
@@ -848,7 +881,7 @@ class ELSATrainer(BaseCollaborativeRecommender):
         stage_epoch = 0
         # Mask search runs an unbounded number of epochs, so one reused bar
         # matters even more here than during fixed-epoch training.
-        batch_bar = self._progress_bar(
+        batch_bar = reporter.bar(
             total=len(dataset),
             desc="ELSA mask stage 1 epoch 1",
         )
@@ -861,9 +894,13 @@ class ELSATrainer(BaseCollaborativeRecommender):
                 stage_epoch += 1
                 stage_idx = int(masked_A.stage_idx)
                 k_current = int(masked_A.k_current)
+                epoch_started = time.monotonic()
+                epoch_desc = f"ELSA mask stage {stage_idx + 1} epoch {stage_epoch}"
                 record: dict[str, float | str] = self._run_epoch(
                     dataset,
-                    desc=(f"ELSA mask stage {stage_idx + 1} " f"epoch {stage_epoch}"),
+                    desc=epoch_desc,
+                    reporter=reporter,
+                    started=epoch_started,
                     bar=batch_bar,
                 )[0]
                 rewind_triggered = bool(
@@ -884,11 +921,15 @@ class ELSATrainer(BaseCollaborativeRecommender):
                     # public forced-stage transition on SparsityController.
                     masked_A.stage_completed = True
                     rewind_stats = masked_A.rewind()
-                    print(
-                        "[ELSATrainer] Forced rewind "
+                    message = (
+                        "Forced rewind "
                         f"(max_epochs_per_stage={max_stage_epochs}): "
                         f"{rewind_stats}"
                     )
+                    if reporter.logger is not None:
+                        reporter.log(message)
+                    elif reporter.allow_stdout_fallback:
+                        print(f"[ELSATrainer] {message}")
                     if self.sparsity_controller is not None:
                         self.sparsity_controller.num_restarts += 1
                     rewind_triggered = True
@@ -906,6 +947,7 @@ class ELSATrainer(BaseCollaborativeRecommender):
                     }
                 )
                 self.history.append(record)
+                reporter.epoch(epoch_desc, record, epoch_started)
                 if not rewind_triggered:
                     continue
 
@@ -930,8 +972,11 @@ class ELSATrainer(BaseCollaborativeRecommender):
         interactions: csr_matrix,
         *,
         item_ids: Sequence[Hashable] | np.ndarray | None = None,
+        logger: Any | None = _INHERIT,
+        show_progress: bool | None | _Inherit = _INHERIT,
     ) -> ELSATrainer:
         """Fit dense ELSA or search and fine-tune a compressed ELSA ticket."""
+        reporter = self._reporter(logger, show_progress)
         interactions = canonical_csr(interactions, name="interactions")
         if interactions.shape[0] < 1 or interactions.shape[1] < 1:
             raise ValueError("interactions must contain at least one user and one item")
@@ -945,8 +990,15 @@ class ELSATrainer(BaseCollaborativeRecommender):
             seed=self.cfg.seed,
         )
         self._set_lr(float(self.cfg.lr))
+        fit_started = time.monotonic()
+        reporter.log(
+            "fit started: "
+            f"{interactions.shape[0]} users | {interactions.shape[1]} items | "
+            f"{interactions.nnz} interactions | {len(dataset)} batches of "
+            f"{self.cfg.batch_size} | {self.cfg.epochs} epochs | device {self.device}"
+        )
         if self.cfg.compression is None:
-            self._fit_fixed_epochs(dataset, phase=None)
+            self._fit_fixed_epochs(dataset, phase=None, reporter=reporter)
         else:
             if not isinstance(self.elsa, CompressedELSA):
                 raise RuntimeError("compressed ELSA model was not built")
@@ -955,12 +1007,23 @@ class ELSATrainer(BaseCollaborativeRecommender):
                 model.train()
                 self._reset_optimizer()
             else:
-                model = self._fit_compressed_mask_search(dataset)
-            self._fit_fixed_epochs(dataset, phase="sparse_finetune")
+                model = self._fit_compressed_mask_search(
+                    dataset,
+                    reporter=reporter,
+                )
+            self._fit_fixed_epochs(
+                dataset,
+                phase="sparse_finetune",
+                reporter=reporter,
+            )
             model.prepare_inference()
         self._is_fitted = True
         assert self.input_dim is not None
         self._set_item_ids(item_ids, n_items=self.input_dim)
+        reporter.log(
+            f"fit finished: {_format_duration(time.monotonic() - fit_started)} total | "
+            f"{len(self.history)} epochs recorded"
+        )
         return self
 
     def _prepare_source(self, source: csr_matrix) -> csr_matrix:
@@ -1074,7 +1137,8 @@ class ELSATrainer(BaseCollaborativeRecommender):
         batch_size: int | None = None,
         exclude_seen: bool = True,
         candidate_ids: Sequence[Hashable] | np.ndarray | None = None,
-        show_progress: bool | None = None,
+        logger: Any | None = _INHERIT,
+        show_progress: bool | None | _Inherit = _INHERIT,
         sparse_inference_backend: SparseInferenceBackend | None = None,
     ) -> SRPTensor:
         """Predict ranked items for all source rows in batches.
@@ -1093,21 +1157,21 @@ class ELSATrainer(BaseCollaborativeRecommender):
         candidate_count = int(self._candidate_rows(candidate_ids).size)
         if not 1 <= int(k) <= candidate_count:
             raise ValueError(f"k must be in [1, {candidate_count}], got {k}")
-        progress_enabled = (
-            self.cfg.show_progress if show_progress is None else bool(show_progress)
-        )
+        reporter = self._reporter(logger, show_progress)
 
         columns: list[torch.Tensor] = []
         values: list[torch.Tensor] = []
         starts = range(0, source.shape[0], resolved_batch_size)
-        if progress_enabled:
-            try:
-                from tqdm.auto import tqdm
-            except Exception:  # pragma: no cover - optional dependency fallback
-                pass
-            else:
-                starts = tqdm(starts, desc=f"ELSA predict@{k}")
-        for start in starts:
+        steps = len(starts)
+        started = time.monotonic()
+        reporter.log(
+            f"predict@{k} started: {source.shape[0]} rows | "
+            f"{steps} batches of {resolved_batch_size} | device {self.device}"
+        )
+        for step, start in enumerate(
+            reporter.wrap(starts, total=steps, desc=f"ELSA predict@{k}"),
+            start=1,
+        ):
             end = min(start + resolved_batch_size, source.shape[0])
             predictions = self.predict_on_batch(
                 source[start:end],
@@ -1118,17 +1182,32 @@ class ELSATrainer(BaseCollaborativeRecommender):
             )
             columns.append(predictions.cols)
             values.append(predictions.vals)
+            log_steps = reporter.log_every_n_steps
+            if log_steps and step % log_steps == 0:
+                reporter.step(
+                    f"predict@{k} step {step}/{steps}",
+                    step,
+                    steps,
+                    started,
+                )
 
         if not columns:
-            return self.predict_on_batch(
+            result = self.predict_on_batch(
                 source,
                 k=k,
                 exclude_seen=exclude_seen,
                 candidate_ids=candidate_ids,
                 sparse_inference_backend=sparse_inference_backend,
             )
-        return SRPTensor(
-            cols=torch.vstack(columns),
-            vals=torch.vstack(values),
-            shape=source.shape,
+        else:
+            result = SRPTensor(
+                cols=torch.vstack(columns),
+                vals=torch.vstack(values),
+                shape=source.shape,
+            )
+        reporter.log(
+            f"predict@{k} finished: "
+            f"{_format_duration(time.monotonic() - started)} total | "
+            f"{source.shape[0]} rows"
         )
+        return result

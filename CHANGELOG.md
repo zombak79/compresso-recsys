@@ -2,6 +2,11 @@
 
 ### Added
 
+- Duck-typed job loggers for ELSA, Mult-DAE, Mult-VAE, SimpleGPT, SimpleRNN,
+  and TEASER-GD training and prediction, plus streaming evaluation. Logger
+  reporting includes epoch and configurable intra-epoch progress, supersedes
+  tqdm automatically, and latches off safely if a handler raises. The notebook
+  display now consistently uses an epoch bar plus one reusable batch bar.
 - `RandomBaseline` and `PopularityBaseline` as reproducible experiment sanity
   checks, with the same stable-ID recommendation and persistence APIs as learned
   collaborative models.

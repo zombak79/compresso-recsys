@@ -8,11 +8,17 @@ import numpy as np
 import pytest
 from scipy.sparse import csr_matrix
 
+from compresso_recsys.evaluation import evaluate_recommender
+from compresso_recsys.metrics import CalibratedRecall
 from compresso_recsys.models import (
     ELSACompressionConfig,
     ELSAConfig,
     ELSATrainer,
     ItemTokenizer,
+    MultDAEConfig,
+    MultDAETrainer,
+    MultVAEConfig,
+    MultVAETrainer,
     SequenceBatcher,
     SimpleGPTConfig,
     SimpleGPTTrainer,
@@ -25,6 +31,25 @@ from compresso_recsys.models import (
 from compresso_recsys.sequences import ItemSequences
 
 EPOCHS = 3
+
+
+class _RecordingLogger:
+    """Minimal sink: the reporting contract is only ``info(str)``."""
+
+    def __init__(self):
+        self.lines: list[str] = []
+
+    def info(self, message: str) -> None:
+        self.lines.append(message)
+
+
+class _RaisingLogger:
+    def __init__(self):
+        self.calls = 0
+
+    def info(self, message: str) -> None:
+        self.calls += 1
+        raise RuntimeError("collector unavailable")
 
 
 class _StubBar:
@@ -108,7 +133,7 @@ def _item_features() -> np.ndarray:
     )
 
 
-def _fit_elsa(*, show_progress: bool = True):
+def _fit_elsa(*, show_progress: bool = True, logger=None, log_every_n_steps=1000):
     trainer = ELSATrainer(
         ELSAConfig(
             latent_dim=4,
@@ -118,12 +143,16 @@ def _fit_elsa(*, show_progress: bool = True):
             lr=1e-2,
             show_progress=show_progress,
             seed=7,
-        )
+            log_every_n_steps=log_every_n_steps,
+        ),
+        logger=logger,
     )
     return trainer.fit(_interactions())
 
 
-def _fit_teaser_gd(*, show_progress: bool = True):
+def _fit_teaser_gd(
+    *, show_progress: bool = True, logger=None, log_every_n_steps=1000
+):
     trainer = TEASERGDTrainer(
         TEASERGDConfig(
             epochs=EPOCHS,
@@ -134,9 +163,50 @@ def _fit_teaser_gd(*, show_progress: bool = True):
             include_popularity=False,
             coefficient_regularization_samples=16,
             seed=3,
-        )
+            log_every_n_steps=log_every_n_steps,
+        ),
+        logger=logger,
     )
     return trainer.fit(_interactions(), _item_features())
+
+
+def _fit_mult_dae(
+    *, show_progress: bool = True, logger=None, log_every_n_steps=1000
+):
+    trainer = MultDAETrainer(
+        MultDAEConfig(
+            latent_dim=4,
+            epochs=EPOCHS,
+            batch_size=2,
+            lr=1e-2,
+            dropout=0.0,
+            show_progress=show_progress,
+            seed=4,
+            log_every_n_steps=log_every_n_steps,
+        ),
+        logger=logger,
+    )
+    return trainer.fit(_interactions())
+
+
+def _fit_mult_vae(
+    *, show_progress: bool = True, logger=None, log_every_n_steps=1000
+):
+    trainer = MultVAETrainer(
+        MultVAEConfig(
+            latent_dim=3,
+            hidden_dim=5,
+            epochs=EPOCHS,
+            batch_size=2,
+            lr=1e-2,
+            dropout=0.0,
+            show_progress=show_progress,
+            seed=4,
+            log_every_n_steps=log_every_n_steps,
+        ),
+        logger=logger,
+    )
+    return trainer.fit(_interactions())
 
 
 def _histories(n_items: int = 3):
@@ -146,7 +216,9 @@ def _histories(n_items: int = 3):
     )
 
 
-def _fit_simple_rnn(*, show_progress: bool = True):
+def _fit_simple_rnn(
+    *, show_progress: bool = True, logger=None, log_every_n_steps=1000
+):
     trainer = SimpleRNNTrainer(
         SimpleRNNConfig(
             embedding_dim=4,
@@ -157,13 +229,17 @@ def _fit_simple_rnn(*, show_progress: bool = True):
             unk_dropout=0.0,
             show_progress=show_progress,
             seed=5,
+            log_every_n_steps=log_every_n_steps,
         ),
         SequenceBatcher(ItemTokenizer(3), max_length=8),
+        logger=logger,
     )
     return trainer.fit(_histories())
 
 
-def _fit_simple_gpt(*, show_progress: bool = True):
+def _fit_simple_gpt(
+    *, show_progress: bool = True, logger=None, log_every_n_steps=1000
+):
     trainer = SimpleGPTTrainer(
         SimpleGPTConfig(
             transformer=TransformerConfig(d_model=8, n_heads=2, n_layers=1, dropout=0.0),
@@ -173,8 +249,10 @@ def _fit_simple_gpt(*, show_progress: bool = True):
             unk_dropout=0.0,
             show_progress=show_progress,
             seed=5,
+            log_every_n_steps=log_every_n_steps,
         ),
         SequenceBatcher(ItemTokenizer(3), max_length=8),
+        logger=logger,
     )
     return trainer.fit(_histories())
 
@@ -184,6 +262,8 @@ TRAINERS = pytest.mark.parametrize(
     [
         (_fit_elsa, "ELSA", ELSATrainer, "train_step"),
         (_fit_teaser_gd, "TEASERGD", TEASERGDTrainer, "_train_step"),
+        (_fit_mult_dae, "MultDAE", MultDAETrainer, "_train_step"),
+        (_fit_mult_vae, "MultVAE", MultVAETrainer, "_train_step"),
         # The sequential trainers draw bars the same way and were untested.
         (_fit_simple_rnn, "SimpleRNN", SimpleRNNTrainer, "_train_step"),
         (_fit_simple_gpt, "SimpleGPT", SimpleGPTTrainer, "_train_step"),
@@ -243,6 +323,190 @@ def test_missing_tqdm_leaves_training_working(
 
     trainer = fit()
     assert len(trainer.history) == EPOCHS
+
+
+@TRAINERS
+def test_logger_replaces_both_bars_and_reports_steps_and_epochs(
+    bars,
+    capsys,
+    fit,
+    label,
+    trainer_class,
+    step,
+):
+    logger = _RecordingLogger()
+
+    trainer = fit(logger=logger, log_every_n_steps=1)
+
+    assert bars == []
+    assert len(trainer.history) == EPOCHS
+    assert len([line for line in logger.lines if " step " in line]) >= EPOCHS
+    epoch_lines = [
+        line
+        for line in logger.lines
+        if line.startswith(f"[{label}] epoch ") and " step " not in line
+    ]
+    assert len(epoch_lines) == EPOCHS
+    assert logger.lines[0].startswith(f"[{label}] fit started:")
+    assert logger.lines[-1].startswith(f"[{label}] fit finished:")
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err == ""
+
+
+def test_per_call_logger_overrides_constructor_logger_and_explicit_bar(bars):
+    constructor_logger = _RecordingLogger()
+    call_logger = _RecordingLogger()
+    trainer = ELSATrainer(
+        ELSAConfig(
+            latent_dim=4,
+            batch_size=2,
+            max_output=6,
+            epochs=1,
+            show_progress=True,
+        ),
+        logger=constructor_logger,
+    )
+
+    trainer.fit(
+        _interactions(),
+        logger=call_logger,
+        show_progress=True,
+    )
+
+    assert bars == []
+    assert call_logger.lines
+    assert constructor_logger.lines == []
+
+
+def test_explicit_none_makes_one_call_quiet(bars, capsys):
+    logger = _RecordingLogger()
+    trainer = ELSATrainer(
+        ELSAConfig(
+            latent_dim=4,
+            batch_size=2,
+            max_output=6,
+            epochs=1,
+            show_progress=True,
+        ),
+        logger=logger,
+    )
+
+    trainer.fit(_interactions(), logger=None)
+
+    assert bars == []
+    assert logger.lines == []
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err == ""
+
+
+def test_raising_logger_warns_once_and_does_not_abort_fit():
+    logger = _RaisingLogger()
+
+    with pytest.warns(RuntimeWarning, match="logging disabled"):
+        trainer = _fit_elsa(logger=logger, log_every_n_steps=1)
+
+    assert len(trainer.history) == EPOCHS
+    assert logger.calls == 1
+
+
+def test_warning_promoted_to_error_still_does_not_abort_fit():
+    import warnings
+
+    logger = _RaisingLogger()
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        trainer = _fit_elsa(logger=logger)
+
+    assert len(trainer.history) == EPOCHS
+    assert logger.calls == 1
+
+
+@pytest.mark.parametrize(
+    ("fit", "source"),
+    [
+        (_fit_elsa, _interactions),
+        (_fit_mult_dae, _interactions),
+        (_fit_simple_gpt, _histories),
+        (_fit_teaser_gd, _interactions),
+    ],
+)
+def test_logger_replaces_prediction_bar(bars, fit, source):
+    trainer = fit(show_progress=False, log_every_n_steps=1)
+    logger = _RecordingLogger()
+    prediction_source = source()
+    rows = (
+        prediction_source.shape[0]
+        if isinstance(prediction_source, csr_matrix)
+        else prediction_source.n_rows
+    )
+    batches = (rows + 1) // 2
+
+    predictions = trainer.predict(
+        prediction_source,
+        k=1,
+        batch_size=2,
+        exclude_seen=False,
+        logger=logger,
+        show_progress=True,
+    )
+
+    assert predictions.rows == rows
+    assert bars == []
+    assert (
+        f"predict@1 started: {rows} rows | {batches} batches of 2"
+        in logger.lines[0]
+    )
+    assert any(f"predict@1 step 1/{batches}" in line for line in logger.lines)
+    assert logger.lines[-1].endswith(f"{rows} rows")
+
+
+def test_logger_replaces_evaluation_bar(bars, capsys):
+    trainer = _fit_elsa(show_progress=False)
+    logger = _RecordingLogger()
+    source = _interactions()
+
+    result = evaluate_recommender(
+        trainer,
+        source=source,
+        targets=source,
+        metrics=[CalibratedRecall(1)],
+        batch_size=2,
+        show_progress=True,
+        logger=logger,
+        log_every_n_steps=1,
+    )
+
+    assert result.n_rows == source.shape[0]
+    assert bars == []
+    assert logger.lines[0].startswith(
+        "[evaluation] evaluate recommender@1 started:"
+    )
+    assert any("evaluate recommender@1 step 1/3" in line for line in logger.lines)
+    assert logger.lines[-1].startswith(
+        "[evaluation] evaluate recommender@1 finished:"
+    )
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err == ""
+
+
+@pytest.mark.parametrize(
+    "config",
+    [
+        ELSAConfig,
+        MultDAEConfig,
+        MultVAEConfig,
+        SimpleGPTConfig,
+        SimpleRNNConfig,
+        TEASERGDConfig,
+    ],
+)
+def test_negative_log_interval_is_rejected(config):
+    with pytest.raises(ValueError, match="log_every_n_steps must be >= 0"):
+        config(log_every_n_steps=-1)
 
 
 def test_elsa_mask_search_reuses_one_bar(bars):

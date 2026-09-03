@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import time
 import warnings
 from dataclasses import dataclass
-from typing import Hashable, Literal, Sequence
+from typing import Any, Hashable, Literal, Sequence
 
 import numpy as np
 import pandas as pd
@@ -12,6 +13,14 @@ from scipy.sparse import csr_matrix, isspmatrix_csr
 from torch import nn
 
 from compresso import SRPTensor
+from compresso_recsys._reporting import (
+    _INHERIT,
+    _Inherit,
+    _Reporter,
+    _format_duration,
+    _resolve_reporter,
+    _validate_log_every_n_steps,
+)
 from compresso_recsys.persistence import ModelCheckpointReader, ModelCheckpointWriter
 from compresso_recsys.models._batching import (
     InteractionBatchSampler,
@@ -276,8 +285,11 @@ class TEASERGDConfig:
     encoder_init: EncoderInit = "xavier"
     normalize_encoder: bool = False
     diagonal_scale: float = 1.0
+    log_prefix: str = "TEASERGD"
+    log_every_n_steps: int = 1000
 
     def __post_init__(self) -> None:
+        _validate_log_every_n_steps(self.log_every_n_steps)
         for name in ("batch_size", "epochs"):
             value = getattr(self, name)
             if isinstance(value, bool) or not isinstance(value, int) or value < 1:
@@ -335,9 +347,14 @@ class TEASERGDTrainer(BaseColdStartRecommender):
     _fit_name = "TEASERGD"
     checkpoint_type = "teaser_gd_trainer"
 
-    def __init__(self, config: TEASERGDConfig | None = None) -> None:
+    def __init__(
+        self,
+        config: TEASERGDConfig | None = None,
+        logger: Any | None = None,
+    ) -> None:
         super().__init__()
         self.cfg = config if config is not None else TEASERGDConfig()
+        self.logger = logger
         self.device = torch.device(self.cfg.device)
         self.teaser: TEASERGD | nn.Module | None = None
         self.optimizer: torch.optim.Optimizer | None = None
@@ -354,6 +371,26 @@ class TEASERGDTrainer(BaseColdStartRecommender):
         self._regularizer_rng: np.random.Generator | None = None
         self._n_training_users: int | None = None
         self._is_fitted = False
+
+    def _reporter(
+        self,
+        logger: Any,
+        show_progress: Any,
+        *,
+        default_show_progress: bool | None = None,
+    ) -> _Reporter:
+        return _resolve_reporter(
+            default_logger=self.logger,
+            logger=logger,
+            default_show_progress=(
+                self.cfg.show_progress
+                if default_show_progress is None
+                else default_show_progress
+            ),
+            show_progress=show_progress,
+            prefix=self.cfg.log_prefix,
+            log_every_n_steps=self.cfg.log_every_n_steps,
+        )
 
     @property
     def is_fitted(self) -> bool:
@@ -571,9 +608,11 @@ class TEASERGDTrainer(BaseColdStartRecommender):
         metadata: pd.DataFrame | None = None,
         feature_space_id: str | None = None,
         feature_names: Sequence[str] | None = None,
-        show_progress: bool | None = None,
+        logger: Any | None = _INHERIT,
+        show_progress: bool | None | _Inherit = _INHERIT,
     ) -> TEASERGDTrainer:
         """Fit the encoder while keeping item features fixed."""
+        reporter = self._reporter(logger, show_progress)
         interactions = canonical_csr(interactions, name="interactions")
         if interactions.shape[0] < 1 or interactions.shape[1] < 1:
             raise ValueError("interactions must contain at least one user and one item")
@@ -631,8 +670,6 @@ class TEASERGDTrainer(BaseColdStartRecommender):
             if names is not None:
                 names = (*names, "popularity")
 
-        if show_progress is not None and not isinstance(show_progress, bool):
-            raise ValueError("show_progress must be a bool or None")
         torch.manual_seed(int(self.cfg.seed))
         base_model = self._build_base_model(
             input_dim=train_indices.size,
@@ -678,24 +715,27 @@ class TEASERGDTrainer(BaseColdStartRecommender):
             if self.cfg.decay
             else None
         )
-        progress_enabled = (
-            self.cfg.show_progress if show_progress is None else show_progress
+        fit_started = time.monotonic()
+        reporter.log(
+            "fit started: "
+            f"{training_interactions.shape[0]} users | {n_items} items | "
+            f"{training_interactions.nnz} interactions | {len(dataset)} batches of "
+            f"{self.cfg.batch_size} | {self.cfg.epochs} epochs | device {self.device}"
         )
-        epoch_iter = self._progress_with_override(
+        epoch_iter = reporter.wrap(
             range(1, self.cfg.epochs + 1),
             total=self.cfg.epochs,
             desc=f"{self._fit_name} fit",
-            enabled=progress_enabled,
         )
         # A single batch bar is rewound and relabelled each epoch, rather than a
         # finished bar being left behind per epoch.
-        batch_bar = self._progress_bar_with_override(
+        batch_bar = reporter.bar(
             total=len(dataset),
             desc=f"{self._fit_name} epoch 1",
-            enabled=progress_enabled,
         )
         try:
             for epoch in epoch_iter:
+                epoch_started = time.monotonic()
                 sums = self._empty_epoch_sums()
                 batches = 0
                 if batch_bar is not None:
@@ -709,11 +749,29 @@ class TEASERGDTrainer(BaseColdStartRecommender):
                     batches += 1
                     if batch_bar is not None:
                         batch_bar.update(1)
+                    log_steps = reporter.log_every_n_steps
+                    if log_steps and batches % log_steps == 0:
+                        reporter.step(
+                            f"epoch {epoch}/{self.cfg.epochs} step "
+                            f"{batches}/{len(dataset)}",
+                            batches,
+                            len(dataset),
+                            epoch_started,
+                            {
+                                key: value / batches
+                                for key, value in sums.items()
+                            },
+                        )
                 dataset.on_epoch_end()
                 record = {key: value / max(1, batches) for key, value in sums.items()}
                 record["epoch"] = float(epoch)
                 record["lr"] = float(self.optimizer.param_groups[0]["lr"])
                 self.history.append(record)
+                reporter.epoch(
+                    f"epoch {epoch}/{self.cfg.epochs}",
+                    record,
+                    epoch_started,
+                )
                 if hasattr(epoch_iter, "set_postfix"):
                     epoch_iter.set_postfix(loss=f"{record['loss']:.4f}")
                 if scheduler is not None:
@@ -724,28 +782,11 @@ class TEASERGDTrainer(BaseColdStartRecommender):
             if hasattr(epoch_iter, "close"):
                 epoch_iter.close()
         self._is_fitted = True
+        reporter.log(
+            f"fit finished: {_format_duration(time.monotonic() - fit_started)} total | "
+            f"{len(self.history)} epochs recorded"
+        )
         return self
-
-    @staticmethod
-    def _progress_with_override(iterable, *, total: int, desc: str, enabled: bool):
-        if not enabled:
-            return iterable
-        try:
-            from tqdm.auto import tqdm
-        except Exception:  # pragma: no cover
-            return iterable
-        return tqdm(iterable, total=total, desc=desc)
-
-    @staticmethod
-    def _progress_bar_with_override(*, total: int, desc: str, enabled: bool):
-        """A bar to drive by hand, or ``None`` when progress is unavailable."""
-        if not enabled:
-            return None
-        try:
-            from tqdm.auto import tqdm
-        except Exception:  # pragma: no cover - optional display helper
-            return None
-        return tqdm(total=total, desc=desc)
 
     def _train_step(
         self,
@@ -979,9 +1020,15 @@ class TEASERGDTrainer(BaseColdStartRecommender):
         batch_size: int = 1024,
         exclude_seen: bool = True,
         candidate_ids: Sequence[Hashable] | np.ndarray | None = None,
-        show_progress: bool = False,
+        logger: Any | None = _INHERIT,
+        show_progress: bool | None | _Inherit = _INHERIT,
     ) -> SRPTensor:
         """Predict all source rows while reusing one candidate tensor."""
+        reporter = self._reporter(
+            logger,
+            show_progress,
+            default_show_progress=False,
+        )
         source = self._prepare_source(source)
         if batch_size < 1:
             raise ValueError("batch_size must be >= 1")
@@ -990,11 +1037,19 @@ class TEASERGDTrainer(BaseColdStartRecommender):
         columns: list[torch.Tensor] = []
         values: list[torch.Tensor] = []
         starts = range(0, source.shape[0], batch_size)
-        for start in self._progress_with_override(
-            starts,
-            total=len(starts),
-            desc=f"TEASERGD predict@{k}",
-            enabled=show_progress,
+        steps = len(starts)
+        started = time.monotonic()
+        reporter.log(
+            f"predict@{k} started: {source.shape[0]} rows | "
+            f"{steps} batches of {batch_size} | device {self.device}"
+        )
+        for step, start in enumerate(
+            reporter.wrap(
+                starts,
+                total=steps,
+                desc=f"TEASERGD predict@{k}",
+            ),
+            start=1,
         ):
             result = self._predict_prepared_batch(
                 source[start : start + batch_size],
@@ -1005,16 +1060,31 @@ class TEASERGDTrainer(BaseColdStartRecommender):
             )
             columns.append(result.cols)
             values.append(result.vals)
+            log_steps = reporter.log_every_n_steps
+            if log_steps and step % log_steps == 0:
+                reporter.step(
+                    f"predict@{k} step {step}/{steps}",
+                    step,
+                    steps,
+                    started,
+                )
         if not columns:
-            return self._predict_prepared_batch(
+            prediction = self._predict_prepared_batch(
                 source,
                 k=k,
                 exclude_seen=exclude_seen,
                 selection=selection,
                 candidate_features=candidate_features,
             )
-        return SRPTensor(
-            cols=torch.vstack(columns),
-            vals=torch.vstack(values),
-            shape=(source.shape[0], selection.catalog.n_items),
+        else:
+            prediction = SRPTensor(
+                cols=torch.vstack(columns),
+                vals=torch.vstack(values),
+                shape=(source.shape[0], selection.catalog.n_items),
+            )
+        reporter.log(
+            f"predict@{k} finished: "
+            f"{_format_duration(time.monotonic() - started)} total | "
+            f"{source.shape[0]} rows"
         )
+        return prediction

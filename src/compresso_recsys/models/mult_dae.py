@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 from dataclasses import asdict, dataclass
 from typing import Any, Hashable, Sequence
 
@@ -12,6 +13,14 @@ from torch import nn
 from torch.nn import functional as F
 
 from compresso import SRPTensor
+from compresso_recsys._reporting import (
+    _INHERIT,
+    _Inherit,
+    _Reporter,
+    _format_duration,
+    _resolve_reporter,
+    _validate_log_every_n_steps,
+)
 from compresso_recsys.models._autoencoder_batching import (
     dense_training_batch,
     prepare_dense_training_data,
@@ -22,16 +31,6 @@ from compresso_recsys.models.base import BaseCollaborativeRecommender
 from compresso_recsys.persistence import ModelCheckpointReader, ModelCheckpointWriter
 
 __all__ = ["MultDAE", "MultDAEConfig", "MultDAETrainer"]
-
-
-def _progress(iterable, *, enabled: bool, desc: str):
-    if not enabled:
-        return iterable
-    try:
-        from tqdm.auto import tqdm
-    except Exception:  # pragma: no cover - optional display helper
-        return iterable
-    return tqdm(iterable, desc=desc)
 
 
 @dataclass
@@ -58,8 +57,11 @@ class MultDAEConfig:
     device: str | torch.device = "cpu"
     show_progress: bool = True
     seed: int = 0
+    log_prefix: str = "MultDAE"
+    log_every_n_steps: int = 1000
 
     def __post_init__(self) -> None:
+        _validate_log_every_n_steps(self.log_every_n_steps)
         for name in ("latent_dim", "epochs", "batch_size"):
             value = getattr(self, name)
             if isinstance(value, (bool, np.bool_)) or not isinstance(
@@ -119,8 +121,13 @@ class MultDAETrainer(BaseCollaborativeRecommender):
 
     checkpoint_type = "mult_dae_trainer"
 
-    def __init__(self, config: MultDAEConfig | None = None) -> None:
+    def __init__(
+        self,
+        config: MultDAEConfig | None = None,
+        logger: Any | None = None,
+    ) -> None:
         self.cfg = config if config is not None else MultDAEConfig()
+        self.logger = logger
         self.device = torch.device(self.cfg.device)
         self.model: MultDAE | None = None
         self.optimizer: torch.optim.Optimizer | None = None
@@ -136,13 +143,36 @@ class MultDAETrainer(BaseCollaborativeRecommender):
     def n_items(self) -> int | None:
         return self._n_items
 
+    def _reporter(self, logger: Any, show_progress: Any) -> _Reporter:
+        return _resolve_reporter(
+            default_logger=self.logger,
+            logger=logger,
+            default_show_progress=self.cfg.show_progress,
+            show_progress=show_progress,
+            prefix=self.cfg.log_prefix,
+            log_every_n_steps=self.cfg.log_every_n_steps,
+        )
+
+    def _train_step(self, target: torch.Tensor) -> torch.Tensor:
+        """Optimize one dense user batch and return its detached loss."""
+        assert self.model is not None and self.optimizer is not None
+        logits = self.model(target)
+        loss = -(target * F.log_softmax(logits, dim=1)).sum(dim=1).mean()
+        self.optimizer.zero_grad(set_to_none=True)
+        loss.backward()
+        self.optimizer.step()
+        return loss.detach()
+
     def fit(
         self,
         interactions: csr_matrix,
         *,
         item_ids: Sequence[Hashable] | np.ndarray | None = None,
+        logger: Any | None = _INHERIT,
+        show_progress: bool | None | _Inherit = _INHERIT,
     ) -> MultDAETrainer:
         """Fit Mult-DAE using multinomial reconstruction likelihood."""
+        reporter = self._reporter(logger, show_progress)
         interactions = canonical_csr(interactions, name="interactions")
         if interactions.shape[0] < 1 or interactions.shape[1] < 1:
             raise ValueError(
@@ -169,36 +199,77 @@ class MultDAETrainer(BaseCollaborativeRecommender):
         )
         self.training_data_preloaded_ = training_data is not None
 
-        epochs = _progress(
+        steps_per_epoch = (active_rows.size + int(self.cfg.batch_size) - 1) // int(
+            self.cfg.batch_size
+        )
+        fit_started = time.monotonic()
+        reporter.log(
+            "fit started: "
+            f"{active_rows.size} active users | {interactions.shape[1]} items | "
+            f"{interactions.nnz} interactions | {steps_per_epoch} batches of "
+            f"{self.cfg.batch_size} | {self.cfg.epochs} epochs | device {self.device}"
+        )
+        epochs = reporter.wrap(
             range(1, int(self.cfg.epochs) + 1),
-            enabled=self.cfg.show_progress,
+            total=int(self.cfg.epochs),
             desc="MultDAE fit",
         )
-        for epoch in epochs:
-            self.model.train()
-            order = rng.permutation(active_rows)
-            loss_sum = torch.zeros((), device=self.device)
-            users = 0
-            for start in range(0, order.size, int(self.cfg.batch_size)):
-                selected = order[start : start + int(self.cfg.batch_size)]
-                target = dense_training_batch(
-                    interactions,
-                    selected,
-                    device=self.device,
-                    preloaded=training_data,
+        batch_bar = reporter.bar(total=steps_per_epoch, desc="MultDAE epoch 1")
+        try:
+            for epoch in epochs:
+                epoch_started = time.monotonic()
+                self.model.train()
+                order = rng.permutation(active_rows)
+                loss_sum = torch.zeros((), device=self.device)
+                users = 0
+                if batch_bar is not None:
+                    batch_bar.reset(total=steps_per_epoch)
+                    batch_bar.set_description(f"MultDAE epoch {epoch}")
+                for step, start in enumerate(
+                    range(0, order.size, int(self.cfg.batch_size)),
+                    start=1,
+                ):
+                    selected = order[start : start + int(self.cfg.batch_size)]
+                    target = dense_training_batch(
+                        interactions,
+                        selected,
+                        device=self.device,
+                        preloaded=training_data,
+                    )
+                    loss = self._train_step(target)
+                    batch_users = int(selected.size)
+                    loss_sum += loss * batch_users
+                    users += batch_users
+                    if batch_bar is not None:
+                        batch_bar.update(1)
+                    log_steps = reporter.log_every_n_steps
+                    if log_steps and step % log_steps == 0:
+                        reporter.step(
+                            f"epoch {epoch}/{self.cfg.epochs} step {step}/{steps_per_epoch}",
+                            step,
+                            steps_per_epoch,
+                            epoch_started,
+                            {"loss": float((loss_sum / users).item())},
+                        )
+                mean_loss = float((loss_sum / users).item())
+                record = {"epoch": float(epoch), "loss": mean_loss}
+                self.history.append(record)
+                reporter.epoch(
+                    f"epoch {epoch}/{self.cfg.epochs}",
+                    record,
+                    epoch_started,
                 )
-                logits = self.model(target)
-                loss = -(target * F.log_softmax(logits, dim=1)).sum(dim=1).mean()
-                self.optimizer.zero_grad(set_to_none=True)
-                loss.backward()
-                self.optimizer.step()
-                batch_users = int(selected.size)
-                loss_sum += loss.detach() * batch_users
-                users += batch_users
-            mean_loss = float((loss_sum / users).item())
-            self.history.append({"epoch": float(epoch), "loss": mean_loss})
-            if hasattr(epochs, "set_postfix"):
-                epochs.set_postfix({"loss": f"{mean_loss:.4f}"})
+                if hasattr(epochs, "set_postfix"):
+                    epochs.set_postfix({"loss": f"{mean_loss:.4f}"})
+        finally:
+            if batch_bar is not None:
+                batch_bar.close()
+            if hasattr(epochs, "close"):
+                epochs.close()
+        reporter.log(
+            f"fit finished: {_format_duration(time.monotonic() - fit_started)} total | "
+            f"{len(self.history)} epochs recorded"
+        )
         return self
 
     def _build_model(self) -> MultDAE:

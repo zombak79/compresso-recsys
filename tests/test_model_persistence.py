@@ -200,6 +200,33 @@ def test_ease_round_trip_and_manifest(tmp_path, interactions, source):
         }
 
 
+def test_job_logger_is_not_persisted(tmp_path, interactions):
+    class RecordingLogger:
+        def info(self, message: str) -> None:
+            del message
+
+    model = ELSATrainer(
+        ELSAConfig(
+            latent_dim=4,
+            batch_size=2,
+            max_output=4,
+            epochs=1,
+            show_progress=True,
+            log_prefix="job-17",
+            log_every_n_steps=7,
+        ),
+        logger=RecordingLogger(),
+    ).fit(interactions)
+    path = tmp_path / "logger.ckpt"
+
+    model.save(path)
+    restored = ELSATrainer.load(path)
+
+    assert restored.logger is None
+    assert restored.cfg.log_prefix == "job-17"
+    assert restored.cfg.log_every_n_steps == 7
+
+
 @pytest.mark.parametrize("kind", ["rnn", "gpt"])
 def test_sequential_round_trip_preserves_vocabulary_and_context(tmp_path, kind):
     sequences = _sequence_data()

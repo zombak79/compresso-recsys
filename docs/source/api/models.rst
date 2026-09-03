@@ -99,6 +99,37 @@ mapping is stored in fitted-model checkpoints.
 .. autoclass:: compresso_recsys.models.Recommendations
    :members:
 
+Training and Prediction Progress
+--------------------------------
+
+Every iterative trainer accepts a duck-typed ``logger`` in its constructor;
+the object only needs an ``info(message: str)`` method. Pass the logger on an
+individual ``fit`` or ``predict`` call to override that job-level default. A
+logger always replaces tqdm, even if ``show_progress=True``, so service logs
+never receive carriage-return progress bars and callers do not have to disable
+the bar separately::
+
+   trainer = ELSATrainer(
+       ELSAConfig(log_every_n_steps=1_000),
+       logger=job_logger,
+   )
+   model = trainer.fit(interactions)
+
+The logger receives start and finish lines, one line per completed epoch, and
+an intra-epoch line every ``log_every_n_steps`` batches. Set the interval to
+zero for epoch boundaries only. Reporting is resolved separately for each
+call: pass another logger to redirect one operation, or ``logger=None`` to make
+one call quiet. If ``logger.info`` raises, the first failure emits a warning,
+logging is disabled for that call, and the training or prediction continues.
+
+Without a logger, notebook behavior remains controlled by ``show_progress``.
+The standard training display uses two bars: an outer epoch bar and one batch
+bar that is reset and reused at each epoch. Reusing the batch bar is the
+recommended pattern for new trainers because creating one bar per epoch leaves
+a growing stack of completed bars in notebooks and terminals. ELSA,
+Mult-DAE, Mult-VAE, SimpleGPT, SimpleRNN, and TEASER-GD all follow this
+reporting contract.
+
 Fitted Model Persistence
 ------------------------
 
@@ -502,6 +533,11 @@ preload raises a clear memory error rather than silently selecting the slower
 path. Training statistics are transferred to the host only once per epoch in
 either mode. After fitting, ``training_data_preloaded_`` reports which path was
 selected.
+
+Mult-DAE and Mult-VAE use the standard two-bar training display described in
+`Training and Prediction Progress`_: one outer epoch bar and one batch bar
+reused across epochs. Their logger output reports the same epoch and batch
+progress without creating either bar.
 
 Mult-VAE replaces the deterministic bottleneck with a diagonal Gaussian
 posterior. Its symmetric encoder produces a mean and log variance, training

@@ -371,6 +371,14 @@ class _DifferentCatalogRecommender:
         )
 
 
+class _RecordingLogger:
+    def __init__(self) -> None:
+        self.lines: list[str] = []
+
+    def info(self, message: str) -> None:
+        self.lines.append(message)
+
+
 def test_evaluate_recommender_streams_batches_and_derives_required_k():
     model = _RecordingRecommender()
     source = csr_matrix((5, 6), dtype=np.float32)
@@ -408,6 +416,35 @@ def test_evaluate_recommender_streams_batches_and_derives_required_k():
             "n_scored_rows": 5.0,
             "n_units": 5.0,
         }
+    )
+
+
+def test_evaluate_recommender_reports_batches_to_duck_typed_logger():
+    model = _RecordingRecommender()
+    logger = _RecordingLogger()
+    source = csr_matrix((3, 4), dtype=np.float32)
+    targets = csr_matrix(
+        (np.ones(3), (np.arange(3), np.arange(3))),
+        shape=source.shape,
+    )
+
+    result = evaluate_recommender(
+        model,
+        source=source,
+        targets=targets,
+        metrics=[CalibratedRecall(1)],
+        batch_size=1,
+        logger=logger,
+        log_every_n_steps=1,
+    )
+
+    assert result.n_rows == 3
+    assert logger.lines[0].startswith(
+        "[evaluation] evaluate recommender@1 started:"
+    )
+    assert any("evaluate recommender@1 step 1/3" in line for line in logger.lines)
+    assert logger.lines[-1].startswith(
+        "[evaluation] evaluate recommender@1 finished:"
     )
 
 

@@ -49,8 +49,9 @@ absent.
 from __future__ import annotations
 
 import math
+import time
 from dataclasses import dataclass, field
-from typing import Hashable, Literal, Sequence
+from typing import Any, Hashable, Literal, Sequence
 
 import numpy as np
 import torch
@@ -59,6 +60,14 @@ from torch import nn
 
 from compresso import SRPTensor
 
+from compresso_recsys._reporting import (
+    _INHERIT,
+    _Inherit,
+    _Reporter,
+    _format_duration,
+    _resolve_reporter,
+    _validate_log_every_n_steps,
+)
 from compresso_recsys.sequences import ItemSequences
 from compresso_recsys.persistence import ModelCheckpointReader, ModelCheckpointWriter
 
@@ -160,8 +169,11 @@ class SimpleGPTConfig:
     device: str | torch.device = "cpu"
     show_progress: bool = True
     seed: int = 0
+    log_prefix: str = "SimpleGPT"
+    log_every_n_steps: int = 1000
 
     def __post_init__(self) -> None:
+        _validate_log_every_n_steps(self.log_every_n_steps)
         if self.batch_size < 1:
             raise ValueError(f"batch_size must be >= 1, got {self.batch_size}")
         if self.epochs < 1:
@@ -426,8 +438,10 @@ class SimpleGPTTrainer(BaseSequentialRecommender):
         self,
         config: SimpleGPTConfig | None = None,
         batcher: SequenceBatcher | None = None,
+        logger: Any | None = None,
     ) -> None:
         self.cfg = config or SimpleGPTConfig()
+        self.logger = logger
         self.device = torch.device(self.cfg.device)
         self.history: list[dict[str, float]] = []
         self.model: SimpleGPT | None = None
@@ -446,6 +460,16 @@ class SimpleGPTTrainer(BaseSequentialRecommender):
     def n_items(self) -> int | None:
         return self._n_items
 
+    def _reporter(self, logger: Any, show_progress: Any) -> _Reporter:
+        return _resolve_reporter(
+            default_logger=self.logger,
+            logger=logger,
+            default_show_progress=self.cfg.show_progress,
+            show_progress=show_progress,
+            prefix=self.cfg.log_prefix,
+            log_every_n_steps=self.cfg.log_every_n_steps,
+        )
+
     # -- training -----------------------------------------------------------
 
     def fit(
@@ -453,8 +477,11 @@ class SimpleGPTTrainer(BaseSequentialRecommender):
         sequences: ItemSequences,
         *,
         item_ids: Sequence[Hashable] | np.ndarray | None = None,
+        logger: Any | None = _INHERIT,
+        show_progress: bool | None | _Inherit = _INHERIT,
     ) -> SimpleGPTTrainer:
         """Train on chronological histories, one example per position."""
+        reporter = self._reporter(logger, show_progress)
         if not isinstance(sequences, ItemSequences):
             raise TypeError(
                 "SimpleGPTTrainer trains on ItemSequences, got "
@@ -518,17 +545,21 @@ class SimpleGPTTrainer(BaseSequentialRecommender):
         # Two bars, as ELSA draws them: epochs outside, batches inside. The inner
         # bar is created once and rewound per epoch rather than a finished one
         # being left behind for each.
-        epoch_iter = _progress(
-            self.cfg.show_progress,
+        fit_started = time.monotonic()
+        reporter.log(
+            "fit started: "
+            f"{n_rows} sequences | {self._n_items} items | {len(starts)} batches of "
+            f"{batch_size} | {self.cfg.epochs} epochs | device {self.device}"
+        )
+        epoch_iter = reporter.wrap(
             range(1, self.cfg.epochs + 1),
             total=self.cfg.epochs,
             desc="SimpleGPT fit",
         )
-        batch_bar = _progress_bar(
-            self.cfg.show_progress, total=len(starts), desc="SimpleGPT epoch 1"
-        )
+        batch_bar = reporter.bar(total=len(starts), desc="SimpleGPT epoch 1")
         try:
             for epoch in epoch_iter:
+                epoch_started = time.monotonic()
                 self.model.train()
                 order = rng.permutation(n_rows)
                 if batch_bar is not None:
@@ -536,7 +567,7 @@ class SimpleGPTTrainer(BaseSequentialRecommender):
                     batch_bar.set_description(f"SimpleGPT epoch {epoch}")
                 loss_sum, positions = 0.0, 0
                 last_training_lr = float(optimizer.param_groups[0]["lr"])
-                for start in starts:
+                for step_index, start in enumerate(starts, start=1):
                     batch = sequences.select_rows(order[start : start + batch_size])
                     batch_lr = float(optimizer.param_groups[0]["lr"])
                     step = self._train_step(batch, optimizer, objective)
@@ -554,14 +585,34 @@ class SimpleGPTTrainer(BaseSequentialRecommender):
                         positions += batch_positions
                     if batch_bar is not None:
                         batch_bar.update(1)
+                    log_steps = reporter.log_every_n_steps
+                    if log_steps and step_index % log_steps == 0:
+                        reporter.step(
+                            f"epoch {epoch}/{self.cfg.epochs} step "
+                            f"{step_index}/{len(starts)}",
+                            step_index,
+                            len(starts),
+                            epoch_started,
+                            {
+                                "loss": (
+                                    loss_sum / positions
+                                    if positions
+                                    else float("nan")
+                                )
+                            },
+                        )
                 mean_loss = loss_sum / positions if positions else float("nan")
-                self.history.append(
-                    {
-                        "epoch": float(epoch),
-                        "loss": mean_loss,
-                        "positions": float(positions),
-                        "lr": last_training_lr,
-                    }
+                record = {
+                    "epoch": float(epoch),
+                    "loss": mean_loss,
+                    "positions": float(positions),
+                    "lr": last_training_lr,
+                }
+                self.history.append(record)
+                reporter.epoch(
+                    f"epoch {epoch}/{self.cfg.epochs}",
+                    record,
+                    epoch_started,
                 )
                 if hasattr(epoch_iter, "set_postfix"):
                     epoch_iter.set_postfix({"loss": f"{mean_loss:.4f}"})
@@ -571,6 +622,10 @@ class SimpleGPTTrainer(BaseSequentialRecommender):
             if hasattr(epoch_iter, "close"):
                 epoch_iter.close()
 
+        reporter.log(
+            f"fit finished: {_format_duration(time.monotonic() - fit_started)} total | "
+            f"{len(self.history)} epochs recorded"
+        )
         return self
 
     def _build_scheduler(
@@ -829,28 +884,3 @@ class SimpleGPTTrainer(BaseSequentialRecommender):
             torch.as_tensor(rows, dtype=torch.long, device=logits.device),
             torch.as_tensor(cols, dtype=torch.long, device=logits.device),
         ] = -torch.inf
-
-
-def _tqdm():
-    """The tqdm class, or ``None`` when it is not installed."""
-    try:
-        from tqdm.auto import tqdm
-    except ImportError:  # pragma: no cover - optional dependency
-        return None
-    return tqdm
-
-
-def _progress(enabled: bool, iterable, *, total: int, desc: str):
-    """Wrap an iterable in a bar, or hand it back untouched."""
-    tqdm = _tqdm()
-    if not enabled or tqdm is None:
-        return iterable
-    return tqdm(iterable, total=total, desc=desc)
-
-
-def _progress_bar(enabled: bool, *, total: int, desc: str):
-    """A bar to drive by hand, or ``None`` when progress is unavailable."""
-    tqdm = _tqdm()
-    if not enabled or tqdm is None:
-        return None
-    return tqdm(total=total, desc=desc)
