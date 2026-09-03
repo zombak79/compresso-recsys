@@ -18,6 +18,8 @@ from compresso_recsys.models import (
     ELSAConfig,
     ELSATrainer,
     Recommendations,
+    SASRecConfig,
+    SASRecTrainer,
     SimpleGPTConfig,
     SimpleGPTTrainer,
     SimpleRNNConfig,
@@ -420,7 +422,7 @@ def test_warm_catalog_adapter_recommend_never_returns_cold_items():
     assert "cold" not in result.item_ids[0]
 
 
-@pytest.mark.parametrize("kind", ["ease", "elsa", "rnn", "gpt"])
+@pytest.mark.parametrize("kind", ["ease", "elsa", "rnn", "gpt", "sasrec"])
 def test_builtin_fixed_models_apply_identified_candidate_filters(kind):
     item_ids = np.array([f"item-{item}" for item in range(6)], dtype=object)
     interactions = csr_matrix(
@@ -455,6 +457,19 @@ def test_builtin_fixed_models_apply_identified_candidate_filters(kind):
             SimpleRNNConfig(
                 embedding_dim=8,
                 hidden_dim=10,
+                epochs=1,
+                batch_size=2,
+                show_progress=False,
+            )
+        ).fit(sequences, item_ids=item_ids)
+    elif kind == "sasrec":
+        model = SASRecTrainer(
+            SASRecConfig(
+                d_model=8,
+                n_blocks=1,
+                n_heads=2,
+                dropout=0.0,
+                max_history_length=3,
                 epochs=1,
                 batch_size=2,
                 show_progress=False,

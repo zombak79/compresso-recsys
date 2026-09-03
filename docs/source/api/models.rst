@@ -1222,7 +1222,8 @@ SASRec is a causal transformer over chronological histories, trained against
 catalog. The network itself is deliberately plain -- a couple of self-attention
 blocks over one shared residual width -- and the choices worth knowing about are
 in the objective, in how a history is laid out for it, and in what the config
-does and does not let you move.
+does and does not let you move. See :doc:`../citing` for the paper this
+follows; ``SASRecConfig``'s defaults are its MovieLens-1M settings.
 
 **The objective is binary, not cross entropy.** Each position scores its true
 next item and ``n_negatives`` sampled items, and each score is pushed toward one

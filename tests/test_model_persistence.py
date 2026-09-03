@@ -506,8 +506,9 @@ def test_loading_defaults_to_cpu_even_if_saved_config_says_cuda(tmp_path):
         TEASERGDTrainer(),
         SimpleRNNTrainer(),
         SimpleGPTTrainer(),
+        SASRecTrainer(),
     ],
-    ids=["content", "elsa", "teaser-gd", "simple-rnn", "simple-gpt"],
+    ids=["content", "elsa", "teaser-gd", "simple-rnn", "simple-gpt", "sasrec"],
 )
 def test_torch_backed_recommenders_share_the_to_contract(model):
     assert model.to("cpu") is model
