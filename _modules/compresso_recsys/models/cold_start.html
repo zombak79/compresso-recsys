@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>compresso_recsys.models.cold_start &mdash; Compresso Recsys 0.3.0 documentation</title>
+  <title>compresso_recsys.models.cold_start &mdash; Compresso Recsys 0.3.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
 
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=83a61292"></script>
+      <script src="../../../_static/documentation_options.js?v=385a908f"></script>
       <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -89,6 +89,20 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../bring-your-own-dataset.html#You-do-not-need-a-dataset-class-at-all">You do not need a dataset class at all</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../../../implementing-a-recommender.html">Implementing a Recommender</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../implementing-a-recommender.html#What-the-base-class-owns">What the base class owns</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../implementing-a-recommender.html#Data">Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../implementing-a-recommender.html#Configuration">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../implementing-a-recommender.html#The-complete-model">The complete model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../implementing-a-recommender.html#Low-level-prediction">Low-level prediction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../implementing-a-recommender.html#Stable-ID-recommendation">Stable-ID recommendation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../implementing-a-recommender.html#Standalone-persistence">Standalone persistence</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../implementing-a-recommender.html#Persistence-inside-a-data-checkpoint">Persistence inside a data checkpoint</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../implementing-a-recommender.html#Evaluation">Evaluation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../implementing-a-recommender.html#Executable-contract-checks">Executable contract checks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../implementing-a-recommender.html#Extending-the-pattern">Extending the pattern</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="../../../statistical-comparison.html">Comparing Models Statistically</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../statistical-comparison.html#why-the-aggregates-are-not-enough">Why the aggregates are not enough</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../statistical-comparison.html#do-the-comparison">Do the comparison</a></li>
@@ -139,6 +153,8 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../citing.html">Citing Compresso Recsys</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../citing.html#compresso">Compresso</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../citing.html#ease">EASE</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../citing.html#neighborhood-models">Neighborhood Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../citing.html#mult-vae-mult-dae-and-autorec">Mult-VAE, Mult-DAE, and AutoRec</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../citing.html#teaser">TEASER</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../citing.html#elsa">ELSA</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../citing.html#elsa-with-sampled-output-candidates">ELSA with sampled output candidates</a></li>
@@ -235,6 +251,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../api/models.html#compresso_recsys.models.Recommendations"><code class="docutils literal notranslate"><span class="pre">Recommendations</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/models.html#training-and-prediction-progress">Training and Prediction Progress</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../api/models.html#fitted-model-persistence">Fitted Model Persistence</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/models.html#compresso_recsys.models.PersistableRecommender"><code class="docutils literal notranslate"><span class="pre">PersistableRecommender</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/models.html#compresso_recsys.models.BasePersistableRecommender"><code class="docutils literal notranslate"><span class="pre">BasePersistableRecommender</span></code></a></li>
@@ -254,6 +271,9 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../../api/models.html#collaborative-filtering-models">Collaborative Filtering Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/models.html#baselines">Baselines</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/models.html#neighborhood-models">Neighborhood Models</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/models.html#multinomial-autoencoders">Multinomial Autoencoders</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/models.html#ease">EASE</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/models.html#elsa">ELSA</a></li>
 </ul>
@@ -354,7 +374,9 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">abstractmethod</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">threading</span><span class="w"> </span><span class="kn">import</span> <span class="n">RLock</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">Any</span><span class="p">,</span>
     <span class="n">Callable</span><span class="p">,</span>
     <span class="n">Hashable</span><span class="p">,</span>
     <span class="n">Literal</span><span class="p">,</span>
@@ -370,6 +392,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">scipy.sparse</span><span class="w"> </span><span class="kn">import</span> <span class="n">csr_matrix</span><span class="p">,</span> <span class="n">hstack</span><span class="p">,</span> <span class="n">issparse</span><span class="p">,</span> <span class="n">isspmatrix_csr</span><span class="p">,</span> <span class="n">vstack</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">compresso</span><span class="w"> </span><span class="kn">import</span> <span class="n">SRPTensor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys._reporting</span><span class="w"> </span><span class="kn">import</span> <span class="n">_INHERIT</span><span class="p">,</span> <span class="n">_Inherit</span><span class="p">,</span> <span class="n">_Reporter</span><span class="p">,</span> <span class="n">_format_duration</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.persistence</span><span class="w"> </span><span class="kn">import</span> <span class="n">ModelCheckpointReader</span><span class="p">,</span> <span class="n">ModelCheckpointWriter</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.models._validation</span><span class="w"> </span><span class="kn">import</span> <span class="n">canonical_csr</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.models.base</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
@@ -377,6 +400,7 @@
     <span class="n">BasePersistableRecommender</span><span class="p">,</span>
     <span class="n">Recommender</span><span class="p">,</span>
     <span class="n">SequentialRecommender</span><span class="p">,</span>
+    <span class="n">_accepts_reporting_keywords</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.models.identifiers</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">ItemVocabulary</span><span class="p">,</span>
@@ -682,6 +706,11 @@
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">ItemVocabulary</span><span class="p">,</span> <span class="n">ItemVocabulary</span><span class="p">]:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_catalog_vocabulary</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_catalog_vocabulary</span>
 
+    <span class="k">def</span><span class="w"> </span><span class="nf">_prediction_reporter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">logger</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">show_progress</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_Reporter</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="n">BaseIdentifiedRecommender</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">_prediction_reporter</span><span class="p">(</span><span class="n">logger</span><span class="p">,</span> <span class="n">show_progress</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_prediction_reporter</span><span class="p">(</span><span class="n">logger</span><span class="p">,</span> <span class="n">show_progress</span><span class="p">)</span>
+
     <span class="k">def</span><span class="w"> </span><span class="nf">_scoreable_candidate_rows</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">vocabulary</span><span class="p">:</span> <span class="n">ItemVocabulary</span><span class="p">,</span>
@@ -710,14 +739,47 @@
         <span class="n">exclude_seen</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
         <span class="n">candidate_ids</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SRPTensor</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="n">BaseIdentifiedRecommender</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="s2">"recommend() requires the wrapped model to inherit an "</span>
+                <span class="s2">"identified recommender base"</span>
+            <span class="p">)</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">csr_matrix</span><span class="p">):</span>
             <span class="n">source</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">align_source</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">predict_on_batch</span><span class="p">(</span>
+        <span class="n">predictions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">_predict_identified</span><span class="p">(</span>
             <span class="n">source</span><span class="p">,</span>
             <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
             <span class="n">exclude_seen</span><span class="o">=</span><span class="n">exclude_seen</span><span class="p">,</span>
             <span class="n">candidate_ids</span><span class="o">=</span><span class="n">candidate_ids</span><span class="p">,</span>
         <span class="p">)</span>
+        <span class="n">n_rows</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">csr_matrix</span><span class="p">)</span> <span class="k">else</span> <span class="n">source</span><span class="o">.</span><span class="n">n_rows</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_remap_predictions</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">n_rows</span><span class="o">=</span><span class="n">n_rows</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_predict_identified_with_reporting</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">source</span><span class="p">:</span> <span class="n">csr_matrix</span> <span class="o">|</span> <span class="n">ItemSequences</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">k</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">exclude_seen</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+        <span class="n">candidate_ids</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">reporter</span><span class="p">:</span> <span class="n">_Reporter</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SRPTensor</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="n">BaseIdentifiedRecommender</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="s2">"recommend() requires the wrapped model to inherit an "</span>
+                <span class="s2">"identified recommender base"</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">csr_matrix</span><span class="p">):</span>
+            <span class="n">source</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">align_source</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>
+        <span class="n">predictions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">_predict_identified_with_reporting</span><span class="p">(</span>
+            <span class="n">source</span><span class="p">,</span>
+            <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
+            <span class="n">exclude_seen</span><span class="o">=</span><span class="n">exclude_seen</span><span class="p">,</span>
+            <span class="n">candidate_ids</span><span class="o">=</span><span class="n">candidate_ids</span><span class="p">,</span>
+            <span class="n">reporter</span><span class="o">=</span><span class="n">reporter</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">n_rows</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">csr_matrix</span><span class="p">)</span> <span class="k">else</span> <span class="n">source</span><span class="o">.</span><span class="n">n_rows</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_remap_predictions</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">n_rows</span><span class="o">=</span><span class="n">n_rows</span><span class="p">)</span>
 
 <div class="viewcode-block" id="WarmCatalogAdapter.align_source">
 <a class="viewcode-back" href="../../../api/models.html#compresso_recsys.models.WarmCatalogAdapter.align_source">[docs]</a>
@@ -760,6 +822,31 @@
                 <span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_mapping_by_device</span><span class="p">[</span><span class="n">device</span><span class="p">]</span> <span class="o">=</span> <span class="n">mapping</span>
             <span class="k">return</span> <span class="n">mapping</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_remap_predictions</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">predictions</span><span class="p">:</span> <span class="n">SRPTensor</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">n_rows</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SRPTensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Express wrapped-model prediction columns in the expanded catalog."""</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">SRPTensor</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">"model prediction must be an SRPTensor"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">predictions</span><span class="o">.</span><span class="n">rows</span> <span class="o">!=</span> <span class="n">n_rows</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"model prediction rows must match the source rows"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">predictions</span><span class="o">.</span><span class="n">cols_total</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">train_item_ids</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">"model prediction items must match train_item_ids: expected "</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">train_item_ids</span><span class="p">)</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">predictions</span><span class="o">.</span><span class="n">cols_total</span><span class="si">}</span><span class="s2">"</span>
+            <span class="p">)</span>
+
+        <span class="n">mapping</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mapping_on</span><span class="p">(</span><span class="n">predictions</span><span class="o">.</span><span class="n">cols</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">SRPTensor</span><span class="p">(</span>
+            <span class="n">cols</span><span class="o">=</span><span class="n">mapping</span><span class="p">[</span><span class="n">predictions</span><span class="o">.</span><span class="n">cols</span><span class="p">],</span>
+            <span class="n">vals</span><span class="o">=</span><span class="n">predictions</span><span class="o">.</span><span class="n">vals</span><span class="p">,</span>
+            <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">predictions</span><span class="o">.</span><span class="n">rows</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">catalog_size</span><span class="p">),</span>
+            <span class="n">validate</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="p">)</span>
 
 <div class="viewcode-block" id="WarmCatalogAdapter.predict_on_batch">
 <a class="viewcode-back" href="../../../api/models.html#compresso_recsys.models.WarmCatalogAdapter.predict_on_batch">[docs]</a>
@@ -806,25 +893,7 @@
             <span class="n">exclude_seen</span><span class="o">=</span><span class="n">exclude_seen</span><span class="p">,</span>
             <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">SRPTensor</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">"model.predict_on_batch() must return an SRPTensor"</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">predictions</span><span class="o">.</span><span class="n">rows</span> <span class="o">!=</span> <span class="n">n_rows</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">"model prediction rows must match the source rows"</span>
-            <span class="p">)</span>
-        <span class="k">if</span> <span class="n">predictions</span><span class="o">.</span><span class="n">cols_total</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">train_item_ids</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">"model prediction items must match train_item_ids: expected "</span>
-                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">train_item_ids</span><span class="p">)</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">predictions</span><span class="o">.</span><span class="n">cols_total</span><span class="si">}</span><span class="s2">"</span>
-            <span class="p">)</span>
-
-        <span class="n">mapping</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mapping_on</span><span class="p">(</span><span class="n">predictions</span><span class="o">.</span><span class="n">cols</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">SRPTensor</span><span class="p">(</span>
-            <span class="n">cols</span><span class="o">=</span><span class="n">mapping</span><span class="p">[</span><span class="n">predictions</span><span class="o">.</span><span class="n">cols</span><span class="p">],</span>
-            <span class="n">vals</span><span class="o">=</span><span class="n">predictions</span><span class="o">.</span><span class="n">vals</span><span class="p">,</span>
-            <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">predictions</span><span class="o">.</span><span class="n">rows</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">catalog_size</span><span class="p">),</span>
-            <span class="n">validate</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="p">)</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_remap_predictions</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">n_rows</span><span class="o">=</span><span class="n">n_rows</span><span class="p">)</span></div>
 </div>
 
 
@@ -1686,6 +1755,29 @@
             <span class="n">candidate_ids</span><span class="o">=</span><span class="n">candidate_ids</span><span class="p">,</span>
         <span class="p">)</span>
 
+    <span class="k">def</span><span class="w"> </span><span class="nf">_predict_identified_with_reporting</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">source</span><span class="p">:</span> <span class="n">csr_matrix</span> <span class="o">|</span> <span class="n">ItemSequences</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">k</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">exclude_seen</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+        <span class="n">candidate_ids</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">reporter</span><span class="p">:</span> <span class="n">_Reporter</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SRPTensor</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">csr_matrix</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">"cold-start recommendations require a CSR source"</span><span class="p">)</span>
+        <span class="n">predict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">predict</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">_accepts_reporting_keywords</span><span class="p">(</span><span class="n">predict</span><span class="p">):</span>
+            <span class="n">predict</span> <span class="o">=</span> <span class="n">BaseColdStartRecommender</span><span class="o">.</span><span class="n">predict</span><span class="o">.</span><span class="fm">__get__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">predict</span><span class="p">(</span>
+            <span class="n">source</span><span class="p">,</span>
+            <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
+            <span class="n">exclude_seen</span><span class="o">=</span><span class="n">exclude_seen</span><span class="p">,</span>
+            <span class="n">candidate_ids</span><span class="o">=</span><span class="n">candidate_ids</span><span class="p">,</span>
+            <span class="n">logger</span><span class="o">=</span><span class="n">reporter</span><span class="p">,</span>
+            <span class="n">show_progress</span><span class="o">=</span><span class="n">_INHERIT</span><span class="p">,</span>
+        <span class="p">)</span>
+
     <span class="nd">@property</span>
     <span class="nd">@abstractmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">is_fitted</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
@@ -1746,9 +1838,11 @@
         <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1024</span><span class="p">,</span>
         <span class="n">exclude_seen</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">candidate_ids</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Hashable</span><span class="p">]</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">show_progress</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">logger</span><span class="p">:</span> <span class="n">Any</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_INHERIT</span><span class="p">,</span>
+        <span class="n">show_progress</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">|</span> <span class="n">_Inherit</span> <span class="o">=</span> <span class="n">_INHERIT</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SRPTensor</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Predict all source rows by repeatedly calling ``predict_on_batch``."""</span>
+        <span class="n">reporter</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prediction_reporter</span><span class="p">(</span><span class="n">logger</span><span class="p">,</span> <span class="n">show_progress</span><span class="p">)</span>
         <span class="n">source</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_source</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">batch_size</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"batch_size must be &gt;= 1"</span><span class="p">)</span>
@@ -1764,17 +1858,20 @@
         <span class="n">columns</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">values</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">starts</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">batch_size</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">show_progress</span><span class="p">:</span>
-            <span class="k">try</span><span class="p">:</span>
-                <span class="kn">from</span><span class="w"> </span><span class="nn">tqdm.auto</span><span class="w"> </span><span class="kn">import</span> <span class="n">tqdm</span>
-
-                <span class="n">starts</span> <span class="o">=</span> <span class="n">tqdm</span><span class="p">(</span>
-                    <span class="n">starts</span><span class="p">,</span>
-                    <span class="n">desc</span><span class="o">=</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> predict@</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
-                <span class="p">)</span>
-            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>  <span class="c1"># pragma: no cover - optional display helper</span>
-                <span class="k">pass</span>
-        <span class="k">for</span> <span class="n">start</span> <span class="ow">in</span> <span class="n">starts</span><span class="p">:</span>
+        <span class="n">steps</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">starts</span><span class="p">)</span>
+        <span class="n">started</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">()</span>
+        <span class="n">reporter</span><span class="o">.</span><span class="n">log</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"predict@</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2"> started: </span><span class="si">{</span><span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> rows | "</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">steps</span><span class="si">}</span><span class="s2"> batches of </span><span class="si">{</span><span class="n">batch_size</span><span class="si">}</span><span class="s2">"</span>
+        <span class="p">)</span>
+        <span class="k">for</span> <span class="n">step</span><span class="p">,</span> <span class="n">start</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span>
+            <span class="n">reporter</span><span class="o">.</span><span class="n">wrap</span><span class="p">(</span>
+                <span class="n">starts</span><span class="p">,</span>
+                <span class="n">total</span><span class="o">=</span><span class="n">steps</span><span class="p">,</span>
+                <span class="n">desc</span><span class="o">=</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> predict@</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">start</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="p">):</span>
             <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">predict_on_batch</span><span class="p">(</span>
                 <span class="n">source</span><span class="p">[</span><span class="n">start</span> <span class="p">:</span> <span class="n">start</span> <span class="o">+</span> <span class="n">batch_size</span><span class="p">],</span>
                 <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
@@ -1787,20 +1884,35 @@
                 <span class="p">)</span>
             <span class="n">columns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">cols</span><span class="p">)</span>
             <span class="n">values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">vals</span><span class="p">)</span>
+            <span class="n">log_steps</span> <span class="o">=</span> <span class="n">reporter</span><span class="o">.</span><span class="n">log_every_n_steps</span>
+            <span class="k">if</span> <span class="n">log_steps</span> <span class="ow">and</span> <span class="n">step</span> <span class="o">%</span> <span class="n">log_steps</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">reporter</span><span class="o">.</span><span class="n">step</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"predict@</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2"> step </span><span class="si">{</span><span class="n">step</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">steps</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+                    <span class="n">step</span><span class="p">,</span>
+                    <span class="n">steps</span><span class="p">,</span>
+                    <span class="n">started</span><span class="p">,</span>
+                <span class="p">)</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">columns</span><span class="p">:</span>
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">predict_on_batch</span><span class="p">(</span>
+            <span class="n">prediction</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">predict_on_batch</span><span class="p">(</span>
                 <span class="n">source</span><span class="p">,</span>
                 <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
                 <span class="n">exclude_seen</span><span class="o">=</span><span class="n">exclude_seen</span><span class="p">,</span>
                 <span class="n">candidate_ids</span><span class="o">=</span><span class="n">candidate_ids</span><span class="p">,</span>
             <span class="p">)</span>
-        <span class="k">return</span> <span class="n">SRPTensor</span><span class="p">(</span>
-            <span class="n">cols</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">columns</span><span class="p">),</span>
-            <span class="n">vals</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">values</span><span class="p">),</span>
-            <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">catalog</span><span class="o">.</span><span class="n">n_items</span><span class="p">),</span>
-            <span class="n">validate</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="p">)</span></div>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">prediction</span> <span class="o">=</span> <span class="n">SRPTensor</span><span class="p">(</span>
+                <span class="n">cols</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">columns</span><span class="p">),</span>
+                <span class="n">vals</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">values</span><span class="p">),</span>
+                <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">catalog</span><span class="o">.</span><span class="n">n_items</span><span class="p">),</span>
+                <span class="n">validate</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="n">reporter</span><span class="o">.</span><span class="n">log</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"predict@</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2"> finished: "</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">_format_duration</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">()</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">started</span><span class="p">)</span><span class="si">}</span><span class="s2"> total | "</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> rows"</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">prediction</span></div>
 
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_on_catalog_published</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">catalog</span><span class="p">:</span> <span class="n">CandidateCatalog</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -2031,9 +2143,11 @@
         <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1024</span><span class="p">,</span>
         <span class="n">exclude_seen</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">candidate_ids</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Hashable</span><span class="p">]</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">show_progress</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">logger</span><span class="p">:</span> <span class="n">Any</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_INHERIT</span><span class="p">,</span>
+        <span class="n">show_progress</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">|</span> <span class="n">_Inherit</span> <span class="o">=</span> <span class="n">_INHERIT</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SRPTensor</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">"""Predict ranked top-``k`` items for all source rows in batches."""</span>
+        <span class="n">reporter</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prediction_reporter</span><span class="p">(</span><span class="n">logger</span><span class="p">,</span> <span class="n">show_progress</span><span class="p">)</span>
         <span class="n">source</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_source</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">batch_size</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"batch_size must be &gt;= 1"</span><span class="p">)</span>
@@ -2044,14 +2158,20 @@
         <span class="n">columns</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">values</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">starts</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">batch_size</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">show_progress</span><span class="p">:</span>
-            <span class="k">try</span><span class="p">:</span>
-                <span class="kn">from</span><span class="w"> </span><span class="nn">tqdm.auto</span><span class="w"> </span><span class="kn">import</span> <span class="n">tqdm</span>
-
-                <span class="n">starts</span> <span class="o">=</span> <span class="n">tqdm</span><span class="p">(</span><span class="n">starts</span><span class="p">,</span> <span class="n">desc</span><span class="o">=</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="si">}</span><span class="s2"> predict@</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>  <span class="c1"># pragma: no cover - optional display helper</span>
-                <span class="k">pass</span>
-        <span class="k">for</span> <span class="n">start</span> <span class="ow">in</span> <span class="n">starts</span><span class="p">:</span>
+        <span class="n">steps</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">starts</span><span class="p">)</span>
+        <span class="n">started</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">()</span>
+        <span class="n">reporter</span><span class="o">.</span><span class="n">log</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"predict@</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2"> started: </span><span class="si">{</span><span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> rows | "</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">steps</span><span class="si">}</span><span class="s2"> batches of </span><span class="si">{</span><span class="n">batch_size</span><span class="si">}</span><span class="s2">"</span>
+        <span class="p">)</span>
+        <span class="k">for</span> <span class="n">step</span><span class="p">,</span> <span class="n">start</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span>
+            <span class="n">reporter</span><span class="o">.</span><span class="n">wrap</span><span class="p">(</span>
+                <span class="n">starts</span><span class="p">,</span>
+                <span class="n">total</span><span class="o">=</span><span class="n">steps</span><span class="p">,</span>
+                <span class="n">desc</span><span class="o">=</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="si">}</span><span class="s2"> predict@</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">start</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="p">):</span>
             <span class="n">end</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">start</span> <span class="o">+</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
             <span class="n">predictions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_predict_prepared_batch</span><span class="p">(</span>
                 <span class="n">source</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">],</span>
@@ -2065,9 +2185,17 @@
             <span class="p">)</span>
             <span class="n">columns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">predictions</span><span class="o">.</span><span class="n">cols</span><span class="p">)</span>
             <span class="n">values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">predictions</span><span class="o">.</span><span class="n">vals</span><span class="p">)</span>
+            <span class="n">log_steps</span> <span class="o">=</span> <span class="n">reporter</span><span class="o">.</span><span class="n">log_every_n_steps</span>
+            <span class="k">if</span> <span class="n">log_steps</span> <span class="ow">and</span> <span class="n">step</span> <span class="o">%</span> <span class="n">log_steps</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">reporter</span><span class="o">.</span><span class="n">step</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"predict@</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2"> step </span><span class="si">{</span><span class="n">step</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">steps</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+                    <span class="n">step</span><span class="p">,</span>
+                    <span class="n">steps</span><span class="p">,</span>
+                    <span class="n">started</span><span class="p">,</span>
+                <span class="p">)</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">columns</span><span class="p">:</span>
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_predict_prepared_batch</span><span class="p">(</span>
+            <span class="n">prediction</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_predict_prepared_batch</span><span class="p">(</span>
                 <span class="n">source</span><span class="p">,</span>
                 <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
                 <span class="n">exclude_seen</span><span class="o">=</span><span class="n">exclude_seen</span><span class="p">,</span>
@@ -2077,11 +2205,18 @@
                 <span class="n">source_to_candidate_rows</span><span class="o">=</span><span class="n">selection</span><span class="o">.</span><span class="n">source_to_candidate</span><span class="p">,</span>
                 <span class="n">candidate_to_local</span><span class="o">=</span><span class="n">selection</span><span class="o">.</span><span class="n">candidate_to_local</span><span class="p">,</span>
             <span class="p">)</span>
-        <span class="k">return</span> <span class="n">SRPTensor</span><span class="p">(</span>
-            <span class="n">cols</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">columns</span><span class="p">),</span>
-            <span class="n">vals</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">values</span><span class="p">),</span>
-            <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">selection</span><span class="o">.</span><span class="n">catalog</span><span class="o">.</span><span class="n">n_items</span><span class="p">),</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">prediction</span> <span class="o">=</span> <span class="n">SRPTensor</span><span class="p">(</span>
+                <span class="n">cols</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">columns</span><span class="p">),</span>
+                <span class="n">vals</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">values</span><span class="p">),</span>
+                <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">selection</span><span class="o">.</span><span class="n">catalog</span><span class="o">.</span><span class="n">n_items</span><span class="p">),</span>
+            <span class="p">)</span>
+        <span class="n">reporter</span><span class="o">.</span><span class="n">log</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"predict@</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2"> finished: "</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">_format_duration</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">()</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">started</span><span class="p">)</span><span class="si">}</span><span class="s2"> total | "</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> rows"</span>
         <span class="p">)</span>
+        <span class="k">return</span> <span class="n">prediction</span>
 </pre></div>
 
            </div>

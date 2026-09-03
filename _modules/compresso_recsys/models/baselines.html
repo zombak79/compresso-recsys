@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>compresso_recsys.models.ease &mdash; Compresso Recsys 0.3.1 documentation</title>
+  <title>compresso_recsys.models.baselines &mdash; Compresso Recsys 0.3.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
 
@@ -359,7 +359,7 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
-      <li class="breadcrumb-item active">compresso_recsys.models.ease</li>
+      <li class="breadcrumb-item active">compresso_recsys.models.baselines</li>
       <li class="wy-breadcrumbs-aside">
       </li>
   </ul>
@@ -368,118 +368,192 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <h1>Source code for compresso_recsys.models.ease</h1><div class="highlight"><pre>
+  <h1>Source code for compresso_recsys.models.baselines</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Hashable</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Sequence</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Hashable</span><span class="p">,</span> <span class="n">Sequence</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">scipy.sparse</span><span class="w"> </span><span class="kn">import</span> <span class="n">csr_matrix</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">compresso</span><span class="w"> </span><span class="kn">import</span> <span class="n">SRPTensor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.models._ranking</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">mask_seen_numpy</span><span class="p">,</span>
+    <span class="n">rank_numpy_scores</span><span class="p">,</span>
+    <span class="n">validate_candidate_topk</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.models._validation</span><span class="w"> </span><span class="kn">import</span> <span class="n">canonical_csr</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.models.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseCollaborativeRecommender</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.models.identifiers</span><span class="w"> </span><span class="kn">import</span> <span class="n">ItemVocabulary</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.persistence</span><span class="w"> </span><span class="kn">import</span> <span class="n">ModelCheckpointReader</span><span class="p">,</span> <span class="n">ModelCheckpointWriter</span>
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"EASE"</span><span class="p">,</span> <span class="s2">"EASEConfig"</span><span class="p">]</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">"PopularityBaseline"</span><span class="p">,</span>
+    <span class="s2">"PopularityBaselineConfig"</span><span class="p">,</span>
+    <span class="s2">"RandomBaseline"</span><span class="p">,</span>
+    <span class="s2">"RandomBaselineConfig"</span><span class="p">,</span>
+<span class="p">]</span>
 
-<span class="n">EASEDataType</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"float32"</span><span class="p">,</span> <span class="s2">"float64"</span><span class="p">]</span>
+<span class="n">_UINT64_MASK</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">64</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
 
 
-<div class="viewcode-block" id="EASEConfig">
-<a class="viewcode-back" href="../../../api/models.html#compresso_recsys.models.EASEConfig">[docs]</a>
+<div class="viewcode-block" id="RandomBaselineConfig">
+<a class="viewcode-back" href="../../../api/models.html#compresso_recsys.models.RandomBaselineConfig">[docs]</a>
 <span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="k">class</span><span class="w"> </span><span class="nc">EASEConfig</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Configuration for :class:`EASE`.</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">RandomBaselineConfig</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Configuration for :class:`RandomBaseline`.</span>
 
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    l2:</span>
-<span class="sd">        Positive L2 regularization added to the item Gram matrix diagonal.</span>
-<span class="sd">    dtype:</span>
-<span class="sd">        Floating-point precision used to fit and score the model. ``float32``</span>
-<span class="sd">        is the memory-efficient default; ``float64`` is available for</span>
-<span class="sd">        experiments that need additional numerical precision.</span>
+<span class="sd">    ``seed`` determines a stable pseudorandom ranking for each distinct source</span>
+<span class="sd">    history. Predictions are invariant to evaluation batch size and checkpoint</span>
+<span class="sd">    round trips.</span>
 <span class="sd">    """</span>
 
-    <span class="n">l2</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">500.0</span>
-    <span class="n">dtype</span><span class="p">:</span> <span class="n">EASEDataType</span> <span class="o">=</span> <span class="s2">"float32"</span>
+    <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">l2</span><span class="p">)</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">l2</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"l2 must be finite and &gt; 0"</span><span class="p">)</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">"float32"</span><span class="p">,</span> <span class="s2">"float64"</span><span class="p">}:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"dtype must be 'float32' or 'float64'"</span><span class="p">)</span></div>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">seed</span><span class="p">,</span> <span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">))</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">seed</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">)</span>
+        <span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">"seed must be an integer"</span><span class="p">)</span></div>
 
 
 
-<div class="viewcode-block" id="EASE">
-<a class="viewcode-back" href="../../../api/models.html#compresso_recsys.models.EASE">[docs]</a>
-<span class="k">class</span><span class="w"> </span><span class="nc">EASE</span><span class="p">(</span><span class="n">BaseCollaborativeRecommender</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Embarrassingly Shallow Autoencoder recommender.</span>
+<div class="viewcode-block" id="PopularityBaselineConfig">
+<a class="viewcode-back" href="../../../api/models.html#compresso_recsys.models.PopularityBaselineConfig">[docs]</a>
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">PopularityBaselineConfig</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Configuration for :class:`PopularityBaseline`.</span>
 
-<span class="sd">    EASE learns a closed-form item-to-item coefficient matrix from a sparse</span>
-<span class="sd">    user-item interaction matrix. Predictions are returned as ranked</span>
-<span class="sd">    :class:`compresso.SRPTensor` objects, with seen source items excluded by</span>
-<span class="sd">    default.</span>
+<span class="sd">    When ``use_values`` is false, popularity counts users with a nonzero</span>
+<span class="sd">    interaction. When true, it sums the interaction values instead.</span>
 <span class="sd">    """</span>
 
-    <span class="n">checkpoint_type</span> <span class="o">=</span> <span class="s2">"ease"</span>
+    <span class="n">use_values</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">EASEConfig</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span> <span class="o">=</span> <span class="n">config</span> <span class="k">if</span> <span class="n">config</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">EASEConfig</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">coefficients_</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">n_items_</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">use_values</span><span class="p">,</span> <span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">"use_values must be a boolean"</span><span class="p">)</span></div>
+
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">_FixedCatalogBaseline</span><span class="p">(</span><span class="n">BaseCollaborativeRecommender</span><span class="p">):</span>
+    <span class="n">n_items_</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">is_fitted</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Whether the item coefficient matrix has been fitted."""</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">coefficients_</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_items_</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">n_items</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Number of fitted item columns, or ``None`` before fitting."""</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_items_</span>
 
-    <span class="nd">@property</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">dtype</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""NumPy dtype used by the model."""</span>
-        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_prepare_catalog</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">interactions</span><span class="p">:</span> <span class="n">csr_matrix</span><span class="p">,</span>
+        <span class="n">item_ids</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Hashable</span><span class="p">]</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">csr_matrix</span><span class="p">,</span> <span class="n">ItemVocabulary</span><span class="p">]:</span>
+        <span class="n">interactions</span> <span class="o">=</span> <span class="n">canonical_csr</span><span class="p">(</span><span class="n">interactions</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"interactions"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">interactions</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">interactions</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">"interactions must contain at least one user and one item"</span>
+            <span class="p">)</span>
+        <span class="n">vocabulary</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_item_vocabulary</span><span class="p">(</span>
+            <span class="n">item_ids</span><span class="p">,</span>
+            <span class="n">n_items</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">interactions</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">interactions</span><span class="p">,</span> <span class="n">vocabulary</span>
 
-<div class="viewcode-block" id="EASE.fit">
-<a class="viewcode-back" href="../../../api/models.html#compresso_recsys.models.EASE.fit">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_checkpoint_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reader</span><span class="p">:</span> <span class="n">ModelCheckpointReader</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="n">state</span> <span class="o">=</span> <span class="n">reader</span><span class="o">.</span><span class="n">read_json</span><span class="p">(</span><span class="s2">"state/baseline.json"</span><span class="p">)</span>
+        <span class="n">n_items</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"n_items"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">n_items</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">n_items</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">or</span> <span class="n">n_items</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"baseline n_items must be a positive integer"</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">n_items</span>
+
+
+<div class="viewcode-block" id="RandomBaseline">
+<a class="viewcode-back" href="../../../api/models.html#compresso_recsys.models.RandomBaseline">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">RandomBaseline</span><span class="p">(</span><span class="n">_FixedCatalogBaseline</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Deterministic random-ranking baseline for a fixed item catalog."""</span>
+
+    <span class="n">checkpoint_type</span> <span class="o">=</span> <span class="s2">"random_baseline"</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">RandomBaselineConfig</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span> <span class="o">=</span> <span class="n">config</span> <span class="k">if</span> <span class="n">config</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">RandomBaselineConfig</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_items_</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="RandomBaseline.fit">
+<a class="viewcode-back" href="../../../api/models.html#compresso_recsys.models.RandomBaseline.fit">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">fit</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">interactions</span><span class="p">:</span> <span class="n">csr_matrix</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
         <span class="n">item_ids</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Hashable</span><span class="p">]</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EASE</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Fit EASE from a CSR user-item interaction matrix."""</span>
-        <span class="n">interactions</span> <span class="o">=</span> <span class="n">canonical_csr</span><span class="p">(</span><span class="n">interactions</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"interactions"</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">interactions</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">interactions</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"interactions must contain at least one user and one item"</span><span class="p">)</span>
-
-        <span class="n">n_items</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">interactions</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-        <span class="n">vocabulary</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_item_vocabulary</span><span class="p">(</span><span class="n">item_ids</span><span class="p">,</span> <span class="n">n_items</span><span class="o">=</span><span class="n">n_items</span><span class="p">)</span>
-        <span class="n">x</span> <span class="o">=</span> <span class="n">interactions</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-        <span class="n">gram</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">toarray</span><span class="p">()</span>
-        <span class="n">diagonal_indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diag_indices</span><span class="p">(</span><span class="n">gram</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-        <span class="n">gram</span><span class="p">[</span><span class="n">diagonal_indices</span><span class="p">]</span> <span class="o">+=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">l2</span><span class="p">)</span>
-
-        <span class="n">coefficients</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">gram</span><span class="p">)</span>
-        <span class="k">del</span> <span class="n">gram</span>
-        <span class="n">precision_diagonal</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">coefficients</span><span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">precision_diagonal</span> <span class="o">==</span> <span class="mi">0</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">LinAlgError</span><span class="p">(</span><span class="s2">"EASE precision matrix has a zero diagonal"</span><span class="p">)</span>
-
-        <span class="n">coefficients</span> <span class="o">/=</span> <span class="o">-</span><span class="n">precision_diagonal</span>
-        <span class="n">coefficients</span><span class="p">[</span><span class="n">diagonal_indices</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">coefficients_</span> <span class="o">=</span> <span class="n">coefficients</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">n_items_</span> <span class="o">=</span> <span class="n">n_items</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RandomBaseline</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Record the fitted catalog used by the random baseline."""</span>
+        <span class="n">interactions</span><span class="p">,</span> <span class="n">vocabulary</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_catalog</span><span class="p">(</span><span class="n">interactions</span><span class="p">,</span> <span class="n">item_ids</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_items_</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">interactions</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_publish_item_vocabulary</span><span class="p">(</span><span class="n">vocabulary</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span></div>
+
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_history_key</span><span class="p">(</span><span class="n">indices</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span> <span class="o">^</span> <span class="mh">0xCBF29CE484222325</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">_UINT64_MASK</span>
+        <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="n">indices</span><span class="o">.</span><span class="n">tolist</span><span class="p">():</span>
+            <span class="n">value</span> <span class="o">^=</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">index</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">_UINT64_MASK</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="p">(</span><span class="n">value</span> <span class="o">*</span> <span class="mh">0x100000001B3</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">_UINT64_MASK</span>
+        <span class="k">return</span> <span class="n">value</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_random_scores</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">candidate_rows</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="n">values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">candidate_rows</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint64</span><span class="p">)</span>
+        <span class="n">values</span> <span class="o">=</span> <span class="n">values</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">uint64</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="n">values</span> <span class="o">=</span> <span class="n">values</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">uint64</span><span class="p">(</span><span class="mh">0x9E3779B97F4A7C15</span><span class="p">)</span>
+        <span class="n">values</span> <span class="o">=</span> <span class="p">(</span><span class="n">values</span> <span class="o">^</span> <span class="p">(</span><span class="n">values</span> <span class="o">&gt;&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">uint64</span><span class="p">(</span><span class="mi">30</span><span class="p">)))</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">uint64</span><span class="p">(</span>
+            <span class="mh">0xBF58476D1CE4E5B9</span>
+        <span class="p">)</span>
+        <span class="n">values</span> <span class="o">=</span> <span class="p">(</span><span class="n">values</span> <span class="o">^</span> <span class="p">(</span><span class="n">values</span> <span class="o">&gt;&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">uint64</span><span class="p">(</span><span class="mi">27</span><span class="p">)))</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">uint64</span><span class="p">(</span>
+            <span class="mh">0x94D049BB133111EB</span>
+        <span class="p">)</span>
+        <span class="n">values</span> <span class="o">^=</span> <span class="n">values</span> <span class="o">&gt;&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">uint64</span><span class="p">(</span><span class="mi">31</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">values</span> <span class="o">&gt;&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">uint64</span><span class="p">(</span><span class="mi">11</span><span class="p">))</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">53</span><span class="p">))</span>
+
+<div class="viewcode-block" id="RandomBaseline.predict_on_batch">
+<a class="viewcode-back" href="../../../api/models.html#compresso_recsys.models.RandomBaseline.predict_on_batch">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">predict_on_batch</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">source</span><span class="p">:</span> <span class="n">csr_matrix</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">k</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">exclude_seen</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">candidate_ids</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Hashable</span><span class="p">]</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SRPTensor</span><span class="p">:</span>
+        <span class="n">source</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_source</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>
+        <span class="n">candidate_rows</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_candidate_rows</span><span class="p">(</span><span class="n">candidate_ids</span><span class="p">)</span>
+        <span class="n">validate_candidate_topk</span><span class="p">(</span>
+            <span class="n">source</span><span class="p">,</span>
+            <span class="n">candidate_rows</span><span class="p">,</span>
+            <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
+            <span class="n">exclude_seen</span><span class="o">=</span><span class="n">exclude_seen</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">scores</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">candidate_rows</span><span class="o">.</span><span class="n">size</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+            <span class="n">key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_history_key</span><span class="p">(</span>
+                <span class="n">source</span><span class="o">.</span><span class="n">indices</span><span class="p">[</span><span class="n">source</span><span class="o">.</span><span class="n">indptr</span><span class="p">[</span><span class="n">row</span><span class="p">]</span> <span class="p">:</span> <span class="n">source</span><span class="o">.</span><span class="n">indptr</span><span class="p">[</span><span class="n">row</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]],</span>
+                <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">seed</span><span class="p">),</span>
+            <span class="p">)</span>
+            <span class="n">scores</span><span class="p">[</span><span class="n">row</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_random_scores</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">candidate_rows</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">exclude_seen</span><span class="p">:</span>
+            <span class="n">mask_seen_numpy</span><span class="p">(</span><span class="n">scores</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="n">candidate_rows</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">rank_numpy_scores</span><span class="p">(</span>
+            <span class="n">scores</span><span class="p">,</span>
+            <span class="n">candidate_rows</span><span class="o">=</span><span class="n">candidate_rows</span><span class="p">,</span>
+            <span class="n">shape</span><span class="o">=</span><span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
+            <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
+        <span class="p">)</span></div>
 
 
     <span class="nd">@classmethod</span>
@@ -489,40 +563,59 @@
         <span class="n">reader</span><span class="p">:</span> <span class="n">ModelCheckpointReader</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
         <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EASE</span><span class="p">:</span>
-        <span class="k">del</span> <span class="n">reader</span><span class="p">,</span> <span class="n">device</span>
-        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">EASEConfig</span><span class="p">(</span><span class="o">**</span><span class="n">config</span><span class="p">))</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RandomBaseline</span><span class="p">:</span>
+        <span class="k">del</span> <span class="n">device</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="n">RandomBaselineConfig</span><span class="p">(</span><span class="o">**</span><span class="n">config</span><span class="p">))</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">n_items_</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">_checkpoint_state</span><span class="p">(</span><span class="n">reader</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">model</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_save_checkpoint_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">writer</span><span class="p">:</span> <span class="n">ModelCheckpointWriter</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">coefficients_</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-        <span class="n">writer</span><span class="o">.</span><span class="n">write_numpy</span><span class="p">(</span><span class="s2">"state/coefficients.npy"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">coefficients_</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_items_</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="n">writer</span><span class="o">.</span><span class="n">write_json</span><span class="p">(</span><span class="s2">"state/baseline.json"</span><span class="p">,</span> <span class="p">{</span><span class="s2">"n_items"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_items_</span><span class="p">})</span></div>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_load_checkpoint_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reader</span><span class="p">:</span> <span class="n">ModelCheckpointReader</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">coefficients</span> <span class="o">=</span> <span class="n">reader</span><span class="o">.</span><span class="n">read_numpy</span><span class="p">(</span><span class="s2">"state/coefficients.npy"</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">coefficients</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">2</span> <span class="ow">or</span> <span class="n">coefficients</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">coefficients</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"EASE coefficients must be a square matrix"</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">coefficients</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"EASE coefficients must contain at least one item"</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">coefficients</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">"EASE coefficients use </span><span class="si">{</span><span class="n">coefficients</span><span class="o">.</span><span class="n">dtype</span><span class="si">}</span><span class="s2">, expected </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="si">}</span><span class="s2">"</span>
-            <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">coefficients_</span> <span class="o">=</span> <span class="n">coefficients</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">n_items_</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">coefficients</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_prepare_source</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source</span><span class="p">:</span> <span class="n">csr_matrix</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">csr_matrix</span><span class="p">:</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_fitted</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_items_</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">"EASE must be fitted before prediction"</span><span class="p">)</span>
-        <span class="n">source</span> <span class="o">=</span> <span class="n">canonical_csr</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"source"</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_items_</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">"source has </span><span class="si">{</span><span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2"> items, but EASE was fitted with "</span>
-                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_items_</span><span class="si">}</span><span class="s2"> items"</span>
-            <span class="p">)</span>
-        <span class="k">return</span> <span class="n">source</span>
 
-<div class="viewcode-block" id="EASE.predict_on_batch">
-<a class="viewcode-back" href="../../../api/models.html#compresso_recsys.models.EASE.predict_on_batch">[docs]</a>
+<div class="viewcode-block" id="PopularityBaseline">
+<a class="viewcode-back" href="../../../api/models.html#compresso_recsys.models.PopularityBaseline">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">PopularityBaseline</span><span class="p">(</span><span class="n">_FixedCatalogBaseline</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Non-personalized baseline ranking items by training popularity."""</span>
+
+    <span class="n">checkpoint_type</span> <span class="o">=</span> <span class="s2">"popularity_baseline"</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">PopularityBaselineConfig</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span> <span class="o">=</span> <span class="n">config</span> <span class="k">if</span> <span class="n">config</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">PopularityBaselineConfig</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">popularity_</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_items_</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">is_fitted</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">popularity_</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="PopularityBaseline.fit">
+<a class="viewcode-back" href="../../../api/models.html#compresso_recsys.models.PopularityBaseline.fit">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">fit</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">interactions</span><span class="p">:</span> <span class="n">csr_matrix</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">item_ids</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Hashable</span><span class="p">]</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PopularityBaseline</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Count item popularity in the fitted interaction matrix."""</span>
+        <span class="n">interactions</span><span class="p">,</span> <span class="n">vocabulary</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_catalog</span><span class="p">(</span><span class="n">interactions</span><span class="p">,</span> <span class="n">item_ids</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">interactions</span><span class="o">.</span><span class="n">data</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"interactions must contain nonnegative values"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">use_values</span><span class="p">:</span>
+            <span class="n">popularity</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">interactions</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">popularity</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">interactions</span><span class="o">.</span><span class="n">getnnz</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
+        <span class="n">popularity</span> <span class="o">=</span> <span class="n">popularity</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">popularity_</span> <span class="o">=</span> <span class="n">popularity</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_items_</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">interactions</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_publish_item_vocabulary</span><span class="p">(</span><span class="n">vocabulary</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+<div class="viewcode-block" id="PopularityBaseline.predict_on_batch">
+<a class="viewcode-back" href="../../../api/models.html#compresso_recsys.models.PopularityBaseline.predict_on_batch">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">predict_on_batch</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">source</span><span class="p">:</span> <span class="n">csr_matrix</span><span class="p">,</span>
@@ -531,69 +624,56 @@
         <span class="n">exclude_seen</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">candidate_ids</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Hashable</span><span class="p">]</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SRPTensor</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Predict ranked top-``k`` items for one source batch."""</span>
         <span class="n">source</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_source</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>
         <span class="n">candidate_rows</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_candidate_rows</span><span class="p">(</span><span class="n">candidate_ids</span><span class="p">)</span>
-        <span class="n">candidate_count</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">candidate_rows</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="mi">1</span> <span class="o">&lt;=</span> <span class="nb">int</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">candidate_count</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"k must be in [1, </span><span class="si">{</span><span class="n">candidate_count</span><span class="si">}</span><span class="s2">], got </span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-
-        <span class="n">seen_counts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">source</span><span class="o">.</span><span class="n">indptr</span><span class="p">)</span>
+        <span class="n">validate_candidate_topk</span><span class="p">(</span>
+            <span class="n">source</span><span class="p">,</span>
+            <span class="n">candidate_rows</span><span class="p">,</span>
+            <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
+            <span class="n">exclude_seen</span><span class="o">=</span><span class="n">exclude_seen</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">popularity_</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="n">scores</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">popularity_</span><span class="p">[</span><span class="n">candidate_rows</span><span class="p">],</span>
+            <span class="p">(</span><span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">candidate_rows</span><span class="o">.</span><span class="n">size</span><span class="p">),</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">exclude_seen</span><span class="p">:</span>
-            <span class="n">selected</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
-            <span class="n">selected</span><span class="p">[</span><span class="n">candidate_rows</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
-            <span class="n">selected_seen</span> <span class="o">=</span> <span class="n">selected</span><span class="p">[</span><span class="n">source</span><span class="o">.</span><span class="n">indices</span><span class="p">]</span>
-            <span class="n">seen_rows</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span>
-                <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">),</span>
-                <span class="n">seen_counts</span><span class="p">,</span>
-            <span class="p">)</span>
-            <span class="n">selected_seen_counts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">bincount</span><span class="p">(</span>
-                <span class="n">seen_rows</span><span class="p">[</span><span class="n">selected_seen</span><span class="p">],</span>
-                <span class="n">minlength</span><span class="o">=</span><span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
-            <span class="p">)</span>
-            <span class="n">available_counts</span> <span class="o">=</span> <span class="n">candidate_count</span> <span class="o">-</span> <span class="n">selected_seen_counts</span>
-            <span class="k">if</span> <span class="n">available_counts</span><span class="o">.</span><span class="n">size</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">available_counts</span> <span class="o">&lt;</span> <span class="n">k</span><span class="p">):</span>
-                <span class="n">row</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="n">available_counts</span> <span class="o">&lt;</span> <span class="n">k</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">"source row </span><span class="si">{</span><span class="n">row</span><span class="si">}</span><span class="s2"> has only </span><span class="si">{</span><span class="n">available_counts</span><span class="p">[</span><span class="n">row</span><span class="p">]</span><span class="si">}</span><span class="s2"> unseen "</span>
-                    <span class="sa">f</span><span class="s2">"items, fewer than k=</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">"</span>
-                <span class="p">)</span>
-
-        <span class="k">if</span> <span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="n">value_dtype</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span><span class="o">.</span><span class="n">dtype</span>
-            <span class="k">return</span> <span class="n">SRPTensor</span><span class="p">(</span>
-                <span class="n">cols</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="n">k</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">),</span>
-                <span class="n">vals</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="n">k</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">value_dtype</span><span class="p">),</span>
-                <span class="n">shape</span><span class="o">=</span><span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
-            <span class="p">)</span>
-
-        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">coefficients_</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-        <span class="n">scores</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span>
-            <span class="n">source</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">coefficients_</span><span class="p">[:,</span> <span class="n">candidate_rows</span><span class="p">],</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">seen_rows</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span>
-            <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">),</span>
-            <span class="n">seen_counts</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="k">if</span> <span class="n">exclude_seen</span><span class="p">:</span>
-            <span class="n">candidate_to_local</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-            <span class="n">candidate_to_local</span><span class="p">[</span><span class="n">candidate_rows</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">candidate_count</span><span class="p">)</span>
-            <span class="n">seen_local</span> <span class="o">=</span> <span class="n">candidate_to_local</span><span class="p">[</span><span class="n">source</span><span class="o">.</span><span class="n">indices</span><span class="p">]</span>
-            <span class="n">in_selection</span> <span class="o">=</span> <span class="n">seen_local</span> <span class="o">&gt;=</span> <span class="mi">0</span>
-            <span class="n">scores</span><span class="p">[</span><span class="n">seen_rows</span><span class="p">[</span><span class="n">in_selection</span><span class="p">],</span> <span class="n">seen_local</span><span class="p">[</span><span class="n">in_selection</span><span class="p">]]</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span>
-        <span class="n">local</span> <span class="o">=</span> <span class="n">SRPTensor</span><span class="o">.</span><span class="n">from_dense</span><span class="p">(</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">scores</span><span class="p">),</span>
-            <span class="n">k</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">k</span><span class="p">),</span>
-            <span class="n">score_mode</span><span class="o">=</span><span class="s2">"raw"</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">global_rows</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">candidate_rows</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">local</span><span class="o">.</span><span class="n">cols</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">SRPTensor</span><span class="p">(</span>
-            <span class="n">cols</span><span class="o">=</span><span class="n">global_rows</span><span class="p">[</span><span class="n">local</span><span class="o">.</span><span class="n">cols</span><span class="p">],</span>
-            <span class="n">vals</span><span class="o">=</span><span class="n">local</span><span class="o">.</span><span class="n">vals</span><span class="p">,</span>
+            <span class="n">mask_seen_numpy</span><span class="p">(</span><span class="n">scores</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="n">candidate_rows</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">rank_numpy_scores</span><span class="p">(</span>
+            <span class="n">scores</span><span class="p">,</span>
+            <span class="n">candidate_rows</span><span class="o">=</span><span class="n">candidate_rows</span><span class="p">,</span>
             <span class="n">shape</span><span class="o">=</span><span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
+            <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
         <span class="p">)</span></div>
-</div>
+
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_from_checkpoint_config</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+        <span class="n">reader</span><span class="p">:</span> <span class="n">ModelCheckpointReader</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PopularityBaseline</span><span class="p">:</span>
+        <span class="k">del</span> <span class="n">device</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">PopularityBaselineConfig</span><span class="p">(</span><span class="o">**</span><span class="n">config</span><span class="p">))</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_save_checkpoint_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">writer</span><span class="p">:</span> <span class="n">ModelCheckpointWriter</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">popularity_</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_items_</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="n">writer</span><span class="o">.</span><span class="n">write_json</span><span class="p">(</span><span class="s2">"state/baseline.json"</span><span class="p">,</span> <span class="p">{</span><span class="s2">"n_items"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_items_</span><span class="p">})</span>
+        <span class="n">writer</span><span class="o">.</span><span class="n">write_numpy</span><span class="p">(</span><span class="s2">"state/popularity.npy"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">popularity_</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_load_checkpoint_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reader</span><span class="p">:</span> <span class="n">ModelCheckpointReader</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">n_items</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_state</span><span class="p">(</span><span class="n">reader</span><span class="p">)</span>
+        <span class="n">popularity</span> <span class="o">=</span> <span class="n">reader</span><span class="o">.</span><span class="n">read_numpy</span><span class="p">(</span><span class="s2">"state/popularity.npy"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">popularity</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="n">n_items</span><span class="p">,)</span> <span class="ow">or</span> <span class="n">popularity</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">"popularity state must be a float64 vector with n_items entries"</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">popularity</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">popularity</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"popularity state must contain finite nonnegative values"</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_items_</span> <span class="o">=</span> <span class="n">n_items</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">popularity_</span> <span class="o">=</span> <span class="n">popularity</span></div>
 
 </pre></div>
 

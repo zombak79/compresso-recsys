@@ -34,6 +34,74 @@ For :class:`compresso_recsys.models.EASE`, cite the original EASE paper:
      year={2019}
    }
 
+Neighborhood Models
+-------------------
+
+For :class:`compresso_recsys.models.UserKNNRecommender`, cite the GroupLens
+user-based collaborative-filtering paper:
+
+.. code-block:: bibtex
+
+   @inproceedings{resnick1994grouplens,
+     title={GroupLens: An Open Architecture for Collaborative Filtering of Netnews},
+     author={Resnick, Paul and Iacovou, Neophytos and Suchak, Mitesh and
+             Bergstrom, Peter and Riedl, John},
+     booktitle={Proceedings of the 1994 ACM Conference on Computer Supported
+                Cooperative Work},
+     pages={175--186},
+     year={1994},
+     doi={10.1145/192844.192905}
+   }
+
+For :class:`compresso_recsys.models.ItemKNNRecommender`, cite the original
+item-based collaborative-filtering paper:
+
+.. code-block:: bibtex
+
+   @inproceedings{sarwar2001item,
+     title={Item-Based Collaborative Filtering Recommendation Algorithms},
+     author={Sarwar, Badrul and Karypis, George and Konstan, Joseph and
+             Riedl, John},
+     booktitle={Proceedings of the 10th International Conference on World Wide Web},
+     pages={285--295},
+     year={2001},
+     doi={10.1145/371920.372071}
+   }
+
+Mult-VAE, Mult-DAE, and AutoRec
+-------------------------------
+
+For :class:`compresso_recsys.models.MultDAETrainer` or
+:class:`compresso_recsys.models.MultVAETrainer`, cite the paper that introduced
+both models:
+
+.. code-block:: bibtex
+
+   @inproceedings{liang2018variational,
+     title={Variational Autoencoders for Collaborative Filtering},
+     author={Liang, Dawen and Krishnan, Rahul G. and Hoffman, Matthew D. and
+             Jebara, Tony},
+     booktitle={Proceedings of the 2018 World Wide Web Conference},
+     pages={689--698},
+     year={2018},
+     doi={10.1145/3178876.3186150}
+   }
+
+AutoRec established the collaborative-filtering autoencoder architecture that
+preceded Mult-DAE:
+
+.. code-block:: bibtex
+
+   @inproceedings{sedhain2015autorec,
+     title={AutoRec: Autoencoders Meet Collaborative Filtering},
+     author={Sedhain, Suvash and Menon, Aditya Krishna and Sanner, Scott and
+             Xie, Lexing},
+     booktitle={Proceedings of the 24th International Conference on World Wide Web},
+     pages={111--112},
+     year={2015},
+     doi={10.1145/2740908.2742726}
+   }
+
 TEASER
 ------
 
@@ -110,20 +178,8 @@ Evaluation Protocol
 Held-out users are evaluated under strong generalization: each user's history is
 split into a fold-in part the model sees and a held-out part it is scored
 against. ``eval_holdout_frac`` defaults to 0.2, matching the 80/20 split
-described by Liang et al. If you report numbers from ``user_split``, cite it.
-
-.. code-block:: bibtex
-
-   @inproceedings{liang2018variational,
-     title={Variational Autoencoders for Collaborative Filtering},
-     author={Liang, Dawen and Krishnan, Rahul G. and Hoffman, Matthew D. and
-             Jebara, Tony},
-     booktitle={Proceedings of the 2018 World Wide Web Conference},
-     series={WWW '18},
-     pages={689--698},
-     year={2018},
-     doi={10.1145/3178876.3186150}
-   }
+described by Liang et al. If you report numbers from ``user_split``, cite the
+Mult-VAE/Mult-DAE paper above.
 
 Stacking several independent draws per user — ``eval_draws``, defaulting to 5 —
 follows the ELSA line of work; cite the ELSA papers above when reporting under

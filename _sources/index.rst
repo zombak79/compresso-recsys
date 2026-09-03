@@ -23,6 +23,7 @@ is imported as ``compresso_recsys``.
 
    examples
    bring-your-own-dataset
+   implementing-a-recommender
    statistical-comparison
    citing
    cli-reference

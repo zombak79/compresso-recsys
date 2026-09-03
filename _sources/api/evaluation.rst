@@ -89,6 +89,12 @@ their column counts may differ. This supports a fixed history vocabulary with a
 separately managed candidate catalog. Every prediction batch must use the same
 column space as its corresponding target matrix.
 
+For a terminal or notebook, pass ``show_progress=True`` to display its tqdm
+bar. For a service, pass any object with an ``info(str)`` method as ``logger``;
+the logger takes precedence over the bar and receives start, finish, and
+intra-evaluation lines at ``log_every_n_steps`` batches. A failing logger is
+disabled after one warning without aborting evaluation.
+
 .. autofunction:: compresso_recsys.evaluation.evaluate_ranked_predictions
 
 .. autoclass:: compresso_recsys.evaluation.RankingEvaluator

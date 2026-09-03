@@ -99,6 +99,38 @@ mapping is stored in fitted-model checkpoints.
 .. autoclass:: compresso_recsys.models.Recommendations
    :members:
 
+Training and Prediction Progress
+--------------------------------
+
+Every iterative trainer accepts a duck-typed ``logger`` in its constructor;
+the object only needs an ``info(message: str)`` method. Pass the logger on an
+individual ``fit``, ``predict``, or ``recommend`` call to override that
+job-level default. A logger always replaces tqdm, even if
+``show_progress=True``, so service logs never receive carriage-return progress
+bars and callers do not have to disable the bar separately::
+
+   trainer = ELSATrainer(
+       ELSAConfig(log_every_n_steps=1_000),
+       logger=job_logger,
+   )
+   model = trainer.fit(interactions)
+
+The logger receives start and finish lines, one line per completed epoch, and
+an intra-epoch line every ``log_every_n_steps`` batches. Set the interval to
+zero for epoch boundaries only. Reporting is resolved separately for each
+call: pass another logger to redirect one operation, or ``logger=None`` to make
+one call quiet. If ``logger.info`` raises, the first failure emits a warning,
+logging is disabled for that call, and the training or prediction continues.
+
+Without a logger, notebook behavior remains controlled by ``show_progress``.
+Fixed-epoch training uses two bars: an outer epoch bar and one batch bar that
+is reset and reused at each epoch. Reusing the batch bar is the recommended
+pattern for new trainers because creating one bar per epoch leaves a growing
+stack of completed bars in notebooks and terminals. Compressed ELSA's
+unbounded mask-search phase has no fixed epoch total, so it uses only one
+reusable batch bar. ELSA, Mult-DAE, Mult-VAE, SimpleGPT, SimpleRNN, and
+TEASER-GD all follow the logger reporting contract above.
+
 Fitted Model Persistence
 ------------------------
 
@@ -130,14 +162,24 @@ bases.
 All three bases derive from
 :class:`compresso_recsys.models.BaseIdentifiedRecommender`, which supplies the
 complete ``recommend`` workflow. A fixed-catalog model records identities with
-``self._set_item_ids(item_ids, n_items=...)`` during fitting and supports the
-optional ``candidate_ids`` selection in ``predict_on_batch``. The source base
-then handles ID validation, history conversion, candidate filters, seen-item
-capacity checks, and result decoding automatically.
+``self._set_item_ids(item_ids, n_items=...)`` during a simple fitting path and
+supports the optional ``candidate_ids`` selection in ``predict_on_batch``. When
+fitting also computes learned state, prepare the vocabulary first with
+``self._prepare_item_vocabulary(...)`` and publish it together with the learned
+fields using ``self._publish_item_vocabulary(...)`` only after computation
+succeeds. This keeps failed fits and refits from exposing mixed model and
+catalog state. The source base then handles ID validation, history conversion,
+candidate filters, seen-item capacity checks, and result decoding automatically.
+
+The original ``_predict_identified`` hook remains the compatibility path for
+subclasses implementing custom prediction. Reporting-aware dispatch uses a
+separate hook supplied by the standard bases, so adding logger support does not
+require existing subclasses to change their ``predict`` or
+``_predict_identified`` signatures.
 
 .. autoclass:: compresso_recsys.models.BaseIdentifiedRecommender
    :members:
-   :private-members: _set_item_ids, _recommendation_source, _predict_identified
+   :private-members: _prepare_item_vocabulary, _publish_item_vocabulary, _set_item_ids, _recommendation_source, _predict_identified, _predict_identified_with_reporting
 
 Use :class:`compresso_recsys.models.BaseCollaborativeRecommender` for a model
 whose fitted source and candidate catalog has one fixed positional item space.
@@ -434,6 +476,115 @@ the adapter do anything at all in that mode.
 
 Collaborative Filtering Models
 ------------------------------
+
+Baselines
+~~~~~~~~~
+
+Two deliberately simple models provide checks that every experiment should
+include. :class:`~compresso_recsys.models.RandomBaseline` produces a stable
+pseudorandom ranking for each source history, independent of evaluation batch
+size. :class:`~compresso_recsys.models.PopularityBaseline` ranks the catalog by
+the number of interacting training users, or optionally by summed interaction
+values. Both support stable item IDs, candidate selection, seen-item exclusion,
+and fitted-model checkpoints through the same API as learned models.
+
+.. autoclass:: compresso_recsys.models.RandomBaselineConfig
+   :members:
+
+.. autoclass:: compresso_recsys.models.RandomBaseline
+   :members:
+
+.. autoclass:: compresso_recsys.models.PopularityBaselineConfig
+   :members:
+
+.. autoclass:: compresso_recsys.models.PopularityBaseline
+   :members:
+
+Neighborhood Models
+~~~~~~~~~~~~~~~~~~~
+
+UserKNN finds the ``k`` fitted users with greatest cosine similarity to each
+source history. It scores candidates by their similarity-weighted interactions,
+normalized by the absolute sum of neighbor similarities. ItemKNN builds a
+sparse cosine-neighbor graph between item columns and applies the corresponding
+normalized weighted sum over the source user's interacted items.
+
+Both accept nonnegative implicit or weighted interactions. Install their
+neighbor-search dependency with ``pip install "compresso-recsys[knn]"``.
+Checkpoints store only the fitted sparse matrices; transient scikit-learn
+indexes are rebuilt when needed. See :doc:`../citing` for the foundational
+neighborhood-method references.
+
+.. autoclass:: compresso_recsys.models.UserKNNConfig
+   :members:
+
+.. autoclass:: compresso_recsys.models.UserKNNRecommender
+   :members:
+
+.. autoclass:: compresso_recsys.models.ItemKNNConfig
+   :members:
+
+.. autoclass:: compresso_recsys.models.ItemKNNRecommender
+   :members:
+
+Multinomial Autoencoders
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Mult-DAE is a deterministic multinomial denoising autoencoder for implicit
+feedback. It L2-normalizes a dense user vector, corrupts it with dropout during
+training, passes it through a tanh bottleneck, and reconstructs logits over the
+catalog. :class:`~compresso_recsys.models.MultDAETrainer` optimizes multinomial
+log likelihood plus ``l2_reg * (||W_encoder||^2 + ||W_decoder||^2)`` and serves
+the fitted network through the standard collaborative recommender API. The L2
+term applies only to weight matrices, not biases, matching the original
+implementation. Mult-DAE history and progress output name the data term
+``reconstruction_loss``; the L2 term is applied by the optimizer and is not
+included in that reported metric. Both Mult-DAE and Mult-VAE preload a dense
+training matrix on the configured device by default. Set
+``preload_training_data=False`` to retain bounded-memory CSR minibatch streaming
+when the matrix does not fit. A failed preload raises a clear memory error
+rather than silently selecting the slower path. Training statistics are
+accumulated on the device and transferred to the host only at reporting
+points: each epoch boundary and, when a logger is present, each configured
+``log_every_n_steps`` interval. After fitting, ``training_data_preloaded_``
+reports which path was selected.
+
+Mult-DAE and Mult-VAE use the standard two-bar training display described in
+`Training and Prediction Progress`_: one outer epoch bar and one batch bar
+reused across epochs. Their logger output reports the same epoch and batch
+progress without creating either bar.
+
+Mult-VAE replaces the deterministic bottleneck with a diagonal Gaussian
+posterior. Its symmetric encoder produces a mean and log variance, training
+samples with the reparameterization trick, and inference decodes the posterior
+mean for deterministic rankings. The trainer computes the KL coefficient as
+``min(kl_cap, updates / kl_anneal_steps)``, matching the original implementation;
+it reaches the cap after ``kl_cap * kl_anneal_steps`` optimizer updates. Set the
+step count to zero to use the cap immediately.
+
+The network is intentionally exposed separately from its configuration and
+trainer. See :doc:`../citing` for the Mult-VAE/Mult-DAE paper and AutoRec, its
+autoencoder predecessor. :doc:`../implementing-a-recommender` uses a simpler
+Top Popular algorithm to show the complete integration contract without hiding
+serving or persistence details behind a large training loop.
+
+.. autoclass:: compresso_recsys.models.MultDAEConfig
+   :members:
+
+.. autoclass:: compresso_recsys.models.MultDAE
+   :members:
+
+.. autoclass:: compresso_recsys.models.MultDAETrainer
+   :members:
+
+.. autoclass:: compresso_recsys.models.MultVAEConfig
+   :members:
+
+.. autoclass:: compresso_recsys.models.MultVAE
+   :members:
+
+.. autoclass:: compresso_recsys.models.MultVAETrainer
+   :members:
 
 EASE
 ~~~~

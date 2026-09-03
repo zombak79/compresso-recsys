@@ -20,6 +20,13 @@ Hugging Face dataset export is optional:
 
    pip install "compresso-recsys[datasets]"
 
+The user-user and item-item KNN recommenders use scikit-learn for neighbor
+search:
+
+.. code-block:: bash
+
+   pip install "compresso-recsys[knn]"
+
 Local Development
 -----------------
 
@@ -29,7 +36,7 @@ editable mode:
 .. code-block:: bash
 
    pip install -e ../compresso
-   pip install -e ".[dev,datasets]"
+   pip install -e ".[dev,datasets,test]"
 
 Install from GitHub
 -------------------
