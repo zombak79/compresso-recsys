@@ -15,12 +15,14 @@ authors = [
     { name = "Giacomo Medda" },
     { name = "Martin Spisak" },
     { name = "Ladislav Peska" },
+    { name = "Mark Olieman" }
 ]
 maintainers = [
     { name = "Vojtech Vancura" },
     { name = "Giacomo Medda" },
     { name = "Martin Spisak" },
     { name = "Ladislav Peska" },
+    { name = "Mark Olieman" }
 ]
 keywords = [
     "recommender-systems",

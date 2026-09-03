@@ -1213,3 +1213,164 @@ API as every other fitted recommender:
 
 .. autoclass:: compresso_recsys.models.SimpleGPTTrainer
    :members:
+
+SASRec
+~~~~~~
+
+SASRec is a causal transformer over the same histories `SimpleRNN` and
+`SimpleGPT` read, trained against **sampled negatives under a binary objective**
+rather than a softmax over the catalog. That single difference is most of what
+distinguishes it: the architecture is a smaller, plainer transformer than
+`SimpleGPT`'s, and the interesting choices are in the objective.
+
+**The objective is binary, not cross entropy.** Each position scores its true
+next item and ``n_negatives`` sampled items, and each score is pushed toward one
+or zero independently. Nothing is normalised over the catalog, so the cost of a
+training step stops depending on catalog size — which is the property the model
+exists for. A softmax model such as `SimpleGPT` pays a
+``rows x length x n_items`` logit tensor per step; SASRec pays
+``rows x length x (1 + n_negatives)``. One negative is the paper's setting and is
+enough at MovieLens scale. Raising it sharpens the gradient on a large catalog at
+a proportional cost.
+
+**Scoring is tied to the input embedding, and the tie is structural.** A
+candidate is scored by the dot product of a state with that candidate's *input*
+embedding. Unlike ``SimpleGPTConfig``, there is no ``tie_embeddings`` switch,
+because an untied SASRec is a different model rather than the same one configured
+differently. As in `SimpleGPT`, the scored weight is the catalog *slice* of the
+embedding, so ``pad`` and ``unk`` fall below it and are never predictions.
+
+**A negative excludes the position's own positive and nothing else.** The draw is
+uniform over ``n_items - 1`` slots and then shifted past that positive, which
+reaches the distribution a rejection loop converges to in one comparison rather
+than in a retry whose length depends on the data. The reference implementation
+excludes every item anywhere in the user's history; that is deliberately not
+reproduced here. Under a binary objective an item the user saw long ago is a
+legitimate hard negative, and excluding it would mean carrying each row's item
+set into the sampler.
+
+**A left shift, not a `CLS` prefix.** Where `SimpleGPT` buys back one training
+example per user by prefixing a learned vector, SASRec aligns inputs and targets
+by arithmetic::
+
+   tokens    [a, b, c, PAD]     mask    [T, T, T, F]
+   input     [a, b, c]
+   positive  [b, c, PAD]        valid   [T, T, F]
+
+The consequence is that a history needs **two** retained interactions to yield
+even one example, as `SimpleRNN` does and unlike `SimpleGPT`. It is counted after
+truncation, since a long history whose retained tail is one item is no more
+trainable than a one-item history. ``valid`` also drops any position whose
+positive is ``unk``: "predict the item you cannot identify" is not a question
+with an answer.
+
+**Positions are numbered from one, and row 0 of the positional table is pinned to
+zero for padding steps.** Padding is on the right, as
+:class:`~compresso_recsys.models.SequenceBatcher` always produces it, so causal
+attention already keeps padding out of every real state and no padding mask is
+needed. The usual right-padding consequence applies in full: the last *column* is
+padding for every row shorter than the batch maximum, so prediction reads each
+row's own final state through
+:meth:`~compresso_recsys.models.SequenceBatcher.gather_final` and never
+``states[:, -1]``.
+
+**The architecture is the published one, so most of it is not configurable.** The
+feed-forward block is ``d_model -> d_model`` with a ReLU, not the 4x GELU block
+`SimpleGPT` uses; the projections and norms carry their biases; layer norms use
+the paper's ``eps=1e-8`` against PyTorch's ``1e-5``; every matrix starts at
+Xavier normal and the embedding is rescaled by ``sqrt(d_model)`` to compensate,
+with the pinned padding rows re-zeroed afterwards. ``dropout`` is one rate
+applied to the embedding sum, inside attention, and between the feed-forward
+layers, because the reference exposes one and three independently tuned rates
+would be three numbers nobody has evidence for.
+
+**``unk_dropout`` is what trains the unknown-item embedding.** It replaces that
+fraction of *input* positions with ``unk``, never a positive, so a corrupted
+position teaches "an item was here that you cannot identify, predict the next one
+anyway" rather than costing a training example. It defaults to a non-zero rate
+because otherwise ``unk`` is never trained at all: the training vocabulary *is*
+the training window, so an out-of-catalog item cannot occur until evaluation, and
+its embedding would still sit at its initialisation when a quarter of a temporal
+test history turns out to need it. The right rate tracks the out-of-catalog share
+the split will actually produce — near zero under ``leave_last_out``, far higher
+on a late ``temporal`` stage. It is ignored when the tokenizer names no ``unk``.
+
+**The context window is derived, not configured**, exactly as for `SimpleGPT`.
+``max_length`` on the batcher sizes the positional table, so ``SASRecConfig``
+carries no window field and the two cannot disagree. ``max_length=None`` is an
+error for this model, and ``fit`` refuses such a batcher rather than letting the
+disagreement surface as an index error on some later batch. A cosine schedule is
+on by default for the reason attention needs one: the earliest steps have learned
+nothing, so their gradients are large and badly aimed.
+
+.. code-block:: python
+
+   from compresso_recsys.models import (
+       ItemTokenizer,
+       SASRecConfig,
+       SASRecTrainer,
+       SequenceBatcher,
+   )
+
+   tokenizer = ItemTokenizer(
+       split["x_train_sequences"].n_items,
+       item_ids=split["train_item_ids"],   # optional; enables the ID path
+   )
+   batcher = SequenceBatcher(tokenizer, max_length=200)   # required, and it
+                                                          # sizes the positions
+
+   model = SASRecTrainer(
+       SASRecConfig(
+           d_model=64,
+           n_blocks=2,
+           n_heads=1,
+           dropout=0.2,
+           # One is the paper's setting; raise it on a large catalog.
+           n_negatives=1,
+           # Track the out-of-catalog share this split actually produces.
+           unk_dropout=0.05,
+           # Select the fixed budget on validation data.
+           epochs=10,
+           batch_size=128,
+           lr=1e-3,
+       ),
+       batcher,
+   ).fit(split["x_train_sequences"])
+
+   result = evaluate_recommender(
+       model,
+       source=split["test_source_sequences"],
+       targets=split["test_target_matrix"],
+       metrics=[CalibratedRecall(20), NDCG(20)],
+   )
+
+Omitting the batcher is supported and builds a default one over the training
+catalog at ``max_length=200``. Pass your own to change the window or to supply a
+vocabulary — including one whose ``unk`` slot lets a later split stage's unseen
+items become a reserved id rather than an error.
+
+As with `SimpleGPT`, the trainer runs a fixed epoch budget and rebuilds the model
+on every ``fit`` call, so select ``epochs`` using validation data. There is no
+validation-based early stopping and no incremental training. Prediction forbids
+every item in the *full* history, truncated part included; items beyond the
+fitted catalog are dropped from that mask rather than clipped, since they were
+never scoreable.
+
+Saving carries the vocabulary with the weights, through the same persistence API
+as every other fitted recommender:
+
+.. code-block:: python
+
+   from compresso_recsys.models import SASRecTrainer
+
+   model.save("artifacts/sasrec.ckpt")
+   restored = SASRecTrainer.load("artifacts/sasrec.ckpt")
+
+.. autoclass:: compresso_recsys.models.SASRecConfig
+   :members:
+
+.. autoclass:: compresso_recsys.models.SASRec
+   :members:
+
+.. autoclass:: compresso_recsys.models.SASRecTrainer
+   :members:

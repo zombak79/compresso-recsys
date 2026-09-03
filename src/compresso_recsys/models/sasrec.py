@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Hashable, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Literal
 
 import numpy as np
@@ -10,11 +10,6 @@ import torch.nn.functional as F
 from compresso import SRPTensor
 from torch import nn
 
-from compresso_recsys.models._schedule import (
-    LRSchedule,
-    build_scheduler,
-    check_schedule,
-)
 from compresso_recsys.models.base import BaseSequentialRecommender
 from compresso_recsys.models.identifiers import ItemVocabulary
 from compresso_recsys.models.sequence_batching import SequenceBatcher
@@ -31,20 +26,26 @@ __all__ = ["SASRec", "SASRecConfig", "SASRecTrainer"]
 # Nothing in the paper or its follow-ups tunes it.
 LAYER_NORM_EPS = 1e-8
 
-OptimizerName = Literal["NAdam", "AdamW"]
+OptimizerName = Literal["Adam"]
 
 
 @dataclass(frozen=True)
 class SASRecConfig:
     """Configuration for :class:`SASRec`.
 
-    The context window is deliberately *not* a field. It belongs to the
-    :class:`~compresso_recsys.models.sequence_batching.SequenceBatcher`, which
-    already owns how far back a history is read, and it reaches the model as the
-    ``max_history_length`` constructor argument that sizes the positional
-    embedding. Holding it here as well is how the batcher's window and the
-    embedding table drift apart, and the drift is only visible as an index error
-    on some later batch.
+    ``max_history_length`` is the context window, and this field owns it. It
+    sizes the batcher ``fit`` builds when none was passed, and a batcher that
+    was passed inherits it whenever that batcher's own ``max_length`` is
+    ``None`` -- the usual case, because the reason to hand ``fit`` a batcher is
+    the vocabulary it carries rather than the window. Stating the window in both
+    places and disagreeing is an error rather than a silent win for either: it
+    sizes the positional table, and a table that outlives the run cannot be
+    built from a number the config does not know about.
+
+    It belongs here rather than on the trainer because the paper tunes it per
+    dataset alongside ``dropout`` -- 200 and 0.2 on MovieLens-1M, 50 and 0.5 on
+    the sparse ones -- so a dataset's settings stay one object that a checkpoint
+    records whole.
 
     ``d_model`` is one width for the whole residual stream: the item embedding,
     the positional embedding, attention and the feed-forward output all share
@@ -78,32 +79,36 @@ class SASRecConfig:
     far higher on a late ``temporal`` stage. It is ignored when the tokenizer has
     no ``unk`` to substitute.
 
-    ``lr_schedule`` defaults to ``cosine`` as ``SimpleGPTConfig``'s does, for the
-    reason attention needs it: the earliest steps have learned nothing, so their
-    gradients are large and badly aimed, and warmup is what keeps them from
-    setting the run's direction.
+    ``betas`` belongs to ``Adam`` and to no other optimizer, which is why it is
+    applied through :meth:`optimizer_kwargs` rather than passed unconditionally.
+    The reference sets the second moment to 0.98 against PyTorch's 0.999,
+    shortening the window the variance estimate averages over -- one sampled
+    negative per position makes the gradient noisy between steps but not biased,
+    and a longer window spends that noise on a stale scale instead of adapting
+    through it.
+
+    The learning rate is deliberately constant: there is no schedule field,
+    because the published results are a flat 0.001 for the whole run.
     """
 
-    d_model: int = 64
+    d_model: int = 50
     n_blocks: int = 2
     n_heads: int = 1
     dropout: float = 0.2
+    max_history_length: int = 200
     n_negatives: int = 1
-    unk_dropout: float = 0.05
-    lr_schedule: LRSchedule = "cosine"
-    warmup_fraction: float = 0.05
-    min_lr_ratio: float = 0.1
+    unk_dropout: float = 0.0
     batch_size: int = 128
-    epochs: int = 10
-    lr: float = 1e-3
-    weight_decay: float = 0.0
-    optimizer: OptimizerName = "NAdam"
+    epochs: int = 201
+    lr: float = 0.001
+    optimizer: OptimizerName = "Adam"
+    betas: tuple[float, float] = (0.9, 0.98)
+
     device: str | torch.device = "cpu"
     show_progress: bool = True
     seed: int = 0
 
     def __post_init__(self) -> None:
-        check_schedule(self.lr_schedule, self.warmup_fraction, self.min_lr_ratio)
         for name in ("d_model", "n_blocks", "n_heads", "batch_size", "n_negatives"):
             value = getattr(self, name)
             if value < 1:
@@ -123,14 +128,33 @@ class SASRecConfig:
             )
         if self.lr <= 0.0:
             raise ValueError(f"lr must be > 0, got {self.lr}")
-        if self.weight_decay < 0.0:
+        if self.optimizer != "Adam":
             raise ValueError(
-                f"weight_decay must be >= 0, got {self.weight_decay}"
+                f"optimizer must be 'Adam', got {self.optimizer!r}"
             )
-        if self.optimizer not in ("NAdam", "AdamW"):
+        # asdict writes a JSON array and reading it back gives a list, so a
+        # reloaded config would otherwise carry a different type than a fresh
+        # one and compare unequal to it. Frozen, hence object.__setattr__.
+        object.__setattr__(self, "betas", tuple(self.betas))
+        if len(self.betas) != 2:
+            raise ValueError(f"betas must be two values, got {self.betas!r}")
+        if not all(0.0 <= beta < 1.0 for beta in self.betas):
             raise ValueError(
-                f"optimizer must be 'NAdam' or 'AdamW', got {self.optimizer!r}"
+                f"betas must each be in [0, 1), got {self.betas!r}"
             )
+
+    def optimizer_kwargs(self) -> dict[str, object]:
+        """Optimizer arguments beyond the parameters and ``lr``.
+
+        ``betas`` is Adam's own hyperparameter rather than a universal one, so
+        it is selected by :attr:`optimizer` here instead of being handed to
+        whatever ``torch.optim`` class the name resolves to. Today that name can
+        only be ``Adam``; the indirection is what keeps adding a second one from
+        silently passing it an argument it does not take.
+        """
+        if self.optimizer == "Adam":
+            return {"betas": self.betas}
+        return {}
 
 
 class PointWiseFeedForward(nn.Module):
@@ -172,21 +196,19 @@ class SASRec(nn.Module):
     ``n_reserved`` rather than a total keeps this module from having to work the
     split out for itself.
 
-    **Padding is on the right**, as
-    :class:`~compresso_recsys.models.sequence_batching.SequenceBatcher` produces
-    it and unlike the reference implementation. Two consequences are worth
-    naming. Causal attention already prevents a real position from reading the
-    padding that follows it, so no padding mask is needed. But the last *column*
-    is padding for every row shorter than the batch maximum, so a caller must
-    take each row's own final state through
-    :meth:`~compresso_recsys.models.sequence_batching.SequenceBatcher.gather_final`
-    rather than slicing ``states[:, -1]``.
+    **Padding is on the left**, as the reference implementation has it, and
+    ``fit`` configures the batcher for it. The reason is the positional table:
+    every row is filled to ``max_length``, so the newest interaction always lands
+    in the final column and position *n* means "n from the end" for a user with
+    twenty interactions and a user with two hundred alike. Under right padding
+    position 1 would instead mean "oldest item still retained", which is a
+    different anchor for every history length and leaves the highest rows trained
+    only by the longest histories.
 
-    Right padding also anchors position 1 to the oldest *retained* item, rather
-    than anchoring the newest item to a fixed index the way left padding does.
-    Since the batcher truncates to the most recent ``max_length``, a history and
-    its own truncation agree on the numbering, which is the property that has to
-    hold between training and prediction.
+    It costs two things. Batches are ``max_length`` wide however short their
+    histories, and causal masking no longer excludes padding on its own -- the
+    pad steps now *precede* the real ones and sit inside every causal window, so
+    :meth:`forward` masks them out of attention explicitly.
     """
 
     def __init__(
@@ -221,6 +243,7 @@ class SASRec(nn.Module):
         self.n_reserved = int(n_reserved)
         self.max_history_length = int(max_history_length)
         self.pad_id = int(pad_id)
+        self.n_heads = int(n_heads)
 
         self.item_embedding = nn.Embedding(
             self.n_reserved + self.n_items, d_model, padding_idx=pad_id
@@ -287,7 +310,7 @@ class SASRec(nn.Module):
                 f"this model was built for {self.max_history_length}"
             )
 
-        real = item_history != self.pad_id
+        real_mask = item_history != self.pad_id
         hidden = self.item_embedding(item_history)
         # Xavier gives the embedding a fan-based scale rather than the unit-ish
         # one the norms downstream expect, and the reference rescales here to
@@ -297,11 +320,14 @@ class SASRec(nn.Module):
         # Padding steps take position 0, whose row is pinned to zero. Causal
         # attention already keeps them out of every real state, so this only
         # stops a pad row's own state from drifting into something readable.
-        positions = torch.arange(1, n_steps + 1, device=item_history.device) * real
+        positions = torch.arange(1, n_steps + 1, device=item_history.device) * real_mask
         hidden = self.embedding_dropout(hidden + self.position_embedding(positions))
 
-        # True marks a pair that may not attend: step i reads 0..i, nothing later.
-        causal_mask = torch.triu(
+        # True marks a pair that may not attend: step i reads 0..i, nothing
+        # later, and never a padding step. The padding half is what left padding
+        # makes necessary -- pad steps precede the real ones, so causal masking
+        # alone would let every real step read them.
+        causal = torch.triu(
             torch.ones(
                 (n_steps, n_steps),
                 dtype=torch.bool,
@@ -309,6 +335,15 @@ class SASRec(nn.Module):
             ),
             diagonal=1,
         )
+        blocked = causal.unsqueeze(0) | ~real_mask.unsqueeze(1)
+        # A pad step's own causal window is all padding, and a row masked
+        # everywhere softmaxes over nothing and returns NaN, which the residual
+        # would then spread to the whole row. Letting every step read itself
+        # costs nothing: a pad step's output is discarded either way.
+        blocked = blocked & ~torch.eye(
+            n_steps, dtype=torch.bool, device=item_history.device
+        )
+        causal_mask = blocked.repeat_interleave(self.n_heads, dim=0)
 
         for attention_norm, attention, forward_norm, feed_forward in zip(
             self.attention_norms,
@@ -367,23 +402,24 @@ class SASRecTrainer(BaseSequentialRecommender):
         )
 
     The encoder is a *parameter*, not something ``fit`` invents. Passing one is
-    how you change the context window or the vocabulary -- including giving it an
-    ``unk`` slot so a later split stage's unseen items become a reserved id
-    rather than an error::
+    how you change the vocabulary -- including giving it an ``unk`` slot so a
+    later split stage's unseen items become a reserved id rather than an error.
+    Leave its ``max_length`` unset and it inherits the config's window, so the
+    number stays in one place::
 
         batcher = SequenceBatcher(
             ItemTokenizer(n_items, item_ids=split["train_item_ids"]),
-            max_length=50,
         )
         model = SASRecTrainer(SASRecConfig(), batcher).fit(sequences)
 
-    Unlike :class:`SimpleRNNTrainer`, the batcher's ``max_length`` may not be
-    ``None``: it sizes the positional embedding, which cannot be extended at
-    prediction time. ``fit`` refuses a batcher without it.
+    The context window is ``SASRecConfig.max_history_length``, so a shorter one
+    is ``SASRecConfig(max_history_length=50)`` rather than a number written on
+    the batcher. A batcher that does state its own ``max_length`` must agree
+    with the config, and ``fit`` refuses the pair when they differ: the window
+    sizes a positional embedding that cannot be extended at prediction time.
     """
 
     #: Context window used when ``fit`` has to build its own batcher.
-    DEFAULT_MAX_LENGTH = 200
     checkpoint_type = "sasrec_trainer"
 
     def __init__(
@@ -398,11 +434,17 @@ class SASRecTrainer(BaseSequentialRecommender):
         ``self._n_items``, matching the two sibling trainers so the inherited
         persistence and ``to()`` paths find what they expect.
 
-        ``self._rng`` is the one addition. Negative sampling draws from
-        NumPy and ``_train_step``'s signature is fixed by the loop that
-        calls it, so the generator ``fit`` seeds reaches it as state rather
-        than as an argument. It is deliberately not checkpointed: a reloaded
-        model predicts, and a further ``fit`` reseeds from ``cfg.seed``.
+        ``self._rng`` is one addition. Negative sampling draws from NumPy and
+        ``_train_step``'s signature is fixed by the loop that calls it, so the
+        generator ``fit`` seeds reaches it as state rather than as an argument.
+        It is deliberately not checkpointed: a reloaded model predicts, and a
+        further ``fit`` reseeds from ``cfg.seed``.
+
+        ``self._train_batcher`` is the other, and it exists because training
+        reads one interaction more than the model has positions for -- see
+        :meth:`_train_step`. ``fit`` derives it from ``self.batcher``, so it is
+        not checkpointed either: the window that a checkpoint records is the
+        model's, and a further ``fit`` derives this from it again.
         """
         self.cfg = config or SASRecConfig()
         self.device = torch.device(self.cfg.device)
@@ -413,6 +455,7 @@ class SASRecTrainer(BaseSequentialRecommender):
         self._owns_batcher = batcher is None
         self._n_items: int | None = None
         self._rng: np.random.Generator | None = None
+        self._train_batcher: SequenceBatcher | None = None
 
     # -- contract -----------------------------------------------------------
 
@@ -466,11 +509,12 @@ class SASRecTrainer(BaseSequentialRecommender):
                 f"positive, and a catalog of {sequences.n_items} leaves "
                 "nothing to draw"
             )
+            
 
         if self._owns_batcher:
             self.batcher = SequenceBatcher(
                 ItemTokenizer(sequences.n_items),
-                max_length=self.DEFAULT_MAX_LENGTH,
+                max_length=self.cfg.max_history_length,
             )
         if self.batcher is None:  # pragma: no cover - defensive against mutation
             raise RuntimeError("trainer batcher is unavailable")
@@ -491,11 +535,34 @@ class SASRecTrainer(BaseSequentialRecommender):
             tokenizer_ids if item_ids is None else item_ids,
             n_items=sequences.n_items,
         )
+        # Resolved before anything reads the window -- truncated_lengths just
+        # below is the first thing that would. A batcher stating no window
+        # inherits the config's, and the batcher is frozen, so this is a new
+        # one rather than a mutation of what the caller handed over.
+        if self.batcher.max_length is None:
+            self.batcher = replace(
+                self.batcher, max_length=self.cfg.max_history_length
+            )
+        # Left padding is the architecture rather than a preference -- see the
+        # SASRec docstring -- so it is set here rather than asked of the caller.
+        if self.batcher.padding != "left":
+            self.batcher = replace(self.batcher, padding="left")
         self._check_batcher(self.batcher)
+        # One interaction wider than the model's window. The next-item shift in
+        # _train_step spends a step, so encoding at max_length would leave the
+        # last position with no input ever standing on it; encoding at
+        # max_length + 1 makes the inputs exactly as long as the positional
+        # table. Prediction keeps using self.batcher, which does not shift.
+        self._train_batcher = replace(
+            self.batcher, max_length=int(self.batcher.max_length) + 1
+        )
         # Counted after truncation, because the window is what the model
         # will actually read: a long history whose retained tail is one item
-        # is no more trainable than a one-item history.
-        usable = int((self.batcher.truncated_lengths(sequences) >= 2).sum())
+        # is no more trainable than a one-item history. Against the training
+        # batcher, since that is the truncation training performs.
+        usable = int(
+            (self._train_batcher.truncated_lengths(sequences) >= 2).sum()
+        )
         if usable == 0:
             raise ValueError(
                 "no history retains two or more interactions after "
@@ -514,7 +581,7 @@ class SASRecTrainer(BaseSequentialRecommender):
         self.optimizer = getattr(torch.optim, self.cfg.optimizer)(
             self.model.parameters(),
             lr=self.cfg.lr,
-            weight_decay=self.cfg.weight_decay,
+            **self.cfg.optimizer_kwargs(),
         )
         optimizer = self.optimizer
         # Binary, not cross entropy: scoring a positive and its negatives
@@ -525,18 +592,6 @@ class SASRecTrainer(BaseSequentialRecommender):
         n_rows = sequences.n_rows
         batch_size = self.cfg.batch_size
         starts = range(0, n_rows, batch_size)
-        # The schedule is defined over the whole run, so it needs the step
-        # count up front -- which is why this lives here, not in the config.
-        scheduler = build_scheduler(
-            optimizer,
-            schedule=self.cfg.lr_schedule,
-            total_steps=len(starts) * self.cfg.epochs,
-            warmup_fraction=self.cfg.warmup_fraction,
-            min_lr_ratio=self.cfg.min_lr_ratio,
-        )
-        # Two bars, as ELSA draws them: epochs outside, batches inside. The
-        # inner bar is created once and rewound per epoch rather than a
-        # finished one being left behind for each.
         epoch_iter = _progress(
             self.cfg.show_progress,
             range(1, self.cfg.epochs + 1),
@@ -554,21 +609,11 @@ class SASRecTrainer(BaseSequentialRecommender):
                     batch_bar.reset(total=len(starts))
                     batch_bar.set_description(f"SASRec epoch {epoch}")
                 loss_sum, positions = 0.0, 0
-                last_training_lr = float(optimizer.param_groups[0]["lr"])
                 for start in starts:
                     batch = sequences.select_rows(
                         order[start : start + batch_size]
                     )
-                    batch_lr = float(optimizer.param_groups[0]["lr"])
                     step = self._train_step(batch, optimizer, objective)
-                    if step is not None:
-                        last_training_lr = batch_lr
-                    if scheduler is not None:
-                        # Advanced even when _train_step declined the batch,
-                        # so the curve is exactly the configured shape over the
-                        # run rather than a slightly truncated one whose floor
-                        # depends on how many batches carried targets.
-                        scheduler.step()
                     if step is not None:
                         batch_loss, batch_positions = step
                         loss_sum += batch_loss * batch_positions
@@ -580,8 +625,7 @@ class SASRecTrainer(BaseSequentialRecommender):
                     {
                         "epoch": float(epoch),
                         "loss": mean_loss,
-                        "positions": float(positions),
-                        "lr": last_training_lr,
+                        "positions": float(positions)
                     }
                 )
                 if hasattr(epoch_iter, "set_postfix"):
@@ -594,25 +638,35 @@ class SASRecTrainer(BaseSequentialRecommender):
 
         return self
 
-    @staticmethod
-    def _check_batcher(batcher: SequenceBatcher) -> None:
+    def _check_batcher(self, batcher: SequenceBatcher) -> None:
         """Reject a batcher SASRec cannot use.
 
-        ``max_length`` must be set, because it sizes the positional embedding
-        and a checkpoint cannot grow one after the fact.
+        The window has one owner, ``cfg.max_history_length``, because it sizes
+        the positional embedding and a checkpoint cannot grow one after the
+        fact. A batcher naming no window has already inherited it by the time
+        this runs; one naming a different window is refused rather than
+        silently overruling the config or being silently overruled by it.
         """
-        if batcher.max_length is None:
+        if batcher.max_length is None:  # pragma: no cover - fit resolves it
+            raise RuntimeError(
+                "batcher window was not resolved before _check_batcher"
+            )
+        if batcher.max_length != self.cfg.max_history_length:
             raise ValueError(
-                "SASRec needs a bounded context: max_length sizes the "
-                "positional table, and learned absolute positions cannot be "
-                "extended at prediction time. Set max_length on the batcher"
+                f"batcher max_length is {batcher.max_length} but "
+                f"cfg.max_history_length is {self.cfg.max_history_length}. "
+                "The window sizes the positional table, so it has a single "
+                "owner: set it on the config, or leave the batcher's "
+                "max_length as None to inherit it"
             )
 
     def _build_model(self) -> SASRec:
         """Construct :class:`SASRec` from the config and the batcher's tokenizer.
 
-        The tokenizer supplies ``n_items``, ``n_reserved`` and ``pad_id``; the
-        batcher supplies ``max_history_length``. The config supplies only the
+        The tokenizer supplies ``n_items``, ``n_reserved`` and ``pad_id``. The
+        window is read off the batcher, which ``fit`` has already reconciled
+        with ``cfg.max_history_length``, so the two say the same thing by the
+        time the positional table is sized. The config supplies the
         architecture -- ``d_model``, ``n_blocks``, ``n_heads``, ``dropout`` --
         and the result is moved to ``self.device``.
         """
@@ -646,31 +700,46 @@ class SASRecTrainer(BaseSequentialRecommender):
         the shifted mask is true and the positive is a real item, then the
         losses over positives and negatives are summed.
 
+        The encode runs through ``self._train_batcher``, whose window is one
+        wider than the model's. The shift below turns ``n + 1`` interactions
+        into ``n`` inputs and ``n`` targets, so a history that fills the window
+        puts an input on every position the model owns. Encoding at the model's
+        own window instead would yield one input too few, and the highest
+        position would never receive a gradient while prediction -- which does
+        not shift -- reads it for exactly those full-length histories.
+
         Returns the mean loss and the number of positions it covers, so ``fit``
         can weight epochs by position count rather than by batch.
         """
         assert self.model is not None and self.batcher is not None
+        assert self._train_batcher is not None
         assert self._rng is not None
-        tokens, mask = self.batcher.encode(batch, device=self.device)
+        tokens, mask = self._train_batcher.encode(batch, device=self.device)
         if tokens.shape[1] < 2:
             # Every row in this batch holds at most one item.
             return None
 
-        # Next-item shift, as SimpleRNNTrainer's. Nothing is decoded back to
-        # catalog positions here -- score_items reads embedding rows, so the
-        # reserved offset appears only inside _sample_negatives.
+        # Next-item shift, as SimpleRNNTrainer's, but paid for by the extra
+        # interaction the training batcher retained rather than by the last
+        # position. Nothing is decoded back to catalog positions here --
+        # score_items reads embedding rows, so the reserved offset appears
+        # only inside _sample_negatives.
         offset = self.batcher.tokenizer.n_reserved
         inputs = self._with_unk_dropout(tokens[:, :-1], mask[:, :-1])
         positives = tokens[:, 1:]
         # A real item, and one this vocabulary can name. Padding is excluded
         # by the mask; unk by the offset test, because "predict the item I
         # cannot identify" is not a question with an answer.
-        valid = mask[:, 1:] & (positives >= offset)
+        # Both ends real. Under right padding the target's mask implied the
+        # input's, because real tokens were a prefix; under left padding the
+        # step before the first real one has a real target and a pad input, and
+        # "given padding, predict this" is not a lesson.
+        valid = mask[:, :-1] & mask[:, 1:] & (positives >= offset)
         n_positions = int(valid.sum())
         if n_positions == 0:
             return None
 
-        negatives = self._sample_negatives(positives, valid, self._rng)
+        negatives = self._sample_negatives(batch, positives, self._rng)
         states = self.model(inputs)
         # Scored on the full grid and masked after, rather than gathered first
         # the way the siblings must: what a state is scored against here is
@@ -690,8 +759,8 @@ class SASRecTrainer(BaseSequentialRecommender):
 
     def _sample_negatives(
         self,
+        batch: ItemSequences,
         positives: torch.Tensor,
-        valid: torch.Tensor,
         rng: np.random.Generator,
     ) -> torch.Tensor:
         """Draw ``cfg.n_negatives`` item rows for each position.
@@ -703,35 +772,83 @@ class SASRecTrainer(BaseSequentialRecommender):
         from the reserved ids -- padding and ``unk`` are not items and scoring
         them as negatives would train the model to reject its own filler.
 
-        A draw never collides with the position's own positive: it is uniform
-        over ``n_items - 1`` slots and then shifted past that positive. That is
-        the distribution a rejection loop converges to, reached in one
-        comparison rather than in a retry whose length depends on the data.
+        The draw is uniform over the paper's ``I \\ S_u``: every item in the
+        user's history is excluded, not merely the position's own positive. An
+        item they interacted with earlier -- or later, which the next-item shift
+        makes just as reachable -- is one they did engage with, so training the
+        model to rank it below the target teaches the opposite of what the data
+        says. Excluding the whole set subsumes excluding the positive, which is
+        why no separate collision test remains.
 
-        What is deliberately *not* reproduced is the reference implementation's
-        stronger exclusion, which rejects every item anywhere in the user's
-        history. Under this objective an item seen much earlier is a legitimate
-        hard negative, and excluding it would mean carrying each row's item set
-        into the sampler.
+        ``S_u`` is read from ``batch`` rather than from the encoded tokens,
+        because the paper's exclusion is over the user's sequence and not over
+        the window that happens to be retained.
+
+        The mapping avoids a rejection loop whose length would depend on the
+        data. Each draw is uniform over ``n_items - |S_u|`` slots and then
+        stepped onto the complement: with ``S_u`` sorted, ``seen[j] - j`` is how
+        many allowed items fall below ``seen[j]``, so where a draw lands in that
+        sequence is exactly how many exclusions it has to step over.
         """
         assert self.model is not None
         n_items = self.model.n_items
         n_reserved = self.model.n_reserved
+        device = positives.device
+
+        excluded, n_excluded = self._excluded_items(batch, n_items)
+        available = n_items - n_excluded
+        if int(available.min(initial=n_items)) < 1:
+            raise ValueError(
+                "a history covers the entire catalog, so there is no item "
+                "outside it left to draw a negative from"
+            )
+
         draws = torch.as_tensor(
             rng.integers(
                 0,
-                n_items - 1,
+                available.reshape(-1, 1, 1),
                 size=tuple(positives.shape) + (self.cfg.n_negatives,),
             ),
             dtype=torch.long,
-            device=positives.device,
+            device=device,
         )
-        # Compared as catalog positions, not embedding rows, so both sides of
-        # the shift mean the same thing. Where valid is false the positive is
-        # padding or unk and skips nothing; the objective never reads it.
-        positive_rows = (positives - n_reserved).unsqueeze(-1)
-        skip = valid.unsqueeze(-1) & (draws >= positive_rows)
-        return draws + skip.long() + n_reserved
+        # Padding sits above every possible draw, so it is never stepped over.
+        offsets = excluded - np.arange(excluded.shape[1])
+        offsets[excluded >= n_items] = n_items + 1
+        steps = torch.searchsorted(
+            torch.as_tensor(offsets, dtype=torch.long, device=device),
+            draws.reshape(draws.shape[0], -1),
+            right=True,
+        ).reshape(draws.shape)
+        return draws + steps + n_reserved
+
+    @staticmethod
+    def _excluded_items(
+        batch: ItemSequences, n_items: int
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """Each row's item set, sorted and padded, with the count of real entries.
+
+        Unused slots hold ``n_items``, which is above every catalog position and
+        so sorts to the end and compares out of range wherever it is tested.
+
+        Duplicates collapse: an item interacted with twice is one exclusion, and
+        counting it twice would shrink the range the draw is uniform over and
+        push the mapping past items that were never excluded.
+        """
+        lengths = batch.row_lengths
+        width = int(lengths.max()) if batch.n_rows else 0
+        excluded = np.full((batch.n_rows, width), n_items, dtype=np.int64)
+        if width:
+            filled = np.arange(width)[None, :] < lengths[:, None]
+            excluded[filled] = np.asarray(batch.values, dtype=np.int64)
+            excluded.sort(axis=1)
+            duplicate = np.zeros_like(excluded, dtype=bool)
+            duplicate[:, 1:] = excluded[:, 1:] == excluded[:, :-1]
+            # Real items only: the pad value repeats by construction.
+            duplicate &= excluded < n_items
+            excluded[duplicate] = n_items
+            excluded.sort(axis=1)
+        return excluded, (excluded < n_items).sum(axis=1)
 
     def _with_unk_dropout(
         self, item_history: torch.Tensor, mask: torch.Tensor
@@ -877,11 +994,12 @@ class SASRecTrainer(BaseSequentialRecommender):
                 "state/tokenizer_item_ids.json"
             )
         tokenizer = ItemTokenizer.from_dict(tokenizer_state)
-        # Never None, unlike SimpleRNN's: _check_batcher refused an unbounded
-        # window at fit time, so every checkpoint carries a real one.
+        # Never None, unlike SimpleRNN's: fit reconciled the window with the
+        # config before training, so every checkpoint carries a real one.
         batcher = SequenceBatcher(
             tokenizer,
             max_length=int(trainer_state["max_length"]),
+            padding="left",
         )
         trainer = cls(SASRecConfig(**config), batcher)
         trainer._n_items = tokenizer.n_items
@@ -936,7 +1054,7 @@ class SASRecTrainer(BaseSequentialRecommender):
         self.optimizer = getattr(torch.optim, self.cfg.optimizer)(
             self.model.parameters(),
             lr=self.cfg.lr,
-            weight_decay=self.cfg.weight_decay,
+            **self.cfg.optimizer_kwargs(),
         )
 
 
@@ -963,3 +1081,301 @@ def _progress_bar(enabled: bool, *, total: int, desc: str):
     if not enabled or tqdm is None:
         return None
     return tqdm(total=total, desc=desc)
+
+
+if __name__ == "__main__":
+    # The pipeline on MovieLens-1M through the package's public API, from a
+    # split checkpoint to a served model. Nothing here reaches into a private
+    # helper.
+    import time
+    from pathlib import Path
+
+    import compresso_recsys as cr
+    from compresso_recsys.evaluation import (
+        evaluate_ranked_predictions,
+        evaluate_recommender,
+    )
+    from compresso_recsys.metrics import MRR, NDCG, HitRate, Recall
+
+    CHECKPOINT = Path("artifacts/ml1m/sasrec_llo.zip")
+    # Bare, so every model setting is SASRecConfig's default and those are the
+    # paper's ML-1M values. Nothing below overrides them: a shorter run is an
+    # edit to the config, not a second set of numbers living quietly at the
+    # bottom of the module. leave_last_out holds out interactions rather than
+    # items, so the default unk_dropout of 0 is also the right rate here.
+    cfg = SASRecConfig()
+    # The evaluation cutoff is this script's own, not a model setting.
+    CUTOFF = 20
+
+    started = time.time()
+
+    def elapsed() -> str:
+        return f"[{time.time() - started:6.1f}s]"
+
+    # -- 1. the split checkpoint --------------------------------------------
+
+    print(f"{elapsed()} checkpoint")
+    if CHECKPOINT.exists():
+        print(f"  reusing {CHECKPOINT}")
+    else:
+        print(f"  building {CHECKPOINT} from data/movielens1m")
+        cr.build_recsys_checkpoint(
+            dataset="ml1m",
+            data_dir="data",
+            checkpoint_path=str(CHECKPOINT),
+            # The one split mode that emits sequences. user_split and
+            # item_split store only matrices, and a matrix has no order.
+            split_mode="leave_last_out",
+            min_user_support=5,
+            item_min_support=5,
+            # Ratings are 1-5, and a next-item model wants what the user
+            # liked rather than everything they logged.
+            min_value_to_keep=4.0,
+            seed=0,
+            show_progress=False,
+        )
+
+    with cr.read_checkpoint(CHECKPOINT) as root:
+        split = cr.load_recsys_split(root)
+
+    train_sequences = split["x_train_sequences"]
+    test_source = split["test_source_sequences"]
+    test_targets = split["test_target_matrix"]
+    item_ids = split["train_item_ids"]
+    metadata = split["entity_metadata"].set_index("item_id")
+
+    print(
+        f"  {train_sequences.n_rows} users, {train_sequences.n_items} items, "
+        f"{train_sequences.values.size} training events"
+    )
+    lengths = np.diff(train_sequences.indptr)
+    print(
+        f"  history length: median {int(np.median(lengths))}, "
+        f"max {int(lengths.max())}, truncated to {cfg.max_history_length}"
+    )
+
+    # -- 2. train -----------------------------------------------------------
+
+    print(f"\n{elapsed()} train")
+    # Giving the tokenizer the real MovieLens IDs is what lets recommend()
+    # take and return them instead of catalog offsets.
+    # The batcher exists only to carry the real MovieLens IDs, which is what
+    # lets recommend() take and return them instead of catalog offsets. It
+    # states no max_length, so the window is cfg.max_history_length and this
+    # script cannot drift from the default it exists to run.
+    batcher = SequenceBatcher(
+        ItemTokenizer(train_sequences.n_items, item_ids=item_ids),
+    )
+    trainer = SASRecTrainer(cfg, batcher).fit(train_sequences, item_ids=item_ids)
+
+    # fit reports nothing until it returns, so print the curve it recorded.
+    every = max(1, len(trainer.history) // 10)
+    print(f"  {'epoch':>6}  {'loss':>8}")
+    for index, entry in enumerate(trainer.history):
+        if index % every == 0 or index == len(trainer.history) - 1:
+            print(
+                f"  {int(entry['epoch']):>6}  {entry['loss']:>8.4f}  "
+            )
+
+    # -- 3. evaluate --------------------------------------------------------
+
+    print(f"\n{elapsed()} evaluate")
+    metrics = [NDCG(CUTOFF), Recall(CUTOFF), HitRate(CUTOFF), MRR(CUTOFF)]
+    result = evaluate_recommender(
+        trainer,
+        source=test_source,
+        targets=test_targets,
+        metrics=metrics,
+        sample_ids=split["test_eval_user_ids"],
+    )
+
+    # A broken sequential model lands on most-popular rather than crashing,
+    # so the gap is the signal. Scored the same way SASRec is: same cutoff,
+    # seen items excluded.
+    popularity = np.asarray(split["x_train"].sum(axis=0)).ravel()
+    by_popularity = np.argsort(-popularity, kind="stable")
+    seen = split["test_source_matrix"].astype(bool).toarray()[:, by_popularity]
+    # A stable argsort over the seen flags floats each row's unseen items to
+    # the front while leaving them in popularity order.
+    unseen_first = np.argsort(seen, axis=1, kind="stable")[:, :CUTOFF]
+    baseline = evaluate_ranked_predictions(
+        predictions=SRPTensor(
+            cols=torch.from_numpy(by_popularity[unseen_first]).long(),
+            # Rank order rather than the counts: tied counts are not a
+            # ranking, and the evaluator is right to reject them.
+            vals=torch.arange(CUTOFF, 0, -1, dtype=torch.float32).expand(
+                test_source.n_rows, CUTOFF
+            ),
+            shape=(test_source.n_rows, train_sequences.n_items),
+        ),
+        targets=test_targets,
+        metrics=metrics,
+        sample_ids=split["test_eval_user_ids"],
+    )
+
+    print(f"  {'metric':<14}{'SASRec':>10}{'popular':>10}{'lift':>9}")
+    for name in result.metrics:
+        ours, theirs = result[name], baseline[name]
+        lift = f"{ours / theirs:.1f}x" if theirs else "--"
+        print(f"  {name:<14}{ours:>10.4f}{theirs:>10.4f}{lift:>9}")
+    print(f"  scored {result.n_scored_rows} of {result.n_rows} users")
+
+    # -- 4. recommend, by movie ID -------------------------------------------
+
+    print(f"\n{elapsed()} recommend")
+
+    def title(item_id: str) -> str:
+        """The movie's title, or its raw ID when metadata does not name it."""
+        try:
+            return str(metadata.loc[item_id, "title"])
+        except KeyError:
+            return str(item_id)
+
+    row = int(np.argmax(np.diff(test_source.indptr) >= 10))
+    history = [item_ids[index] for index in test_source.row(row)]
+    print(f"  user {split['test_eval_user_ids'][row]} last watched:")
+    for item_id in history[-5:]:
+        print(f"    {title(item_id)}")
+
+    recommended = trainer.recommend([history], k=5, exclude_seen=True)
+    print("  SASRec recommends:")
+    for item_id, score in zip(recommended.item_ids[0], recommended.scores[0]):
+        print(f"    {score:6.2f}  {title(item_id)}")
+
+    held_out = test_targets[row].indices
+    print("  actually watched next: " + ", ".join(title(item_ids[i]) for i in held_out))
+
+    # -- 5. persistence, every way in and out --------------------------------
+
+    print(f"\n{elapsed()} persistence")
+    # A slice, and the same one throughout: what is under test below is that
+    # state survived a round trip, not what the model scores.
+    sample = ItemSequences(
+        values=test_source.values[: test_source.indptr[256]],
+        indptr=test_source.indptr[:257],
+        n_items=test_source.n_items,
+    )
+    expected = trainer.predict(sample, k=CUTOFF)
+
+    def agrees(other: SASRecTrainer, label: str) -> None:
+        """Report whether a reloaded trainer predicts what the original did."""
+        got = other.predict(sample, k=CUTOFF)
+        ok = bool(torch.equal(expected.cols, got.cols)) and bool(
+            torch.allclose(expected.vals, got.vals, atol=1e-6)
+        )
+        print(f"  {label:<46}{'identical' if ok else 'DIFFERS'}")
+
+    standalone = CHECKPOINT.with_name("sasrec_model.zip")
+    trainer.save(standalone)
+    print(f"  save() -> {standalone.name} ({standalone.stat().st_size / 1e6:.1f} MB)")
+    agrees(SASRecTrainer.load(standalone), "load()")
+
+    # Momentum is not in the weights, so a run resumed without the optimizer
+    # restarts it cold however exact the model.
+    resumable = CHECKPOINT.with_name("sasrec_model_resumable.zip")
+    trainer.save(resumable, include_optimizer=True)
+    resumed = SASRecTrainer.load(resumable, load_optimizer=True)
+    agrees(resumed, "load(load_optimizer=True)")
+    print(f"  optimizer restored: {resumed.optimizer is not None}")
+
+    # Reading the container without building a model out of it.
+    with ModelCheckpointReader(
+        standalone, expected_model_type=SASRecTrainer.checkpoint_type
+    ) as reader:
+        stored_config = reader.read_json("config.json")
+        stored_state = reader.read_json("state/trainer.json")
+        print(
+            f"  manifest: {reader.manifest['model_type']} "
+            f"v{reader.manifest['version']}, "
+            f"optimizer_included={reader.optimizer_included}"
+        )
+        print(
+            f"  stored config: d_model={stored_config['d_model']}, "
+            f"n_blocks={stored_config['n_blocks']}, "
+            f"epochs={stored_config['epochs']}, "
+            f"window={stored_state['max_length']}"
+        )
+        # The curve rides along, so a checkpoint can say how it was trained
+        # without the run that produced it still being around.
+        curve = stored_state["history"]
+        print(
+            f"  stored history: {len(curve)} epochs, "
+            f"loss {curve[0]['loss']:.4f} -> {curve[-1]['loss']:.4f}"
+        )
+
+    # Embedded instead, so one file carries the data, the split and the model.
+    trainer.save_to_checkpoint(CHECKPOINT, "sasrec")
+    with cr.read_checkpoint(CHECKPOINT) as root:
+        embedded = cr.load_manifest(root).get("models", {})
+    print(f"  models in {CHECKPOINT.name}: " + ", ".join(sorted(embedded)))
+    agrees(
+        SASRecTrainer.load_from_checkpoint(CHECKPOINT, "sasrec"),
+        "load_from_checkpoint()",
+    )
+
+    # The manifest records the model type, so a mismatch fails on open.
+    try:
+        with ModelCheckpointReader(standalone, expected_model_type="ease"): #TODO
+            print("  wrong model_type accepted -- unexpected")
+    except Exception as error:
+        print(f"  wrong model_type rejected: {type(error).__name__}")
+
+    # -- 6. predicting from a reloaded model alone ---------------------------
+
+    print(f"\n{elapsed()} prediction API")
+    # No trainer, no split and no fit call in scope from here down.
+    served = SASRecTrainer.load_from_checkpoint(CHECKPOINT, "sasrec")
+
+    ranked = served.predict(sample, k=5)
+    print(f"  predict(k=5)                 cols {tuple(ranked.cols.shape)}")
+    # predict batches internally over the entry point evaluation drives
+    # directly, so the two agree.
+    one_batch = served.predict_on_batch(sample, k=5)
+    print(
+        "  predict_on_batch agrees:     "
+        f"{bool(torch.equal(ranked.cols, one_batch.cols))}"
+    )
+
+    kept = served.predict(sample, k=5, exclude_seen=False)
+    overlap = sum(
+        bool(set(kept.cols[row].tolist()) & set(sample.row(row).tolist()))
+        for row in range(sample.n_rows)
+    )
+    print(f"  exclude_seen=False           {overlap}/{sample.n_rows} rows repeat a seen item")
+
+    catalogue = item_ids[np.argsort(-popularity)[:100]]
+    limited = served.predict(sample, k=5, candidate_ids=catalogue)
+    within = set(limited.cols.flatten().tolist()) <= set(
+        np.flatnonzero(np.isin(item_ids, catalogue)).tolist()
+    )
+    print(f"  candidate_ids bounds output: {within}")
+
+    # IDs in, IDs out: no catalog offset in the caller's code.
+    blocked = history[-1:]
+    filtered = served.recommend(
+        [history], k=3, exclude_seen=True, blocklist=blocked
+    )
+    print(f"  recommend(blocklist={title(blocked[0])[:24]!r}):")
+    for item_id, score in zip(filtered.item_ids[0], filtered.scores[0]):
+        print(f"    {score:6.2f}  {title(item_id)}")
+
+    # An empty history is a valid request.
+    cold = served.recommend([[]], k=3, exclude_seen=False)
+    print("  empty history still ranks:")
+    for item_id, score in zip(cold.item_ids[0], cold.scores[0]):
+        print(f"    {score:6.2f}  {title(item_id)}")
+
+    # predict() is these three steps plus batching and the masks.
+    tokens, mask = served.batcher.encode(sample, device=served.device)
+    served.model.eval()
+    with torch.no_grad():
+        by_hand = served.model.score(
+            served.batcher.gather_final(served.model(tokens), mask)
+        )
+    top1 = by_hand.argmax(dim=1)
+    print(
+        "  encode -> score -> argmax agrees with predict(k=1): "
+        f"{bool(torch.equal(top1, served.predict(sample, k=1, exclude_seen=False).cols[:, 0]))}"
+    )
+
+    print(f"\n{elapsed()} done")

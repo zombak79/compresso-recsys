@@ -22,6 +22,7 @@ in trainers.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Literal
 
 import numpy as np
 import torch
@@ -40,19 +41,31 @@ class SequenceBatcher:
     The tokenizer is positional because it is a collaborator rather than an
     option: without a vocabulary there is nothing to encode.
 
-    Padding is always on the right. A recurrent model can gather each row's last
-    real state before the padding, while a causal model never lets a real token
-    attend to padding that follows it. Supporting left padding would require
-    each model to skip or mask leading pad steps, so it is not exposed as a
-    batcher option.
+    Padding defaults to the right, where a recurrent model can gather each row's
+    last real state and a causal model never lets a real token attend to the
+    padding that follows it. ``padding="left"`` is the opt-in for models whose
+    absolute positions have to be anchored to the newest interaction; it obliges
+    the model to mask the leading pad steps out of attention itself, because
+    causal masking no longer does it for free.
 
     ``max_length`` truncates to the **most recent** interactions, the only
     sensible direction: a context window is a claim about recency, not about
     where a history happened to start.
+
+    ``padding`` chooses the side, and the two sides are not interchangeable.
+    Right padding, the default, packs each batch to its own longest row and
+    leaves a model to find each row's last real state. Left padding instead
+    fills every row to ``max_length``, so the newest interaction always lands in
+    the final column and an absolute position means "this far from the end" for
+    every user alike -- which is what a model with a learned positional table
+    needs, and what SASRec's published results assume. It costs the ragged
+    packing: every batch is ``max_length`` wide however short its histories are,
+    so ``max_length`` must be set for it.
     """
 
     tokenizer: Tokenizer
     max_length: int | None = None
+    padding: Literal["left", "right"] = "right"
 
     def __post_init__(self) -> None:
         if not isinstance(self.tokenizer, Tokenizer):
@@ -63,6 +76,16 @@ class SequenceBatcher:
         if self.max_length is not None and self.max_length < 1:
             raise ValueError(
                 f"max_length must be >= 1 when set, got {self.max_length}"
+            )
+        if self.padding not in ("left", "right"):
+            raise ValueError(
+                f"padding must be 'left' or 'right', got {self.padding!r}"
+            )
+        if self.padding == "left" and self.max_length is None:
+            raise ValueError(
+                "left padding fills every row to max_length so that a column "
+                "index means the same thing in every batch, which an unbounded "
+                "window cannot provide. Set max_length, or pad on the right"
             )
 
     @property
@@ -94,7 +117,12 @@ class SequenceBatcher:
         """
         lengths = self.truncated_lengths(sequences)
         rows = sequences.n_rows
-        width = max(1, int(lengths.max()) if lengths.size else 1)
+        # Left padding pins the width so a column index carries the same
+        # meaning in every batch; right padding packs to the batch instead.
+        if self.padding == "left":
+            width = int(self.max_length)
+        else:
+            width = max(1, int(lengths.max()) if lengths.size else 1)
 
         tokens = np.full((rows, width), self.tokenizer.pad_id, dtype=np.int64)
         mask = np.zeros((rows, width), dtype=bool)
@@ -107,8 +135,9 @@ class SequenceBatcher:
             # Truncation keeps the tail, so a context window means "the most
             # recent N" rather than "the first N".
             history = self.tokenizer.encode_indices(sequences.row(row)[-length:])
-            tokens[row, :length] = history
-            mask[row, :length] = True
+            start = width - length if self.padding == "left" else 0
+            tokens[row, start : start + length] = history
+            mask[row, start : start + length] = True
 
         return (
             torch.from_numpy(tokens).to(device),
@@ -133,11 +162,22 @@ class SequenceBatcher:
         from a pad embedding — and agrees with itself at ``batch_size=1``, where
         every row fills its own batch, which is what lets the bug survive.
 
-        Empty rows report 0, which is padding. Pair this with :meth:`has_history`
-        rather than trusting the position alone.
+        Under left padding it is the last column for every row, since the real
+        tokens are the suffix -- the arithmetic below would instead point at the
+        padding that precedes them.
+
+        Empty rows report a padding position either way. Pair this with
+        :meth:`has_history` rather than trusting the position alone.
         """
         if mask.ndim != 2:
             raise ValueError("mask must be two-dimensional")
+        if self.padding == "left":
+            return torch.full(
+                (mask.shape[0],),
+                mask.shape[1] - 1,
+                dtype=torch.long,
+                device=mask.device,
+            )
         lengths = mask.sum(dim=1)
         return (lengths - 1).clamp_min(0)
 
