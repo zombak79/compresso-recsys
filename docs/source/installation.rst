@@ -36,7 +36,7 @@ editable mode:
 .. code-block:: bash
 
    pip install -e ../compresso
-   pip install -e ".[dev,datasets,knn]"
+   pip install -e ".[dev,datasets,test]"
 
 Install from GitHub
 -------------------
