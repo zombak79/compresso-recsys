@@ -224,3 +224,4 @@ __marimo__/
 # Downloaded datasets and built checkpoints
 data/
 artifacts/
+analysis/
