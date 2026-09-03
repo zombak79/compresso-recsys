@@ -1217,91 +1217,117 @@ API as every other fitted recommender:
 SASRec
 ~~~~~~
 
-SASRec is a causal transformer over the same histories `SimpleRNN` and
-`SimpleGPT` read, trained against **sampled negatives under a binary objective**
-rather than a softmax over the catalog. That single difference is most of what
-distinguishes it: the architecture is a smaller, plainer transformer than
-`SimpleGPT`'s, and the interesting choices are in the objective.
+SASRec is a causal transformer over chronological histories, trained against
+**sampled negatives under a binary objective** rather than a softmax over the
+catalog. The network itself is deliberately plain -- a couple of self-attention
+blocks over one shared residual width -- and the choices worth knowing about are
+in the objective, in how a history is laid out for it, and in what the config
+does and does not let you move.
 
 **The objective is binary, not cross entropy.** Each position scores its true
 next item and ``n_negatives`` sampled items, and each score is pushed toward one
 or zero independently. Nothing is normalised over the catalog, so the cost of a
-training step stops depending on catalog size — which is the property the model
-exists for. A softmax model such as `SimpleGPT` pays a
-``rows x length x n_items`` logit tensor per step; SASRec pays
-``rows x length x (1 + n_negatives)``. One negative is the paper's setting and is
-enough at MovieLens scale. Raising it sharpens the gradient on a large catalog at
-a proportional cost.
+training step stops depending on catalog size -- which is the property the model
+exists for. Where a softmax over the catalog builds a ``rows x length x n_items``
+logit tensor per step, SASRec builds ``rows x length x (1 + n_negatives)``. One
+negative is enough at MovieLens scale. Raising it sharpens the gradient on a
+large catalog at a proportional cost.
 
 **Scoring is tied to the input embedding, and the tie is structural.** A
 candidate is scored by the dot product of a state with that candidate's *input*
-embedding. Unlike ``SimpleGPTConfig``, there is no ``tie_embeddings`` switch,
-because an untied SASRec is a different model rather than the same one configured
-differently. As in `SimpleGPT`, the scored weight is the catalog *slice* of the
-embedding, so ``pad`` and ``unk`` fall below it and are never predictions.
+embedding, and there is no output head. ``SASRecConfig`` carries no
+``tie_embeddings`` switch, because an untied model is a different model rather
+than this one configured differently. The scored weight is the catalog *slice*
+of the embedding table, so ``pad`` and ``unk`` sit below it and are never
+predictions.
 
-**A negative excludes the position's own positive and nothing else.** The draw is
-uniform over ``n_items - 1`` slots and then shifted past that positive, which
-reaches the distribution a rejection loop converges to in one comparison rather
-than in a retry whose length depends on the data. The reference implementation
-excludes every item anywhere in the user's history; that is deliberately not
-reproduced here. Under a binary objective an item the user saw long ago is a
-legitimate hard negative, and excluding it would mean carrying each row's item
-set into the sampler.
+**A negative is drawn from outside the whole history, not merely past the
+positive.** The draw is uniform over the catalog minus that row's item set: an
+item the user interacted with earlier -- or later, which the next-item shift
+makes just as reachable -- is one they did engage with, so training the model to
+rank it below the target teaches the opposite of what the data says. The set is
+read from the row's full sequence rather than from the window that happens to be
+retained, and excluding it subsumes excluding the position's own positive, so no
+separate collision test is needed. The mapping avoids a rejection loop whose
+length would depend on the data: each draw is uniform over the allowed
+``n_items - |S_u|`` slots and is then stepped onto the complement in one
+comparison. Two consequences follow. ``fit`` refuses a catalog of fewer than two
+items, and a history that covers the entire catalog leaves nothing to draw and
+raises rather than looping.
 
-**A left shift, not a `CLS` prefix.** Where `SimpleGPT` buys back one training
-example per user by prefixing a learned vector, SASRec aligns inputs and targets
-by arithmetic::
+**Inputs and targets are aligned by a left shift**::
 
-   tokens    [a, b, c, PAD]     mask    [T, T, T, F]
-   input     [a, b, c]
-   positive  [b, c, PAD]        valid   [T, T, F]
+   tokens    [PAD, a, b, c]     mask    [F, T, T, T]
+   input     [PAD, a, b]
+   positive  [a,   b, c]        valid   [F, T, T]
+
+A position counts only when both ends are real. The step before the first real
+one has a real target sitting on a padded input, and "given padding, predict
+this" is not a lesson, so ``valid`` requires both masks rather than the target's
+alone. It also drops any position whose positive is ``unk``: "predict the item
+you cannot identify" is not a question with an answer.
 
 The consequence is that a history needs **two** retained interactions to yield
-even one example, as `SimpleRNN` does and unlike `SimpleGPT`. It is counted after
-truncation, since a long history whose retained tail is one item is no more
-trainable than a one-item history. ``valid`` also drops any position whose
-positive is ``unk``: "predict the item you cannot identify" is not a question
-with an answer.
+even one example. It is counted after truncation, since a long history whose
+retained tail is one item is no more trainable than a one-item history. Training
+encodes one interaction wider than the model's window to pay for the shift:
+``n + 1`` interactions become ``n`` inputs and ``n`` targets, so a history that
+fills the window puts an input on every position the model owns. Prediction does
+not shift and reads at the model's own window.
 
-**Positions are numbered from one, and row 0 of the positional table is pinned to
-zero for padding steps.** Padding is on the right, as
-:class:`~compresso_recsys.models.SequenceBatcher` always produces it, so causal
-attention already keeps padding out of every real state and no padding mask is
-needed. The usual right-padding consequence applies in full: the last *column* is
-padding for every row shorter than the batch maximum, so prediction reads each
-row's own final state through
-:meth:`~compresso_recsys.models.SequenceBatcher.gather_final` and never
-``states[:, -1]``.
+**Padding is on the left, and every row is filled to the window.** The newest
+interaction therefore always lands in the final column, so position *n* means "n
+from the end" for a user with twenty interactions and a user with two hundred
+alike. Under right padding, position 1 would instead mean "oldest item still
+retained" -- a different anchor for every history length, leaving the highest
+positions trained only by the longest histories. It costs two things: batches are
+``max_history_length`` wide however short their histories, and causal attention
+no longer excludes padding on its own, since the pad steps now *precede* the real
+ones and sit inside every causal window, so the model masks them out of attention
+explicitly. Positions are numbered from one and row 0 of the positional table is
+pinned to zero for padding steps. Prediction reads each row's own last real state
+through :meth:`~compresso_recsys.models.SequenceBatcher.gather_final`.
 
-**The architecture is the published one, so most of it is not configurable.** The
-feed-forward block is ``d_model -> d_model`` with a ReLU, not the 4x GELU block
-`SimpleGPT` uses; the projections and norms carry their biases; layer norms use
-the paper's ``eps=1e-8`` against PyTorch's ``1e-5``; every matrix starts at
+**Most of the architecture is fixed rather than configurable.** ``d_model`` is
+one width for the whole residual stream -- item embedding, positional embedding,
+attention output and feed-forward all share it -- and ``n_heads`` must divide it.
+The feed-forward block is ``d_model -> d_model`` with a ReLU; the projections and
+norms carry their biases; layer norms use ``eps=1e-8``; every matrix starts at
 Xavier normal and the embedding is rescaled by ``sqrt(d_model)`` to compensate,
 with the pinned padding rows re-zeroed afterwards. ``dropout`` is one rate
 applied to the embedding sum, inside attention, and between the feed-forward
-layers, because the reference exposes one and three independently tuned rates
-would be three numbers nobody has evidence for.
+layers, because three independently tuned rates would be three numbers nobody has
+evidence for.
 
 **``unk_dropout`` is what trains the unknown-item embedding.** It replaces that
 fraction of *input* positions with ``unk``, never a positive, so a corrupted
 position teaches "an item was here that you cannot identify, predict the next one
-anyway" rather than costing a training example. It defaults to a non-zero rate
-because otherwise ``unk`` is never trained at all: the training vocabulary *is*
-the training window, so an out-of-catalog item cannot occur until evaluation, and
-its embedding would still sit at its initialisation when a quarter of a temporal
-test history turns out to need it. The right rate tracks the out-of-catalog share
-the split will actually produce — near zero under ``leave_last_out``, far higher
-on a late ``temporal`` stage. It is ignored when the tokenizer names no ``unk``.
+anyway" rather than costing a training example. It defaults to zero and is worth
+raising whenever evaluation will contain items training never saw: the training
+vocabulary *is* the training window, so an out-of-catalog item cannot occur until
+evaluation, and its embedding would still sit at its initialisation when a
+quarter of a temporal test history turns out to need it. The right rate tracks
+the out-of-catalog share the split will actually produce -- near zero under
+``leave_last_out``, far higher on a late ``temporal`` stage. It is ignored when
+the tokenizer names no ``unk``.
 
-**The context window is derived, not configured**, exactly as for `SimpleGPT`.
-``max_length`` on the batcher sizes the positional table, so ``SASRecConfig``
-carries no window field and the two cannot disagree. ``max_length=None`` is an
-error for this model, and ``fit`` refuses such a batcher rather than letting the
-disagreement surface as an index error on some later batch. A cosine schedule is
-on by default for the reason attention needs one: the earliest steps have learned
-nothing, so their gradients are large and badly aimed.
+**The context window is a config field, and it has a single owner.**
+``SASRecConfig.max_history_length`` sizes the positional table, which a
+checkpoint cannot grow after the fact, so the number lives there rather than on
+the batcher. It sizes the batcher ``fit`` builds when none was passed, and a
+batcher passed with ``max_length=None`` inherits it -- the usual case, because
+the reason to hand ``fit`` a batcher is the vocabulary it carries rather than the
+window. A batcher that states a *different* window is refused instead of silently
+overruling the config or being overruled by it. Left padding is set by ``fit`` in
+the same way rather than asked of the caller.
+
+**The learning rate is constant.** There is no schedule field: ``lr`` is flat for
+the whole run. ``betas`` defaults to ``(0.9, 0.98)``, shortening the window
+Adam's variance estimate averages over -- one sampled negative per position makes
+the gradient noisy between steps but not biased, and a longer window spends that
+noise on a stale scale instead of adapting through it. It reaches the optimizer
+through :meth:`~compresso_recsys.models.SASRecConfig.optimizer_kwargs`, since it
+is Adam's hyperparameter and not a universal one.
 
 .. code-block:: python
 
@@ -1316,21 +1342,23 @@ nothing, so their gradients are large and badly aimed.
        split["x_train_sequences"].n_items,
        item_ids=split["train_item_ids"],   # optional; enables the ID path
    )
-   batcher = SequenceBatcher(tokenizer, max_length=200)   # required, and it
-                                                          # sizes the positions
+   # No max_length: the window and the padding side come from the config.
+   batcher = SequenceBatcher(tokenizer)
 
    model = SASRecTrainer(
        SASRecConfig(
-           d_model=64,
+           d_model=50,
            n_blocks=2,
            n_heads=1,
            dropout=0.2,
-           # One is the paper's setting; raise it on a large catalog.
+           # The context window lives here, not on the batcher.
+           max_history_length=200,
+           # Raise it on a large catalog.
            n_negatives=1,
            # Track the out-of-catalog share this split actually produces.
            unk_dropout=0.05,
            # Select the fixed budget on validation data.
-           epochs=10,
+           epochs=201,
            batch_size=128,
            lr=1e-3,
        ),
@@ -1345,16 +1373,15 @@ nothing, so their gradients are large and badly aimed.
    )
 
 Omitting the batcher is supported and builds a default one over the training
-catalog at ``max_length=200``. Pass your own to change the window or to supply a
-vocabulary — including one whose ``unk`` slot lets a later split stage's unseen
-items become a reserved id rather than an error.
+catalog at the config's window. Pass your own to supply a vocabulary -- including
+one whose ``unk`` slot lets a later split stage's unseen items become a reserved
+id rather than an error.
 
-As with `SimpleGPT`, the trainer runs a fixed epoch budget and rebuilds the model
-on every ``fit`` call, so select ``epochs`` using validation data. There is no
-validation-based early stopping and no incremental training. Prediction forbids
-every item in the *full* history, truncated part included; items beyond the
-fitted catalog are dropped from that mask rather than clipped, since they were
-never scoreable.
+The trainer runs a fixed epoch budget and rebuilds the model on every ``fit``
+call, so select ``epochs`` using validation data. There is no validation-based
+early stopping and no incremental training. Prediction forbids every item in the
+*full* history, truncated part included; items beyond the fitted catalog are
+dropped from that mask rather than clipped, since they were never scoreable.
 
 Saving carries the vocabulary with the weights, through the same persistence API
 as every other fitted recommender:
