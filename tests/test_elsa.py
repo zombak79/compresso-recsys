@@ -76,6 +76,7 @@ def _trainer(**overrides) -> ELSATrainer:
 def _compressed_trainer(
     *,
     compression: ELSACompressionConfig | None = None,
+    logger=None,
     **overrides,
 ) -> ELSATrainer:
     defaults = {
@@ -99,7 +100,8 @@ def _compressed_trainer(
                 change_threshold=100.0,
                 mask_update_interval=1,
             ),
-        )
+        ),
+        logger=logger,
     )
 
 
@@ -565,6 +567,40 @@ def test_compressed_stage_can_be_forced_after_epoch_limit(
     assert "'schedule_done': True" in output
 
 
+def test_forced_rewind_uses_logger_without_writing_stdout(
+    interactions,
+    capsys,
+):
+    class RecordingLogger:
+        def __init__(self):
+            self.lines: list[str] = []
+
+        def info(self, message: str) -> None:
+            self.lines.append(message)
+
+    logger = RecordingLogger()
+    trainer = _compressed_trainer(
+        epochs=1,
+        logger=logger,
+        compression=ELSACompressionConfig(
+            k_target=2,
+            k_schedule=(4, 3, 2),
+            stability_window=100,
+            change_threshold=0.0,
+            mask_update_interval=1,
+            max_epochs_per_stage=1,
+        ),
+    ).fit(interactions)
+
+    forced = [line for line in logger.lines if "Forced rewind" in line]
+    assert len(forced) == 2
+    assert all(line.startswith("[ELSA] Forced rewind") for line in forced)
+    assert any("max_epochs_per_stage=1" in line for line in forced)
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err == ""
+
+
 def test_compressed_export_is_l2_normalized(interactions):
     trainer = _compressed_trainer(
         epochs=1,
@@ -739,6 +775,29 @@ def test_fit_and_prediction_validate_inputs(interactions, source):
         trainer.predict_on_batch(source, k=0)
     with pytest.raises(ValueError, match="batch_size"):
         trainer.predict(source, k=2, batch_size=0)
+
+
+def test_invalid_item_ids_do_not_publish_or_mutate_elsa(interactions):
+    trainer = _trainer(epochs=1)
+
+    with pytest.raises(ValueError, match="item_ids has 1 entries"):
+        trainer.fit(interactions, item_ids=["too-short"])
+
+    assert not trainer.is_built
+    assert not trainer.is_fitted
+    assert trainer.input_dim is None
+
+    item_ids = np.array([f"item-{index}" for index in range(interactions.shape[1])])
+    trainer.fit(interactions, item_ids=item_ids)
+    old_model = trainer.elsa
+    old_history = list(trainer.history)
+
+    with pytest.raises(ValueError, match="item_ids has 1 entries"):
+        trainer.fit(interactions, item_ids=["too-short"])
+
+    assert trainer.elsa is old_model
+    assert trainer.history == old_history
+    np.testing.assert_array_equal(trainer.source_item_ids, item_ids)
 
 
 def test_predict_matches_predict_on_batch_across_batch_sizes(interactions, source):

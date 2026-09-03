@@ -21,6 +21,7 @@ import re
 import textwrap
 from pathlib import Path
 
+import numpy as np
 import pytest
 
 import compresso_recsys
@@ -143,3 +144,50 @@ def test_documented_keywords_exist_in_their_signatures(source, line, code):
                 f"{source}:{line} calls {name}({keyword.arg}=...) but "
                 f"{name} takes {sorted(signature.parameters)}"
             )
+
+
+def test_implementing_a_recommender_notebook_executes():
+    """Run the educational path without downloading the benchmark dataset."""
+    path = DOCS / "implementing-a-recommender.ipynb"
+    cells = json.loads(path.read_text())["cells"]
+    namespace = {"__name__": "__main__"}
+
+    for index, cell in enumerate(cells):
+        if cell["cell_type"] != "code":
+            continue
+        code = "".join(cell["source"])
+        if "requires-data" in cell.get("metadata", {}).get("tags", []):
+            from scipy.sparse import csr_matrix
+
+            if "x_train" not in namespace:
+                n_items = 30
+                train = np.zeros((12, n_items), dtype=np.float32)
+                source = np.zeros((4, n_items), dtype=np.float32)
+                targets = np.zeros((4, n_items), dtype=np.float32)
+                for row in range(train.shape[0]):
+                    train[
+                        row,
+                        [row % 10, (row + 3) % 20, (row + 9) % n_items],
+                    ] = 1
+                for row in range(source.shape[0]):
+                    source[row, [row, row + 4, row + 8]] = 1
+                    targets[row, row + 20] = 1
+                namespace.update(
+                    x_train=csr_matrix(train),
+                    test_source=csr_matrix(source),
+                    test_targets=csr_matrix(targets),
+                    item_ids=np.array([f"item-{i}" for i in range(n_items)]),
+                )
+            continue
+        exec(compile(code, f"{path.name}#cell-{index}", "exec"), namespace)
+
+    assert namespace["tutorial_model"].is_fitted
+    assert namespace["tutorial_result"].metrics["ndcg@20"] >= 0.0
+
+    tutorial_model = namespace["tutorial_model"]
+    old_popularity = tutorial_model.popularity_.copy()
+    old_item_ids = tutorial_model.source_item_ids.copy()
+    with pytest.raises(ValueError, match="item_ids has 1 entries"):
+        tutorial_model.fit(namespace["x_train"], item_ids=["too-short"])
+    np.testing.assert_array_equal(tutorial_model.popularity_, old_popularity)
+    np.testing.assert_array_equal(tutorial_model.source_item_ids, old_item_ids)

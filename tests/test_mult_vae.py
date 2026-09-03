@@ -1,0 +1,260 @@
+from __future__ import annotations
+
+import numpy as np
+import pytest
+import torch
+from scipy.sparse import csr_matrix
+
+from compresso_recsys.models import MultVAE, MultVAEConfig, MultVAETrainer
+
+
+@pytest.fixture
+def interactions() -> csr_matrix:
+    return csr_matrix(
+        np.array(
+            [
+                [1, 1, 0, 0, 0, 0],
+                [0, 1, 1, 0, 0, 0],
+                [1, 0, 0, 1, 0, 0],
+                [0, 0, 1, 1, 1, 0],
+                [0, 1, 0, 0, 1, 1],
+            ],
+            dtype=np.float32,
+        )
+    )
+
+
+def _config(**changes) -> MultVAEConfig:
+    values = {
+        "latent_dim": 3,
+        "hidden_dim": 5,
+        "dropout": 0.2,
+        "epochs": 2,
+        "batch_size": 2,
+        "lr": 1e-2,
+        "kl_cap": 0.2,
+        "kl_anneal_steps": 20,
+        "show_progress": False,
+        "seed": 7,
+    }
+    values.update(changes)
+    return MultVAEConfig(**values)
+
+
+def test_mult_vae_module_shapes_and_sampling_modes():
+    model = MultVAE(n_items=6, latent_dim=3, hidden_dim=5, dropout=0.0)
+    inputs = torch.eye(6)[:2]
+
+    model.train()
+    sampled_first, mean, log_variance = model(inputs)
+    sampled_second, _, _ = model(inputs)
+    deterministic_first, _, _ = model(inputs, sample=False)
+    deterministic_second, _, _ = model(inputs, sample=False)
+
+    assert sampled_first.shape == mean.shape[:1] + (6,)
+    assert mean.shape == log_variance.shape == (2, 3)
+    assert not torch.equal(sampled_first, sampled_second)
+    torch.testing.assert_close(deterministic_first, deterministic_second)
+
+
+def test_mult_vae_fit_records_annealed_loss_components(interactions):
+    trainer = MultVAETrainer(_config()).fit(interactions)
+
+    assert trainer.is_fitted
+    assert trainer.n_items == interactions.shape[1]
+    assert trainer._updates == 6
+    assert len(trainer.history) == 2
+    assert trainer.history[0]["kl_weight"] < trainer.history[1]["kl_weight"]
+    assert trainer.history[1]["kl_weight"] == pytest.approx(0.2)
+    for entry in trainer.history:
+        assert set(entry) == {
+            "epoch",
+            "loss",
+            "reconstruction_loss",
+            "kl_loss",
+            "kl_weight",
+        }
+        assert all(np.isfinite(value) for value in entry.values())
+
+
+def test_mult_vae_failed_initial_fit_leaves_trainer_unfitted(
+    interactions,
+    monkeypatch,
+    tmp_path,
+):
+    trainer = MultVAETrainer(_config())
+
+    def fail_train_step(target):
+        del target
+        raise RuntimeError("injected training failure")
+
+    monkeypatch.setattr(trainer, "_train_step", fail_train_step)
+
+    with pytest.raises(RuntimeError, match="injected training failure"):
+        trainer.fit(interactions)
+
+    assert not trainer.is_fitted
+    assert trainer.n_items is None
+    assert trainer.model is None
+    assert trainer.optimizer is None
+    assert trainer.history == []
+    assert trainer._updates == 0
+    assert trainer.training_data_preloaded_ is None
+    assert "_item_vocabulary" not in trainer.__dict__
+    with pytest.raises(RuntimeError, match="must be fitted"):
+        trainer.predict_on_batch(interactions[:1], k=1)
+    with pytest.raises(RuntimeError, match="must be fitted"):
+        trainer.save(tmp_path / "failed-mult-vae.zip")
+
+
+def test_mult_vae_failed_refit_preserves_previous_model(
+    interactions,
+    tmp_path,
+):
+    item_ids = np.array([f"item-{i}" for i in range(interactions.shape[1])])
+    trainer = MultVAETrainer(_config()).fit(interactions, item_ids=item_ids)
+    before = trainer.predict_on_batch(interactions[:2], k=2)
+    previous_model = trainer.model
+    previous_optimizer = trainer.optimizer
+    previous_history = trainer.history
+    previous_updates = trainer._updates
+    previous_preloaded = trainer.training_data_preloaded_
+    wider = csr_matrix(np.pad(interactions.toarray(), ((0, 0), (0, 1))))
+
+    with pytest.raises(ValueError, match="item_ids has 1 entries"):
+        trainer.fit(wider, item_ids=["invalid"])
+
+    assert trainer.is_fitted
+    assert trainer.n_items == interactions.shape[1]
+    assert trainer.model is previous_model
+    assert trainer.optimizer is previous_optimizer
+    assert trainer.history is previous_history
+    assert trainer._updates == previous_updates
+    assert trainer.training_data_preloaded_ is previous_preloaded
+    np.testing.assert_array_equal(trainer.source_item_ids, item_ids)
+    after = trainer.predict_on_batch(interactions[:2], k=2)
+    torch.testing.assert_close(after.cols, before.cols)
+    torch.testing.assert_close(after.vals, before.vals)
+
+    path = tmp_path / "preserved-mult-vae.zip"
+    trainer.save(path)
+    restored = MultVAETrainer.load(path)
+    assert restored.is_fitted
+    assert restored.n_items == interactions.shape[1]
+    np.testing.assert_array_equal(restored.source_item_ids, item_ids)
+
+
+def test_mult_vae_zero_anneal_uses_cap_immediately(interactions):
+    trainer = MultVAETrainer(_config(epochs=1, kl_anneal_steps=0)).fit(interactions)
+
+    assert trainer.history[0]["kl_weight"] == pytest.approx(0.2)
+
+
+@pytest.mark.parametrize(
+    ("updates", "expected"),
+    [(0, 0.0), (20_000, 0.1), (40_000, 0.2), (200_000, 0.2)],
+)
+def test_mult_vae_annealing_matches_original_schedule(updates, expected):
+    trainer = MultVAETrainer(
+        _config(kl_cap=0.2, kl_anneal_steps=200_000)
+    )
+    trainer._updates = updates
+
+    assert trainer._kl_weight() == pytest.approx(expected)
+
+
+def test_mult_vae_prediction_is_deterministic_and_filters_candidates(interactions):
+    item_ids = np.array([f"item-{i}" for i in range(interactions.shape[1])])
+    trainer = MultVAETrainer(_config()).fit(interactions, item_ids=item_ids)
+    source = interactions[:2]
+
+    first = trainer.predict_on_batch(
+        source,
+        k=2,
+        candidate_ids=["item-0", "item-2", "item-3", "item-5"],
+    )
+    second = trainer.predict_on_batch(
+        source,
+        k=2,
+        candidate_ids=["item-0", "item-2", "item-3", "item-5"],
+    )
+
+    torch.testing.assert_close(first.cols, second.cols)
+    torch.testing.assert_close(first.vals, second.vals)
+    for row in range(source.shape[0]):
+        assert set(first.cols[row].tolist()) <= {0, 2, 3, 5}
+        assert set(first.cols[row].tolist()).isdisjoint(source[row].indices)
+
+
+def test_mult_vae_round_trip_with_optimizer(tmp_path, interactions):
+    trainer = MultVAETrainer(_config()).fit(interactions)
+    source = interactions[:2]
+    before = trainer.predict_on_batch(source, k=2)
+    path = tmp_path / "mult-vae.zip"
+
+    trainer.save(path, include_optimizer=True)
+    restored = MultVAETrainer.load(path, load_optimizer=True)
+    after = restored.predict_on_batch(source, k=2)
+
+    torch.testing.assert_close(after.cols, before.cols)
+    torch.testing.assert_close(after.vals, before.vals)
+    assert restored.history == trainer.history
+    assert restored._updates == trainer._updates
+    assert restored.optimizer is not None
+    assert restored.optimizer.state_dict()["state"]
+    assert restored.to("cpu") is restored
+
+
+def test_mult_vae_preloaded_and_streamed_training_match(interactions):
+    streamed = MultVAETrainer(
+        _config(dropout=0.0, preload_training_data=False)
+    ).fit(interactions)
+    preloaded = MultVAETrainer(
+        _config(dropout=0.0, preload_training_data=True)
+    ).fit(interactions)
+
+    assert streamed.training_data_preloaded_ is False
+    assert preloaded.training_data_preloaded_ is True
+    assert streamed.history == pytest.approx(preloaded.history)
+    for streamed_parameter, preloaded_parameter in zip(
+        streamed.model.parameters(), preloaded.model.parameters(), strict=True
+    ):
+        torch.testing.assert_close(streamed_parameter, preloaded_parameter)
+
+
+def test_mult_vae_refit_rebuilds_catalog(interactions):
+    trainer = MultVAETrainer(_config()).fit(interactions)
+    wider = csr_matrix(np.pad(interactions.toarray(), ((0, 0), (0, 1))))
+
+    trainer.fit(wider)
+
+    assert trainer.n_items == wider.shape[1]
+    assert trainer.model.n_items == wider.shape[1]
+
+
+def test_mult_vae_rejects_invalid_training_data():
+    trainer = MultVAETrainer(_config())
+    with pytest.raises(ValueError, match="nonempty user"):
+        trainer.fit(csr_matrix((2, 3), dtype=np.float32))
+    with pytest.raises(ValueError, match="nonnegative"):
+        trainer.fit(csr_matrix(np.array([[1, -1, 0]], dtype=np.float32)))
+
+
+@pytest.mark.parametrize(
+    ("changes", "message"),
+    [
+        ({"latent_dim": 0}, "latent_dim"),
+        ({"hidden_dim": 0}, "hidden_dim"),
+        ({"dropout": 1.0}, "dropout"),
+        ({"epochs": 0}, "epochs"),
+        ({"batch_size": 0}, "batch_size"),
+        ({"lr": 0.0}, "lr"),
+        ({"weight_decay": -1.0}, "weight_decay"),
+        ({"kl_cap": -0.1}, "kl_cap"),
+        ({"kl_anneal_steps": -1}, "kl_anneal_steps"),
+        ({"preload_training_data": None}, "preload_training_data"),
+    ],
+)
+def test_mult_vae_config_validation(changes, message):
+    with pytest.raises((TypeError, ValueError), match=message):
+        _config(**changes)

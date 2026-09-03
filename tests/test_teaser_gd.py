@@ -566,6 +566,22 @@ def test_protocols_and_configuration_validation():
             TEASERGD(3, 2, diagonal_scale=diagonal_scale)
 
 
+@pytest.mark.parametrize("show_progress", ["false", 0, 1, [], object()])
+def test_per_call_show_progress_requires_a_bool_or_none(
+    interactions,
+    item_features,
+    show_progress,
+):
+    trainer = TEASERGDTrainer(_config(epochs=1))
+
+    with pytest.raises(ValueError, match="show_progress must be a bool or None"):
+        trainer.fit(
+            interactions,
+            item_features,
+            show_progress=show_progress,
+        )
+
+
 def test_trainer_propagates_diagonal_scale(interactions, item_features):
     trainer = TEASERGDTrainer(
         _config(

@@ -1,3 +1,43 @@
+## [Unreleased]
+
+## [0.3.1] — 2026-09-03
+
+### Added
+
+- Duck-typed job loggers for ELSA, Mult-DAE, Mult-VAE, SimpleGPT, SimpleRNN,
+  and TEASER-GD training and prediction, plus streaming evaluation. Logger
+  reporting includes epoch and configurable intra-epoch progress, supersedes
+  tqdm automatically, and latches off safely if a handler raises. Shared
+  ``recommend`` calls can override or explicitly disable inherited prediction
+  reporting, and per-call ``show_progress`` overrides are strictly validated.
+  Fixed-epoch notebook displays now consistently use an epoch bar plus one
+  reusable batch bar; compressed ELSA's unbounded mask search uses the reusable
+  batch bar alone.
+- Mult-DAE and Mult-VAE dense training-data preloads now report host allocation
+  failures with streaming guidance and avoid a temporary float64 dense matrix.
+- `RandomBaseline` and `PopularityBaseline` as reproducible experiment sanity
+  checks, with the same stable-ID recommendation and persistence APIs as learned
+  collaborative models.
+- Normalized cosine `UserKNNRecommender` and `ItemKNNRecommender` models. Their
+  scikit-learn neighbor search is available through the new `knn` optional
+  dependency; checkpoints store safe sparse state instead of pickled estimators.
+- `MultDAE`, `MultDAEConfig`, and `MultDAETrainer`, implementing the deterministic
+  multinomial denoising autoencoder for implicit feedback, including the
+  original weight-only L2 objective and explicitly named reconstruction-loss
+  reporting.
+- `MultVAE`, `MultVAEConfig`, and `MultVAETrainer`, with Gaussian latent
+  sampling, deterministic posterior-mean inference, configurable KL annealing,
+  fitted-model persistence, and the common recommendation API.
+- Dense device preloading for Mult-DAE and Mult-VAE, enabled by default with an
+  explicit bounded-memory streaming mode and a clear error when forced
+  preloading does not fit. Device-side metric accumulation avoids synchronizing
+  every minibatch; metrics transfer at epoch boundaries and configured
+  intra-epoch logger intervals.
+- An executable “Implementing a Recommender” notebook that builds a complete
+  Top Popular model from scratch, including validation, candidate filtering,
+  stable-ID recommendation, standalone and embedded persistence, evaluation,
+  and executable contract checks.
+
 ## [0.3.0] — 2026-08-31
 
 Sequential recommendation as four replaceable parts -- tokenizer, batcher,
@@ -534,7 +574,9 @@ depends on, and two evaluation-protocol corrections found while validating it.
 Initial release. EASE, ELSA and CompressedELSA, checkpoint building and the
 dataset loaders.
 
-[Unreleased]: https://github.com/zombak79/compresso-recsys/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/zombak79/compresso-recsys/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/zombak79/compresso-recsys/releases/tag/v0.3.1
+[0.3.0]: https://github.com/zombak79/compresso-recsys/releases/tag/v0.3.0
 [0.2.0]: https://github.com/zombak79/compresso-recsys/releases/tag/v0.2.0
 [0.1.2]: https://github.com/zombak79/compresso-recsys/releases/tag/v0.1.2
 [0.1.1]: https://github.com/zombak79/compresso-recsys/releases/tag/v0.1.1

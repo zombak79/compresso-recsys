@@ -2,8 +2,10 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import asdict, is_dataclass, replace
+import inspect
 from pathlib import Path
 import re
+import time
 from typing import (
     Any,
     ClassVar,
@@ -21,6 +23,13 @@ from scipy.sparse import csr_matrix
 from torch import nn
 
 from compresso import SRPTensor
+from compresso_recsys._reporting import (
+    _INHERIT,
+    _Inherit,
+    _Reporter,
+    _format_duration,
+    _resolve_reporter,
+)
 from compresso_recsys.checkpoint import (
     load_manifest,
     read_checkpoint,
@@ -128,6 +137,20 @@ def _unwrapped_module(module: nn.Module) -> nn.Module:
     return module if not isinstance(original, nn.Module) else original
 
 
+def _accepts_reporting_keywords(method: Any) -> bool:
+    """Whether a prediction override accepts the new reporting keywords."""
+    try:
+        parameters = inspect.signature(method).parameters.values()
+    except (TypeError, ValueError):
+        return False
+    if any(
+        parameter.kind is inspect.Parameter.VAR_KEYWORD for parameter in parameters
+    ):
+        return True
+    names = {parameter.name for parameter in parameters}
+    return {"logger", "show_progress"} <= names
+
+
 class BaseIdentifiedRecommender(ABC):
     """Shared production-facing recommendation workflow.
 
@@ -149,12 +172,13 @@ class BaseIdentifiedRecommender(ABC):
         self._item_vocabulary = vocabulary
         return vocabulary
 
-    def _set_item_ids(
+    def _prepare_item_vocabulary(
         self,
         item_ids: Sequence[Hashable] | np.ndarray | None,
         *,
         n_items: int,
-    ) -> None:
+    ) -> ItemVocabulary:
+        """Validate a fitted catalog without publishing it on the model."""
         vocabulary = (
             ItemVocabulary.positional(n_items)
             if item_ids is None
@@ -165,6 +189,20 @@ class BaseIdentifiedRecommender(ABC):
                 f"item_ids has {vocabulary.n_items} entries, but the fitted "
                 f"catalog has {n_items} items"
             )
+        return vocabulary
+
+    def _set_item_ids(
+        self,
+        item_ids: Sequence[Hashable] | np.ndarray | None,
+        *,
+        n_items: int,
+    ) -> None:
+        """Validate and publish the fitted catalog on the model."""
+        vocabulary = self._prepare_item_vocabulary(item_ids, n_items=n_items)
+        self._publish_item_vocabulary(vocabulary)
+
+    def _publish_item_vocabulary(self, vocabulary: ItemVocabulary) -> None:
+        """Publish a vocabulary previously prepared for a successful fit."""
         self._item_vocabulary = vocabulary
 
     @property
@@ -224,6 +262,24 @@ class BaseIdentifiedRecommender(ABC):
     ) -> SRPTensor:
         """Predict after candidate IDs have been resolved and filtered."""
 
+    def _predict_identified_with_reporting(
+        self,
+        source: csr_matrix | ItemSequences,
+        *,
+        k: int,
+        exclude_seen: bool,
+        candidate_ids: np.ndarray,
+        reporter: _Reporter,
+    ) -> SRPTensor:
+        """Reporting-aware prediction hook with a legacy-compatible fallback."""
+        del reporter
+        return self._predict_identified(
+            source,
+            k=k,
+            exclude_seen=exclude_seen,
+            candidate_ids=candidate_ids,
+        )
+
     def _candidate_rows(
         self,
         candidate_ids: Sequence[Hashable] | np.ndarray | None,
@@ -242,6 +298,24 @@ class BaseIdentifiedRecommender(ABC):
         """Candidate rows eligible before request-specific filters."""
         return np.arange(vocabulary.n_items, dtype=np.int64)
 
+    def _prediction_reporter(
+        self,
+        logger: Any,
+        show_progress: Any,
+    ) -> _Reporter:
+        """Resolve reporting for a base-provided batched prediction call."""
+        config = getattr(self, "cfg", None)
+        return _resolve_reporter(
+            default_logger=getattr(self, "logger", None),
+            logger=logger,
+            # Base prediction has always defaulted to a quiet serving path,
+            # independently of a trainer's fit-time progress setting.
+            default_show_progress=False,
+            show_progress=show_progress,
+            prefix=getattr(config, "log_prefix", type(self).__name__),
+            log_every_n_steps=getattr(config, "log_every_n_steps", 0),
+        )
+
     def recommend(
         self,
         histories: Sequence[Sequence[Hashable]],
@@ -251,8 +325,15 @@ class BaseIdentifiedRecommender(ABC):
         allowlist: Sequence[Hashable] | np.ndarray | None = None,
         blocklist: Sequence[Hashable] | np.ndarray | None = None,
         on_insufficient: Literal["truncate", "raise"] = "truncate",
+        logger: Any | None = _INHERIT,
+        show_progress: bool | None | _Inherit = _INHERIT,
     ) -> Recommendations:
-        """Recommend up to ``k`` item IDs for each item-ID history."""
+        """Recommend up to ``k`` item IDs for each item-ID history.
+
+        ``logger`` and ``show_progress`` override prediction reporting for this
+        call. Passing ``logger=None`` makes the request quiet even when the
+        recommender has a constructor logger.
+        """
         if isinstance(k, (bool, np.bool_)) or not isinstance(k, (int, np.integer)):
             raise TypeError("k must be an integer")
         if int(k) < 1:
@@ -269,6 +350,14 @@ class BaseIdentifiedRecommender(ABC):
             raise TypeError(
                 "histories must be a sequence of item-ID sequences"
             ) from error
+
+        reporter = self._prediction_reporter(logger, show_progress)
+        reporting_override = logger is not _INHERIT or not (
+            show_progress is _INHERIT or show_progress is None
+        )
+        use_reporting_path = (
+            reporting_override or reporter.active or reporter.show_progress
+        )
 
         source_vocabulary, candidate_vocabulary = self._recommend_vocabularies()
         rows = [
@@ -333,12 +422,21 @@ class BaseIdentifiedRecommender(ABC):
                 [rows[row] for row in batch_rows],
                 vocabulary=source_vocabulary,
             )
-            predictions = self._predict_identified(
-                source,
-                k=count,
-                exclude_seen=exclude_seen,
-                candidate_ids=selected_ids,
-            )
+            if not use_reporting_path:
+                predictions = self._predict_identified(
+                    source,
+                    k=count,
+                    exclude_seen=exclude_seen,
+                    candidate_ids=selected_ids,
+                )
+            else:
+                predictions = self._predict_identified_with_reporting(
+                    source,
+                    k=count,
+                    exclude_seen=exclude_seen,
+                    candidate_ids=selected_ids,
+                    reporter=reporter,
+                )
             if (
                 predictions.rows != batch_rows.size
                 or predictions.cols_total != candidate_vocabulary.n_items
@@ -749,6 +847,31 @@ class BaseCollaborativeRecommender(BasePersistableRecommender):
             candidate_ids=candidate_ids,
         )
 
+    def _predict_identified_with_reporting(
+        self,
+        source: csr_matrix | ItemSequences,
+        *,
+        k: int,
+        exclude_seen: bool,
+        candidate_ids: np.ndarray,
+        reporter: _Reporter,
+    ) -> SRPTensor:
+        if not isinstance(source, csr_matrix):
+            raise TypeError("collaborative recommendations require a CSR source")
+        predict = self.predict
+        if not _accepts_reporting_keywords(predict):
+            # Fall back to base batching for extensions overriding the released
+            # predict() signature without a logger keyword.
+            predict = BaseCollaborativeRecommender.predict.__get__(self)
+        return predict(
+            source,
+            k=k,
+            exclude_seen=exclude_seen,
+            candidate_ids=candidate_ids,
+            logger=reporter,
+            show_progress=_INHERIT,
+        )
+
     def _prepare_source(self, source: csr_matrix) -> csr_matrix:
         """Validate a source matrix against the fitted item catalog."""
         if not self.is_fitted or self.n_items is None:
@@ -771,9 +894,11 @@ class BaseCollaborativeRecommender(BasePersistableRecommender):
         batch_size: int = 1024,
         exclude_seen: bool = True,
         candidate_ids: Sequence[Hashable] | np.ndarray | None = None,
-        show_progress: bool = False,
+        logger: Any | None = _INHERIT,
+        show_progress: bool | None | _Inherit = _INHERIT,
     ) -> SRPTensor:
         """Predict all source rows by repeatedly calling ``predict_on_batch``."""
+        reporter = self._prediction_reporter(logger, show_progress)
         source = self._prepare_source(source)
         if batch_size < 1:
             raise ValueError("batch_size must be >= 1")
@@ -784,17 +909,20 @@ class BaseCollaborativeRecommender(BasePersistableRecommender):
         columns: list[torch.Tensor] = []
         values: list[torch.Tensor] = []
         starts = range(0, source.shape[0], batch_size)
-        if show_progress:
-            try:
-                from tqdm.auto import tqdm
-
-                starts = tqdm(
-                    starts,
-                    desc=f"{type(self).__name__} predict@{k}",
-                )
-            except Exception:  # pragma: no cover - optional display helper
-                pass
-        for start in starts:
+        steps = len(starts)
+        started = time.monotonic()
+        reporter.log(
+            f"predict@{k} started: {source.shape[0]} rows | "
+            f"{steps} batches of {batch_size}"
+        )
+        for step, start in enumerate(
+            reporter.wrap(
+                starts,
+                total=steps,
+                desc=f"{type(self).__name__} predict@{k}",
+            ),
+            start=1,
+        ):
             kwargs = (
                 {}
                 if candidate_ids is None
@@ -812,6 +940,14 @@ class BaseCollaborativeRecommender(BasePersistableRecommender):
                 )
             columns.append(result.cols)
             values.append(result.vals)
+            log_steps = reporter.log_every_n_steps
+            if log_steps and step % log_steps == 0:
+                reporter.step(
+                    f"predict@{k} step {step}/{steps}",
+                    step,
+                    steps,
+                    started,
+                )
 
         if not columns:
             kwargs = (
@@ -819,18 +955,25 @@ class BaseCollaborativeRecommender(BasePersistableRecommender):
                 if candidate_ids is None
                 else {"candidate_ids": candidate_ids}
             )
-            return self.predict_on_batch(
+            prediction = self.predict_on_batch(
                 source,
                 k=k,
                 exclude_seen=exclude_seen,
                 **kwargs,
             )
-        return SRPTensor(
-            cols=torch.vstack(columns),
-            vals=torch.vstack(values),
-            shape=source.shape,
-            validate=False,
+        else:
+            prediction = SRPTensor(
+                cols=torch.vstack(columns),
+                vals=torch.vstack(values),
+                shape=source.shape,
+                validate=False,
+            )
+        reporter.log(
+            f"predict@{k} finished: "
+            f"{_format_duration(time.monotonic() - started)} total | "
+            f"{source.shape[0]} rows"
         )
+        return prediction
 
 
 @runtime_checkable
@@ -931,6 +1074,31 @@ class BaseSequentialRecommender(BasePersistableRecommender):
             candidate_ids=candidate_ids,
         )
 
+    def _predict_identified_with_reporting(
+        self,
+        source: csr_matrix | ItemSequences,
+        *,
+        k: int,
+        exclude_seen: bool,
+        candidate_ids: np.ndarray,
+        reporter: _Reporter,
+    ) -> SRPTensor:
+        if not isinstance(source, ItemSequences):
+            raise TypeError(
+                "sequential recommendations require an ItemSequences source"
+            )
+        predict = self.predict
+        if not _accepts_reporting_keywords(predict):
+            predict = BaseSequentialRecommender.predict.__get__(self)
+        return predict(
+            source,
+            k=k,
+            exclude_seen=exclude_seen,
+            candidate_ids=candidate_ids,
+            logger=reporter,
+            show_progress=_INHERIT,
+        )
+
     def _prepare_source(self, source: ItemSequences) -> ItemSequences:
         """Check a batch of histories against the fitted model."""
         if not self.is_fitted or self.n_items is None:
@@ -980,9 +1148,11 @@ class BaseSequentialRecommender(BasePersistableRecommender):
         batch_size: int = 1024,
         exclude_seen: bool = True,
         candidate_ids: Sequence[Hashable] | np.ndarray | None = None,
-        show_progress: bool = False,
+        logger: Any | None = _INHERIT,
+        show_progress: bool | None | _Inherit = _INHERIT,
     ) -> SRPTensor:
         """Predict all histories by repeatedly calling ``predict_on_batch``."""
+        reporter = self._prediction_reporter(logger, show_progress)
         source = self._prepare_source(source)
         if batch_size < 1:
             raise ValueError("batch_size must be >= 1")
@@ -993,14 +1163,20 @@ class BaseSequentialRecommender(BasePersistableRecommender):
         columns: list[torch.Tensor] = []
         values: list[torch.Tensor] = []
         starts = range(0, source.n_rows, batch_size)
-        if show_progress:
-            try:
-                from tqdm.auto import tqdm
-
-                starts = tqdm(starts, desc=f"{type(self).__name__} predict@{k}")
-            except Exception:  # pragma: no cover - optional display helper
-                pass
-        for start in starts:
+        steps = len(starts)
+        started = time.monotonic()
+        reporter.log(
+            f"predict@{k} started: {source.n_rows} rows | "
+            f"{steps} batches of {batch_size}"
+        )
+        for step, start in enumerate(
+            reporter.wrap(
+                starts,
+                total=steps,
+                desc=f"{type(self).__name__} predict@{k}",
+            ),
+            start=1,
+        ):
             kwargs = (
                 {}
                 if candidate_ids is None
@@ -1018,6 +1194,14 @@ class BaseSequentialRecommender(BasePersistableRecommender):
                 )
             columns.append(result.cols)
             values.append(result.vals)
+            log_steps = reporter.log_every_n_steps
+            if log_steps and step % log_steps == 0:
+                reporter.step(
+                    f"predict@{k} step {step}/{steps}",
+                    step,
+                    steps,
+                    started,
+                )
 
         if not columns:
             kwargs = (
@@ -1025,14 +1209,21 @@ class BaseSequentialRecommender(BasePersistableRecommender):
                 if candidate_ids is None
                 else {"candidate_ids": candidate_ids}
             )
-            return self.predict_on_batch(
+            prediction = self.predict_on_batch(
                 source,
                 k=k,
                 exclude_seen=exclude_seen,
                 **kwargs,
             )
-        return SRPTensor(
-            cols=torch.vstack(columns),
-            vals=torch.vstack(values),
-            shape=(source.n_rows, self.n_items),
+        else:
+            prediction = SRPTensor(
+                cols=torch.vstack(columns),
+                vals=torch.vstack(values),
+                shape=(source.n_rows, self.n_items),
+            )
+        reporter.log(
+            f"predict@{k} finished: "
+            f"{_format_duration(time.monotonic() - started)} total | "
+            f"{source.n_rows} rows"
         )
+        return prediction

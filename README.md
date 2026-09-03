@@ -30,11 +30,17 @@ Install optional dataset export support:
 pip install "compresso-recsys[datasets]"
 ```
 
+Install the optional scikit-learn dependency for KNN models:
+
+```bash
+pip install "compresso-recsys[knn]"
+```
+
 For local development:
 
 ```bash
 pip install -e ../compresso
-pip install -e ".[dev,datasets]"
+pip install -e ".[dev,datasets,test]"
 ```
 
 ## Quickstart
@@ -95,6 +101,9 @@ corresponding `train_item_ids`, `val_item_ids`, and `test_item_ids` arrays.
 - Batched EASE, ADMM and gradient-trained TEASER cold-start models, a
   content-similarity cold-start baseline, dense ELSA, and lottery-ticket
   compressed ELSA with streaming evaluation.
+- Random and popularity baselines, normalized user-user and item-item cosine
+  KNN, and multinomial denoising and variational autoencoders (`MultDAE` and
+  `MultVAE`).
 - Sequential recommenders over chronological histories: `SimpleRNN`, a recurrent
   next-item baseline, and `SimpleGPT`, a causal transformer with a tied head.
   Both are built from replaceable parts — an `ItemTokenizer` owning the
@@ -125,8 +134,11 @@ The full CLI parameter table, checkpoint split schema, and supported Amazon
 Reviews 2023 categories are maintained in the
 [Checkpoint CLI Reference](https://zombak79.github.io/compresso-recsys/cli-reference.html).
 Academic references and copy-ready BibTeX for EASE, TEASER, ELSA,
-large-scale ELSA, and compressed ELSA are available in the
+large-scale ELSA, compressed ELSA, neighborhood models, Mult-DAE, and Mult-VAE are available in the
 [citation guide](https://zombak79.github.io/compresso-recsys/citing.html).
+The [implementing a recommender tutorial](https://zombak79.github.io/compresso-recsys/implementing-a-recommender.html)
+builds a complete Top Popular model with validation, stable-ID recommendation,
+persistence, evaluation, and executable contract checks.
 
 Build the docs locally:
 

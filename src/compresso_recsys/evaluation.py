@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import time
 import warnings
 from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import dataclass, field
@@ -11,6 +12,7 @@ import torch
 from scipy.sparse import csr_matrix, isspmatrix_csr
 
 from compresso import SRPTensor
+from compresso_recsys._reporting import _Reporter, _format_duration
 from compresso_recsys.metrics import CalibratedRecall, NDCG, RankingBatch, RankingMetric
 from compresso_recsys.models import Recommender, SequentialRecommender
 from compresso_recsys.sequences import ItemSequences
@@ -297,16 +299,6 @@ def _canonical_csr(targets: csr_matrix) -> csr_matrix:
     if out.indices.size and (out.indices.min() < 0 or out.indices.max() >= out.shape[1]):
         raise ValueError("target item indices are out of bounds")
     return out
-
-
-def _progress(iterable, *, enabled: bool, desc: str):
-    if not enabled:
-        return iterable
-    try:
-        from tqdm.auto import tqdm
-    except Exception:  # pragma: no cover - optional display helper
-        return iterable
-    return tqdm(iterable, desc=desc)
 
 
 def _indices_to_csr(rows: Sequence[np.ndarray], *, n_items: int) -> csr_matrix:
@@ -778,6 +770,8 @@ def evaluate_recommender(
     debug: bool = False,
     debug_users: int = 5,
     show_progress: bool = False,
+    logger: Any | None = None,
+    log_every_n_steps: int = 1000,
 ) -> EvaluationResult: ...
 
 
@@ -798,6 +792,8 @@ def evaluate_recommender(
     debug: bool = False,
     debug_users: int = 5,
     show_progress: bool = False,
+    logger: Any | None = None,
+    log_every_n_steps: int = 1000,
 ) -> EvaluationResult: ...
 
 
@@ -817,6 +813,8 @@ def evaluate_recommender(
     debug: bool = False,
     debug_users: int = 5,
     show_progress: bool = False,
+    logger: Any | None = None,
+    log_every_n_steps: int = 1000,
 ) -> EvaluationResult:
     """Evaluate a recommender without retaining predictions between batches.
 
@@ -857,10 +855,25 @@ def evaluate_recommender(
     )
     resolved_ids = _canonical_sample_ids(sample_ids, n_rows=batches.n_rows)
     starts = range(0, batches.n_rows, batch_size)
-    for start in _progress(
-        starts,
-        enabled=show_progress,
-        desc=f"evaluate recommender@{evaluator.required_k}",
+    reporter = _Reporter(
+        logger,
+        show_progress,
+        "evaluation",
+        log_every_n_steps,
+    )
+    steps = len(starts)
+    started = time.monotonic()
+    reporter.log(
+        f"evaluate recommender@{evaluator.required_k} started: "
+        f"{batches.n_rows} rows | {steps} batches of {batch_size}"
+    )
+    for step, start in enumerate(
+        reporter.wrap(
+            starts,
+            total=steps,
+            desc=f"evaluate recommender@{evaluator.required_k}",
+        ),
+        start=1,
     ):
         end = min(start + batch_size, batches.n_rows)
         predictions = model.predict_on_batch(
@@ -872,4 +885,18 @@ def evaluate_recommender(
             targets[start:end],
             sample_ids=None if resolved_ids is None else resolved_ids[start:end],
         )
-    return evaluator.compute()
+        log_steps = reporter.log_every_n_steps
+        if log_steps and step % log_steps == 0:
+            reporter.step(
+                f"evaluate recommender@{evaluator.required_k} step {step}/{steps}",
+                step,
+                steps,
+                started,
+            )
+    result = evaluator.compute()
+    reporter.log(
+        f"evaluate recommender@{evaluator.required_k} finished: "
+        f"{_format_duration(time.monotonic() - started)} total | "
+        f"{batches.n_rows} rows"
+    )
+    return result
