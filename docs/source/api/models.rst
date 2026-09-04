@@ -1443,6 +1443,7 @@ The temporal split already produces the aligned pair expected by ``fit``:
        SimpleBidirectionalTransformerConfig,
        SimpleBidirectionalTransformerTrainer,
        TransformerConfig,
+       WarmCatalogAdapter,
    )
 
    trainer = SimpleBidirectionalTransformerTrainer(
@@ -1455,7 +1456,10 @@ The temporal split already produces the aligned pair expected by ``fit``:
            lr=1e-3,
        ),
        SequenceBatcher(
-           ItemTokenizer(split["train_source_sequences"].n_items),
+           ItemTokenizer(
+               split["train_source_sequences"].n_items,
+               item_ids=split["train_item_ids"],
+           ),
            max_length=200,
        ),
    ).fit(
@@ -1463,13 +1467,39 @@ The temporal split already produces the aligned pair expected by ``fit``:
        targets=split["train_target_matrix"],
    )
 
-   result = evaluate_recommender(
+   val_model = WarmCatalogAdapter(
        trainer,
+       train_item_ids=split["train_item_ids"],
+       catalog_item_ids=split["val_item_ids"],
+   )
+   val_result = evaluate_recommender(
+       val_model,
+       source=split["val_source_sequences"],
+       targets=split["val_target_matrix"],
+       metrics=[CalibratedRecall(20), NDCG(20)],
+       sample_ids=split["val_eval_user_ids"],
+   )
+
+   test_model = WarmCatalogAdapter(
+       trainer,
+       train_item_ids=split["train_item_ids"],
+       catalog_item_ids=split["test_item_ids"],
+   )
+   test_result = evaluate_recommender(
+       test_model,
        source=split["test_source_sequences"],
        targets=split["test_target_matrix"],
        metrics=[CalibratedRecall(20), NDCG(20)],
        sample_ids=split["test_eval_user_ids"],
    )
+
+Temporal catalogs grow by appending newly observed items, whereas the fitted
+transformer can score only the training catalog. A separate
+:class:`compresso_recsys.models.WarmCatalogAdapter` widens predictions to the
+validation or test catalog so their shape matches the corresponding target
+matrix. Histories remain unmodified: cold item indices reach the tokenizer as
+``unk``, while cold candidates remain valid metric targets but cannot be
+recommended by the training-only model.
 
 ``targets`` must be a CSR matrix with exactly one row per sequence and the same
 item width. Its nonzero locations are binary membership; stored values are not

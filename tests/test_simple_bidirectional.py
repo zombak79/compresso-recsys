@@ -18,6 +18,7 @@ from compresso_recsys.models import (
     SimpleGPTTrainer,
     SimpleRNNTrainer,
     TransformerConfig,
+    WarmCatalogAdapter,
 )
 from compresso_recsys.sequences import ItemSequences
 
@@ -313,6 +314,45 @@ def test_explicit_target_mode_does_not_apply_unseen_capacity_checks():
     )
 
     assert trainer.predict_on_batch(source, k=N_ITEMS).cols.shape == (1, N_ITEMS)
+
+
+def test_explicit_target_recommend_resolves_masking_before_capacity():
+    source = _sequences([list(range(N_ITEMS))])
+    trainer = _trainer().fit(
+        source,
+        targets=_targets([[1, 0, 0, 0, 0, 0]]),
+    )
+
+    recommendations = trainer.recommend(
+        [list(range(N_ITEMS))],
+        k=N_ITEMS,
+        exclude_seen=True,
+    )
+
+    assert recommendations.valid_counts.tolist() == [N_ITEMS]
+    assert set(recommendations.item_ids[0].tolist()) == set(range(N_ITEMS))
+
+
+def test_warm_adapter_propagates_explicit_target_masking_policy():
+    source = _sequences([list(range(N_ITEMS))])
+    trainer = _trainer().fit(
+        source,
+        targets=_targets([[1, 0, 0, 0, 0, 0]]),
+    )
+    adapter = WarmCatalogAdapter(
+        trainer,
+        train_item_ids=np.arange(N_ITEMS),
+        catalog_item_ids=np.arange(N_ITEMS + 1),
+    )
+
+    recommendations = adapter.recommend(
+        [list(range(N_ITEMS))],
+        k=N_ITEMS,
+        exclude_seen=True,
+    )
+
+    assert recommendations.valid_counts.tolist() == [N_ITEMS]
+    assert set(recommendations.item_ids[0].tolist()) == set(range(N_ITEMS))
 
 
 # --------------------------------------------------------------------------

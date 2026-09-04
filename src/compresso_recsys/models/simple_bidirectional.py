@@ -578,6 +578,9 @@ class SimpleBidirectionalTransformerTrainer(BaseSequentialRecommender):
         ) & mask
         return torch.where(chosen, torch.full_like(inputs, unk_id), inputs)
 
+    def _effective_exclude_seen(self, exclude_seen: bool) -> bool:
+        return exclude_seen and not self._trained_with_explicit_targets
+
     def predict_on_batch(
         self,
         source: ItemSequences,
@@ -603,8 +606,8 @@ class SimpleBidirectionalTransformerTrainer(BaseSequentialRecommender):
         if not 1 <= k <= candidate_count:
             raise ValueError(f"k must be in [1, {candidate_count}], got {k}")
 
-        mask_seen = exclude_seen and not self._trained_with_explicit_targets
-        if mask_seen:
+        exclude_seen = self._effective_exclude_seen(exclude_seen)
+        if exclude_seen:
             self._check_unseen_capacity(
                 source,
                 n_items=n_items,
@@ -625,7 +628,7 @@ class SimpleBidirectionalTransformerTrainer(BaseSequentialRecommender):
             tokens, mask = self.batcher.encode(source, device=self.device)
             states = self.model(tokens, mask)
             logits = self.model.score(states[:, 0])
-            if mask_seen:
+            if exclude_seen:
                 self._mask_seen(logits, source)
             candidates = torch.from_numpy(candidate_rows).long().to(self.device)
             vals, local_cols = torch.topk(logits[:, candidates], k, dim=1)

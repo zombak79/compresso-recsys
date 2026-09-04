@@ -345,6 +345,11 @@ class WarmCatalogAdapter(BaseIdentifiedRecommender):
         del vocabulary
         return self.train_to_catalog
 
+    def _effective_exclude_seen(self, exclude_seen: bool) -> bool:
+        if isinstance(self.model, BaseIdentifiedRecommender):
+            return self.model._effective_exclude_seen(exclude_seen)
+        return super()._effective_exclude_seen(exclude_seen)
+
     def _recommendation_source(
         self,
         rows: list[np.ndarray],
