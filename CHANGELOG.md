@@ -1,5 +1,13 @@
 ## [Unreleased]
 
+### Added
+
+- `SimpleBidirectionalTransformer`, a padding-aware sequential encoder that
+  learns unordered item sets from a pooled `CLS` representation. Its trainer
+  optionally consumes the CSR `targets` matrices emitted by temporal splits,
+  preserves source/target row alignment, persists the training mode, and keeps
+  source items eligible when explicit targets may overlap the history.
+
 ## [0.3.2] — 2026-09-04
 
 ### Added

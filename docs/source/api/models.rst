@@ -128,8 +128,9 @@ is reset and reused at each epoch. Reusing the batch bar is the recommended
 pattern for new trainers because creating one bar per epoch leaves a growing
 stack of completed bars in notebooks and terminals. Compressed ELSA's
 unbounded mask-search phase has no fixed epoch total, so it uses only one
-reusable batch bar. ELSA, Mult-DAE, Mult-VAE, SimpleGPT, SimpleRNN, and
-TEASER-GD all follow the logger reporting contract above.
+reusable batch bar. ELSA, Mult-DAE, Mult-VAE, SimpleGPT, SimpleRNN,
+SimpleBidirectionalTransformer, and TEASER-GD all follow the logger reporting
+contract above.
 
 Fitted Model Persistence
 ------------------------
@@ -1419,4 +1420,80 @@ as every other fitted recommender:
    :members:
 
 .. autoclass:: compresso_recsys.models.SASRecTrainer
+   :members:
+
+SimpleBidirectionalTransformer
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``SimpleBidirectionalTransformer`` reads an ordered history with bidirectional,
+padding-aware self-attention and scores an unordered item set from its final
+``CLS`` representation. It is the target-capable counterpart to ``SimpleGPT``:
+the causal model learns next-token prediction inside a history, while this model
+can optimize the same target matrix used by evaluation.
+
+The temporal split already produces the aligned pair expected by ``fit``:
+
+.. code-block:: python
+
+   from compresso_recsys.evaluation import evaluate_recommender
+   from compresso_recsys.metrics import CalibratedRecall, NDCG
+   from compresso_recsys.models import (
+       ItemTokenizer,
+       SequenceBatcher,
+       SimpleBidirectionalTransformerConfig,
+       SimpleBidirectionalTransformerTrainer,
+       TransformerConfig,
+   )
+
+   trainer = SimpleBidirectionalTransformerTrainer(
+       SimpleBidirectionalTransformerConfig(
+           transformer=TransformerConfig(
+               d_model=128, n_heads=4, n_layers=2, dropout=0.1
+           ),
+           epochs=10,
+           batch_size=128,
+           lr=1e-3,
+       ),
+       SequenceBatcher(
+           ItemTokenizer(split["train_source_sequences"].n_items),
+           max_length=200,
+       ),
+   ).fit(
+       split["train_source_sequences"],
+       targets=split["train_target_matrix"],
+   )
+
+   result = evaluate_recommender(
+       trainer,
+       source=split["test_source_sequences"],
+       targets=split["test_target_matrix"],
+       metrics=[CalibratedRecall(20), NDCG(20)],
+       sample_ids=split["test_eval_user_ids"],
+   )
+
+``targets`` must be a CSR matrix with exactly one row per sequence and the same
+item width. Its nonzero locations are binary membership; stored values are not
+weights. Duplicate entries and stored zeros are canonicalized. All-zero user
+rows stay in place to preserve alignment and are skipped by the loss. Training
+fails only when the complete matrix contains no positive target at all.
+
+When ``targets=None``, the trainer reconstructs the set of items in the source
+histories. Only this new trainer declares the ``targets`` keyword; sequential
+models that cannot use target sets, including ``SimpleGPTTrainer`` and
+``SimpleRNNTrainer``, continue to reject it instead of silently ignoring it.
+
+Target-trained prediction deliberately keeps source items eligible even when
+``exclude_seen=True``. A post-cutoff target may repeat a pre-cutoff interaction,
+and a rated target may also occur in the viewed source stream, so masking the
+source would suppress a correct answer. The checkpoint records whether explicit
+targets were used and restores that behavior. Self-supervised fits retain the
+usual ``exclude_seen`` masking.
+
+.. autoclass:: compresso_recsys.models.SimpleBidirectionalTransformerConfig
+   :members:
+
+.. autoclass:: compresso_recsys.models.SimpleBidirectionalTransformer
+   :members:
+
+.. autoclass:: compresso_recsys.models.SimpleBidirectionalTransformerTrainer
    :members:
