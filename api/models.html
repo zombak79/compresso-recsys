@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Models API &mdash; Compresso Recsys 0.3.2 documentation</title>
+  <title>Models API &mdash; Compresso Recsys 0.3.3 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
 
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=2f2e10e9"></script>
+      <script src="../_static/documentation_options.js?v=94d292f4"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -305,6 +305,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#simplernn">SimpleRNN</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#simplegpt">SimpleGPT</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#sasrec">SASRec</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#simplebidirectionaltransformer">SimpleBidirectionalTransformer</a></li>
 </ul>
 </li>
 </ul>
@@ -654,8 +655,9 @@ is reset and reused at each epoch. Reusing the batch bar is the recommended
 pattern for new trainers because creating one bar per epoch leaves a growing
 stack of completed bars in notebooks and terminals. Compressed ELSA’s
 unbounded mask-search phase has no fixed epoch total, so it uses only one
-reusable batch bar. ELSA, Mult-DAE, Mult-VAE, SimpleGPT, SimpleRNN, and
-TEASER-GD all follow the logger reporting contract above.</p>
+reusable batch bar. ELSA, Mult-DAE, Mult-VAE, SimpleGPT, SimpleRNN,
+SimpleBidirectionalTransformer, and TEASER-GD all follow the logger reporting
+contract above.</p>
 </section>
 <section id="fitted-model-persistence">
 <h2>Fitted Model Persistence<a class="headerlink" href="#fitted-model-persistence" title="Link to this heading"></a></h2>
@@ -5645,6 +5647,246 @@ source, takes each row’s own last real state through the batcher’s
 <code class="docutils literal notranslate"><span class="pre">gather_final</span></code> – never <code class="docutils literal notranslate"><span class="pre">states[:,</span> <span class="pre">-1]</span></code>, which is padding for every
 row shorter than the batch maximum – scores the catalog, masks seen
 items when asked, and takes the top <code class="docutils literal notranslate"><span class="pre">k</span></code> over the candidate columns.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">SRPTensor</span></code></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>source</strong> (<a class="reference internal" href="sequences.html#compresso_recsys.ItemSequences" title="compresso_recsys.sequences.ItemSequences"><em>ItemSequences</em></a>)</p></li>
+<li><p><strong>k</strong> (<em>int</em>)</p></li>
+<li><p><strong>exclude_seen</strong> (<em>bool</em>)</p></li>
+<li><p><strong>candidate_ids</strong> (<em>Sequence</em><em>[</em><em>Hashable</em><em>] </em><em>| </em><em>ndarray</em><em> | </em><em>None</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="simplebidirectionaltransformer">
+<h3>SimpleBidirectionalTransformer<a class="headerlink" href="#simplebidirectionaltransformer" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">SimpleBidirectionalTransformer</span></code> reads an ordered history with bidirectional,
+padding-aware self-attention and scores an unordered item set from its final
+<code class="docutils literal notranslate"><span class="pre">CLS</span></code> representation. It is the target-capable counterpart to <code class="docutils literal notranslate"><span class="pre">SimpleGPT</span></code>:
+the causal model learns next-token prediction inside a history, while this model
+can optimize the same target matrix used by evaluation.</p>
+<p>The temporal split already produces the aligned pair expected by <code class="docutils literal notranslate"><span class="pre">fit</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.evaluation</span><span class="w"> </span><span class="kn">import</span> <span class="n">evaluate_recommender</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">CalibratedRecall</span><span class="p">,</span> <span class="n">NDCG</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.models</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">ItemTokenizer</span><span class="p">,</span>
+    <span class="n">SequenceBatcher</span><span class="p">,</span>
+    <span class="n">SimpleBidirectionalTransformerConfig</span><span class="p">,</span>
+    <span class="n">SimpleBidirectionalTransformerTrainer</span><span class="p">,</span>
+    <span class="n">TransformerConfig</span><span class="p">,</span>
+    <span class="n">WarmCatalogAdapter</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">trainer</span> <span class="o">=</span> <span class="n">SimpleBidirectionalTransformerTrainer</span><span class="p">(</span>
+    <span class="n">SimpleBidirectionalTransformerConfig</span><span class="p">(</span>
+        <span class="n">transformer</span><span class="o">=</span><span class="n">TransformerConfig</span><span class="p">(</span>
+            <span class="n">d_model</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">n_heads</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">n_layers</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">dropout</span><span class="o">=</span><span class="mf">0.1</span>
+        <span class="p">),</span>
+        <span class="n">epochs</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+        <span class="n">batch_size</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span>
+        <span class="n">lr</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">,</span>
+    <span class="p">),</span>
+    <span class="n">SequenceBatcher</span><span class="p">(</span>
+        <span class="n">ItemTokenizer</span><span class="p">(</span>
+            <span class="n">split</span><span class="p">[</span><span class="s2">"train_source_sequences"</span><span class="p">]</span><span class="o">.</span><span class="n">n_items</span><span class="p">,</span>
+            <span class="n">item_ids</span><span class="o">=</span><span class="n">split</span><span class="p">[</span><span class="s2">"train_item_ids"</span><span class="p">],</span>
+        <span class="p">),</span>
+        <span class="n">max_length</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span>
+    <span class="p">),</span>
+<span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span>
+    <span class="n">split</span><span class="p">[</span><span class="s2">"train_source_sequences"</span><span class="p">],</span>
+    <span class="n">targets</span><span class="o">=</span><span class="n">split</span><span class="p">[</span><span class="s2">"train_target_matrix"</span><span class="p">],</span>
+<span class="p">)</span>
+
+<span class="n">val_model</span> <span class="o">=</span> <span class="n">WarmCatalogAdapter</span><span class="p">(</span>
+    <span class="n">trainer</span><span class="p">,</span>
+    <span class="n">train_item_ids</span><span class="o">=</span><span class="n">split</span><span class="p">[</span><span class="s2">"train_item_ids"</span><span class="p">],</span>
+    <span class="n">catalog_item_ids</span><span class="o">=</span><span class="n">split</span><span class="p">[</span><span class="s2">"val_item_ids"</span><span class="p">],</span>
+<span class="p">)</span>
+<span class="n">val_result</span> <span class="o">=</span> <span class="n">evaluate_recommender</span><span class="p">(</span>
+    <span class="n">val_model</span><span class="p">,</span>
+    <span class="n">source</span><span class="o">=</span><span class="n">split</span><span class="p">[</span><span class="s2">"val_source_sequences"</span><span class="p">],</span>
+    <span class="n">targets</span><span class="o">=</span><span class="n">split</span><span class="p">[</span><span class="s2">"val_target_matrix"</span><span class="p">],</span>
+    <span class="n">metrics</span><span class="o">=</span><span class="p">[</span><span class="n">CalibratedRecall</span><span class="p">(</span><span class="mi">20</span><span class="p">),</span> <span class="n">NDCG</span><span class="p">(</span><span class="mi">20</span><span class="p">)],</span>
+    <span class="n">sample_ids</span><span class="o">=</span><span class="n">split</span><span class="p">[</span><span class="s2">"val_eval_user_ids"</span><span class="p">],</span>
+<span class="p">)</span>
+
+<span class="n">test_model</span> <span class="o">=</span> <span class="n">WarmCatalogAdapter</span><span class="p">(</span>
+    <span class="n">trainer</span><span class="p">,</span>
+    <span class="n">train_item_ids</span><span class="o">=</span><span class="n">split</span><span class="p">[</span><span class="s2">"train_item_ids"</span><span class="p">],</span>
+    <span class="n">catalog_item_ids</span><span class="o">=</span><span class="n">split</span><span class="p">[</span><span class="s2">"test_item_ids"</span><span class="p">],</span>
+<span class="p">)</span>
+<span class="n">test_result</span> <span class="o">=</span> <span class="n">evaluate_recommender</span><span class="p">(</span>
+    <span class="n">test_model</span><span class="p">,</span>
+    <span class="n">source</span><span class="o">=</span><span class="n">split</span><span class="p">[</span><span class="s2">"test_source_sequences"</span><span class="p">],</span>
+    <span class="n">targets</span><span class="o">=</span><span class="n">split</span><span class="p">[</span><span class="s2">"test_target_matrix"</span><span class="p">],</span>
+    <span class="n">metrics</span><span class="o">=</span><span class="p">[</span><span class="n">CalibratedRecall</span><span class="p">(</span><span class="mi">20</span><span class="p">),</span> <span class="n">NDCG</span><span class="p">(</span><span class="mi">20</span><span class="p">)],</span>
+    <span class="n">sample_ids</span><span class="o">=</span><span class="n">split</span><span class="p">[</span><span class="s2">"test_eval_user_ids"</span><span class="p">],</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Temporal catalogs grow by appending newly observed items, whereas the fitted
+transformer can score only the training catalog. A separate
+<a class="reference internal" href="#compresso_recsys.models.WarmCatalogAdapter" title="compresso_recsys.models.WarmCatalogAdapter"><code class="xref py py-class docutils literal notranslate"><span class="pre">compresso_recsys.models.WarmCatalogAdapter</span></code></a> widens predictions to the
+validation or test catalog so their shape matches the corresponding target
+matrix. Histories remain unmodified: cold item indices reach the tokenizer as
+<code class="docutils literal notranslate"><span class="pre">unk</span></code>, while cold candidates remain valid metric targets but cannot be
+recommended by the training-only model.</p>
+<p><code class="docutils literal notranslate"><span class="pre">targets</span></code> must be a CSR matrix with exactly one row per sequence and the same
+item width. Its nonzero locations are binary membership; stored values are not
+weights. Duplicate entries and stored zeros are canonicalized. All-zero user
+rows stay in place to preserve alignment and are skipped by the loss. Training
+fails only when the complete matrix contains no positive target at all.</p>
+<p>When <code class="docutils literal notranslate"><span class="pre">targets=None</span></code>, the trainer reconstructs the set of items in the source
+histories. Only this new trainer declares the <code class="docutils literal notranslate"><span class="pre">targets</span></code> keyword; sequential
+models that cannot use target sets, including <code class="docutils literal notranslate"><span class="pre">SimpleGPTTrainer</span></code> and
+<code class="docutils literal notranslate"><span class="pre">SimpleRNNTrainer</span></code>, continue to reject it instead of silently ignoring it.</p>
+<p>Target-trained prediction deliberately keeps source items eligible even when
+<code class="docutils literal notranslate"><span class="pre">exclude_seen=True</span></code>. A post-cutoff target may repeat a pre-cutoff interaction,
+and a rated target may also occur in the viewed source stream, so masking the
+source would suppress a correct answer. The checkpoint records whether explicit
+targets were used and restores that behavior. Self-supervised fits retain the
+usual <code class="docutils literal notranslate"><span class="pre">exclude_seen</span></code> masking.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="compresso_recsys.models.SimpleBidirectionalTransformerConfig">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">compresso_recsys.models.</span></span><span class="sig-name descname"><span class="pre">SimpleBidirectionalTransformerConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">transformer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tie_embeddings</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lr_schedule</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cosine'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">warmup_fraction</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_lr_ratio</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unk_dropout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">256</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight_decay</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimizer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'NAdam'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cpu'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_progress</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_prefix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'SimpleBidirectionalTransformer'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_every_n_steps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/simple_bidirectional.html#SimpleBidirectionalTransformerConfig"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.SimpleBidirectionalTransformerConfig" title="Link to this definition"></a></dt>
+<dd><p>Architecture and training settings for the bidirectional trainer.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>transformer</strong> (<a class="reference internal" href="#compresso_recsys.models.TransformerConfig" title="compresso_recsys.models.simple_gpt.TransformerConfig"><em>TransformerConfig</em></a>)</p></li>
+<li><p><strong>tie_embeddings</strong> (<em>bool</em>)</p></li>
+<li><p><strong>lr_schedule</strong> (<em>Literal</em><em>[</em><em>'constant'</em><em>, </em><em>'cosine'</em><em>]</em>)</p></li>
+<li><p><strong>warmup_fraction</strong> (<em>float</em>)</p></li>
+<li><p><strong>min_lr_ratio</strong> (<em>float</em>)</p></li>
+<li><p><strong>unk_dropout</strong> (<em>float</em>)</p></li>
+<li><p><strong>batch_size</strong> (<em>int</em>)</p></li>
+<li><p><strong>epochs</strong> (<em>int</em>)</p></li>
+<li><p><strong>lr</strong> (<em>float</em>)</p></li>
+<li><p><strong>weight_decay</strong> (<em>float</em>)</p></li>
+<li><p><strong>optimizer</strong> (<em>Literal</em><em>[</em><em>'NAdam'</em><em>, </em><em>'AdamW'</em><em>]</em>)</p></li>
+<li><p><strong>device</strong> (<em>str</em><em> | </em><em>device</em>)</p></li>
+<li><p><strong>show_progress</strong> (<em>bool</em>)</p></li>
+<li><p><strong>seed</strong> (<em>int</em>)</p></li>
+<li><p><strong>log_prefix</strong> (<em>str</em>)</p></li>
+<li><p><strong>log_every_n_steps</strong> (<em>int</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="compresso_recsys.models.SimpleBidirectionalTransformer">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">compresso_recsys.models.</span></span><span class="sig-name descname"><span class="pre">SimpleBidirectionalTransformer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">vocab_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_items</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_positions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pad_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tie_embeddings</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/simple_bidirectional.html#SimpleBidirectionalTransformer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.SimpleBidirectionalTransformer" title="Link to this definition"></a></dt>
+<dd><p>Item embeddings, bidirectional blocks, and a catalog-scoring head.</p>
+<p>Initialize internal Module state, shared by both nn.Module and ScriptModule.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>vocab_size</strong> (<em>int</em>)</p></li>
+<li><p><strong>n_items</strong> (<em>int</em>)</p></li>
+<li><p><strong>max_positions</strong> (<em>int</em>)</p></li>
+<li><p><strong>pad_id</strong> (<em>int</em>)</p></li>
+<li><p><strong>config</strong> (<a class="reference internal" href="#compresso_recsys.models.TransformerConfig" title="compresso_recsys.models.TransformerConfig"><em>TransformerConfig</em></a>)</p></li>
+<li><p><strong>tie_embeddings</strong> (<em>bool</em>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.SimpleBidirectionalTransformer.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tokens</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/simple_bidirectional.html#SimpleBidirectionalTransformer.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.SimpleBidirectionalTransformer.forward" title="Link to this definition"></a></dt>
+<dd><p>Return states for <code class="docutils literal notranslate"><span class="pre">CLS</span></code> and each token.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>tokens</strong> (<em>Tensor</em>)</p></li>
+<li><p><strong>mask</strong> (<em>Tensor</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.SimpleBidirectionalTransformer.score">
+<span class="sig-name descname"><span class="pre">score</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">states</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/simple_bidirectional.html#SimpleBidirectionalTransformer.score"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.SimpleBidirectionalTransformer.score" title="Link to this definition"></a></dt>
+<dd><p>Turn one or more hidden states into catalog logits.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>states</strong> (<em>Tensor</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="compresso_recsys.models.SimpleBidirectionalTransformerTrainer">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">compresso_recsys.models.</span></span><span class="sig-name descname"><span class="pre">SimpleBidirectionalTransformerTrainer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batcher</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logger</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/simple_bidirectional.html#SimpleBidirectionalTransformerTrainer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.SimpleBidirectionalTransformerTrainer" title="Link to this definition"></a></dt>
+<dd><p>Train a bidirectional sequence encoder against unordered item sets.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>config</strong> (<a class="reference internal" href="#compresso_recsys.models.SimpleBidirectionalTransformerConfig" title="compresso_recsys.models.SimpleBidirectionalTransformerConfig"><em>SimpleBidirectionalTransformerConfig</em></a><em> | </em><em>None</em>)</p></li>
+<li><p><strong>batcher</strong> (<a class="reference internal" href="#compresso_recsys.models.SequenceBatcher" title="compresso_recsys.models.SequenceBatcher"><em>SequenceBatcher</em></a><em> | </em><em>None</em>)</p></li>
+<li><p><strong>logger</strong> (<em>Any</em><em> | </em><em>None</em>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="compresso_recsys.models.SimpleBidirectionalTransformerTrainer.is_fitted">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">is_fitted</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><a class="headerlink" href="#compresso_recsys.models.SimpleBidirectionalTransformerTrainer.is_fitted" title="Link to this definition"></a></dt>
+<dd><p>Whether the model is ready for prediction.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="compresso_recsys.models.SimpleBidirectionalTransformerTrainer.n_items">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">n_items</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#compresso_recsys.models.SimpleBidirectionalTransformerTrainer.n_items" title="Link to this definition"></a></dt>
+<dd><p>Number of scoreable candidates, or <code class="docutils literal notranslate"><span class="pre">None</span></code> before fitting.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="compresso_recsys.models.SimpleBidirectionalTransformerTrainer.trained_with_explicit_targets">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">trained_with_explicit_targets</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><a class="headerlink" href="#compresso_recsys.models.SimpleBidirectionalTransformerTrainer.trained_with_explicit_targets" title="Link to this definition"></a></dt>
+<dd><p>Whether the most recent fit used a separate target matrix.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.SimpleBidirectionalTransformerTrainer.fit">
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sequences</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">targets</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">item_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logger</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;inherit&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_progress</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;inherit&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/simple_bidirectional.html#SimpleBidirectionalTransformerTrainer.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.SimpleBidirectionalTransformerTrainer.fit" title="Link to this definition"></a></dt>
+<dd><p>Train on source histories and optional explicit target sets.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#compresso_recsys.models.SimpleBidirectionalTransformerTrainer" title="compresso_recsys.models.simple_bidirectional.SimpleBidirectionalTransformerTrainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimpleBidirectionalTransformerTrainer</span></code></a></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>sequences</strong> (<a class="reference internal" href="sequences.html#compresso_recsys.ItemSequences" title="compresso_recsys.sequences.ItemSequences"><em>ItemSequences</em></a>)</p></li>
+<li><p><strong>targets</strong> (<em>csr_matrix</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>item_ids</strong> (<em>Sequence</em><em>[</em><em>Hashable</em><em>] </em><em>| </em><em>ndarray</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>logger</strong> (<em>Any</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>show_progress</strong> (<em>bool</em><em> | </em><em>None</em><em> | </em><em>_Inherit</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.SimpleBidirectionalTransformerTrainer.predict_on_batch">
+<span class="sig-name descname"><span class="pre">predict_on_batch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exclude_seen</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">candidate_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/simple_bidirectional.html#SimpleBidirectionalTransformerTrainer.predict_on_batch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.SimpleBidirectionalTransformerTrainer.predict_on_batch" title="Link to this definition"></a></dt>
+<dd><p>Rank catalog items from the bidirectional <code class="docutils literal notranslate"><span class="pre">CLS</span></code> representation.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">SRPTensor</span></code></span></p>

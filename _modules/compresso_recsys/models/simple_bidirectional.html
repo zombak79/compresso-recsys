@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>compresso_recsys.models.simple_rnn &mdash; Compresso Recsys 0.3.3 documentation</title>
+  <title>compresso_recsys.models.simple_bidirectional &mdash; Compresso Recsys 0.3.3 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
 
@@ -374,7 +374,7 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
-      <li class="breadcrumb-item active">compresso_recsys.models.simple_rnn</li>
+      <li class="breadcrumb-item active">compresso_recsys.models.simple_bidirectional</li>
       <li class="wy-breadcrumbs-aside">
       </li>
   </ul>
@@ -383,55 +383,44 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <h1>Source code for compresso_recsys.models.simple_rnn</h1><div class="highlight"><pre>
-<span></span><span class="sd">"""A recurrent next-item recommender — the smallest honest sequential baseline.</span>
+  <h1>Source code for compresso_recsys.models.simple_bidirectional</h1><div class="highlight"><pre>
+<span></span><span class="sd">"""A small bidirectional Transformer for sequence-to-set recommendation.</span>
 
-<span class="sd">One training example per user: read the history left to right and predict the</span>
-<span class="sd">next item at every position. That is the GRU4Rec objective, and it is the</span>
-<span class="sd">cheapest thing that actually uses order, which makes it the baseline a</span>
-<span class="sd">transformer has to beat before its extra machinery has earned anything.</span>
-
-<span class="sd">The architecture is deliberately unremarkable::</span>
+<span class="sd">Unlike :mod:`simple_gpt`, which learns one next-token target at every sequence</span>
+<span class="sd">position, this model reads a complete history into a ``CLS`` representation and</span>
+<span class="sd">scores one unordered set of catalog items per row.  That makes it the sequential</span>
+<span class="sd">model that can consume the target matrix produced by temporal and asymmetric</span>
+<span class="sd">interaction splits::</span>
 
 <span class="sd">    ItemSequences</span>
-<span class="sd">      -&gt; SequenceBatcher.encode        tokens (rows, length), mask</span>
-<span class="sd">      -&gt; Embedding(vocab, dim, padding_idx=pad_id)</span>
-<span class="sd">      -&gt; GRU or LSTM                   states (rows, length, hidden)</span>
-<span class="sd">      -&gt; Linear(hidden, n_items)       one score per catalog item</span>
-<span class="sd">      -&gt; cross entropy against the history shifted one step left</span>
+<span class="sd">      -&gt; SequenceBatcher.encode                  tokens, padding mask</span>
+<span class="sd">      -&gt; [CLS] + item and position embeddings</span>
+<span class="sd">      -&gt; N x bidirectional, padding-aware blocks</span>
+<span class="sd">      -&gt; final CLS state</span>
+<span class="sd">      -&gt; Linear(d_model, n_items)</span>
+<span class="sd">      -&gt; multinomial cross-entropy against a target set</span>
 
-<span class="sd">Two details carry all the risk, and both are pushed into</span>
-<span class="sd">:class:`~compresso_recsys.models.sequence_batching.SequenceBatcher`.</span>
-
-<span class="sd">**Reading the final state.** With right padding, the last *column* is padding</span>
-<span class="sd">for every row shorter than the batch maximum, so scoring from ``states[:, -1]``</span>
-<span class="sd">would score most users from a pad embedding. Prediction goes through</span>
-<span class="sd">:meth:`~compresso_recsys.models.sequence_batching.SequenceBatcher.gather_final`,</span>
-<span class="sd">which reads each row's own last real position.</span>
-
-<span class="sd">**Truncation is not exclusion.** The batcher's ``max_length`` bounds what the</span>
-<span class="sd">encoder reads, not what the model may recommend: ``exclude_seen`` masks the whole</span>
-<span class="sd">history, including the part truncation dropped -- and, since a history may span a</span>
-<span class="sd">wider catalog than the model was fitted on, including nothing it could not have</span>
-<span class="sd">scored anyway.</span>
-
-<span class="sd">Training uses a fixed epoch budget and rebuilds the model on every ``fit`` call;</span>
-<span class="sd">early stopping and incremental training are not implemented. Tied embeddings</span>
-<span class="sd">and sampled softmax are also absent.</span>
+<span class="sd">``fit(..., targets=None)`` reconstructs the set of items in each source history.</span>
+<span class="sd">Passing a CSR target matrix instead trains the mapping from the source history to</span>
+<span class="sd">that explicit set.  The distinction is persisted because it controls prediction:</span>
+<span class="sd">source items remain eligible after explicit-target training, where a source item</span>
+<span class="sd">may legitimately also be a target.</span>
 <span class="sd">"""</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Hashable</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Sequence</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch.nn.functional</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">F</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy.sparse</span><span class="w"> </span><span class="kn">import</span> <span class="n">csr_matrix</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">nn</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">compresso</span><span class="w"> </span><span class="kn">import</span> <span class="n">SRPTensor</span>
-
 <span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys._reporting</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">_INHERIT</span><span class="p">,</span>
     <span class="n">_Inherit</span><span class="p">,</span>
@@ -444,51 +433,34 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.sequences</span><span class="w"> </span><span class="kn">import</span> <span class="n">ItemSequences</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">._schedule</span><span class="w"> </span><span class="kn">import</span> <span class="n">LRSchedule</span><span class="p">,</span> <span class="n">build_scheduler</span><span class="p">,</span> <span class="n">check_schedule</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._validation</span><span class="w"> </span><span class="kn">import</span> <span class="n">canonical_csr</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseSequentialRecommender</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.identifiers</span><span class="w"> </span><span class="kn">import</span> <span class="n">ItemVocabulary</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.sequence_batching</span><span class="w"> </span><span class="kn">import</span> <span class="n">SequenceBatcher</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.simple_gpt</span><span class="w"> </span><span class="kn">import</span> <span class="n">LayerNorm</span><span class="p">,</span> <span class="n">MLP</span><span class="p">,</span> <span class="n">TransformerConfig</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.tokenizer</span><span class="w"> </span><span class="kn">import</span> <span class="n">ItemTokenizer</span>
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"SimpleRNN"</span><span class="p">,</span> <span class="s2">"SimpleRNNConfig"</span><span class="p">,</span> <span class="s2">"SimpleRNNTrainer"</span><span class="p">]</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">"SimpleBidirectionalTransformer"</span><span class="p">,</span>
+    <span class="s2">"SimpleBidirectionalTransformerConfig"</span><span class="p">,</span>
+    <span class="s2">"SimpleBidirectionalTransformerTrainer"</span><span class="p">,</span>
+<span class="p">]</span>
 
-<span class="n">RNNType</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"gru"</span><span class="p">,</span> <span class="s2">"lstm"</span><span class="p">]</span>
 <span class="n">OptimizerName</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"NAdam"</span><span class="p">,</span> <span class="s2">"AdamW"</span><span class="p">]</span>
 
 
-<div class="viewcode-block" id="SimpleRNNConfig">
-<a class="viewcode-back" href="../../../api/models.html#compresso_recsys.models.SimpleRNNConfig">[docs]</a>
+<div class="viewcode-block" id="SimpleBidirectionalTransformerConfig">
+<a class="viewcode-back" href="../../../api/models.html#compresso_recsys.models.SimpleBidirectionalTransformerConfig">[docs]</a>
 <span class="nd">@dataclass</span>
-<span class="k">class</span><span class="w"> </span><span class="nc">SimpleRNNConfig</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Configuration for :class:`SimpleRNNTrainer`.</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">SimpleBidirectionalTransformerConfig</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Architecture and training settings for the bidirectional trainer."""</span>
 
-<span class="sd">    ``dropout`` is applied to the states before scoring, and additionally</span>
-<span class="sd">    between recurrent layers when ``num_layers &gt; 1``. A single-layer RNN has no</span>
-<span class="sd">    between-layer position to apply it, which is PyTorch's own behaviour rather</span>
-<span class="sd">    than a choice made here.</span>
-
-<span class="sd">    ``unk_dropout`` replaces that fraction of *input* positions with the</span>
-<span class="sd">    tokenizer's ``unk`` token, teaching the model to read a history containing an</span>
-<span class="sd">    item it cannot identify. It defaults to a non-zero rate because otherwise</span>
-<span class="sd">    ``unk`` is never trained at all: the training vocabulary *is* the training</span>
-<span class="sd">    window, so an out-of-catalog item cannot occur until evaluation, and its</span>
-<span class="sd">    embedding would still sit at its initialisation when a quarter of a temporal</span>
-<span class="sd">    test history turns out to need it.</span>
-
-<span class="sd">    The right rate tracks the out-of-catalog share the model will actually face,</span>
-<span class="sd">    which is a property of the split rather than of the model: near zero under</span>
-<span class="sd">    ``leave_last_out``, and far higher on a late ``temporal`` stage. It is</span>
-<span class="sd">    ignored when the tokenizer has no ``unk`` to substitute.</span>
-<span class="sd">    """</span>
-
-    <span class="n">rnn_type</span><span class="p">:</span> <span class="n">RNNType</span> <span class="o">=</span> <span class="s2">"gru"</span>
-    <span class="n">embedding_dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">128</span>
-    <span class="n">hidden_dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">256</span>
-    <span class="n">num_layers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span>
-    <span class="n">dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
-    <span class="n">unk_dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.05</span>
-    <span class="n">lr_schedule</span><span class="p">:</span> <span class="n">LRSchedule</span> <span class="o">=</span> <span class="s2">"constant"</span>
+    <span class="n">transformer</span><span class="p">:</span> <span class="n">TransformerConfig</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="n">TransformerConfig</span><span class="p">)</span>
+    <span class="n">tie_embeddings</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">lr_schedule</span><span class="p">:</span> <span class="n">LRSchedule</span> <span class="o">=</span> <span class="s2">"cosine"</span>
     <span class="n">warmup_fraction</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.05</span>
     <span class="n">min_lr_ratio</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span>
+    <span class="n">unk_dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.05</span>
     <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">256</span>
     <span class="n">epochs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span>
     <span class="n">lr</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-3</span>
@@ -497,163 +469,259 @@
     <span class="n">device</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="s2">"cpu"</span>
     <span class="n">show_progress</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="n">log_prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"SimpleRNN"</span>
+    <span class="n">log_prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"SimpleBidirectionalTransformer"</span>
     <span class="n">log_every_n_steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1000</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">_validate_log_every_n_steps</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">log_every_n_steps</span><span class="p">)</span>
-        <span class="n">check_schedule</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lr_schedule</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">warmup_fraction</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_lr_ratio</span><span class="p">)</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">rnn_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"gru"</span><span class="p">,</span> <span class="s2">"lstm"</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">"rnn_type must be 'gru' or 'lstm', got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">rnn_type</span><span class="si">!r}</span><span class="s2">"</span>
-            <span class="p">)</span>
-        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"embedding_dim"</span><span class="p">,</span> <span class="s2">"hidden_dim"</span><span class="p">,</span> <span class="s2">"num_layers"</span><span class="p">,</span> <span class="s2">"batch_size"</span><span class="p">):</span>
-            <span class="n">value</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">value</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> must be &gt;= 1, got </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"batch_size must be &gt;= 1, got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">epochs</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"epochs must be &gt;= 1, got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">epochs</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="mf">0.0</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span> <span class="o">&lt;</span> <span class="mf">1.0</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"dropout must be in [0, 1), got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="mf">0.0</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">unk_dropout</span> <span class="o">&lt;</span> <span class="mf">1.0</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">"unk_dropout must be in [0, 1), got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">unk_dropout</span><span class="si">}</span><span class="s2">"</span>
             <span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">lr</span> <span class="o">&lt;=</span> <span class="mf">0.0</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"lr must be &gt; 0, got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">lr</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span></div>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"lr must be &gt; 0, got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">lr</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="n">check_schedule</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lr_schedule</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">warmup_fraction</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_lr_ratio</span><span class="p">)</span></div>
 
 
 
-<div class="viewcode-block" id="SimpleRNN">
-<a class="viewcode-back" href="../../../api/models.html#compresso_recsys.models.SimpleRNN">[docs]</a>
-<span class="k">class</span><span class="w"> </span><span class="nc">SimpleRNN</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Embedding, recurrence, and a linear head over the catalog.</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">BidirectionalSelfAttention</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Multi-head self-attention whose real positions may read one another."""</span>
 
-<span class="sd">    The head outputs ``n_items`` scores rather than ``vocab_size``: special</span>
-<span class="sd">    tokens are never prediction targets, so giving them output columns would</span>
-<span class="sd">    train weights that can only ever be wrong.</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">TransformerConfig</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_heads</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">n_heads</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">d_model</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">d_model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">dropout</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">attn</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">d_model</span><span class="p">,</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">config</span><span class="o">.</span><span class="n">d_model</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">bias</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">proj</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">d_model</span><span class="p">,</span> <span class="n">config</span><span class="o">.</span><span class="n">d_model</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">bias</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">resid_dropout</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">dropout</span><span class="p">)</span>
 
-<span class="sd">    :meth:`forward` returns states and :meth:`score` turns states into logits,</span>
-<span class="sd">    kept separate because prediction needs logits at one position per row.</span>
-<span class="sd">    Scoring first and gathering after would materialise</span>
-<span class="sd">    ``rows x length x n_items``, which on a real catalog is where the memory</span>
-<span class="sd">    goes.</span>
-<span class="sd">    """</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">mask</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Attend to every non-padding key in the row.</span>
+
+<span class="sd">        ``mask`` is true for ``CLS`` and real history positions.  Padding</span>
+<span class="sd">        queries may compute disposable states, but padding is never visible as a</span>
+<span class="sd">        key to a real position at any layer.</span>
+<span class="sd">        """</span>
+        <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"x must be (rows, length, dim), got </span><span class="si">{</span><span class="nb">tuple</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">mask</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">2</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"mask shape </span><span class="si">{</span><span class="nb">tuple</span><span class="p">(</span><span class="n">mask</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span><span class="si">}</span><span class="s2"> must match x rows and length "</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">tuple</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">2</span><span class="p">])</span><span class="si">}</span><span class="s2">"</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">mask</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">"mask must have boolean dtype"</span><span class="p">)</span>
+
+        <span class="n">rows</span><span class="p">,</span> <span class="n">length</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">attn</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">d_model</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">length</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_heads</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">d_model</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_heads</span><span class="p">)</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">attended</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">scaled_dot_product_attention</span><span class="p">(</span>
+            <span class="n">query</span><span class="p">,</span>
+            <span class="n">key</span><span class="p">,</span>
+            <span class="n">value</span><span class="p">,</span>
+            <span class="n">attn_mask</span><span class="o">=</span><span class="n">mask</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:],</span>
+            <span class="n">dropout_p</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dropout</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span> <span class="k">else</span> <span class="mf">0.0</span><span class="p">,</span>
+            <span class="n">is_causal</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">attended</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">attended</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">length</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">d_model</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">resid_dropout</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">proj</span><span class="p">(</span><span class="n">attended</span><span class="p">))</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">BidirectionalBlock</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Pre-normalized bidirectional attention followed by an MLP."""</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">TransformerConfig</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ln_1</span> <span class="o">=</span> <span class="n">LayerNorm</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">d_model</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">bias</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">attn</span> <span class="o">=</span> <span class="n">BidirectionalSelfAttention</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ln_2</span> <span class="o">=</span> <span class="n">LayerNorm</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">d_model</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">bias</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mlp</span> <span class="o">=</span> <span class="n">MLP</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">mask</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">attn</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ln_1</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">mask</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">mlp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ln_2</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">x</span>
+
+
+<div class="viewcode-block" id="SimpleBidirectionalTransformer">
+<a class="viewcode-back" href="../../../api/models.html#compresso_recsys.models.SimpleBidirectionalTransformer">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">SimpleBidirectionalTransformer</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Item embeddings, bidirectional blocks, and a catalog-scoring head."""</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
         <span class="n">vocab_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">n_items</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">embedding_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">hidden_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">num_layers</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">dropout</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-        <span class="n">rnn_type</span><span class="p">:</span> <span class="n">RNNType</span><span class="p">,</span>
+        <span class="n">max_positions</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">pad_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">config</span><span class="p">:</span> <span class="n">TransformerConfig</span><span class="p">,</span>
+        <span class="n">tie_embeddings</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">embedding</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span>
-            <span class="n">vocab_size</span><span class="p">,</span> <span class="n">embedding_dim</span><span class="p">,</span> <span class="n">padding_idx</span><span class="o">=</span><span class="n">pad_id</span>
+        <span class="k">if</span> <span class="n">max_positions</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">"max_positions must be &gt;= 2: one slot for CLS and at least one "</span>
+                <span class="sa">f</span><span class="s2">"for an item, got </span><span class="si">{</span><span class="n">max_positions</span><span class="si">}</span><span class="s2">"</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">n_items</span> <span class="o">&gt;</span> <span class="n">vocab_size</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"n_items (</span><span class="si">{</span><span class="n">n_items</span><span class="si">}</span><span class="s2">) cannot exceed vocab_size (</span><span class="si">{</span><span class="n">vocab_size</span><span class="si">}</span><span class="s2">)"</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">config</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tie_embeddings</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">tie_embeddings</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">item_offset</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">vocab_size</span><span class="p">)</span> <span class="o">-</span> <span class="nb">int</span><span class="p">(</span><span class="n">n_items</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_positions</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">max_positions</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pad_id</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">pad_id</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">embedding</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">vocab_size</span><span class="p">,</span> <span class="n">config</span><span class="o">.</span><span class="n">d_model</span><span class="p">,</span> <span class="n">padding_idx</span><span class="o">=</span><span class="n">pad_id</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">position</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="n">max_positions</span><span class="p">,</span> <span class="n">config</span><span class="o">.</span><span class="n">d_model</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cls_token</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">config</span><span class="o">.</span><span class="n">d_model</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">embed_dropout</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">dropout</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">blocks</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">(</span>
+            <span class="n">BidirectionalBlock</span><span class="p">(</span><span class="n">config</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">n_layers</span><span class="p">)</span>
         <span class="p">)</span>
-        <span class="n">recurrent</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">GRU</span> <span class="k">if</span> <span class="n">rnn_type</span> <span class="o">==</span> <span class="s2">"gru"</span> <span class="k">else</span> <span class="n">nn</span><span class="o">.</span><span class="n">LSTM</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">rnn</span> <span class="o">=</span> <span class="n">recurrent</span><span class="p">(</span>
-            <span class="n">embedding_dim</span><span class="p">,</span>
-            <span class="n">hidden_dim</span><span class="p">,</span>
-            <span class="n">num_layers</span><span class="o">=</span><span class="n">num_layers</span><span class="p">,</span>
-            <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-            <span class="c1"># PyTorch applies this between layers only, so a single-layer RNN</span>
-            <span class="c1"># would silently ignore it. self.dropout below covers both cases.</span>
-            <span class="n">dropout</span><span class="o">=</span><span class="n">dropout</span> <span class="k">if</span> <span class="n">num_layers</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ln_f</span> <span class="o">=</span> <span class="n">LayerNorm</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">d_model</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">bias</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">head_dropout</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">dropout</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tie_embeddings</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">head</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">head_bias</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_items</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">head</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">d_model</span><span class="p">,</span> <span class="n">n_items</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">head_bias</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_init_weights</span><span class="p">)</span>
+        <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">normal_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cls_token</span><span class="p">,</span> <span class="n">mean</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">std</span><span class="o">=</span><span class="mf">0.02</span><span class="p">)</span>
+        <span class="n">residual_std</span> <span class="o">=</span> <span class="mf">0.02</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">config</span><span class="o">.</span><span class="n">n_layers</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">blocks</span><span class="p">:</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">normal_</span><span class="p">(</span><span class="n">block</span><span class="o">.</span><span class="n">attn</span><span class="o">.</span><span class="n">proj</span><span class="o">.</span><span class="n">weight</span><span class="p">,</span> <span class="n">mean</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">std</span><span class="o">=</span><span class="n">residual_std</span><span class="p">)</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">normal_</span><span class="p">(</span><span class="n">block</span><span class="o">.</span><span class="n">mlp</span><span class="o">.</span><span class="n">down</span><span class="o">.</span><span class="n">weight</span><span class="p">,</span> <span class="n">mean</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">std</span><span class="o">=</span><span class="n">residual_std</span><span class="p">)</span>
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">embedding</span><span class="o">.</span><span class="n">weight</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">pad_id</span><span class="p">]</span><span class="o">.</span><span class="n">zero_</span><span class="p">()</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_init_weights</span><span class="p">(</span><span class="n">module</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">):</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">normal_</span><span class="p">(</span><span class="n">module</span><span class="o">.</span><span class="n">weight</span><span class="p">,</span> <span class="n">mean</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">std</span><span class="o">=</span><span class="mf">0.02</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">module</span><span class="o">.</span><span class="n">bias</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">zeros_</span><span class="p">(</span><span class="n">module</span><span class="o">.</span><span class="n">bias</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">):</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">normal_</span><span class="p">(</span><span class="n">module</span><span class="o">.</span><span class="n">weight</span><span class="p">,</span> <span class="n">mean</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">std</span><span class="o">=</span><span class="mf">0.02</span><span class="p">)</span>
+
+<div class="viewcode-block" id="SimpleBidirectionalTransformer.forward">
+<a class="viewcode-back" href="../../../api/models.html#compresso_recsys.models.SimpleBidirectionalTransformer.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tokens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">mask</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Return states for ``CLS`` and each token."""</span>
+        <span class="k">if</span> <span class="n">tokens</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"tokens must be (rows, length), got </span><span class="si">{</span><span class="nb">tuple</span><span class="p">(</span><span class="n">tokens</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">mask</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="n">tokens</span><span class="o">.</span><span class="n">shape</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"mask shape </span><span class="si">{</span><span class="nb">tuple</span><span class="p">(</span><span class="n">mask</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span><span class="si">}</span><span class="s2"> must match tokens shape "</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">tuple</span><span class="p">(</span><span class="n">tokens</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">mask</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">"mask must have boolean dtype"</span><span class="p">)</span>
+        <span class="n">rows</span><span class="p">,</span> <span class="n">length</span> <span class="o">=</span> <span class="n">tokens</span><span class="o">.</span><span class="n">shape</span>
+        <span class="k">if</span> <span class="n">length</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_positions</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"a history of </span><span class="si">{</span><span class="n">length</span><span class="si">}</span><span class="s2"> items needs </span><span class="si">{</span><span class="n">length</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2"> positions "</span>
+                <span class="sa">f</span><span class="s2">"including CLS, but this model was built for </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">max_positions</span><span class="si">}</span><span class="s2">"</span>
+            <span class="p">)</span>
+
+        <span class="n">prefix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cls_token</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">hidden</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">prefix</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">embedding</span><span class="p">(</span><span class="n">tokens</span><span class="p">)],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">positions</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">length</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">tokens</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">hidden</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">embed_dropout</span><span class="p">(</span><span class="n">hidden</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">position</span><span class="p">(</span><span class="n">positions</span><span class="p">))</span>
+        <span class="n">full_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">rows</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">mask</span><span class="o">.</span><span class="n">device</span><span class="p">),</span> <span class="n">mask</span><span class="p">],</span>
+            <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">dropout</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">head</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden_dim</span><span class="p">,</span> <span class="n">n_items</span><span class="p">)</span>
-
-<div class="viewcode-block" id="SimpleRNN.forward">
-<a class="viewcode-back" href="../../../api/models.html#compresso_recsys.models.SimpleRNN.forward">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tokens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Hidden states for every position, shape ``(rows, length, hidden)``."""</span>
-        <span class="n">states</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rnn</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">embedding</span><span class="p">(</span><span class="n">tokens</span><span class="p">))</span>
-        <span class="k">return</span> <span class="n">states</span></div>
+        <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">blocks</span><span class="p">:</span>
+            <span class="n">hidden</span> <span class="o">=</span> <span class="n">block</span><span class="p">(</span><span class="n">hidden</span><span class="p">,</span> <span class="n">full_mask</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ln_f</span><span class="p">(</span><span class="n">hidden</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="SimpleRNN.score">
-<a class="viewcode-back" href="../../../api/models.html#compresso_recsys.models.SimpleRNN.score">[docs]</a>
+<div class="viewcode-block" id="SimpleBidirectionalTransformer.score">
+<a class="viewcode-back" href="../../../api/models.html#compresso_recsys.models.SimpleBidirectionalTransformer.score">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">score</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">states</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Catalog logits for the given states, one score per item."""</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span><span class="n">states</span><span class="p">))</span></div>
+<span class="w">        </span><span class="sd">"""Turn one or more hidden states into catalog logits."""</span>
+        <span class="n">hidden</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">head_dropout</span><span class="p">(</span><span class="n">states</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">head</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="n">hidden</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">F</span><span class="o">.</span><span class="n">linear</span><span class="p">(</span>
+            <span class="n">hidden</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">embedding</span><span class="o">.</span><span class="n">weight</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">item_offset</span> <span class="p">:],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">head_bias</span><span class="p">,</span>
+        <span class="p">)</span></div>
 </div>
 
 
 
-<div class="viewcode-block" id="SimpleRNNTrainer">
-<a class="viewcode-back" href="../../../api/models.html#compresso_recsys.models.SimpleRNNTrainer">[docs]</a>
-<span class="k">class</span><span class="w"> </span><span class="nc">SimpleRNNTrainer</span><span class="p">(</span><span class="n">BaseSequentialRecommender</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Trains and serves :class:`SimpleRNN`.</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_source_target_matrix</span><span class="p">(</span><span class="n">sequences</span><span class="p">:</span> <span class="n">ItemSequences</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">csr_matrix</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Binary source membership, preserving every input row."""</span>
+    <span class="n">counts</span> <span class="o">=</span> <span class="n">sequences</span><span class="o">.</span><span class="n">row_lengths</span>
+    <span class="n">rows</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">sequences</span><span class="o">.</span><span class="n">n_rows</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">),</span> <span class="n">counts</span><span class="p">)</span>
+    <span class="n">matrix</span> <span class="o">=</span> <span class="n">csr_matrix</span><span class="p">(</span>
+        <span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">sequences</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+            <span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">sequences</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)),</span>
+        <span class="p">),</span>
+        <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">sequences</span><span class="o">.</span><span class="n">n_rows</span><span class="p">,</span> <span class="n">sequences</span><span class="o">.</span><span class="n">n_items</span><span class="p">),</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">matrix</span><span class="o">.</span><span class="n">sum_duplicates</span><span class="p">()</span>
+    <span class="n">matrix</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">fill</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)</span>
+    <span class="n">matrix</span><span class="o">.</span><span class="n">sort_indices</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">matrix</span>
 
-<span class="sd">    Follows the package's existing shape, where ``fit`` returns the trainer and</span>
-<span class="sd">    the trainer answers the prediction contract::</span>
 
-<span class="sd">        model = SimpleRNNTrainer(SimpleRNNConfig(rnn_type="gru")).fit(</span>
-<span class="sd">            split["x_train_sequences"]</span>
-<span class="sd">        )</span>
-<span class="sd">        result = evaluate_recommender(</span>
-<span class="sd">            model, source=split["test_source_sequences"],</span>
-<span class="sd">            targets=split["test_target_matrix"], metrics=[NDCG(20)],</span>
-<span class="sd">        )</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_binary_targets</span><span class="p">(</span><span class="n">targets</span><span class="p">:</span> <span class="n">csr_matrix</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">csr_matrix</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Canonical binary membership without mutating caller-owned storage."""</span>
+    <span class="n">targets</span> <span class="o">=</span> <span class="n">canonical_csr</span><span class="p">(</span><span class="n">targets</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"targets"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">targets</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">size</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">targets</span><span class="o">.</span><span class="n">data</span> <span class="o">==</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="n">targets</span> <span class="o">=</span> <span class="n">targets</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">targets</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">fill</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">targets</span>
 
-<span class="sd">    The encoder is a *parameter*, not something ``fit`` invents. Passing one is</span>
-<span class="sd">    how you change the context window or the vocabulary -- including giving it</span>
-<span class="sd">    an ``unk`` slot so a later split stage's unseen items become a token rather</span>
-<span class="sd">    than an error::</span>
 
-<span class="sd">        batcher = SequenceBatcher(</span>
-<span class="sd">            ItemTokenizer(n_items, item_ids=split["train_item_ids"]),</span>
-<span class="sd">            max_length=50,</span>
-<span class="sd">        )</span>
-<span class="sd">        model = SimpleRNNTrainer(SimpleRNNConfig(), batcher).fit(sequences)</span>
+<div class="viewcode-block" id="SimpleBidirectionalTransformerTrainer">
+<a class="viewcode-back" href="../../../api/models.html#compresso_recsys.models.SimpleBidirectionalTransformerTrainer">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">SimpleBidirectionalTransformerTrainer</span><span class="p">(</span><span class="n">BaseSequentialRecommender</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Train a bidirectional sequence encoder against unordered item sets."""</span>
 
-<span class="sd">    Without one, ``fit`` builds a default over the training catalog with</span>
-<span class="sd">    :attr:`DEFAULT_MAX_LENGTH` and right padding.</span>
-<span class="sd">    A supplied batcher must also use right padding: leading padding would advance</span>
-<span class="sd">    the recurrent state and turn the first real item into a target of padding.</span>
-
-<span class="sd">    Users retaining fewer than two interactions after truncation contribute no</span>
-<span class="sd">    training example, since a next-item target needs a preceding item. ``fit``</span>
-<span class="sd">    refuses a dataset where that leaves no usable history. Short histories are</span>
-<span class="sd">    still predictable: a history the model can read yields its state, and an</span>
-<span class="sd">    empty history yields the state after a single pad, which is the same for</span>
-<span class="sd">    every empty row and therefore a learned popularity-like prior.</span>
-
-<span class="sd">    :attr:`history` records one entry per epoch, numbered from one as ELSA's is,</span>
-<span class="sd">    carrying the mean loss and the number of positions it was averaged over. That</span>
-<span class="sd">    count is worth reading rather than assuming: it is</span>
-<span class="sd">    ``sum(max(min(length, batcher.max_length) - 1, 0))``, so it shows what</span>
-<span class="sd">    truncation costs. On MovieLens-1M at the default window of 200, 697 of 6,033</span>
-<span class="sd">    users exceed it and 80k of 543k training positions are dropped.</span>
-<span class="sd">    """</span>
-
-    <span class="c1">#: Context window used when ``fit`` has to build its own batcher.</span>
     <span class="n">DEFAULT_MAX_LENGTH</span> <span class="o">=</span> <span class="mi">200</span>
-    <span class="n">checkpoint_type</span> <span class="o">=</span> <span class="s2">"simple_rnn_trainer"</span>
+    <span class="n">checkpoint_type</span> <span class="o">=</span> <span class="s2">"simple_bidirectional_transformer_trainer"</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">config</span><span class="p">:</span> <span class="n">SimpleRNNConfig</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">config</span><span class="p">:</span> <span class="n">SimpleBidirectionalTransformerConfig</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">batcher</span><span class="p">:</span> <span class="n">SequenceBatcher</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">logger</span><span class="p">:</span> <span class="n">Any</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span> <span class="o">=</span> <span class="n">config</span> <span class="ow">or</span> <span class="n">SimpleRNNConfig</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span> <span class="o">=</span> <span class="n">config</span> <span class="ow">or</span> <span class="n">SimpleBidirectionalTransformerConfig</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logger</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">history</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">:</span> <span class="n">SimpleRNN</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">:</span> <span class="n">SimpleBidirectionalTransformer</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Optimizer</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">batcher</span> <span class="o">=</span> <span class="n">batcher</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_owns_batcher</span> <span class="o">=</span> <span class="n">batcher</span> <span class="ow">is</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_n_items</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-
-    <span class="c1"># -- contract -----------------------------------------------------------</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_trained_with_explicit_targets</span> <span class="o">=</span> <span class="kc">False</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">is_fitted</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
@@ -662,6 +730,11 @@
     <span class="nd">@property</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">n_items</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_items</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">trained_with_explicit_targets</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Whether the most recent fit used a separate target matrix."""</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trained_with_explicit_targets</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_reporter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">logger</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">show_progress</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_Reporter</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">_resolve_reporter</span><span class="p">(</span>
@@ -673,38 +746,48 @@
             <span class="n">log_every_n_steps</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">log_every_n_steps</span><span class="p">,</span>
         <span class="p">)</span>
 
-    <span class="c1"># -- training -----------------------------------------------------------</span>
-
-<div class="viewcode-block" id="SimpleRNNTrainer.fit">
-<a class="viewcode-back" href="../../../api/models.html#compresso_recsys.models.SimpleRNNTrainer.fit">[docs]</a>
+<div class="viewcode-block" id="SimpleBidirectionalTransformerTrainer.fit">
+<a class="viewcode-back" href="../../../api/models.html#compresso_recsys.models.SimpleBidirectionalTransformerTrainer.fit">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">fit</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">sequences</span><span class="p">:</span> <span class="n">ItemSequences</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
+        <span class="n">targets</span><span class="p">:</span> <span class="n">csr_matrix</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">item_ids</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Hashable</span><span class="p">]</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">logger</span><span class="p">:</span> <span class="n">Any</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_INHERIT</span><span class="p">,</span>
         <span class="n">show_progress</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">|</span> <span class="n">_Inherit</span> <span class="o">=</span> <span class="n">_INHERIT</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SimpleRNNTrainer</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Train on chronological histories, one example per row."""</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SimpleBidirectionalTransformerTrainer</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Train on source histories and optional explicit target sets."""</span>
         <span class="n">reporter</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_reporter</span><span class="p">(</span><span class="n">logger</span><span class="p">,</span> <span class="n">show_progress</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sequences</span><span class="p">,</span> <span class="n">ItemSequences</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
-                <span class="s2">"SimpleRNNTrainer trains on ItemSequences, got "</span>
-                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">sequences</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">"</span>
+                <span class="s2">"SimpleBidirectionalTransformerTrainer trains on ItemSequences, "</span>
+                <span class="sa">f</span><span class="s2">"got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">sequences</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">"</span>
             <span class="p">)</span>
         <span class="k">if</span> <span class="n">sequences</span><span class="o">.</span><span class="n">n_rows</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"cannot train on zero sequences"</span><span class="p">)</span>
 
+        <span class="n">explicit_targets</span> <span class="o">=</span> <span class="n">targets</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">targets</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">training_targets</span> <span class="o">=</span> <span class="n">_source_target_matrix</span><span class="p">(</span><span class="n">sequences</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">training_targets</span> <span class="o">=</span> <span class="n">_binary_targets</span><span class="p">(</span><span class="n">targets</span><span class="p">)</span>
+            <span class="n">expected_shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">sequences</span><span class="o">.</span><span class="n">n_rows</span><span class="p">,</span> <span class="n">sequences</span><span class="o">.</span><span class="n">n_items</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">training_targets</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="n">expected_shape</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"targets shape </span><span class="si">{</span><span class="n">training_targets</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2"> must match sequences "</span>
+                    <span class="sa">f</span><span class="s2">"shape </span><span class="si">{</span><span class="n">expected_shape</span><span class="si">}</span><span class="s2">"</span>
+                <span class="p">)</span>
+        <span class="k">if</span> <span class="n">training_targets</span><span class="o">.</span><span class="n">nnz</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"training targets contain no positive items"</span><span class="p">)</span>
+
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_owns_batcher</span><span class="p">:</span>
-            <span class="c1"># Right padding: an RNN reads to each row's own final position, so</span>
-            <span class="c1"># trailing padding costs nothing and the shift below stays simple.</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">batcher</span> <span class="o">=</span> <span class="n">SequenceBatcher</span><span class="p">(</span>
                 <span class="n">ItemTokenizer</span><span class="p">(</span><span class="n">sequences</span><span class="o">.</span><span class="n">n_items</span><span class="p">),</span>
                 <span class="n">max_length</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">DEFAULT_MAX_LENGTH</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">batcher</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># pragma: no cover - defensive against mutation</span>
             <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">"trainer batcher is unavailable"</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_check_batcher</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">batcher</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">batcher</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">n_items</span> <span class="o">!=</span> <span class="n">sequences</span><span class="o">.</span><span class="n">n_items</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="s2">"batcher tokenizer has "</span>
@@ -715,61 +798,44 @@
         <span class="k">if</span> <span class="n">item_ids</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">tokenizer_ids</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">supplied</span> <span class="o">=</span> <span class="n">ItemVocabulary</span><span class="o">.</span><span class="n">from_ids</span><span class="p">(</span><span class="n">item_ids</span><span class="p">)</span><span class="o">.</span><span class="n">item_ids</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">array_equal</span><span class="p">(</span><span class="n">supplied</span><span class="p">,</span> <span class="n">tokenizer_ids</span><span class="p">):</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="s2">"item_ids must match the batcher tokenizer item IDs"</span>
-                <span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"item_ids must match the batcher tokenizer item IDs"</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_set_item_ids</span><span class="p">(</span>
             <span class="n">tokenizer_ids</span> <span class="k">if</span> <span class="n">item_ids</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">item_ids</span><span class="p">,</span>
             <span class="n">n_items</span><span class="o">=</span><span class="n">sequences</span><span class="o">.</span><span class="n">n_items</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="n">usable</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">batcher</span><span class="o">.</span><span class="n">truncated_lengths</span><span class="p">(</span><span class="n">sequences</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
-        <span class="k">if</span> <span class="n">usable</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">"no history retains two or more interactions after truncation, "</span>
-                <span class="s2">"so there is no next-item example to learn from"</span>
-            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_check_batcher</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">batcher</span><span class="p">)</span>
 
         <span class="n">torch</span><span class="o">.</span><span class="n">manual_seed</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">seed</span><span class="p">))</span>
         <span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">seed</span><span class="p">))</span>
-
-        <span class="n">tokenizer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">batcher</span><span class="o">.</span><span class="n">tokenizer</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_n_items</span> <span class="o">=</span> <span class="n">tokenizer</span><span class="o">.</span><span class="n">n_items</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_n_items</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">batcher</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">n_items</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_trained_with_explicit_targets</span> <span class="o">=</span> <span class="n">explicit_targets</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_model</span><span class="p">()</span>
-
-        <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">optimizer</span><span class="p">)(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span>
-            <span class="n">lr</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">lr</span><span class="p">,</span>
-            <span class="n">weight_decay</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">weight_decay</span><span class="p">,</span>
-        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_build_checkpoint_optimizer</span><span class="p">()</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
         <span class="n">optimizer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span>
-        <span class="n">objective</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">CrossEntropyLoss</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">history</span> <span class="o">=</span> <span class="p">[]</span>
 
         <span class="n">n_rows</span> <span class="o">=</span> <span class="n">sequences</span><span class="o">.</span><span class="n">n_rows</span>
         <span class="n">batch_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">batch_size</span>
         <span class="n">starts</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">n_rows</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">)</span>
-        <span class="n">scheduler</span> <span class="o">=</span> <span class="n">build_scheduler</span><span class="p">(</span>
-            <span class="n">optimizer</span><span class="p">,</span>
-            <span class="n">schedule</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">lr_schedule</span><span class="p">,</span>
-            <span class="n">total_steps</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">starts</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">epochs</span><span class="p">,</span>
-            <span class="n">warmup_fraction</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">warmup_fraction</span><span class="p">,</span>
-            <span class="n">min_lr_ratio</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">min_lr_ratio</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="c1"># Two bars, as ELSA draws them: epochs outside, batches inside. The</span>
-        <span class="c1"># inner bar is created once and rewound per epoch rather than a finished</span>
-        <span class="c1"># one being left behind for each.</span>
+        <span class="n">scheduler</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_scheduler</span><span class="p">(</span><span class="n">optimizer</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">starts</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">epochs</span><span class="p">)</span>
+        <span class="n">target_mode</span> <span class="o">=</span> <span class="s2">"explicit"</span> <span class="k">if</span> <span class="n">explicit_targets</span> <span class="k">else</span> <span class="s2">"source reconstruction"</span>
         <span class="n">fit_started</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">()</span>
         <span class="n">reporter</span><span class="o">.</span><span class="n">log</span><span class="p">(</span>
             <span class="s2">"fit started: "</span>
-            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">n_rows</span><span class="si">}</span><span class="s2"> sequences | </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_n_items</span><span class="si">}</span><span class="s2"> items | </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">starts</span><span class="p">)</span><span class="si">}</span><span class="s2"> batches of "</span>
-            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">batch_size</span><span class="si">}</span><span class="s2"> | </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">epochs</span><span class="si">}</span><span class="s2"> epochs | device </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="si">}</span><span class="s2">"</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">n_rows</span><span class="si">}</span><span class="s2"> sequences | </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_n_items</span><span class="si">}</span><span class="s2"> items | "</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">training_targets</span><span class="o">.</span><span class="n">nnz</span><span class="si">}</span><span class="s2"> target memberships (</span><span class="si">{</span><span class="n">target_mode</span><span class="si">}</span><span class="s2">) | "</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">starts</span><span class="p">)</span><span class="si">}</span><span class="s2"> batches of </span><span class="si">{</span><span class="n">batch_size</span><span class="si">}</span><span class="s2"> | </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">epochs</span><span class="si">}</span><span class="s2"> epochs | "</span>
+            <span class="sa">f</span><span class="s2">"device </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="si">}</span><span class="s2">"</span>
         <span class="p">)</span>
         <span class="n">epoch_iter</span> <span class="o">=</span> <span class="n">reporter</span><span class="o">.</span><span class="n">wrap</span><span class="p">(</span>
             <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">epochs</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span>
             <span class="n">total</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">epochs</span><span class="p">,</span>
-            <span class="n">desc</span><span class="o">=</span><span class="s2">"SimpleRNN fit"</span><span class="p">,</span>
+            <span class="n">desc</span><span class="o">=</span><span class="s2">"SimpleBidirectionalTransformer fit"</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="n">batch_bar</span> <span class="o">=</span> <span class="n">reporter</span><span class="o">.</span><span class="n">bar</span><span class="p">(</span><span class="n">total</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">starts</span><span class="p">),</span> <span class="n">desc</span><span class="o">=</span><span class="s2">"SimpleRNN epoch 1"</span><span class="p">)</span>
+        <span class="n">batch_bar</span> <span class="o">=</span> <span class="n">reporter</span><span class="o">.</span><span class="n">bar</span><span class="p">(</span>
+            <span class="n">total</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">starts</span><span class="p">),</span> <span class="n">desc</span><span class="o">=</span><span class="s2">"SimpleBidirectionalTransformer epoch 1"</span>
+        <span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="n">epoch_iter</span><span class="p">:</span>
                 <span class="n">epoch_started</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">()</span>
@@ -777,24 +843,26 @@
                 <span class="n">order</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">permutation</span><span class="p">(</span><span class="n">n_rows</span><span class="p">)</span>
                 <span class="k">if</span> <span class="n">batch_bar</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                     <span class="n">batch_bar</span><span class="o">.</span><span class="n">reset</span><span class="p">(</span><span class="n">total</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">starts</span><span class="p">))</span>
-                    <span class="n">batch_bar</span><span class="o">.</span><span class="n">set_description</span><span class="p">(</span><span class="sa">f</span><span class="s2">"SimpleRNN epoch </span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-                <span class="n">loss_sum</span><span class="p">,</span> <span class="n">positions</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mi">0</span>
+                    <span class="n">batch_bar</span><span class="o">.</span><span class="n">set_description</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">"SimpleBidirectionalTransformer epoch </span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">"</span>
+                    <span class="p">)</span>
+                <span class="n">loss_sum</span><span class="p">,</span> <span class="n">target_rows</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mi">0</span>
                 <span class="n">last_training_lr</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">optimizer</span><span class="o">.</span><span class="n">param_groups</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">"lr"</span><span class="p">])</span>
                 <span class="k">for</span> <span class="n">step_index</span><span class="p">,</span> <span class="n">start</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">starts</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
-                    <span class="n">batch</span> <span class="o">=</span> <span class="n">sequences</span><span class="o">.</span><span class="n">select_rows</span><span class="p">(</span><span class="n">order</span><span class="p">[</span><span class="n">start</span> <span class="p">:</span> <span class="n">start</span> <span class="o">+</span> <span class="n">batch_size</span><span class="p">])</span>
+                    <span class="n">selected</span> <span class="o">=</span> <span class="n">order</span><span class="p">[</span><span class="n">start</span> <span class="p">:</span> <span class="n">start</span> <span class="o">+</span> <span class="n">batch_size</span><span class="p">]</span>
                     <span class="n">batch_lr</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">optimizer</span><span class="o">.</span><span class="n">param_groups</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">"lr"</span><span class="p">])</span>
-                    <span class="n">step</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_train_step</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">objective</span><span class="p">)</span>
+                    <span class="n">step</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_train_step</span><span class="p">(</span>
+                        <span class="n">sequences</span><span class="o">.</span><span class="n">select_rows</span><span class="p">(</span><span class="n">selected</span><span class="p">),</span>
+                        <span class="n">training_targets</span><span class="p">[</span><span class="n">selected</span><span class="p">],</span>
+                    <span class="p">)</span>
                     <span class="k">if</span> <span class="n">step</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                         <span class="n">last_training_lr</span> <span class="o">=</span> <span class="n">batch_lr</span>
                     <span class="k">if</span> <span class="n">scheduler</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                        <span class="c1"># Advanced even on a batch the objective declined, so the</span>
-                        <span class="c1"># curve is the configured shape over the run rather than</span>
-                        <span class="c1"># one truncated by how many batches carried targets.</span>
                         <span class="n">scheduler</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
                     <span class="k">if</span> <span class="n">step</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                        <span class="n">batch_loss</span><span class="p">,</span> <span class="n">batch_positions</span> <span class="o">=</span> <span class="n">step</span>
-                        <span class="n">loss_sum</span> <span class="o">+=</span> <span class="n">batch_loss</span> <span class="o">*</span> <span class="n">batch_positions</span>
-                        <span class="n">positions</span> <span class="o">+=</span> <span class="n">batch_positions</span>
+                        <span class="n">batch_loss</span><span class="p">,</span> <span class="n">batch_target_rows</span> <span class="o">=</span> <span class="n">step</span>
+                        <span class="n">loss_sum</span> <span class="o">+=</span> <span class="n">batch_loss</span> <span class="o">*</span> <span class="n">batch_target_rows</span>
+                        <span class="n">target_rows</span> <span class="o">+=</span> <span class="n">batch_target_rows</span>
                     <span class="k">if</span> <span class="n">batch_bar</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                         <span class="n">batch_bar</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
                     <span class="n">log_steps</span> <span class="o">=</span> <span class="n">reporter</span><span class="o">.</span><span class="n">log_every_n_steps</span>
@@ -807,28 +875,24 @@
                             <span class="n">epoch_started</span><span class="p">,</span>
                             <span class="p">{</span>
                                 <span class="s2">"loss"</span><span class="p">:</span> <span class="p">(</span>
-                                    <span class="n">loss_sum</span> <span class="o">/</span> <span class="n">positions</span>
-                                    <span class="k">if</span> <span class="n">positions</span>
+                                    <span class="n">loss_sum</span> <span class="o">/</span> <span class="n">target_rows</span>
+                                    <span class="k">if</span> <span class="n">target_rows</span>
                                     <span class="k">else</span> <span class="nb">float</span><span class="p">(</span><span class="s2">"nan"</span><span class="p">)</span>
                                 <span class="p">)</span>
                             <span class="p">},</span>
                         <span class="p">)</span>
-                <span class="n">mean_loss</span> <span class="o">=</span> <span class="n">loss_sum</span> <span class="o">/</span> <span class="n">positions</span> <span class="k">if</span> <span class="n">positions</span> <span class="k">else</span> <span class="nb">float</span><span class="p">(</span><span class="s2">"nan"</span><span class="p">)</span>
+                <span class="n">mean_loss</span> <span class="o">=</span> <span class="n">loss_sum</span> <span class="o">/</span> <span class="n">target_rows</span> <span class="k">if</span> <span class="n">target_rows</span> <span class="k">else</span> <span class="nb">float</span><span class="p">(</span><span class="s2">"nan"</span><span class="p">)</span>
                 <span class="n">record</span> <span class="o">=</span> <span class="p">{</span>
                     <span class="s2">"epoch"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">epoch</span><span class="p">),</span>
                     <span class="s2">"loss"</span><span class="p">:</span> <span class="n">mean_loss</span><span class="p">,</span>
-                    <span class="s2">"positions"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">positions</span><span class="p">),</span>
+                    <span class="s2">"target_rows"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">target_rows</span><span class="p">),</span>
                     <span class="s2">"lr"</span><span class="p">:</span> <span class="n">last_training_lr</span><span class="p">,</span>
                 <span class="p">}</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">history</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
                 <span class="n">reporter</span><span class="o">.</span><span class="n">epoch</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">"epoch </span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">epochs</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
-                    <span class="n">record</span><span class="p">,</span>
-                    <span class="n">epoch_started</span><span class="p">,</span>
+                    <span class="sa">f</span><span class="s2">"epoch </span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">epochs</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="n">record</span><span class="p">,</span> <span class="n">epoch_started</span>
                 <span class="p">)</span>
                 <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">epoch_iter</span><span class="p">,</span> <span class="s2">"set_postfix"</span><span class="p">):</span>
-                    <span class="c1"># Loss only: positions is fixed by the data and the context</span>
-                    <span class="c1"># window, so it belongs in history rather than on a live bar.</span>
                     <span class="n">epoch_iter</span><span class="o">.</span><span class="n">set_postfix</span><span class="p">({</span><span class="s2">"loss"</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">mean_loss</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">"</span><span class="p">})</span>
         <span class="k">finally</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">batch_bar</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -843,150 +907,71 @@
         <span class="k">return</span> <span class="bp">self</span></div>
 
 
-    <span class="nd">@staticmethod</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">_check_batcher</span><span class="p">(</span><span class="n">batcher</span><span class="p">:</span> <span class="n">SequenceBatcher</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Refuse a batcher whose settings this architecture cannot honour."""</span>
-        <span class="k">if</span> <span class="n">batcher</span><span class="o">.</span><span class="n">padding</span> <span class="o">!=</span> <span class="s2">"right"</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">"SimpleRNN requires right padding: leading padding changes the "</span>
-                <span class="s2">"recurrent state and next-item target alignment"</span>
-            <span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_build_scheduler</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Optimizer</span><span class="p">,</span> <span class="n">total_steps</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">lr_scheduler</span><span class="o">.</span><span class="n">LRScheduler</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">build_scheduler</span><span class="p">(</span>
+            <span class="n">optimizer</span><span class="p">,</span>
+            <span class="n">schedule</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">lr_schedule</span><span class="p">,</span>
+            <span class="n">total_steps</span><span class="o">=</span><span class="n">total_steps</span><span class="p">,</span>
+            <span class="n">warmup_fraction</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">warmup_fraction</span><span class="p">,</span>
+            <span class="n">min_lr_ratio</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">min_lr_ratio</span><span class="p">,</span>
+        <span class="p">)</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_build_model</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SimpleRNN</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_build_model</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SimpleBidirectionalTransformer</span><span class="p">:</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">batcher</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">"SimpleRNN batcher is unavailable"</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">"trainer batcher is unavailable"</span><span class="p">)</span>
         <span class="n">tokenizer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">batcher</span><span class="o">.</span><span class="n">tokenizer</span>
-        <span class="k">return</span> <span class="n">SimpleRNN</span><span class="p">(</span>
+        <span class="k">return</span> <span class="n">SimpleBidirectionalTransformer</span><span class="p">(</span>
             <span class="n">vocab_size</span><span class="o">=</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">vocab_size</span><span class="p">,</span>
             <span class="n">n_items</span><span class="o">=</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">n_items</span><span class="p">,</span>
-            <span class="n">embedding_dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">,</span>
-            <span class="n">hidden_dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">,</span>
-            <span class="n">num_layers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">num_layers</span><span class="p">,</span>
-            <span class="n">dropout</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">dropout</span><span class="p">,</span>
-            <span class="n">rnn_type</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">rnn_type</span><span class="p">,</span>
+            <span class="n">max_positions</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">batcher</span><span class="o">.</span><span class="n">max_length</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
             <span class="n">pad_id</span><span class="o">=</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">pad_id</span><span class="p">,</span>
+            <span class="n">config</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">transformer</span><span class="p">,</span>
+            <span class="n">tie_embeddings</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">tie_embeddings</span><span class="p">,</span>
         <span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
 
-    <span class="nd">@classmethod</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">_from_checkpoint_config</span><span class="p">(</span>
-        <span class="bp">cls</span><span class="p">,</span>
-        <span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
-        <span class="n">reader</span><span class="p">:</span> <span class="n">ModelCheckpointReader</span><span class="p">,</span>
-        <span class="o">*</span><span class="p">,</span>
-        <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SimpleRNNTrainer</span><span class="p">:</span>
-        <span class="n">config</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
-        <span class="n">config</span><span class="p">[</span><span class="s2">"device"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
-        <span class="n">trainer_state</span> <span class="o">=</span> <span class="n">reader</span><span class="o">.</span><span class="n">read_json</span><span class="p">(</span><span class="s2">"state/trainer.json"</span><span class="p">)</span>
-        <span class="n">tokenizer_state</span> <span class="o">=</span> <span class="n">reader</span><span class="o">.</span><span class="n">read_json</span><span class="p">(</span><span class="s2">"state/tokenizer.json"</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">reader</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="s2">"state/tokenizer_item_ids.json"</span><span class="p">):</span>
-            <span class="n">tokenizer_state</span><span class="p">[</span><span class="s2">"item_ids"</span><span class="p">]</span> <span class="o">=</span> <span class="n">reader</span><span class="o">.</span><span class="n">read_item_ids</span><span class="p">(</span>
-                <span class="s2">"state/tokenizer_item_ids.json"</span>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_check_batcher</span><span class="p">(</span><span class="n">batcher</span><span class="p">:</span> <span class="n">SequenceBatcher</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">batcher</span><span class="o">.</span><span class="n">max_length</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">"SimpleBidirectionalTransformer needs a bounded context; set "</span>
+                <span class="s2">"max_length on the batcher"</span>
             <span class="p">)</span>
-        <span class="n">tokenizer</span> <span class="o">=</span> <span class="n">ItemTokenizer</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">tokenizer_state</span><span class="p">)</span>
-        <span class="n">max_length</span> <span class="o">=</span> <span class="n">trainer_state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"max_length"</span><span class="p">)</span>
-        <span class="n">batcher</span> <span class="o">=</span> <span class="n">SequenceBatcher</span><span class="p">(</span>
-            <span class="n">tokenizer</span><span class="p">,</span>
-            <span class="n">max_length</span><span class="o">=</span><span class="kc">None</span> <span class="k">if</span> <span class="n">max_length</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">int</span><span class="p">(</span><span class="n">max_length</span><span class="p">),</span>
-        <span class="p">)</span>
-        <span class="n">trainer</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="n">SimpleRNNConfig</span><span class="p">(</span><span class="o">**</span><span class="n">config</span><span class="p">),</span> <span class="n">batcher</span><span class="p">)</span>
-        <span class="n">trainer</span><span class="o">.</span><span class="n">_n_items</span> <span class="o">=</span> <span class="n">tokenizer</span><span class="o">.</span><span class="n">n_items</span>
-        <span class="n">trainer</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">_build_model</span><span class="p">()</span>
-        <span class="k">return</span> <span class="n">trainer</span>
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">_checkpoint_module</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span>
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">_save_checkpoint_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">writer</span><span class="p">:</span> <span class="n">ModelCheckpointWriter</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">batcher</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">batcher</span><span class="o">.</span><span class="n">tokenizer</span><span class="p">,</span> <span class="n">ItemTokenizer</span>
-        <span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
-                <span class="s2">"SimpleRNNTrainer checkpoints support ItemTokenizer only"</span>
-            <span class="p">)</span>
-        <span class="n">writer</span><span class="o">.</span><span class="n">write_json</span><span class="p">(</span>
-            <span class="s2">"state/trainer.json"</span><span class="p">,</span>
-            <span class="p">{</span>
-                <span class="s2">"max_length"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">batcher</span><span class="o">.</span><span class="n">max_length</span><span class="p">,</span>
-                <span class="s2">"history"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">history</span><span class="p">,</span>
-            <span class="p">},</span>
-        <span class="p">)</span>
-        <span class="n">writer</span><span class="o">.</span><span class="n">write_json</span><span class="p">(</span>
-            <span class="s2">"state/tokenizer.json"</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">batcher</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(</span><span class="n">include_item_ids</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
-        <span class="p">)</span>
-        <span class="n">item_ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">batcher</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">item_ids</span>
-        <span class="k">if</span> <span class="n">item_ids</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">writer</span><span class="o">.</span><span class="n">write_item_ids</span><span class="p">(</span><span class="s2">"state/tokenizer_item_ids.json"</span><span class="p">,</span> <span class="n">item_ids</span><span class="p">)</span>
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">_load_checkpoint_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reader</span><span class="p">:</span> <span class="n">ModelCheckpointReader</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">state</span> <span class="o">=</span> <span class="n">reader</span><span class="o">.</span><span class="n">read_json</span><span class="p">(</span><span class="s2">"state/trainer.json"</span><span class="p">)</span>
-        <span class="n">history</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"history"</span><span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">history</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"SimpleRNN training history must be a list"</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">history</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">history</span><span class="p">)</span>
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">_build_checkpoint_optimizer</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">"SimpleRNN model must be built before its optimizer"</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">optimizer</span><span class="p">)(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span>
-            <span class="n">lr</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">lr</span><span class="p">,</span>
-            <span class="n">weight_decay</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">weight_decay</span><span class="p">,</span>
-        <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_train_step</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">batch</span><span class="p">:</span> <span class="n">ItemSequences</span><span class="p">,</span>
-        <span class="n">optimizer</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Optimizer</span><span class="p">,</span>
-        <span class="n">objective</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
+        <span class="n">targets</span><span class="p">:</span> <span class="n">csr_matrix</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""One optimizer step, or ``None`` when the batch carries no target."""</span>
-        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">batcher</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+<span class="w">        </span><span class="sd">"""Optimize one batch, skipping rows whose target sets are empty."""</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">batcher</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
         <span class="n">tokens</span><span class="p">,</span> <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">batcher</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">tokens</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
-            <span class="c1"># Every row in this batch holds at most one item.</span>
-            <span class="k">return</span> <span class="kc">None</span>
+        <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_with_unk_dropout</span><span class="p">(</span><span class="n">tokens</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span>
+        <span class="n">states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span>
+        <span class="n">logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">score</span><span class="p">(</span><span class="n">states</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">])</span>
 
-        <span class="c1"># Next-item shift. The head is indexed by catalog position while the</span>
-        <span class="c1"># tokens carry the vocabulary offset, so targets are decoded back --</span>
-        <span class="c1"># the one place besides encode() where the offset appears at all.</span>
-        <span class="n">offset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">batcher</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">n_reserved</span>
-        <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_with_unk_dropout</span><span class="p">(</span><span class="n">tokens</span><span class="p">[:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">mask</span><span class="p">[:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
-        <span class="n">target_tokens</span> <span class="o">=</span> <span class="n">tokens</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:]</span>
-        <span class="n">targets</span> <span class="o">=</span> <span class="n">target_tokens</span> <span class="o">-</span> <span class="n">offset</span>
-        <span class="c1"># A real item, and one this vocabulary can name. Padding is excluded by</span>
-        <span class="c1"># the mask; UNK is excluded by the offset test, because "predict an item</span>
-        <span class="c1"># I cannot identify" is not a question with an answer.</span>
-        <span class="n">valid</span> <span class="o">=</span> <span class="n">mask</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">target_tokens</span> <span class="o">&gt;=</span> <span class="n">offset</span><span class="p">)</span>
-        <span class="n">n_positions</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">valid</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
-        <span class="k">if</span> <span class="n">n_positions</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">dense</span> <span class="o">=</span> <span class="n">targets</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">toarray</span><span class="p">()</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">dense</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">counts</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">active</span> <span class="o">=</span> <span class="n">counts</span> <span class="o">&gt;</span> <span class="mi">0</span>
+        <span class="n">n_active</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">active</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
+        <span class="k">if</span> <span class="n">n_active</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">return</span> <span class="kc">None</span>
-
-        <span class="c1"># Gather before scoring, as predict_on_batch does. Scoring first</span>
-        <span class="c1"># materialises rows x length x n_items and then throws most of it away:</span>
-        <span class="c1"># 3.46 GB at batch 128 on a 34k-item catalog against 0.16 GB this way.</span>
-        <span class="n">states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
-        <span class="n">loss</span> <span class="o">=</span> <span class="n">objective</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">score</span><span class="p">(</span><span class="n">states</span><span class="p">[</span><span class="n">valid</span><span class="p">]),</span> <span class="n">targets</span><span class="p">[</span><span class="n">valid</span><span class="p">])</span>
-        <span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">(</span><span class="n">set_to_none</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">target_distribution</span> <span class="o">=</span> <span class="n">target</span><span class="p">[</span><span class="n">active</span><span class="p">]</span> <span class="o">/</span> <span class="n">counts</span><span class="p">[</span><span class="n">active</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+        <span class="n">loss</span> <span class="o">=</span> <span class="o">-</span><span class="p">(</span>
+            <span class="n">target_distribution</span> <span class="o">*</span> <span class="n">F</span><span class="o">.</span><span class="n">log_softmax</span><span class="p">(</span><span class="n">logits</span><span class="p">[</span><span class="n">active</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">(</span><span class="n">set_to_none</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
-        <span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
-        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">loss</span><span class="o">.</span><span class="n">detach</span><span class="p">()),</span> <span class="n">n_positions</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">loss</span><span class="o">.</span><span class="n">detach</span><span class="p">()),</span> <span class="n">n_active</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_with_unk_dropout</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">mask</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Replace a fraction of real input positions with ``unk``.</span>
-
-<span class="sd">        Applied to the inputs *after* the shift and never to the targets, so a</span>
-<span class="sd">        corrupted position teaches "an item was here that you cannot identify,</span>
-<span class="sd">        predict the next one anyway" rather than costing a training example.</span>
-<span class="sd">        Corrupting before the shift would make those positions ``unk`` targets,</span>
-<span class="sd">        which the objective excludes, so the signal would be lost instead of used.</span>
-
-<span class="sd">        Padding is left alone: only real positions are eligible, or the model</span>
-<span class="sd">        would learn that ``unk`` and ``pad`` mean the same thing.</span>
-<span class="sd">        """</span>
         <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">batcher</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
         <span class="n">unk_id</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">batcher</span><span class="o">.</span><span class="n">tokenizer</span><span class="p">,</span> <span class="s2">"unk_id"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">unk_id</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">unk_dropout</span> <span class="o">&lt;=</span> <span class="mf">0.0</span><span class="p">:</span>
@@ -996,10 +981,11 @@
         <span class="p">)</span> <span class="o">&amp;</span> <span class="n">mask</span>
         <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">chosen</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">unk_id</span><span class="p">),</span> <span class="n">inputs</span><span class="p">)</span>
 
-    <span class="c1"># -- prediction ---------------------------------------------------------</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_effective_exclude_seen</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exclude_seen</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">exclude_seen</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trained_with_explicit_targets</span>
 
-<div class="viewcode-block" id="SimpleRNNTrainer.predict_on_batch">
-<a class="viewcode-back" href="../../../api/models.html#compresso_recsys.models.SimpleRNNTrainer.predict_on_batch">[docs]</a>
+<div class="viewcode-block" id="SimpleBidirectionalTransformerTrainer.predict_on_batch">
+<a class="viewcode-back" href="../../../api/models.html#compresso_recsys.models.SimpleBidirectionalTransformerTrainer.predict_on_batch">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">predict_on_batch</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">source</span><span class="p">:</span> <span class="n">ItemSequences</span><span class="p">,</span>
@@ -1008,19 +994,24 @@
         <span class="n">exclude_seen</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">candidate_ids</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Hashable</span><span class="p">]</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SRPTensor</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Rank the catalog for each history from its final recurrent state."""</span>
+<span class="w">        </span><span class="sd">"""Rank catalog items from the bidirectional ``CLS`` representation."""</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">batcher</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_items</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">"SimpleRNNTrainer must be fitted before predicting"</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="s2">"SimpleBidirectionalTransformerTrainer must be fitted before "</span>
+                <span class="s2">"predicting"</span>
+            <span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">ItemSequences</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
-                <span class="s2">"SimpleRNNTrainer predicts from ItemSequences, got "</span>
-                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">source</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">"</span>
+                <span class="s2">"SimpleBidirectionalTransformerTrainer predicts from "</span>
+                <span class="sa">f</span><span class="s2">"ItemSequences, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">source</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">"</span>
             <span class="p">)</span>
         <span class="n">n_items</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_items</span>
         <span class="n">candidate_rows</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_candidate_rows</span><span class="p">(</span><span class="n">candidate_ids</span><span class="p">)</span>
         <span class="n">candidate_count</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">candidate_rows</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="mi">1</span> <span class="o">&lt;=</span> <span class="n">k</span> <span class="o">&lt;=</span> <span class="n">candidate_count</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"k must be in [1, </span><span class="si">{</span><span class="n">candidate_count</span><span class="si">}</span><span class="s2">], got </span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+        <span class="n">exclude_seen</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_effective_exclude_seen</span><span class="p">(</span><span class="n">exclude_seen</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">exclude_seen</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_check_unseen_capacity</span><span class="p">(</span>
                 <span class="n">source</span><span class="p">,</span>
@@ -1040,42 +1031,128 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
         <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
             <span class="n">tokens</span><span class="p">,</span> <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">batcher</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-            <span class="n">final</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">batcher</span><span class="o">.</span><span class="n">gather_final</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">tokens</span><span class="p">),</span> <span class="n">mask</span><span class="p">)</span>
-            <span class="n">logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">score</span><span class="p">(</span><span class="n">final</span><span class="p">)</span>
+            <span class="n">states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">tokens</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span>
+            <span class="n">logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">score</span><span class="p">(</span><span class="n">states</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">])</span>
             <span class="k">if</span> <span class="n">exclude_seen</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_mask_seen</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">source</span><span class="p">)</span>
             <span class="n">candidates</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">candidate_rows</span><span class="p">)</span><span class="o">.</span><span class="n">long</span><span class="p">()</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
             <span class="n">vals</span><span class="p">,</span> <span class="n">local_cols</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">topk</span><span class="p">(</span><span class="n">logits</span><span class="p">[:,</span> <span class="n">candidates</span><span class="p">],</span> <span class="n">k</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
             <span class="n">cols</span> <span class="o">=</span> <span class="n">candidates</span><span class="p">[</span><span class="n">local_cols</span><span class="p">]</span>
-
         <span class="k">return</span> <span class="n">SRPTensor</span><span class="p">(</span><span class="n">cols</span><span class="o">=</span><span class="n">cols</span><span class="p">,</span> <span class="n">vals</span><span class="o">=</span><span class="n">vals</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">n_items</span><span class="p">))</span></div>
 
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_mask_seen</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">logits</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">source</span><span class="p">:</span> <span class="n">ItemSequences</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Forbid every item in the *full* history, truncated part included.</span>
-
-<span class="sd">        Logits are indexed by catalog position, and a history may span a wider</span>
-<span class="sd">        catalog than this model was fitted on -- a later split stage does exactly</span>
-<span class="sd">        that. Items beyond the fitted catalog are dropped from the mask rather</span>
-<span class="sd">        than clipped: they were never scoreable, so there is nothing to forbid.</span>
-<span class="sd">        """</span>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_mask_seen</span><span class="p">(</span><span class="n">logits</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">source</span><span class="p">:</span> <span class="n">ItemSequences</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">source</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">return</span>
         <span class="n">n_items</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">logits</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-        <span class="c1"># The flat values are already the concatenation of every history, so one</span>
-        <span class="c1"># scatter covers the batch. np.array copies, both because the buffers are</span>
-        <span class="c1"># read-only and because torch.from_numpy would otherwise share them.</span>
         <span class="n">rows</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">source</span><span class="o">.</span><span class="n">n_rows</span><span class="p">),</span> <span class="n">source</span><span class="o">.</span><span class="n">row_lengths</span><span class="p">)</span>
-        <span class="n">cols</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">source</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+        <span class="n">cols</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">source</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
         <span class="n">scoreable</span> <span class="o">=</span> <span class="n">cols</span> <span class="o">&lt;</span> <span class="n">n_items</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">scoreable</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
-            <span class="n">rows</span><span class="p">,</span> <span class="n">cols</span> <span class="o">=</span> <span class="n">rows</span><span class="p">[</span><span class="n">scoreable</span><span class="p">],</span> <span class="n">cols</span><span class="p">[</span><span class="n">scoreable</span><span class="p">]</span>
+        <span class="n">rows</span><span class="p">,</span> <span class="n">cols</span> <span class="o">=</span> <span class="n">rows</span><span class="p">[</span><span class="n">scoreable</span><span class="p">],</span> <span class="n">cols</span><span class="p">[</span><span class="n">scoreable</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">cols</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">return</span>
         <span class="n">logits</span><span class="p">[</span>
             <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">logits</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
             <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">cols</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">logits</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
-        <span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">torch</span><span class="o">.</span><span class="n">inf</span></div>
+        <span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">torch</span><span class="o">.</span><span class="n">inf</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_from_checkpoint_config</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+        <span class="n">reader</span><span class="p">:</span> <span class="n">ModelCheckpointReader</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SimpleBidirectionalTransformerTrainer</span><span class="p">:</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+        <span class="n">transformer</span> <span class="o">=</span> <span class="n">TransformerConfig</span><span class="p">(</span><span class="o">**</span><span class="nb">dict</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">"transformer"</span><span class="p">)))</span>
+        <span class="n">config</span><span class="p">[</span><span class="s2">"device"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">state</span> <span class="o">=</span> <span class="n">reader</span><span class="o">.</span><span class="n">read_json</span><span class="p">(</span><span class="s2">"state/trainer.json"</span><span class="p">)</span>
+        <span class="n">max_length</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"max_length"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="nb">isinstance</span><span class="p">(</span><span class="n">max_length</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span>
+            <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">max_length</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+            <span class="ow">or</span> <span class="n">max_length</span> <span class="o">&lt;</span> <span class="mi">1</span>
+        <span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">"SimpleBidirectionalTransformer max_length must be a positive integer"</span>
+            <span class="p">)</span>
+        <span class="n">tokenizer_state</span> <span class="o">=</span> <span class="n">reader</span><span class="o">.</span><span class="n">read_json</span><span class="p">(</span><span class="s2">"state/tokenizer.json"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">reader</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="s2">"state/tokenizer_item_ids.json"</span><span class="p">):</span>
+            <span class="n">tokenizer_state</span><span class="p">[</span><span class="s2">"item_ids"</span><span class="p">]</span> <span class="o">=</span> <span class="n">reader</span><span class="o">.</span><span class="n">read_item_ids</span><span class="p">(</span>
+                <span class="s2">"state/tokenizer_item_ids.json"</span>
+            <span class="p">)</span>
+        <span class="n">tokenizer</span> <span class="o">=</span> <span class="n">ItemTokenizer</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">tokenizer_state</span><span class="p">)</span>
+        <span class="n">trainer</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">SimpleBidirectionalTransformerConfig</span><span class="p">(</span>
+                <span class="n">transformer</span><span class="o">=</span><span class="n">transformer</span><span class="p">,</span> <span class="o">**</span><span class="n">config</span>
+            <span class="p">),</span>
+            <span class="n">SequenceBatcher</span><span class="p">(</span>
+                <span class="n">tokenizer</span><span class="p">,</span>
+                <span class="n">max_length</span><span class="o">=</span><span class="n">max_length</span><span class="p">,</span>
+                <span class="n">padding</span><span class="o">=</span><span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"padding"</span><span class="p">,</span> <span class="s2">"right"</span><span class="p">),</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+        <span class="n">trainer</span><span class="o">.</span><span class="n">_n_items</span> <span class="o">=</span> <span class="n">tokenizer</span><span class="o">.</span><span class="n">n_items</span>
+        <span class="n">trainer</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">_build_model</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">trainer</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_checkpoint_module</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_save_checkpoint_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">writer</span><span class="p">:</span> <span class="n">ModelCheckpointWriter</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">batcher</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">batcher</span><span class="o">.</span><span class="n">tokenizer</span><span class="p">,</span> <span class="n">ItemTokenizer</span>
+        <span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="s2">"SimpleBidirectionalTransformerTrainer checkpoints support "</span>
+                <span class="s2">"ItemTokenizer only"</span>
+            <span class="p">)</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">batcher</span><span class="o">.</span><span class="n">max_length</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="n">writer</span><span class="o">.</span><span class="n">write_json</span><span class="p">(</span>
+            <span class="s2">"state/trainer.json"</span><span class="p">,</span>
+            <span class="p">{</span>
+                <span class="s2">"max_length"</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">batcher</span><span class="o">.</span><span class="n">max_length</span><span class="p">),</span>
+                <span class="s2">"padding"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">batcher</span><span class="o">.</span><span class="n">padding</span><span class="p">,</span>
+                <span class="s2">"history"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">history</span><span class="p">,</span>
+                <span class="s2">"trained_with_explicit_targets"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trained_with_explicit_targets</span><span class="p">,</span>
+            <span class="p">},</span>
+        <span class="p">)</span>
+        <span class="n">writer</span><span class="o">.</span><span class="n">write_json</span><span class="p">(</span>
+            <span class="s2">"state/tokenizer.json"</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">batcher</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(</span><span class="n">include_item_ids</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="n">item_ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">batcher</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">item_ids</span>
+        <span class="k">if</span> <span class="n">item_ids</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">writer</span><span class="o">.</span><span class="n">write_item_ids</span><span class="p">(</span><span class="s2">"state/tokenizer_item_ids.json"</span><span class="p">,</span> <span class="n">item_ids</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_load_checkpoint_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reader</span><span class="p">:</span> <span class="n">ModelCheckpointReader</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">state</span> <span class="o">=</span> <span class="n">reader</span><span class="o">.</span><span class="n">read_json</span><span class="p">(</span><span class="s2">"state/trainer.json"</span><span class="p">)</span>
+        <span class="n">history</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"history"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">history</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">"SimpleBidirectionalTransformer training history must be a list"</span>
+            <span class="p">)</span>
+        <span class="n">explicit</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"trained_with_explicit_targets"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">explicit</span><span class="p">,</span> <span class="nb">bool</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">"SimpleBidirectionalTransformer target mode must be a bool"</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">history</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">history</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_trained_with_explicit_targets</span> <span class="o">=</span> <span class="n">explicit</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_build_checkpoint_optimizer</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="s2">"SimpleBidirectionalTransformer model must be built before its "</span>
+                <span class="s2">"optimizer"</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">optimizer</span><span class="p">)(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span>
+            <span class="n">lr</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">lr</span><span class="p">,</span>
+            <span class="n">weight_decay</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">weight_decay</span><span class="p">,</span>
+        <span class="p">)</span></div>
 
 </pre></div>
 

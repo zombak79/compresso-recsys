@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Index &mdash; Compresso Recsys 0.3.2 documentation</title>
+  <title>Index &mdash; Compresso Recsys 0.3.3 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=2f2e10e9"></script>
+      <script src="_static/documentation_options.js?v=94d292f4"></script>
       <script src="_static/doctools.js?v=fd6eb6e6"></script>
       <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -302,6 +302,7 @@
 <li class="toctree-l4"><a class="reference internal" href="api/models.html#simplernn">SimpleRNN</a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/models.html#simplegpt">SimpleGPT</a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/models.html#sasrec">SASRec</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#simplebidirectionaltransformer">SimpleBidirectionalTransformer</a></li>
 </ul>
 </li>
 </ul>
@@ -682,6 +683,8 @@
 </li>
         <li><a href="api/models.html#compresso_recsys.models.SASRecTrainer.fit">(compresso_recsys.models.SASRecTrainer method)</a>
 </li>
+        <li><a href="api/models.html#compresso_recsys.models.SimpleBidirectionalTransformerTrainer.fit">(compresso_recsys.models.SimpleBidirectionalTransformerTrainer method)</a>
+</li>
         <li><a href="api/models.html#compresso_recsys.models.SimpleGPTTrainer.fit">(compresso_recsys.models.SimpleGPTTrainer method)</a>
 </li>
         <li><a href="api/models.html#compresso_recsys.models.SimpleRNNTrainer.fit">(compresso_recsys.models.SimpleRNNTrainer method)</a>
@@ -705,6 +708,8 @@
         <li><a href="api/models.html#compresso_recsys.models.MultVAE.forward">(compresso_recsys.models.MultVAE method)</a>
 </li>
         <li><a href="api/models.html#compresso_recsys.models.SASRec.forward">(compresso_recsys.models.SASRec method)</a>
+</li>
+        <li><a href="api/models.html#compresso_recsys.models.SimpleBidirectionalTransformer.forward">(compresso_recsys.models.SimpleBidirectionalTransformer method)</a>
 </li>
         <li><a href="api/models.html#compresso_recsys.models.SimpleGPT.forward">(compresso_recsys.models.SimpleGPT method)</a>
 </li>
@@ -789,6 +794,8 @@
         <li><a href="api/models.html#compresso_recsys.models.PopularityBaseline.is_fitted">(compresso_recsys.models.PopularityBaseline property)</a>
 </li>
         <li><a href="api/models.html#compresso_recsys.models.SASRecTrainer.is_fitted">(compresso_recsys.models.SASRecTrainer property)</a>
+</li>
+        <li><a href="api/models.html#compresso_recsys.models.SimpleBidirectionalTransformerTrainer.is_fitted">(compresso_recsys.models.SimpleBidirectionalTransformerTrainer property)</a>
 </li>
         <li><a href="api/models.html#compresso_recsys.models.SimpleGPTTrainer.is_fitted">(compresso_recsys.models.SimpleGPTTrainer property)</a>
 </li>
@@ -922,6 +929,8 @@
 </li>
         <li><a href="api/models.html#compresso_recsys.models.SASRecTrainer.n_items">(compresso_recsys.models.SASRecTrainer property)</a>
 </li>
+        <li><a href="api/models.html#compresso_recsys.models.SimpleBidirectionalTransformerTrainer.n_items">(compresso_recsys.models.SimpleBidirectionalTransformerTrainer property)</a>
+</li>
         <li><a href="api/models.html#compresso_recsys.models.SimpleGPTTrainer.n_items">(compresso_recsys.models.SimpleGPTTrainer property)</a>
 </li>
         <li><a href="api/models.html#compresso_recsys.models.SimpleRNNTrainer.n_items">(compresso_recsys.models.SimpleRNNTrainer property)</a>
@@ -1025,6 +1034,8 @@
         <li><a href="api/models.html#compresso_recsys.models.SASRecTrainer.predict_on_batch">(compresso_recsys.models.SASRecTrainer method)</a>
 </li>
         <li><a href="api/models.html#compresso_recsys.models.SequentialRecommender.predict_on_batch">(compresso_recsys.models.SequentialRecommender method)</a>
+</li>
+        <li><a href="api/models.html#compresso_recsys.models.SimpleBidirectionalTransformerTrainer.predict_on_batch">(compresso_recsys.models.SimpleBidirectionalTransformerTrainer method)</a>
 </li>
         <li><a href="api/models.html#compresso_recsys.models.SimpleGPTTrainer.predict_on_batch">(compresso_recsys.models.SimpleGPTTrainer method)</a>
 </li>
@@ -1156,6 +1167,8 @@
       <li><a href="api/models.html#compresso_recsys.models.SASRec.score">score() (compresso_recsys.models.SASRec method)</a>
 
       <ul>
+        <li><a href="api/models.html#compresso_recsys.models.SimpleBidirectionalTransformer.score">(compresso_recsys.models.SimpleBidirectionalTransformer method)</a>
+</li>
         <li><a href="api/models.html#compresso_recsys.models.SimpleGPT.score">(compresso_recsys.models.SimpleGPT method)</a>
 </li>
         <li><a href="api/models.html#compresso_recsys.models.SimpleRNN.score">(compresso_recsys.models.SimpleRNN method)</a>
@@ -1167,11 +1180,17 @@
 </li>
       <li><a href="api/sequences.html#compresso_recsys.ItemSequences.select_rows">select_rows() (compresso_recsys.ItemSequences method)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/models.html#compresso_recsys.models.SequenceBatcher">SequenceBatcher (class in compresso_recsys.models)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/models.html#compresso_recsys.models.SequentialRecommender">SequentialRecommender (class in compresso_recsys.models)</a>
+</li>
+      <li><a href="api/models.html#compresso_recsys.models.SimpleBidirectionalTransformer">SimpleBidirectionalTransformer (class in compresso_recsys.models)</a>
+</li>
+      <li><a href="api/models.html#compresso_recsys.models.SimpleBidirectionalTransformerConfig">SimpleBidirectionalTransformerConfig (class in compresso_recsys.models)</a>
+</li>
+      <li><a href="api/models.html#compresso_recsys.models.SimpleBidirectionalTransformerTrainer">SimpleBidirectionalTransformerTrainer (class in compresso_recsys.models)</a>
 </li>
       <li><a href="api/models.html#compresso_recsys.models.SimpleGPT">SimpleGPT (class in compresso_recsys.models)</a>
 </li>
@@ -1260,6 +1279,8 @@
       <li><a href="api/models.html#compresso_recsys.models.CompressedELSA.train">train() (compresso_recsys.models.CompressedELSA method)</a>
 </li>
       <li><a href="api/models.html#compresso_recsys.models.ELSATrainer.train_step">train_step() (compresso_recsys.models.ELSATrainer method)</a>
+</li>
+      <li><a href="api/models.html#compresso_recsys.models.SimpleBidirectionalTransformerTrainer.trained_with_explicit_targets">trained_with_explicit_targets (compresso_recsys.models.SimpleBidirectionalTransformerTrainer property)</a>
 </li>
       <li><a href="api/models.html#compresso_recsys.models.TransformerConfig">TransformerConfig (class in compresso_recsys.models)</a>
 </li>
