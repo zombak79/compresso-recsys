@@ -1,5 +1,15 @@
 ## [Unreleased]
 
+## [0.3.3] — 2026-09-04
+
+### Added
+
+- `SimpleBidirectionalTransformer`, a padding-aware sequential encoder that
+  learns unordered item sets from a pooled `CLS` representation. Its trainer
+  optionally consumes the CSR `targets` matrices emitted by temporal splits,
+  preserves source/target row alignment, persists the training mode, and keeps
+  source items eligible when explicit targets may overlap the history.
+
 ## [0.3.2] — 2026-09-04
 
 ### Added
@@ -591,7 +601,8 @@ depends on, and two evaluation-protocol corrections found while validating it.
 Initial release. EASE, ELSA and CompressedELSA, checkpoint building and the
 dataset loaders.
 
-[Unreleased]: https://github.com/zombak79/compresso-recsys/compare/v0.3.2...HEAD
+[Unreleased]: https://github.com/zombak79/compresso-recsys/compare/v0.3.3...HEAD
+[0.3.3]: https://github.com/zombak79/compresso-recsys/releases/tag/v0.3.3
 [0.3.2]: https://github.com/zombak79/compresso-recsys/releases/tag/v0.3.2
 [0.3.1]: https://github.com/zombak79/compresso-recsys/releases/tag/v0.3.1
 [0.3.0]: https://github.com/zombak79/compresso-recsys/releases/tag/v0.3.0

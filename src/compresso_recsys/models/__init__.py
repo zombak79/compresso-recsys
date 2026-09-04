@@ -48,6 +48,11 @@ from .simple_gpt import (
     SimpleGPTTrainer,
     TransformerConfig,
 )
+from .simple_bidirectional import (
+    SimpleBidirectionalTransformer,
+    SimpleBidirectionalTransformerConfig,
+    SimpleBidirectionalTransformerTrainer,
+)
 from .simple_rnn import SimpleRNN, SimpleRNNConfig, SimpleRNNTrainer
 from .item_knn import ItemKNNConfig, ItemKNNRecommender
 from .user_knn import UserKNNConfig, UserKNNRecommender
@@ -81,6 +86,9 @@ __all__ = [
     "SASRecConfig",
     "SASRecTrainer",
     "SequenceBatcher",
+    "SimpleBidirectionalTransformer",
+    "SimpleBidirectionalTransformerConfig",
+    "SimpleBidirectionalTransformerTrainer",
     "SimpleGPT",
     "SimpleGPTConfig",
     "SimpleGPTTrainer",

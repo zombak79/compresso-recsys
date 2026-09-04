@@ -298,6 +298,10 @@ class BaseIdentifiedRecommender(ABC):
         """Candidate rows eligible before request-specific filters."""
         return np.arange(vocabulary.n_items, dtype=np.int64)
 
+    def _effective_exclude_seen(self, exclude_seen: bool) -> bool:
+        """Resolve the masking policy before capacity and prediction agree on it."""
+        return exclude_seen
+
     def _prediction_reporter(
         self,
         logger: Any,
@@ -344,6 +348,7 @@ class BaseIdentifiedRecommender(ABC):
             )
         if isinstance(histories, (str, bytes)):
             raise TypeError("histories must be a sequence of item-ID sequences")
+        exclude_seen = self._effective_exclude_seen(exclude_seen)
         try:
             history_values = list(histories)
         except TypeError as error:
