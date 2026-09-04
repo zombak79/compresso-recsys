@@ -1,5 +1,22 @@
 ## [Unreleased]
 
+## [0.3.2] — 2026-09-04
+
+### Added
+
+- `SASRec`, `SASRecConfig`, and `SASRecTrainer`, implementing sampled-negative
+  sequential training, stable-ID recommendation, progress reporting, device
+  movement, and fitted-model persistence. The model preserves SASRec's
+  sequential objective and tied item scoring while using a documented modern
+  pre-norm transformer attention block.
+- Left-padded sequence batching for SASRec, including position IDs aligned to
+  the unpadded sequence and checkpoint restoration of the padding convention.
+  `SimpleGPT` and `SimpleRNN` continue to require right padding and now reject
+  incompatible batchers explicitly.
+- An executable “Reproducing SASRec Results on ML1M” notebook covering the
+  MovieLens 1M preparation, shortened smoke runs, sampled-negative comparison
+  with the paper, and full-catalog package evaluation.
+
 ## [0.3.1] — 2026-09-03
 
 ### Added
@@ -574,7 +591,8 @@ depends on, and two evaluation-protocol corrections found while validating it.
 Initial release. EASE, ELSA and CompressedELSA, checkpoint building and the
 dataset loaders.
 
-[Unreleased]: https://github.com/zombak79/compresso-recsys/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/zombak79/compresso-recsys/compare/v0.3.2...HEAD
+[0.3.2]: https://github.com/zombak79/compresso-recsys/releases/tag/v0.3.2
 [0.3.1]: https://github.com/zombak79/compresso-recsys/releases/tag/v0.3.1
 [0.3.0]: https://github.com/zombak79/compresso-recsys/releases/tag/v0.3.0
 [0.2.0]: https://github.com/zombak79/compresso-recsys/releases/tag/v0.2.0

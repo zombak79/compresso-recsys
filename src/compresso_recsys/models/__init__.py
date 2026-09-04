@@ -41,6 +41,7 @@ from .elsa import (
     ELSAConfig,
     ELSATrainer,
 )
+from .sasrec import SASRec, SASRecConfig, SASRecTrainer
 from .simple_gpt import (
     SimpleGPT,
     SimpleGPTConfig,
@@ -76,6 +77,9 @@ __all__ = [
     "PersistableRecommender",
     "Recommender",
     "Recommendations",
+    "SASRec",
+    "SASRecConfig",
+    "SASRecTrainer",
     "SequenceBatcher",
     "SimpleGPT",
     "SimpleGPTConfig",

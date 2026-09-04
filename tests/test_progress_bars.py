@@ -20,6 +20,8 @@ from compresso_recsys.models import (
     MultDAETrainer,
     MultVAEConfig,
     MultVAETrainer,
+    SASRecConfig,
+    SASRecTrainer,
     SequenceBatcher,
     SimpleGPTConfig,
     SimpleGPTTrainer,
@@ -304,6 +306,35 @@ def _fit_simple_gpt(
     return trainer.fit(_histories())
 
 
+def _fit_sasrec(
+    *, show_progress: bool = True, logger=None, log_every_n_steps=1000
+):
+    trainer = SASRecTrainer(
+        SASRecConfig(
+            d_model=8,
+            n_blocks=1,
+            n_heads=2,
+            dropout=0.0,
+            # The batcher below states the window, so the config has to name the
+            # same one: SASRec sizes its positional table from it.
+            max_history_length=8,
+            epochs=EPOCHS,
+            batch_size=2,
+            lr=1e-2,
+            unk_dropout=0.0,
+            show_progress=show_progress,
+            seed=5,
+            log_every_n_steps=log_every_n_steps,
+        ),
+        SequenceBatcher(ItemTokenizer(5), max_length=8, padding="left"),
+        logger=logger,
+    )
+    # A wider catalog than the other trainers use: these histories cover items
+    # 0-2 between them, and SASRec draws its negatives from outside a user's
+    # history, so a 3-item catalog leaves nothing to draw.
+    return trainer.fit(_histories(n_items=5))
+
+
 TRAINERS = pytest.mark.parametrize(
     ("fit", "label", "trainer_class", "step"),
     [
@@ -314,6 +345,7 @@ TRAINERS = pytest.mark.parametrize(
         # The sequential trainers draw bars the same way and were untested.
         (_fit_simple_rnn, "SimpleRNN", SimpleRNNTrainer, "_train_step"),
         (_fit_simple_gpt, "SimpleGPT", SimpleGPTTrainer, "_train_step"),
+        (_fit_sasrec, "SASRec", SASRecTrainer, "_train_step"),
     ],
 )
 
@@ -729,6 +761,7 @@ def test_logger_replaces_evaluation_bar(bars, capsys):
         ELSAConfig,
         MultDAEConfig,
         MultVAEConfig,
+        SASRecConfig,
         SimpleGPTConfig,
         SimpleRNNConfig,
         TEASERGDConfig,

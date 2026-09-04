@@ -233,10 +233,121 @@ def test_the_batcher_has_no_objective():
         "gather_final",
         "has_history",
         "max_length",
+        "padding",
         "pad_id",
         "tokenizer",
         "truncated_lengths",
     }
-    assert "pad_side" not in inspect.signature(SequenceBatcher).parameters
+    # ``padding`` is a layout decision and belongs here; the side a model needs
+    # is a property of its positions, not of its objective.
+    assert "padding" in inspect.signature(SequenceBatcher).parameters
     # The vocabulary lives on the tokenizer, not here.
     assert not surface & {"n_items", "vocab_size", "special_tokens", "token_id"}
+
+
+# --------------------------------------------------------------------------
+# left padding
+# --------------------------------------------------------------------------
+
+
+def test_left_padding_puts_content_last():
+    """The mirror of ``test_padding_puts_content_first``. A model with a learned
+    positional table needs the newest interaction at a fixed index, or position
+    n means a different thing for every history length."""
+    batcher = _batcher(max_length=4, padding="left")
+
+    tokens, mask = batcher.encode(_seqs([[1, 2, 3], [4]]))
+
+    pad = batcher.pad_id
+    assert tokens.tolist() == [
+        [pad] + _items(batcher, [1, 2, 3]),
+        [pad, pad, pad] + _items(batcher, [4]),
+    ]
+    assert mask.tolist() == [
+        [False, True, True, True],
+        [False, False, False, True],
+    ]
+
+
+def test_left_padding_fills_to_the_window_not_to_the_batch():
+    """Packing to the batch would move the final column from batch to batch, so
+    the same user would land on a different absolute position each time."""
+    batcher = _batcher(max_length=6, padding="left")
+
+    short, _ = batcher.encode(_seqs([[1], [2]]))
+    long, _ = batcher.encode(_seqs([[1, 2, 3, 4, 5]]))
+
+    assert short.shape[1] == 6
+    assert long.shape[1] == 6
+
+
+def test_right_padding_still_packs_to_the_batch():
+    """Two other models depend on the ragged packing, so it stays the default."""
+    batcher = _batcher(max_length=6)
+
+    tokens, _ = batcher.encode(_seqs([[1], [2]]))
+
+    assert tokens.shape[1] == 1
+
+
+def test_left_padding_needs_a_bounded_window():
+    with pytest.raises(ValueError, match="left padding fills every row"):
+        _batcher(padding="left")
+
+
+def test_an_unknown_padding_side_is_refused():
+    with pytest.raises(ValueError, match="padding must be 'left' or 'right'"):
+        _batcher(max_length=4, padding="middle")
+
+
+def test_the_final_position_under_left_padding_is_the_last_column():
+    """For every row, whatever its length -- the arithmetic that right padding
+    needs would instead point into the padding that precedes the history."""
+    batcher = _batcher(max_length=5, padding="left")
+
+    _, mask = batcher.encode(_seqs([[1, 2, 3], [4], [5, 6, 7, 8, 9]]))
+
+    assert batcher.final_positions(mask).tolist() == [4, 4, 4]
+
+
+def test_gather_final_reads_the_newest_item_under_left_padding():
+    batcher = _batcher(max_length=4, padding="left")
+    _, mask = batcher.encode(_seqs([[1, 2], [3]]))
+    # One distinct value per position, so the gathered state names its column.
+    states = torch.arange(2 * 4 * 3, dtype=torch.float32).reshape(2, 4, 3)
+
+    final = batcher.gather_final(states, mask)
+
+    torch.testing.assert_close(final, states[:, -1])
+
+
+def test_left_padding_recovers_every_history_exactly():
+    """The mirror of the right-padded case: the mask is still what says which
+    columns are real, it just marks a suffix rather than a prefix."""
+    rows = [[1, 2, 3], [], [4, 4, 5], [9]]
+    batcher = _batcher(max_length=5, padding="left")
+    tokens, mask = batcher.encode(_seqs(rows))
+
+    for row, expected in enumerate(rows):
+        recovered = batcher.tokenizer.decode_indices(tokens[row][mask[row]])
+        assert recovered.tolist() == expected, row
+
+
+def test_an_empty_history_under_left_padding_is_all_padding():
+    batcher = _batcher(max_length=4, padding="left")
+
+    tokens, mask = batcher.encode(_seqs([[], [7]]))
+
+    assert not mask[0].any()
+    assert tokens[0].tolist() == [batcher.pad_id] * 4
+    assert batcher.has_history(mask).tolist() == [False, True]
+
+
+def test_left_padding_still_keeps_the_most_recent_items():
+    """Truncation is about recency whichever side the padding sits on."""
+    batcher = _batcher(max_length=3, padding="left")
+
+    tokens, mask = batcher.encode(_seqs([[1, 2, 3, 4, 5, 6]]))
+
+    assert batcher.tokenizer.decode_indices(tokens[0][mask[0]]).tolist() == [4, 5, 6]
+    assert mask[0].all(), "a history longer than the window fills it"

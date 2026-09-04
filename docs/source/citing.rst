@@ -172,6 +172,26 @@ appropriate when ELSA itself is central to the work.
      year={2026}
    }
 
+SASRec
+------
+
+For :class:`compresso_recsys.models.SASRecTrainer`, cite the original SASRec
+paper. Its sequential objective, tied item scoring, and published MovieLens
+hyperparameters are SASRec-derived. The transformer block uses a modernized
+pre-norm attention architecture, so published results are a point of comparison
+rather than exact implementation parity:
+
+.. code-block:: bibtex
+
+   @inproceedings{kang2018self,
+     title={Self-Attentive Sequential Recommendation},
+     author={Kang, Wang-Cheng and McAuley, Julian},
+     booktitle={2018 IEEE International Conference on Data Mining (ICDM)},
+     pages={197--206},
+     year={2018},
+     doi={10.1109/ICDM.2018.00035}
+   }
+
 Evaluation Protocol
 -------------------
 

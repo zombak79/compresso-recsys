@@ -28,6 +28,8 @@ from compresso_recsys.models import (
     SequenceBatcher,
     SimpleGPTConfig,
     SimpleGPTTrainer,
+    SASRecConfig,
+    SASRecTrainer,
     SimpleRNNConfig,
     SimpleRNNTrainer,
     TEASER,
@@ -227,7 +229,7 @@ def test_job_logger_is_not_persisted(tmp_path, interactions):
     assert restored.cfg.log_every_n_steps == 7
 
 
-@pytest.mark.parametrize("kind", ["rnn", "gpt"])
+@pytest.mark.parametrize("kind", ["rnn", "gpt", "sasrec"])
 def test_sequential_round_trip_preserves_vocabulary_and_context(tmp_path, kind):
     sequences = _sequence_data()
     tokenizer = ItemTokenizer(
@@ -247,6 +249,23 @@ def test_sequential_round_trip_preserves_vocabulary_and_context(tmp_path, kind):
             batcher,
         ).fit(sequences)
         model_class = SimpleRNNTrainer
+    elif kind == "sasrec":
+        model = SASRecTrainer(
+            SASRecConfig(
+                d_model=8,
+                n_blocks=1,
+                n_heads=2,
+                # The batcher above states a window, so the config has to name
+                # the same one: SASRec keeps a positional table sized by it and
+                # refuses a pair that disagrees.
+                max_history_length=3,
+                epochs=1,
+                batch_size=2,
+                show_progress=False,
+            ),
+            batcher,
+        ).fit(sequences)
+        model_class = SASRecTrainer
     else:
         model = SimpleGPTTrainer(
             SimpleGPTConfig(
@@ -487,8 +506,9 @@ def test_loading_defaults_to_cpu_even_if_saved_config_says_cuda(tmp_path):
         TEASERGDTrainer(),
         SimpleRNNTrainer(),
         SimpleGPTTrainer(),
+        SASRecTrainer(),
     ],
-    ids=["content", "elsa", "teaser-gd", "simple-rnn", "simple-gpt"],
+    ids=["content", "elsa", "teaser-gd", "simple-rnn", "simple-gpt", "sasrec"],
 )
 def test_torch_backed_recommenders_share_the_to_contract(model):
     assert model.to("cpu") is model
