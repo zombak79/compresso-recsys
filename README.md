@@ -106,9 +106,10 @@ corresponding `train_item_ids`, `val_item_ids`, and `test_item_ids` arrays.
   `MultVAE`).
 - Sequential recommenders over chronological histories: `SimpleRNN`, a recurrent
   next-item baseline, `SimpleGPT`, a causal transformer with a tied head, and
-  `SASRec`, the published self-attentive architecture trained against sampled
-  negatives. All three are built from replaceable parts — an `ItemTokenizer`
-  owning the vocabulary and a `SequenceBatcher` owning the context window — so
+  `SASRec`, a modernized variant of the published self-attentive architecture
+  trained against sampled negatives. All three are built from replaceable parts
+  — an `ItemTokenizer` owning the vocabulary and a `SequenceBatcher` owning the
+  context window — so
   bringing your own vocabulary or context length does not mean forking a
   trainer.
 - One evaluation path for both model shapes. A sequential and a matrix model are

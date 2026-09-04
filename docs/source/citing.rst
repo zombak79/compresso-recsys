@@ -176,8 +176,10 @@ SASRec
 ------
 
 For :class:`compresso_recsys.models.SASRecTrainer`, cite the original SASRec
-paper. Its architecture, its sampled-negative objective, and the defaults
-``SASRecConfig`` ships are taken from it:
+paper. Its sequential objective, tied item scoring, and published MovieLens
+hyperparameters are SASRec-derived. The transformer block uses a modernized
+pre-norm attention architecture, so published results are a point of comparison
+rather than exact implementation parity:
 
 .. code-block:: bibtex
 
