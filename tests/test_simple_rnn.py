@@ -155,6 +155,18 @@ def test_fit_returns_the_trainer_and_reports_the_catalog():
     assert trainer.batcher.tokenizer.n_items == N_ITEMS
 
 
+def test_fit_refuses_left_padding():
+    batcher = SequenceBatcher(
+        ItemTokenizer(N_ITEMS), max_length=12, padding="left"
+    )
+    trainer = SimpleRNNTrainer(_fast_config(), batcher)
+
+    with pytest.raises(ValueError, match="SimpleRNN requires right padding"):
+        trainer.fit(_seqs(_cycle_rows(16)))
+
+    assert trainer.model is None
+
+
 def test_before_fitting_nothing_is_claimed():
     trainer = SimpleRNNTrainer(_fast_config())
 

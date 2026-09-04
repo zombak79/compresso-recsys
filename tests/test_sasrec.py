@@ -88,6 +88,7 @@ def _model(**overrides):
         (dict(d_model=0), "d_model must be >= 1"),
         (dict(n_blocks=0), "n_blocks must be >= 1"),
         (dict(n_negatives=0), "n_negatives must be >= 1"),
+        (dict(max_history_length=0), "max_history_length must be >= 1"),
         (dict(d_model=10, n_heads=4), "divisible by n_heads"),
         (dict(epochs=0), "epochs must be >= 1"),
         (dict(dropout=1.0), r"dropout must be in \[0, 1\)"),

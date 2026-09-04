@@ -419,8 +419,8 @@ class SimpleGPTTrainer(BaseSequentialRecommender):
     One property of that batcher is load-bearing rather than advisory, so
     ``fit`` refuses a batcher without it. ``max_length`` must be set because it
     sizes the positional table and learned absolute positions need a bound.
-    Right padding is an invariant of :class:`SequenceBatcher`, which lets the
-    causal mask stand in for a padding mask.
+    This trainer requires right padding, which lets the causal mask stand in for
+    a padding mask. A left-padded batcher is rejected before the model is built.
 
     A history of a single interaction is a usable training example here, unlike
     for :class:`SimpleRNNTrainer` — the `CLS` prefix supplies the context, so
@@ -738,6 +738,11 @@ class SimpleGPTTrainer(BaseSequentialRecommender):
                 "SimpleGPT needs a bounded context: max_length sizes the "
                 "positional table, and learned absolute positions cannot be "
                 "extended at prediction time. Set max_length on the batcher"
+            )
+        if batcher.padding != "right":
+            raise ValueError(
+                "SimpleGPT requires right padding: its causal attention mask "
+                "does not mask leading padding"
             )
 
     def _train_step(

@@ -934,13 +934,14 @@ they had been consecutive. On a temporal MovieLens-1M split that fabricates 21%
 of all adjacencies across every row and costs about 9% of ndcg@20. A vocabulary
 built without ``unk`` cannot express such an item and raises rather than guesses.
 
-:class:`~compresso_recsys.models.SequenceBatcher` always pads on the right. For
-an RNN, the final-state helpers read each row before its trailing pads. For a
-causal transformer, real tokens cannot attend to padding that follows them, so
-training needs no padding mask — only a loss mask. Left padding is deliberately
-not configurable: a raw GRU or LSTM would process the leading pad steps, while a
-transformer would need an additional key-padding mask. In either case it could
-make behavior depend on the other histories in the batch.
+:class:`~compresso_recsys.models.SequenceBatcher` defaults to right padding and
+also exposes the left padding SASRec requires. SimpleRNN and SimpleGPT explicitly
+require the default: for an RNN, the final-state helpers read each row before its
+trailing pads; for a causal transformer, real tokens cannot attend to padding
+that follows them, so training needs no padding mask — only a loss mask. Both
+trainers reject left padding before building a model because a raw GRU or LSTM
+would process the leading pad steps, while the transformer would need an
+additional key-padding mask and different target alignment.
 
 ``max_length`` truncates to the **most recent** interactions, the only sensible
 direction, since a context window is a claim about recency rather than about
@@ -1110,11 +1111,11 @@ complicated of the two options and the deliberate one. A parameter can be
 row, as ``rstar`` does — and a vocabulary lookup cannot express that. Nothing in
 this library has user features yet, so today it does the job `BOS` would.
 
-**There is no attention mask.** The batcher always pads on the right, so a causal
-mask already excludes padding: a real token at position ``i`` attends only to
-``<= i``, all of which are real. Pad positions do compute garbage and nothing
-reads it — the loss is masked and prediction reads each row's last real
-position. This invariant is why the attention module needs no padding-mask
+**There is no attention mask.** SimpleGPT requires its batcher to pad on the
+right, so a causal mask already excludes padding: a real token at position ``i``
+attends only to ``<= i``, all of which are real. Pad positions do compute garbage
+and nothing reads it — the loss is masked and prediction reads each row's last
+real position. This invariant is why the attention module needs no padding-mask
 argument.
 
 **The head is tied to the input embedding, and scores the catalog rather than
@@ -1222,8 +1223,25 @@ SASRec is a causal transformer over chronological histories, trained against
 catalog. The network itself is deliberately plain -- a couple of self-attention
 blocks over one shared residual width -- and the choices worth knowing about are
 in the objective, in how a history is laid out for it, and in what the config
-does and does not let you move. See :doc:`../citing` for the paper this
-follows; ``SASRecConfig``'s defaults are its MovieLens-1M settings.
+does and does not let you move. See :doc:`../citing` for the paper this follows;
+``SASRecConfig``'s defaults are its MovieLens-1M settings. The
+:doc:`../reproducing-sasrec-results-on-ml1m` notebook walks through the full
+MovieLens-1M experiment and both the paper's sampled protocol and the package's
+full-catalog protocol.
+
+**This is a modernized SASRec variant, not a line-for-line port.** Its attention
+block uses the conventional PyTorch pre-norm form: one normalized stream supplies
+queries, keys, and values; the residual bypasses the complete attention module;
+and :class:`torch.nn.MultiheadAttention` includes an output projection. The
+`original TensorFlow model
+<https://github.com/kang205/SASRec/blob/master/model.py#L53-L59>`_ instead
+normalizes only the queries and supplies unnormalized keys and values, while its
+`attention implementation
+<https://github.com/kang205/SASRec/blob/master/modules.py#L165-L220>`_ adds the
+residual to those normalized queries and has no output projection. This package
+keeps SASRec's sequential objective, tied item scoring, and experimental
+hyperparameters, but published paper results are contextual reference values,
+not an exact implementation-parity claim.
 
 **The objective is binary, not cross entropy.** Each position scores its true
 next item and ``n_negatives`` sampled items, and each score is pushed toward one

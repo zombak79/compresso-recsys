@@ -79,14 +79,14 @@ class SASRecConfig:
 
     ``unk_dropout`` replaces that fraction of *input* positions with the
     tokenizer's ``unk`` token, teaching the model to read a history containing an
-    item it cannot identify. It defaults to a non-zero rate because otherwise
-    ``unk`` is never trained at all: the training vocabulary *is* the training
-    window, so an out-of-catalog item cannot occur until evaluation, and its
-    embedding would still sit at its initialisation when a quarter of a temporal
-    test history turns out to need it. The right rate tracks the out-of-catalog
-    share the split will actually produce -- near zero under ``leave_last_out``,
-    far higher on a late ``temporal`` stage. It is ignored when the tokenizer has
-    no ``unk`` to substitute.
+    item it cannot identify. It defaults to zero for paper parity. Set it above
+    zero when otherwise ``unk`` would never be trained: the training vocabulary
+    *is* the training window, so an out-of-catalog item cannot occur until
+    evaluation, and its embedding would still sit at its initialisation when a
+    quarter of a temporal test history turns out to need it. The right rate
+    tracks the out-of-catalog share the split will actually produce -- near zero
+    under ``leave_last_out``, far higher on a late ``temporal`` stage. It is
+    ignored when the tokenizer has no ``unk`` to substitute.
 
     ``betas`` belongs to ``Adam`` and to no other optimizer, which is why it is
     applied through :meth:`optimizer_kwargs` rather than passed unconditionally.
@@ -121,7 +121,14 @@ class SASRecConfig:
 
     def __post_init__(self) -> None:
         _validate_log_every_n_steps(self.log_every_n_steps)
-        for name in ("d_model", "n_blocks", "n_heads", "batch_size", "n_negatives"):
+        for name in (
+            "d_model",
+            "n_blocks",
+            "n_heads",
+            "max_history_length",
+            "batch_size",
+            "n_negatives",
+        ):
             value = getattr(self, name)
             if value < 1:
                 raise ValueError(f"{name} must be >= 1, got {value}")
@@ -189,6 +196,17 @@ class PointWiseFeedForward(nn.Module):
 
 class SASRec(nn.Module):
     """Item and position embeddings, causal blocks, and a tied dot-product score.
+
+    This is a modernized SASRec variant, not a line-for-line port of the original
+    TensorFlow attention block. Each block uses the conventional PyTorch pre-norm
+    form: the normalized residual stream supplies queries, keys, and values;
+    :class:`~torch.nn.MultiheadAttention` applies its output projection; and the
+    result is added to the unnormalized residual stream. The reference code
+    normalizes only the queries, uses the unnormalized stream for keys and
+    values, adds its residual to the normalized queries, and has no attention
+    output projection. The sequential objective, tied item scoring, and published
+    MovieLens hyperparameters remain SASRec-derived, but published results are a
+    point of comparison rather than exact implementation parity.
 
     There is no output head. A candidate is scored by the dot product of a state
     with that candidate's *input* embedding, which is what makes the tie
@@ -305,7 +323,7 @@ class SASRec(nn.Module):
     def forward(self, item_history: torch.Tensor) -> torch.Tensor:
         """States for every step, shape ``(rows, length, d_model)``.
 
-        ``item_history`` is ``(rows, length)`` of embedding-row ids, right
+        ``item_history`` is ``(rows, length)`` of embedding-row ids, left
         padded -- what the batcher's ``encode`` returns. ``states[:, i]`` has
         read ``item_history[:, :i + 1]``, so it is the state from which
         ``item_history[:, i + 1]`` should be predicted.
@@ -1111,318 +1129,3 @@ class SASRecTrainer(BaseSequentialRecommender):
             lr=self.cfg.lr,
             **self.cfg.optimizer_kwargs(),
         )
-
-
-if __name__ == "__main__":
-    # A MovieLens-1M reproduction of Kang & McAuley (2018), run through this
-    # package's public API.
-    #
-    # It reports the same run under two protocols, because the obvious question
-    # -- "is this number right?" -- has two different right answers and they
-    # differ by an order of magnitude. The paper ranks the held-out item against
-    # 100 sampled negatives and reports HR@10 and nDCG@10; this package's
-    # benchmark table ranks the entire catalog and reports nDCG@20. Neither is
-    # wrong, but a sampled number quoted into the full-catalog table would be,
-    # so both are printed and each is labelled with what it may be compared to.
-    import os
-    import time
-    from pathlib import Path
-
-    import compresso_recsys as cr
-    from compresso_recsys.evaluation import (
-        evaluate_ranked_predictions,
-        evaluate_recommender,
-    )
-    from compresso_recsys.metrics import MRR, NDCG, HitRate, Recall
-
-    # -- what the paper fixed ------------------------------------------------
-
-    # Table 3, the MovieLens-1M row. What section 4 is measured against.
-    PAPER_HR10 = 0.8245
-    PAPER_NDCG10 = 0.5905
-    # Section 4.1: rank the true next item against 100 items the user never
-    # interacted with, cut at 10.
-    N_NEGATIVES = 100
-    SAMPLED_CUTOFF = 10
-    NEGATIVE_SEED = 0
-    # docs/source/sequential-benchmarks.rst ranks the whole catalog at 20.
-    FULL_CUTOFF = 20
-
-    CHECKPOINT = Path("artifacts/ml1m/sasrec_paper_ml1m.zip")
-
-    if torch.cuda.is_available():
-        DEVICE = "cuda"
-    elif getattr(torch.backends, "mps", None) and torch.backends.mps.is_available():
-        DEVICE = "mps"
-    else:
-        DEVICE = "cpu"
-
-    # Every model hyperparameter stays at SASRecConfig's default, because those
-    # defaults *are* the paper's MovieLens-1M settings: d=50, two blocks, one
-    # head, dropout 0.2, a 200-step window, one negative per position, Adam at
-    # 1e-3 with betas (0.9, 0.98), batch 128. A device is not a hyperparameter,
-    # so it is the only thing overridden.
-    cfg = replace(SASRecConfig(), device=DEVICE)
-
-    # A short run is for checking that the script works, never for reporting.
-    # Section 4 withholds the comparison under one rather than leaving a number
-    # that looks quotable sitting in a column next to the paper's.
-    shortened = os.environ.get("SASREC_EPOCHS")
-    if shortened:
-        cfg = replace(cfg, epochs=int(shortened))
-
-    started = time.time()
-
-    def elapsed() -> str:
-        return f"[{time.time() - started:7.1f}s]"
-
-    print(
-        f"device: {DEVICE}   epochs: {cfg.epochs}   "
-        f"window: {cfg.max_history_length}"
-    )
-    if shortened:
-        print("  SASREC_EPOCHS is set: this is a smoke run, not a reproduction")
-
-    # -- 1. the split ---------------------------------------------------------
-
-    print(f"\n{elapsed()} checkpoint")
-    if CHECKPOINT.exists():
-        print(f"  reusing {CHECKPOINT}")
-    else:
-        print(f"  building {CHECKPOINT} from data/movielens1m")
-        cr.build_recsys_checkpoint(
-            dataset="ml1m",
-            data_dir="data",
-            checkpoint_path=str(CHECKPOINT),
-            # The one split mode that emits sequences, and the one that matches
-            # the paper: it holds out each user's last interaction for test and
-            # the second-to-last for validation.
-            split_mode="leave_last_out",
-            # Section 4.1 discards users and items with fewer than five
-            # interactions.
-            min_user_support=5,
-            item_min_support=5,
-            # Every rating, because the paper treats "the presence of a review
-            # or rating as implicit feedback" -- a one-star rating is an
-            # interaction. This has to be said explicitly: omitting it does not
-            # mean "no threshold", it means the ml1m spec's default of 4.0,
-            # which silently drops about 45% of the events and would make this
-            # a different experiment than the one the numbers below claim.
-            # Ratings are integers in 1-5, so 1.0 keeps all of them.
-            min_value_to_keep=1.0,
-            # Same trap, second door. The builder defaults this to 30, which
-            # drops every movie whose title, genres and description together
-            # run under thirty words -- 276 of them, and 22k ratings with
-            # them. That is a sensible default for the text-conditioned models
-            # this package also serves and wrong for a SASRec reproduction,
-            # which reads IDs and no text at all.
-            min_entity_text_words=0,
-            seed=0,
-            show_progress=False,
-        )
-
-    with cr.read_checkpoint(CHECKPOINT) as root:
-        split = cr.load_recsys_split(root)
-
-    train_sequences = split["x_train_sequences"]
-    test_source = split["test_source_sequences"]
-    test_targets = split["test_target_matrix"]
-    item_ids = split["train_item_ids"]
-
-    lengths = np.diff(train_sequences.indptr)
-    users = train_sequences.n_rows
-    items = train_sequences.n_items
-    # Table 2 counts every action. Training holds out two per user, so those go
-    # back before the comparison, or this understates the dataset by 1.2%.
-    actions = int(train_sequences.values.size) + 2 * users
-    print(f"  {users} users, {items} items, {actions} actions")
-    print(
-        f"  {actions / users:.1f} actions/user, {actions / items:.1f} "
-        f"actions/item, median history {int(np.median(lengths))}"
-    )
-    print("  paper table 2:  6040 users, 3416 items, 163.5 and 289.1")
-
-    # -- 2. train -------------------------------------------------------------
-
-    print(f"\n{elapsed()} train")
-    # The batcher carries the real MovieLens IDs, which is what lets recommend()
-    # take and return them. It names no window, so the window is the config's
-    # and this script cannot drift from the default it exists to run.
-    batcher = SequenceBatcher(
-        ItemTokenizer(train_sequences.n_items, item_ids=item_ids),
-    )
-    trainer = SASRecTrainer(cfg, batcher).fit(train_sequences, item_ids=item_ids)
-
-    every = max(1, len(trainer.history) // 10)
-    print(f"  {'epoch':>6}  {'loss':>9}")
-    for index, entry in enumerate(trainer.history):
-        if index % every == 0 or index == len(trainer.history) - 1:
-            print(f"  {int(entry['epoch']):>6}  {entry['loss']:>9.4f}")
-
-    # -- 3. scores ------------------------------------------------------------
-
-    def catalog_scores(
-        model: SASRecTrainer, source: ItemSequences, *, rows: int = 512
-    ) -> np.ndarray:
-        """Raw catalog scores per row, batched.
-
-        Built here rather than read out of ``predict`` because the sampled
-        protocol needs the score of specific items rather than the best ones,
-        and ``predict`` has already discarded everything outside its top k.
-        """
-        out = np.empty((source.n_rows, source.n_items), dtype=np.float32)
-        model.model.eval()
-        for start in range(0, source.n_rows, rows):
-            stop = min(start + rows, source.n_rows)
-            chunk = ItemSequences(
-                values=source.values[source.indptr[start] : source.indptr[stop]],
-                indptr=source.indptr[start : stop + 1] - source.indptr[start],
-                n_items=source.n_items,
-            )
-            with torch.no_grad():
-                tokens, mask = model.batcher.encode(chunk, device=model.device)
-                final = model.batcher.gather_final(model.model(tokens), mask)
-                out[start:stop] = model.model.score(final).float().cpu().numpy()
-        return out
-
-    print(f"\n{elapsed()} scoring {test_source.n_rows} test users")
-    scores = catalog_scores(trainer, test_source)
-
-    # -- 4. the paper's protocol: 100 sampled negatives, cut at 10 ------------
-
-    def sampled_protocol(
-        scores, interacted, targets, *, n_negatives, cutoff, seed
-    ) -> tuple[float, float, int]:
-        """Rank each held-out item against negatives the user never touched.
-
-        Ties go to the negative. With ``>`` instead of ``>=`` an untrained model
-        that gives every item the same score would report a perfect hit rate.
-        """
-        rng = np.random.default_rng(seed)
-        hits: list[float] = []
-        gains: list[float] = []
-        for row in range(scores.shape[0]):
-            positives = targets[row].indices
-            if positives.size == 0:
-                continue
-            pool = np.flatnonzero(~interacted[row])
-            if pool.size < n_negatives:
-                continue
-            negatives = rng.choice(pool, size=n_negatives, replace=False)
-            # Leave-last-out gives one held-out item per user.
-            target = int(positives[0])
-            above = int((scores[row, negatives] >= scores[row, target]).sum())
-            hits.append(float(above < cutoff))
-            gains.append(1.0 / np.log2(above + 2) if above < cutoff else 0.0)
-        return float(np.mean(hits)), float(np.mean(gains)), len(hits)
-
-    # Everything the user ever touched, so a negative is genuinely unseen: the
-    # test source is the whole history bar the last item, and the target is it.
-    interacted = (split["test_source_matrix"] + test_targets).astype(bool).toarray()
-    hr, ndcg, scored = sampled_protocol(
-        scores,
-        interacted,
-        test_targets,
-        n_negatives=N_NEGATIVES,
-        cutoff=SAMPLED_CUTOFF,
-        seed=NEGATIVE_SEED,
-    )
-
-    print(
-        f"\n{elapsed()} paper protocol -- "
-        f"{N_NEGATIVES} sampled negatives, @{SAMPLED_CUTOFF}"
-    )
-    print(f"  {'metric':<12}{'this run':>10}{'paper':>10}{'delta':>10}")
-    if shortened:
-        print(f"  {'HR@10':<12}{hr:>10.4f}{'--':>10}{'--':>10}")
-        print(f"  {'NDCG@10':<12}{ndcg:>10.4f}{'--':>10}{'--':>10}")
-        print("  paper column withheld: SASREC_EPOCHS shortened this run")
-    else:
-        print(
-            f"  {'HR@10':<12}{hr:>10.4f}{PAPER_HR10:>10.4f}"
-            f"{hr - PAPER_HR10:>+10.4f}"
-        )
-        print(
-            f"  {'NDCG@10':<12}{ndcg:>10.4f}{PAPER_NDCG10:>10.4f}"
-            f"{ndcg - PAPER_NDCG10:>+10.4f}"
-        )
-    print(f"  scored {scored} of {test_source.n_rows} users")
-
-    # -- 5. this package's protocol: the whole catalog, cut at 20 -------------
-
-    print(f"\n{elapsed()} benchmark protocol -- full catalog, @{FULL_CUTOFF}")
-    metrics = [
-        NDCG(FULL_CUTOFF),
-        Recall(FULL_CUTOFF),
-        HitRate(FULL_CUTOFF),
-        MRR(FULL_CUTOFF),
-    ]
-    result = evaluate_recommender(
-        trainer,
-        source=test_source,
-        targets=test_targets,
-        metrics=metrics,
-        sample_ids=split["test_eval_user_ids"],
-    )
-
-    # Most-popular, scored identically. A sequential model that has silently
-    # stopped reading order lands here rather than crashing, so the gap is what
-    # says the run is sound before its absolute numbers say anything.
-    popularity = np.asarray(split["x_train"].sum(axis=0)).ravel()
-    by_popularity = np.argsort(-popularity, kind="stable")
-    seen = split["test_source_matrix"].astype(bool).toarray()[:, by_popularity]
-    # A stable argsort over the seen flags floats each row's unseen items to the
-    # front while leaving them in popularity order.
-    unseen_first = np.argsort(seen, axis=1, kind="stable")[:, :FULL_CUTOFF]
-    baseline = evaluate_ranked_predictions(
-        predictions=SRPTensor(
-            cols=torch.from_numpy(by_popularity[unseen_first]).long(),
-            # Rank order rather than the counts: tied counts are not a ranking,
-            # and the evaluator is right to reject them.
-            vals=torch.arange(FULL_CUTOFF, 0, -1, dtype=torch.float32).expand(
-                test_source.n_rows, FULL_CUTOFF
-            ),
-            shape=(test_source.n_rows, train_sequences.n_items),
-        ),
-        targets=test_targets,
-        metrics=metrics,
-        sample_ids=split["test_eval_user_ids"],
-    )
-
-    print(f"  {'metric':<16}{'SASRec':>10}{'popular':>10}{'lift':>9}")
-    for name in result.metrics:
-        ours, theirs = result[name], baseline[name]
-        lift = f"{ours / theirs:.1f}x" if theirs else "--"
-        print(f"  {name:<16}{ours:>10.4f}{theirs:>10.4f}{lift:>9}")
-    print(f"  scored {result.n_scored_rows} of {result.n_rows} users")
-    print("  this is the column that belongs in sequential-benchmarks.rst")
-
-    # -- 6. validation, to say whether the epoch budget was right -------------
-
-    # The paper trains a fixed budget and so does this. Whether that budget was
-    # over or under for this split is a question the test column cannot answer
-    # and the validation target can.
-    print(f"\n{elapsed()} validation -- full catalog, @{FULL_CUTOFF}")
-    validation = evaluate_recommender(
-        trainer,
-        source=split["val_source_sequences"],
-        targets=split["val_target_matrix"],
-        metrics=[NDCG(FULL_CUTOFF)],
-        sample_ids=split["val_eval_user_ids"],
-    )
-    val_ndcg = validation[f"ndcg@{FULL_CUTOFF}"]
-    test_ndcg = result[f"ndcg@{FULL_CUTOFF}"]
-    print(
-        f"  val ndcg@{FULL_CUTOFF} {val_ndcg:.4f}   "
-        f"test ndcg@{FULL_CUTOFF} {test_ndcg:.4f}"
-    )
-    print(
-        "  the two tracking each other means the budget was about right; "
-        "validation far above test means it overfit"
-    )
-
-    # -- 7. keep the run ------------------------------------------------------
-
-    trainer.save_to_checkpoint(CHECKPOINT, "sasrec")
-    print(f"\n{elapsed()} saved into {CHECKPOINT.name} as 'sasrec'")
-    print(f"{elapsed()} done")

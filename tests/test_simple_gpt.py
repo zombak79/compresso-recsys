@@ -343,6 +343,17 @@ def test_fit_returns_the_trainer_and_sizes_positions_from_the_batcher():
     assert trainer.model.max_positions == 13
 
 
+def test_fit_refuses_left_padding():
+    trainer = SimpleGPTTrainer(
+        _trainer_config(), _batcher(max_length=12, padding="left")
+    )
+
+    with pytest.raises(ValueError, match="SimpleGPT requires right padding"):
+        trainer.fit(_seqs(_cycle_rows(16)))
+
+    assert trainer.model is None
+
+
 def test_before_fitting_nothing_is_claimed():
     trainer = SimpleGPTTrainer(_trainer_config())
 

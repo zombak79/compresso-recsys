@@ -215,6 +215,8 @@ class SimpleRNNTrainer(BaseSequentialRecommender):
 
     Without one, ``fit`` builds a default over the training catalog with
     :attr:`DEFAULT_MAX_LENGTH` and right padding.
+    A supplied batcher must also use right padding: leading padding would advance
+    the recurrent state and turn the first real item into a target of padding.
 
     Users retaining fewer than two interactions after truncation contribute no
     training example, since a next-item target needs a preceding item. ``fit``
@@ -300,6 +302,7 @@ class SimpleRNNTrainer(BaseSequentialRecommender):
             )
         if self.batcher is None:  # pragma: no cover - defensive against mutation
             raise RuntimeError("trainer batcher is unavailable")
+        self._check_batcher(self.batcher)
         if self.batcher.tokenizer.n_items != sequences.n_items:
             raise ValueError(
                 "batcher tokenizer has "
@@ -436,6 +439,15 @@ class SimpleRNNTrainer(BaseSequentialRecommender):
             f"{len(self.history)} epochs recorded"
         )
         return self
+
+    @staticmethod
+    def _check_batcher(batcher: SequenceBatcher) -> None:
+        """Refuse a batcher whose settings this architecture cannot honour."""
+        if batcher.padding != "right":
+            raise ValueError(
+                "SimpleRNN requires right padding: leading padding changes the "
+                "recurrent state and next-item target alignment"
+            )
 
     def _build_model(self) -> SimpleRNN:
         if self.batcher is None:
