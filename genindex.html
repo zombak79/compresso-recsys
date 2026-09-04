@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Index &mdash; Compresso Recsys 0.3.1 documentation</title>
+  <title>Index &mdash; Compresso Recsys 0.3.2 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=385a908f"></script>
+      <script src="_static/documentation_options.js?v=2f2e10e9"></script>
       <script src="_static/doctools.js?v=fd6eb6e6"></script>
       <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -103,6 +103,18 @@
 <li class="toctree-l2"><a class="reference internal" href="implementing-a-recommender.html#Extending-the-pattern">Extending the pattern</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="reproducing-sasrec-results-on-ml1m.html">Reproducing SASRec Results on ML1M</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="reproducing-sasrec-results-on-ml1m.html#Configuration-and-run-modes">Configuration and run modes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reproducing-sasrec-results-on-ml1m.html#Build-the-MovieLens-1M-checkpoint">Build the MovieLens 1M checkpoint</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reproducing-sasrec-results-on-ml1m.html#Inspect-the-split">Inspect the split</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reproducing-sasrec-results-on-ml1m.html#Train-SASRec">Train SASRec</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reproducing-sasrec-results-on-ml1m.html#Score-the-catalog">Score the catalog</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reproducing-sasrec-results-on-ml1m.html#Published-protocol:-100-sampled-negatives-at-10">Published protocol: 100 sampled negatives at 10</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reproducing-sasrec-results-on-ml1m.html#Package-protocol:-full-catalog-at-20">Package protocol: full catalog at 20</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reproducing-sasrec-results-on-ml1m.html#Check-the-epoch-budget-on-validation-data">Check the epoch budget on validation data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reproducing-sasrec-results-on-ml1m.html#Save-the-trained-model">Save the trained model</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="statistical-comparison.html">Comparing Models Statistically</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="statistical-comparison.html#why-the-aggregates-are-not-enough">Why the aggregates are not enough</a></li>
 <li class="toctree-l2"><a class="reference internal" href="statistical-comparison.html#do-the-comparison">Do the comparison</a></li>
@@ -159,6 +171,7 @@
 <li class="toctree-l2"><a class="reference internal" href="citing.html#elsa">ELSA</a></li>
 <li class="toctree-l2"><a class="reference internal" href="citing.html#elsa-with-sampled-output-candidates">ELSA with sampled output candidates</a></li>
 <li class="toctree-l2"><a class="reference internal" href="citing.html#compressed-elsa">Compressed ELSA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#sasrec">SASRec</a></li>
 <li class="toctree-l2"><a class="reference internal" href="citing.html#evaluation-protocol">Evaluation Protocol</a></li>
 <li class="toctree-l2"><a class="reference internal" href="citing.html#statistical-comparison">Statistical Comparison</a></li>
 </ul>
@@ -288,6 +301,7 @@
 <li class="toctree-l4"><a class="reference internal" href="api/models.html#tokenizing-histories">Tokenizing Histories</a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/models.html#simplernn">SimpleRNN</a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/models.html#simplegpt">SimpleGPT</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#sasrec">SASRec</a></li>
 </ul>
 </li>
 </ul>
@@ -529,6 +543,8 @@
       </ul></li>
       <li><a href="api/models.html#compresso_recsys.models.CandidateCatalog">CandidateCatalog (class in compresso_recsys.models)</a>
 </li>
+      <li><a href="api/models.html#compresso_recsys.models.SASRecTrainer.checkpoint_type">checkpoint_type (compresso_recsys.models.SASRecTrainer attribute)</a>
+</li>
       <li><a href="api/models.html#compresso_recsys.models.ColdStartRecommender">ColdStartRecommender (class in compresso_recsys.models)</a>
 </li>
   </ul></td>
@@ -664,6 +680,8 @@
 </li>
         <li><a href="api/models.html#compresso_recsys.models.RandomBaseline.fit">(compresso_recsys.models.RandomBaseline method)</a>
 </li>
+        <li><a href="api/models.html#compresso_recsys.models.SASRecTrainer.fit">(compresso_recsys.models.SASRecTrainer method)</a>
+</li>
         <li><a href="api/models.html#compresso_recsys.models.SimpleGPTTrainer.fit">(compresso_recsys.models.SimpleGPTTrainer method)</a>
 </li>
         <li><a href="api/models.html#compresso_recsys.models.SimpleRNNTrainer.fit">(compresso_recsys.models.SimpleRNNTrainer method)</a>
@@ -685,6 +703,8 @@
         <li><a href="api/models.html#compresso_recsys.models.MultDAE.forward">(compresso_recsys.models.MultDAE method)</a>
 </li>
         <li><a href="api/models.html#compresso_recsys.models.MultVAE.forward">(compresso_recsys.models.MultVAE method)</a>
+</li>
+        <li><a href="api/models.html#compresso_recsys.models.SASRec.forward">(compresso_recsys.models.SASRec method)</a>
 </li>
         <li><a href="api/models.html#compresso_recsys.models.SimpleGPT.forward">(compresso_recsys.models.SimpleGPT method)</a>
 </li>
@@ -767,6 +787,8 @@
         <li><a href="api/models.html#compresso_recsys.models.MultVAETrainer.is_fitted">(compresso_recsys.models.MultVAETrainer property)</a>
 </li>
         <li><a href="api/models.html#compresso_recsys.models.PopularityBaseline.is_fitted">(compresso_recsys.models.PopularityBaseline property)</a>
+</li>
+        <li><a href="api/models.html#compresso_recsys.models.SASRecTrainer.is_fitted">(compresso_recsys.models.SASRecTrainer property)</a>
 </li>
         <li><a href="api/models.html#compresso_recsys.models.SimpleGPTTrainer.is_fitted">(compresso_recsys.models.SimpleGPTTrainer property)</a>
 </li>
@@ -898,6 +920,8 @@
 </li>
         <li><a href="api/models.html#compresso_recsys.models.MutableCandidateCatalog.n_items">(compresso_recsys.models.MutableCandidateCatalog property)</a>
 </li>
+        <li><a href="api/models.html#compresso_recsys.models.SASRecTrainer.n_items">(compresso_recsys.models.SASRecTrainer property)</a>
+</li>
         <li><a href="api/models.html#compresso_recsys.models.SimpleGPTTrainer.n_items">(compresso_recsys.models.SimpleGPTTrainer property)</a>
 </li>
         <li><a href="api/models.html#compresso_recsys.models.SimpleRNNTrainer.n_items">(compresso_recsys.models.SimpleRNNTrainer property)</a>
@@ -930,6 +954,10 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/persistence.html#compresso_recsys.ModelCheckpointReader.optimizer_included">optimizer_included (compresso_recsys.ModelCheckpointReader property)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/models.html#compresso_recsys.models.SASRecConfig.optimizer_kwargs">optimizer_kwargs() (compresso_recsys.models.SASRecConfig method)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -993,6 +1021,8 @@
         <li><a href="api/models.html#compresso_recsys.models.RandomBaseline.predict_on_batch">(compresso_recsys.models.RandomBaseline method)</a>
 </li>
         <li><a href="api/models.html#compresso_recsys.models.Recommender.predict_on_batch">(compresso_recsys.models.Recommender method)</a>
+</li>
+        <li><a href="api/models.html#compresso_recsys.models.SASRecTrainer.predict_on_batch">(compresso_recsys.models.SASRecTrainer method)</a>
 </li>
         <li><a href="api/models.html#compresso_recsys.models.SequentialRecommender.predict_on_batch">(compresso_recsys.models.SequentialRecommender method)</a>
 </li>
@@ -1095,6 +1125,12 @@
 <h2 id="S">S</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/models.html#compresso_recsys.models.SASRec">SASRec (class in compresso_recsys.models)</a>
+</li>
+      <li><a href="api/models.html#compresso_recsys.models.SASRecConfig">SASRecConfig (class in compresso_recsys.models)</a>
+</li>
+      <li><a href="api/models.html#compresso_recsys.models.SASRecTrainer">SASRecTrainer (class in compresso_recsys.models)</a>
+</li>
       <li><a href="api/models.html#compresso_recsys.models.BasePersistableRecommender.save">save() (compresso_recsys.models.BasePersistableRecommender method)</a>
 
       <ul>
@@ -1117,24 +1153,28 @@
         <li><a href="api/models.html#compresso_recsys.models.TEASER.save_to_checkpoint">(compresso_recsys.models.TEASER method)</a>
 </li>
       </ul></li>
-      <li><a href="api/models.html#compresso_recsys.models.SimpleGPT.score">score() (compresso_recsys.models.SimpleGPT method)</a>
+      <li><a href="api/models.html#compresso_recsys.models.SASRec.score">score() (compresso_recsys.models.SASRec method)</a>
 
       <ul>
+        <li><a href="api/models.html#compresso_recsys.models.SimpleGPT.score">(compresso_recsys.models.SimpleGPT method)</a>
+</li>
         <li><a href="api/models.html#compresso_recsys.models.SimpleRNN.score">(compresso_recsys.models.SimpleRNN method)</a>
 </li>
       </ul></li>
       <li><a href="api/models.html#compresso_recsys.models.CompressedELSA.score_all_items">score_all_items() (compresso_recsys.models.CompressedELSA method)</a>
 </li>
+      <li><a href="api/models.html#compresso_recsys.models.SASRec.score_items">score_items() (compresso_recsys.models.SASRec method)</a>
+</li>
       <li><a href="api/sequences.html#compresso_recsys.ItemSequences.select_rows">select_rows() (compresso_recsys.ItemSequences method)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/models.html#compresso_recsys.models.SequenceBatcher">SequenceBatcher (class in compresso_recsys.models)</a>
 </li>
       <li><a href="api/models.html#compresso_recsys.models.SequentialRecommender">SequentialRecommender (class in compresso_recsys.models)</a>
 </li>
       <li><a href="api/models.html#compresso_recsys.models.SimpleGPT">SimpleGPT (class in compresso_recsys.models)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/models.html#compresso_recsys.models.SimpleGPTConfig">SimpleGPTConfig (class in compresso_recsys.models)</a>
 </li>
       <li><a href="api/models.html#compresso_recsys.models.SimpleGPTTrainer">SimpleGPTTrainer (class in compresso_recsys.models)</a>

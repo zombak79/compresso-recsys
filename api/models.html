@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Models API &mdash; Compresso Recsys 0.3.1 documentation</title>
+  <title>Models API &mdash; Compresso Recsys 0.3.2 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
 
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=385a908f"></script>
+      <script src="../_static/documentation_options.js?v=2f2e10e9"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -106,6 +106,18 @@
 <li class="toctree-l2"><a class="reference internal" href="../implementing-a-recommender.html#Extending-the-pattern">Extending the pattern</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../reproducing-sasrec-results-on-ml1m.html">Reproducing SASRec Results on ML1M</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../reproducing-sasrec-results-on-ml1m.html#Configuration-and-run-modes">Configuration and run modes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reproducing-sasrec-results-on-ml1m.html#Build-the-MovieLens-1M-checkpoint">Build the MovieLens 1M checkpoint</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reproducing-sasrec-results-on-ml1m.html#Inspect-the-split">Inspect the split</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reproducing-sasrec-results-on-ml1m.html#Train-SASRec">Train SASRec</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reproducing-sasrec-results-on-ml1m.html#Score-the-catalog">Score the catalog</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reproducing-sasrec-results-on-ml1m.html#Published-protocol:-100-sampled-negatives-at-10">Published protocol: 100 sampled negatives at 10</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reproducing-sasrec-results-on-ml1m.html#Package-protocol:-full-catalog-at-20">Package protocol: full catalog at 20</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reproducing-sasrec-results-on-ml1m.html#Check-the-epoch-budget-on-validation-data">Check the epoch budget on validation data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reproducing-sasrec-results-on-ml1m.html#Save-the-trained-model">Save the trained model</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="../statistical-comparison.html">Comparing Models Statistically</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../statistical-comparison.html#why-the-aggregates-are-not-enough">Why the aggregates are not enough</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../statistical-comparison.html#do-the-comparison">Do the comparison</a></li>
@@ -162,6 +174,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../citing.html#elsa">ELSA</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../citing.html#elsa-with-sampled-output-candidates">ELSA with sampled output candidates</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../citing.html#compressed-elsa">Compressed ELSA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../citing.html#sasrec">SASRec</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../citing.html#evaluation-protocol">Evaluation Protocol</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../citing.html#statistical-comparison">Statistical Comparison</a></li>
 </ul>
@@ -291,6 +304,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#tokenizing-histories">Tokenizing Histories</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#simplernn">SimpleRNN</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#simplegpt">SimpleGPT</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#sasrec">SASRec</a></li>
 </ul>
 </li>
 </ul>
@@ -4051,13 +4065,14 @@ not fitted on, and <em>dropping</em> them instead would join their neighbours as
 they had been consecutive. On a temporal MovieLens-1M split that fabricates 21%
 of all adjacencies across every row and costs about 9% of <a class="reference external" href="mailto:ndcg&#37;&#52;&#48;20">ndcg<span>&#64;</span>20</a>. A vocabulary
 built without <code class="docutils literal notranslate"><span class="pre">unk</span></code> cannot express such an item and raises rather than guesses.</p>
-<p><a class="reference internal" href="#compresso_recsys.models.SequenceBatcher" title="compresso_recsys.models.SequenceBatcher"><code class="xref py py-class docutils literal notranslate"><span class="pre">SequenceBatcher</span></code></a> always pads on the right. For
-an RNN, the final-state helpers read each row before its trailing pads. For a
-causal transformer, real tokens cannot attend to padding that follows them, so
-training needs no padding mask — only a loss mask. Left padding is deliberately
-not configurable: a raw GRU or LSTM would process the leading pad steps, while a
-transformer would need an additional key-padding mask. In either case it could
-make behavior depend on the other histories in the batch.</p>
+<p><a class="reference internal" href="#compresso_recsys.models.SequenceBatcher" title="compresso_recsys.models.SequenceBatcher"><code class="xref py py-class docutils literal notranslate"><span class="pre">SequenceBatcher</span></code></a> defaults to right padding and
+also exposes the left padding SASRec requires. SimpleRNN and SimpleGPT explicitly
+require the default: for an RNN, the final-state helpers read each row before its
+trailing pads; for a causal transformer, real tokens cannot attend to padding
+that follows them, so training needs no padding mask — only a loss mask. Both
+trainers reject left padding before building a model because a raw GRU or LSTM
+would process the leading pad steps, while the transformer would need an
+additional key-padding mask and different target alignment.</p>
 <p><code class="docutils literal notranslate"><span class="pre">max_length</span></code> truncates to the <strong>most recent</strong> interactions, the only sensible
 direction, since a context window is a claim about recency rather than about
 where a history happened to start.</p>
@@ -4377,23 +4392,34 @@ catalog is large enough for the size to.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="compresso_recsys.models.SequenceBatcher">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">compresso_recsys.models.</span></span><span class="sig-name descname"><span class="pre">SequenceBatcher</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tokenizer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_length</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/sequence_batching.html#SequenceBatcher"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.SequenceBatcher" title="Link to this definition"></a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">compresso_recsys.models.</span></span><span class="sig-name descname"><span class="pre">SequenceBatcher</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tokenizer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_length</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">padding</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'right'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/sequence_batching.html#SequenceBatcher"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.SequenceBatcher" title="Link to this definition"></a></dt>
 <dd><p>Encodes ragged histories into dense token tensors.</p>
 <p>The tokenizer is positional because it is a collaborator rather than an
 option: without a vocabulary there is nothing to encode.</p>
-<p>Padding is always on the right. A recurrent model can gather each row’s last
-real state before the padding, while a causal model never lets a real token
-attend to padding that follows it. Supporting left padding would require
-each model to skip or mask leading pad steps, so it is not exposed as a
-batcher option.</p>
+<p>Padding defaults to the right, where a recurrent model can gather each row’s
+last real state and a causal model never lets a real token attend to the
+padding that follows it. <code class="docutils literal notranslate"><span class="pre">padding=&quot;left&quot;</span></code> is the opt-in for models whose
+absolute positions have to be anchored to the newest interaction; it obliges
+the model to mask the leading pad steps out of attention itself, because
+causal masking no longer does it for free.</p>
 <p><code class="docutils literal notranslate"><span class="pre">max_length</span></code> truncates to the <strong>most recent</strong> interactions, the only
 sensible direction: a context window is a claim about recency, not about
 where a history happened to start.</p>
+<p><code class="docutils literal notranslate"><span class="pre">padding</span></code> chooses the side, and the two sides are not interchangeable.
+Right padding, the default, packs each batch to its own longest row and
+leaves a model to find each row’s last real state. Left padding instead
+fills every row to <code class="docutils literal notranslate"><span class="pre">max_length</span></code>, so the newest interaction always lands in
+the final column and an absolute position means “this far from the end” for
+every user alike – which is what a model with a learned positional table
+needs, and what SASRec’s published results assume. It costs the ragged
+packing: every batch is <code class="docutils literal notranslate"><span class="pre">max_length</span></code> wide however short its histories are,
+so <code class="docutils literal notranslate"><span class="pre">max_length</span></code> must be set for it.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>tokenizer</strong> (<a class="reference internal" href="#compresso_recsys.models.Tokenizer" title="compresso_recsys.models.tokenizer.Tokenizer"><em>Tokenizer</em></a>)</p></li>
 <li><p><strong>max_length</strong> (<em>int</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>padding</strong> (<em>Literal</em><em>[</em><em>'left'</em><em>, </em><em>'right'</em><em>]</em>)</p></li>
 </ul>
 </dd>
 </dl>
@@ -4452,8 +4478,11 @@ get wrong: with right padding the last column is padding for every row
 shorter than the batch maximum, so reading <code class="docutils literal notranslate"><span class="pre">[:,</span> <span class="pre">-1]</span></code> silently scores
 from a pad embedding — and agrees with itself at <code class="docutils literal notranslate"><span class="pre">batch_size=1</span></code>, where
 every row fills its own batch, which is what lets the bug survive.</p>
-<p>Empty rows report 0, which is padding. Pair this with <a class="reference internal" href="#compresso_recsys.models.SequenceBatcher.has_history" title="compresso_recsys.models.SequenceBatcher.has_history"><code class="xref py py-meth docutils literal notranslate"><span class="pre">has_history()</span></code></a>
-rather than trusting the position alone.</p>
+<p>Under left padding it is the last column for every row, since the real
+tokens are the suffix – the arithmetic below would instead point at the
+padding that precedes them.</p>
+<p>Empty rows report a padding position either way. Pair this with
+<a class="reference internal" href="#compresso_recsys.models.SequenceBatcher.has_history" title="compresso_recsys.models.SequenceBatcher.has_history"><code class="xref py py-meth docutils literal notranslate"><span class="pre">has_history()</span></code></a> rather than trusting the position alone.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></span></p>
@@ -4690,7 +4719,9 @@ than an error:</p>
 </pre></div>
 </div>
 <p>Without one, <code class="docutils literal notranslate"><span class="pre">fit</span></code> builds a default over the training catalog with
-<a class="reference internal" href="#compresso_recsys.models.SimpleRNNTrainer.DEFAULT_MAX_LENGTH" title="compresso_recsys.models.SimpleRNNTrainer.DEFAULT_MAX_LENGTH"><code class="xref py py-attr docutils literal notranslate"><span class="pre">DEFAULT_MAX_LENGTH</span></code></a> and right padding.</p>
+<a class="reference internal" href="#compresso_recsys.models.SimpleRNNTrainer.DEFAULT_MAX_LENGTH" title="compresso_recsys.models.SimpleRNNTrainer.DEFAULT_MAX_LENGTH"><code class="xref py py-attr docutils literal notranslate"><span class="pre">DEFAULT_MAX_LENGTH</span></code></a> and right padding.
+A supplied batcher must also use right padding: leading padding would advance
+the recurrent state and turn the first real item into a target of padding.</p>
 <p>Users retaining fewer than two interactions after truncation contribute no
 training example, since a next-item target needs a preceding item. <code class="docutils literal notranslate"><span class="pre">fit</span></code>
 refuses a dataset where that leaves no usable history. Short histories are
@@ -4798,11 +4829,11 @@ complicated of the two options and the deliberate one. A parameter can be
 <em>conditioned</em> — a user embedding or a global feature added into position 0 per
 row, as <code class="docutils literal notranslate"><span class="pre">rstar</span></code> does — and a vocabulary lookup cannot express that. Nothing in
 this library has user features yet, so today it does the job <cite>BOS</cite> would.</p>
-<p><strong>There is no attention mask.</strong> The batcher always pads on the right, so a causal
-mask already excludes padding: a real token at position <code class="docutils literal notranslate"><span class="pre">i</span></code> attends only to
-<code class="docutils literal notranslate"><span class="pre">&lt;=</span> <span class="pre">i</span></code>, all of which are real. Pad positions do compute garbage and nothing
-reads it — the loss is masked and prediction reads each row’s last real
-position. This invariant is why the attention module needs no padding-mask
+<p><strong>There is no attention mask.</strong> SimpleGPT requires its batcher to pad on the
+right, so a causal mask already excludes padding: a real token at position <code class="docutils literal notranslate"><span class="pre">i</span></code>
+attends only to <code class="docutils literal notranslate"><span class="pre">&lt;=</span> <span class="pre">i</span></code>, all of which are real. Pad positions do compute garbage
+and nothing reads it — the loss is masked and prediction reads each row’s last
+real position. This invariant is why the attention module needs no padding-mask
 argument.</p>
 <p><strong>The head is tied to the input embedding, and scores the catalog rather than
 the vocabulary.</strong> Items occupy the last <code class="docutils literal notranslate"><span class="pre">n_items</span></code> rows of the vocabulary, so
@@ -5040,8 +5071,8 @@ Without one, <code class="docutils literal notranslate"><span class="pre">fit</s
 <p>One property of that batcher is load-bearing rather than advisory, so
 <code class="docutils literal notranslate"><span class="pre">fit</span></code> refuses a batcher without it. <code class="docutils literal notranslate"><span class="pre">max_length</span></code> must be set because it
 sizes the positional table and learned absolute positions need a bound.
-Right padding is an invariant of <a class="reference internal" href="#compresso_recsys.models.SequenceBatcher" title="compresso_recsys.models.SequenceBatcher"><code class="xref py py-class docutils literal notranslate"><span class="pre">SequenceBatcher</span></code></a>, which lets the
-causal mask stand in for a padding mask.</p>
+This trainer requires right padding, which lets the causal mask stand in for
+a padding mask. A left-padded batcher is rejected before the model is built.</p>
 <p>A history of a single interaction is a usable training example here, unlike
 for <a class="reference internal" href="#compresso_recsys.models.SimpleRNNTrainer" title="compresso_recsys.models.SimpleRNNTrainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimpleRNNTrainer</span></code></a> — the <cite>CLS</cite> prefix supplies the context, so
 every position is a target rather than every position but the first.</p>
@@ -5097,6 +5128,523 @@ carrying the mean loss and the number of positions it was averaged over.</p>
 <dt class="sig sig-object py" id="compresso_recsys.models.SimpleGPTTrainer.predict_on_batch">
 <span class="sig-name descname"><span class="pre">predict_on_batch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exclude_seen</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">candidate_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/simple_gpt.html#SimpleGPTTrainer.predict_on_batch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.SimpleGPTTrainer.predict_on_batch" title="Link to this definition"></a></dt>
 <dd><p>Rank the catalog for each history from its last real state.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">SRPTensor</span></code></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>source</strong> (<a class="reference internal" href="sequences.html#compresso_recsys.ItemSequences" title="compresso_recsys.sequences.ItemSequences"><em>ItemSequences</em></a>)</p></li>
+<li><p><strong>k</strong> (<em>int</em>)</p></li>
+<li><p><strong>exclude_seen</strong> (<em>bool</em>)</p></li>
+<li><p><strong>candidate_ids</strong> (<em>Sequence</em><em>[</em><em>Hashable</em><em>] </em><em>| </em><em>ndarray</em><em> | </em><em>None</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="sasrec">
+<h3>SASRec<a class="headerlink" href="#sasrec" title="Link to this heading"></a></h3>
+<p>SASRec is a causal transformer over chronological histories, trained against
+<strong>sampled negatives under a binary objective</strong> rather than a softmax over the
+catalog. The network itself is deliberately plain – a couple of self-attention
+blocks over one shared residual width – and the choices worth knowing about are
+in the objective, in how a history is laid out for it, and in what the config
+does and does not let you move. See <a class="reference internal" href="../citing.html"><span class="doc">Citing Compresso Recsys</span></a> for the paper this follows;
+<code class="docutils literal notranslate"><span class="pre">SASRecConfig</span></code>’s defaults are its MovieLens-1M settings. The
+<a class="reference internal" href="../reproducing-sasrec-results-on-ml1m.html"><span class="doc">Reproducing SASRec Results on ML1M</span></a> notebook walks through the full
+MovieLens-1M experiment and both the paper’s sampled protocol and the package’s
+full-catalog protocol.</p>
+<p><strong>This is a modernized SASRec variant, not a line-for-line port.</strong> Its attention
+block uses the conventional PyTorch pre-norm form: one normalized stream supplies
+queries, keys, and values; the residual bypasses the complete attention module;
+and <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.MultiheadAttention</span></code> includes an output projection. The
+<a class="reference external" href="https://github.com/kang205/SASRec/blob/master/model.py#L53-L59">original TensorFlow model</a> instead
+normalizes only the queries and supplies unnormalized keys and values, while its
+<a class="reference external" href="https://github.com/kang205/SASRec/blob/master/modules.py#L165-L220">attention implementation</a> adds the
+residual to those normalized queries and has no output projection. This package
+keeps SASRec’s sequential objective, tied item scoring, and experimental
+hyperparameters, but published paper results are contextual reference values,
+not an exact implementation-parity claim.</p>
+<p><strong>The objective is binary, not cross entropy.</strong> Each position scores its true
+next item and <code class="docutils literal notranslate"><span class="pre">n_negatives</span></code> sampled items, and each score is pushed toward one
+or zero independently. Nothing is normalised over the catalog, so the cost of a
+training step stops depending on catalog size – which is the property the model
+exists for. Where a softmax over the catalog builds a <code class="docutils literal notranslate"><span class="pre">rows</span> <span class="pre">x</span> <span class="pre">length</span> <span class="pre">x</span> <span class="pre">n_items</span></code>
+logit tensor per step, SASRec builds <code class="docutils literal notranslate"><span class="pre">rows</span> <span class="pre">x</span> <span class="pre">length</span> <span class="pre">x</span> <span class="pre">(1</span> <span class="pre">+</span> <span class="pre">n_negatives)</span></code>. One
+negative is enough at MovieLens scale. Raising it sharpens the gradient on a
+large catalog at a proportional cost.</p>
+<p><strong>Scoring is tied to the input embedding, and the tie is structural.</strong> A
+candidate is scored by the dot product of a state with that candidate’s <em>input</em>
+embedding, and there is no output head. <code class="docutils literal notranslate"><span class="pre">SASRecConfig</span></code> carries no
+<code class="docutils literal notranslate"><span class="pre">tie_embeddings</span></code> switch, because an untied model is a different model rather
+than this one configured differently. The scored weight is the catalog <em>slice</em>
+of the embedding table, so <code class="docutils literal notranslate"><span class="pre">pad</span></code> and <code class="docutils literal notranslate"><span class="pre">unk</span></code> sit below it and are never
+predictions.</p>
+<p><strong>A negative is drawn from outside the whole history, not merely past the
+positive.</strong> The draw is uniform over the catalog minus that row’s item set: an
+item the user interacted with earlier – or later, which the next-item shift
+makes just as reachable – is one they did engage with, so training the model to
+rank it below the target teaches the opposite of what the data says. The set is
+read from the row’s full sequence rather than from the window that happens to be
+retained, and excluding it subsumes excluding the position’s own positive, so no
+separate collision test is needed. The mapping avoids a rejection loop whose
+length would depend on the data: each draw is uniform over the allowed
+<code class="docutils literal notranslate"><span class="pre">n_items</span> <span class="pre">-</span> <span class="pre">|S_u|</span></code> slots and is then stepped onto the complement in one
+comparison. Two consequences follow. <code class="docutils literal notranslate"><span class="pre">fit</span></code> refuses a catalog of fewer than two
+items, and a history that covers the entire catalog leaves nothing to draw and
+raises rather than looping.</p>
+<p><strong>Inputs and targets are aligned by a left shift</strong>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">tokens</span>    <span class="p">[</span><span class="n">PAD</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">]</span>     <span class="n">mask</span>    <span class="p">[</span><span class="n">F</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">T</span><span class="p">]</span>
+<span class="nb">input</span>     <span class="p">[</span><span class="n">PAD</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">]</span>
+<span class="n">positive</span>  <span class="p">[</span><span class="n">a</span><span class="p">,</span>   <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">]</span>        <span class="n">valid</span>   <span class="p">[</span><span class="n">F</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">T</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>A position counts only when both ends are real. The step before the first real
+one has a real target sitting on a padded input, and “given padding, predict
+this” is not a lesson, so <code class="docutils literal notranslate"><span class="pre">valid</span></code> requires both masks rather than the target’s
+alone. It also drops any position whose positive is <code class="docutils literal notranslate"><span class="pre">unk</span></code>: “predict the item
+you cannot identify” is not a question with an answer.</p>
+<p>The consequence is that a history needs <strong>two</strong> retained interactions to yield
+even one example. It is counted after truncation, since a long history whose
+retained tail is one item is no more trainable than a one-item history. Training
+encodes one interaction wider than the model’s window to pay for the shift:
+<code class="docutils literal notranslate"><span class="pre">n</span> <span class="pre">+</span> <span class="pre">1</span></code> interactions become <code class="docutils literal notranslate"><span class="pre">n</span></code> inputs and <code class="docutils literal notranslate"><span class="pre">n</span></code> targets, so a history that
+fills the window puts an input on every position the model owns. Prediction does
+not shift and reads at the model’s own window.</p>
+<p><strong>Padding is on the left, and every row is filled to the window.</strong> The newest
+interaction therefore always lands in the final column, so position <em>n</em> means “n
+from the end” for a user with twenty interactions and a user with two hundred
+alike. Under right padding, position 1 would instead mean “oldest item still
+retained” – a different anchor for every history length, leaving the highest
+positions trained only by the longest histories. It costs two things: batches are
+<code class="docutils literal notranslate"><span class="pre">max_history_length</span></code> wide however short their histories, and causal attention
+no longer excludes padding on its own, since the pad steps now <em>precede</em> the real
+ones and sit inside every causal window, so the model masks them out of attention
+explicitly. Positions are numbered from one and row 0 of the positional table is
+pinned to zero for padding steps. Prediction reads each row’s own last real state
+through <a class="reference internal" href="#compresso_recsys.models.SequenceBatcher.gather_final" title="compresso_recsys.models.SequenceBatcher.gather_final"><code class="xref py py-meth docutils literal notranslate"><span class="pre">gather_final()</span></code></a>.</p>
+<p><strong>Most of the architecture is fixed rather than configurable.</strong> <code class="docutils literal notranslate"><span class="pre">d_model</span></code> is
+one width for the whole residual stream – item embedding, positional embedding,
+attention output and feed-forward all share it – and <code class="docutils literal notranslate"><span class="pre">n_heads</span></code> must divide it.
+The feed-forward block is <code class="docutils literal notranslate"><span class="pre">d_model</span> <span class="pre">-&gt;</span> <span class="pre">d_model</span></code> with a ReLU; the projections and
+norms carry their biases; layer norms use <code class="docutils literal notranslate"><span class="pre">eps=1e-8</span></code>; every matrix starts at
+Xavier normal and the embedding is rescaled by <code class="docutils literal notranslate"><span class="pre">sqrt(d_model)</span></code> to compensate,
+with the pinned padding rows re-zeroed afterwards. <code class="docutils literal notranslate"><span class="pre">dropout</span></code> is one rate
+applied to the embedding sum, inside attention, and between the feed-forward
+layers, because three independently tuned rates would be three numbers nobody has
+evidence for.</p>
+<p><strong>``unk_dropout`` is what trains the unknown-item embedding.</strong> It replaces that
+fraction of <em>input</em> positions with <code class="docutils literal notranslate"><span class="pre">unk</span></code>, never a positive, so a corrupted
+position teaches “an item was here that you cannot identify, predict the next one
+anyway” rather than costing a training example. It defaults to zero and is worth
+raising whenever evaluation will contain items training never saw: the training
+vocabulary <em>is</em> the training window, so an out-of-catalog item cannot occur until
+evaluation, and its embedding would still sit at its initialisation when a
+quarter of a temporal test history turns out to need it. The right rate tracks
+the out-of-catalog share the split will actually produce – near zero under
+<code class="docutils literal notranslate"><span class="pre">leave_last_out</span></code>, far higher on a late <code class="docutils literal notranslate"><span class="pre">temporal</span></code> stage. It is ignored when
+the tokenizer names no <code class="docutils literal notranslate"><span class="pre">unk</span></code>.</p>
+<p><strong>The context window is a config field, and it has a single owner.</strong>
+<code class="docutils literal notranslate"><span class="pre">SASRecConfig.max_history_length</span></code> sizes the positional table, which a
+checkpoint cannot grow after the fact, so the number lives there rather than on
+the batcher. It sizes the batcher <code class="docutils literal notranslate"><span class="pre">fit</span></code> builds when none was passed, and a
+batcher passed with <code class="docutils literal notranslate"><span class="pre">max_length=None</span></code> inherits it – the usual case, because
+the reason to hand <code class="docutils literal notranslate"><span class="pre">fit</span></code> a batcher is the vocabulary it carries rather than the
+window. A batcher that states a <em>different</em> window is refused instead of silently
+overruling the config or being overruled by it. Left padding is set by <code class="docutils literal notranslate"><span class="pre">fit</span></code> in
+the same way rather than asked of the caller.</p>
+<p><strong>The learning rate is constant.</strong> There is no schedule field: <code class="docutils literal notranslate"><span class="pre">lr</span></code> is flat for
+the whole run. <code class="docutils literal notranslate"><span class="pre">betas</span></code> defaults to <code class="docutils literal notranslate"><span class="pre">(0.9,</span> <span class="pre">0.98)</span></code>, shortening the window
+Adam’s variance estimate averages over – one sampled negative per position makes
+the gradient noisy between steps but not biased, and a longer window spends that
+noise on a stale scale instead of adapting through it. It reaches the optimizer
+through <a class="reference internal" href="#compresso_recsys.models.SASRecConfig.optimizer_kwargs" title="compresso_recsys.models.SASRecConfig.optimizer_kwargs"><code class="xref py py-meth docutils literal notranslate"><span class="pre">optimizer_kwargs()</span></code></a>, since it
+is Adam’s hyperparameter and not a universal one.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.models</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">ItemTokenizer</span><span class="p">,</span>
+    <span class="n">SASRecConfig</span><span class="p">,</span>
+    <span class="n">SASRecTrainer</span><span class="p">,</span>
+    <span class="n">SequenceBatcher</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">tokenizer</span> <span class="o">=</span> <span class="n">ItemTokenizer</span><span class="p">(</span>
+    <span class="n">split</span><span class="p">[</span><span class="s2">"x_train_sequences"</span><span class="p">]</span><span class="o">.</span><span class="n">n_items</span><span class="p">,</span>
+    <span class="n">item_ids</span><span class="o">=</span><span class="n">split</span><span class="p">[</span><span class="s2">"train_item_ids"</span><span class="p">],</span>   <span class="c1"># optional; enables the ID path</span>
+<span class="p">)</span>
+<span class="c1"># No max_length: the window and the padding side come from the config.</span>
+<span class="n">batcher</span> <span class="o">=</span> <span class="n">SequenceBatcher</span><span class="p">(</span><span class="n">tokenizer</span><span class="p">)</span>
+
+<span class="n">model</span> <span class="o">=</span> <span class="n">SASRecTrainer</span><span class="p">(</span>
+    <span class="n">SASRecConfig</span><span class="p">(</span>
+        <span class="n">d_model</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+        <span class="n">n_blocks</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+        <span class="n">n_heads</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">dropout</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span>
+        <span class="c1"># The context window lives here, not on the batcher.</span>
+        <span class="n">max_history_length</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span>
+        <span class="c1"># Raise it on a large catalog.</span>
+        <span class="n">n_negatives</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="c1"># Track the out-of-catalog share this split actually produces.</span>
+        <span class="n">unk_dropout</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span>
+        <span class="c1"># Select the fixed budget on validation data.</span>
+        <span class="n">epochs</span><span class="o">=</span><span class="mi">201</span><span class="p">,</span>
+        <span class="n">batch_size</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span>
+        <span class="n">lr</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">,</span>
+    <span class="p">),</span>
+    <span class="n">batcher</span><span class="p">,</span>
+<span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">split</span><span class="p">[</span><span class="s2">"x_train_sequences"</span><span class="p">])</span>
+
+<span class="n">result</span> <span class="o">=</span> <span class="n">evaluate_recommender</span><span class="p">(</span>
+    <span class="n">model</span><span class="p">,</span>
+    <span class="n">source</span><span class="o">=</span><span class="n">split</span><span class="p">[</span><span class="s2">"test_source_sequences"</span><span class="p">],</span>
+    <span class="n">targets</span><span class="o">=</span><span class="n">split</span><span class="p">[</span><span class="s2">"test_target_matrix"</span><span class="p">],</span>
+    <span class="n">metrics</span><span class="o">=</span><span class="p">[</span><span class="n">CalibratedRecall</span><span class="p">(</span><span class="mi">20</span><span class="p">),</span> <span class="n">NDCG</span><span class="p">(</span><span class="mi">20</span><span class="p">)],</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Omitting the batcher is supported and builds a default one over the training
+catalog at the config’s window. Pass your own to supply a vocabulary – including
+one whose <code class="docutils literal notranslate"><span class="pre">unk</span></code> slot lets a later split stage’s unseen items become a reserved
+id rather than an error.</p>
+<p>The trainer runs a fixed epoch budget and rebuilds the model on every <code class="docutils literal notranslate"><span class="pre">fit</span></code>
+call, so select <code class="docutils literal notranslate"><span class="pre">epochs</span></code> using validation data. There is no validation-based
+early stopping and no incremental training. Prediction forbids every item in the
+<em>full</em> history, truncated part included; items beyond the fitted catalog are
+dropped from that mask rather than clipped, since they were never scoreable.</p>
+<p>Saving carries the vocabulary with the weights, through the same persistence API
+as every other fitted recommender:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">SASRecTrainer</span>
+
+<span class="n">model</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s2">"artifacts/sasrec.ckpt"</span><span class="p">)</span>
+<span class="n">restored</span> <span class="o">=</span> <span class="n">SASRecTrainer</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">"artifacts/sasrec.ckpt"</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="py class">
+<dt class="sig sig-object py" id="compresso_recsys.models.SASRecConfig">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">compresso_recsys.models.</span></span><span class="sig-name descname"><span class="pre">SASRecConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">d_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_blocks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_heads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dropout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_history_length</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">200</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_negatives</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unk_dropout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">128</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">201</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimizer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Adam'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">betas</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(0.9,</span> <span class="pre">0.98)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cpu'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_progress</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_prefix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'SASRec'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_every_n_steps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/sasrec.html#SASRecConfig"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.SASRecConfig" title="Link to this definition"></a></dt>
+<dd><p>Configuration for <a class="reference internal" href="#compresso_recsys.models.SASRec" title="compresso_recsys.models.SASRec"><code class="xref py py-class docutils literal notranslate"><span class="pre">SASRec</span></code></a>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">max_history_length</span></code> is the context window, and this field owns it. It
+sizes the batcher <code class="docutils literal notranslate"><span class="pre">fit</span></code> builds when none was passed, and a batcher that
+was passed inherits it whenever that batcher’s own <code class="docutils literal notranslate"><span class="pre">max_length</span></code> is
+<code class="docutils literal notranslate"><span class="pre">None</span></code> – the usual case, because the reason to hand <code class="docutils literal notranslate"><span class="pre">fit</span></code> a batcher is
+the vocabulary it carries rather than the window. Stating the window in both
+places and disagreeing is an error rather than a silent win for either: it
+sizes the positional table, and a table that outlives the run cannot be
+built from a number the config does not know about.</p>
+<p>It belongs here rather than on the trainer because the paper tunes it per
+dataset alongside <code class="docutils literal notranslate"><span class="pre">dropout</span></code> – 200 and 0.2 on MovieLens-1M, 50 and 0.5 on
+the sparse ones – so a dataset’s settings stay one object that a checkpoint
+records whole.</p>
+<p><code class="docutils literal notranslate"><span class="pre">d_model</span></code> is one width for the whole residual stream: the item embedding,
+the positional embedding, attention and the feed-forward output all share
+it, and <code class="docutils literal notranslate"><span class="pre">n_heads</span></code> must divide it. Unlike <code class="docutils literal notranslate"><span class="pre">TransformerConfig</span></code>, there is no
+<code class="docutils literal notranslate"><span class="pre">bias</span></code> switch – SASRec’s projections and norms carry their biases, and the
+feed-forward is <code class="docutils literal notranslate"><span class="pre">d_model</span> <span class="pre">-&gt;</span> <span class="pre">d_model</span></code> with a ReLU rather than the 4x GELU
+block <code class="docutils literal notranslate"><span class="pre">SimpleGPT</span></code> uses. Those are the architecture, not options.</p>
+<p>There is likewise no <code class="docutils literal notranslate"><span class="pre">tie_embeddings</span></code>. SASRec scores a candidate by the dot
+product of the final state with that item’s <em>input</em> embedding, so the tie is
+structural: an untied SASRec is a different model.</p>
+<p><code class="docutils literal notranslate"><span class="pre">dropout</span></code> is the paper’s single rate, applied to the embedding sum, inside
+attention, and between the feed-forward layers – one knob because the
+reference implementation exposes one, and three independently tuned rates
+would be three numbers nobody has evidence for.</p>
+<p><code class="docutils literal notranslate"><span class="pre">n_negatives</span></code> is how many sampled items each position scores against its
+true next item under the binary objective. One is the paper’s setting and is
+enough on MovieLens-scale catalogs; raising it sharpens the gradient on a
+large catalog at a proportional cost per step.</p>
+<p><code class="docutils literal notranslate"><span class="pre">unk_dropout</span></code> replaces that fraction of <em>input</em> positions with the
+tokenizer’s <code class="docutils literal notranslate"><span class="pre">unk</span></code> token, teaching the model to read a history containing an
+item it cannot identify. It defaults to zero for paper parity. Set it above
+zero when otherwise <code class="docutils literal notranslate"><span class="pre">unk</span></code> would never be trained: the training vocabulary
+<em>is</em> the training window, so an out-of-catalog item cannot occur until
+evaluation, and its embedding would still sit at its initialisation when a
+quarter of a temporal test history turns out to need it. The right rate
+tracks the out-of-catalog share the split will actually produce – near zero
+under <code class="docutils literal notranslate"><span class="pre">leave_last_out</span></code>, far higher on a late <code class="docutils literal notranslate"><span class="pre">temporal</span></code> stage. It is
+ignored when the tokenizer has no <code class="docutils literal notranslate"><span class="pre">unk</span></code> to substitute.</p>
+<p><code class="docutils literal notranslate"><span class="pre">betas</span></code> belongs to <code class="docutils literal notranslate"><span class="pre">Adam</span></code> and to no other optimizer, which is why it is
+applied through <a class="reference internal" href="#compresso_recsys.models.SASRecConfig.optimizer_kwargs" title="compresso_recsys.models.SASRecConfig.optimizer_kwargs"><code class="xref py py-meth docutils literal notranslate"><span class="pre">optimizer_kwargs()</span></code></a> rather than passed unconditionally.
+The reference sets the second moment to 0.98 against PyTorch’s 0.999,
+shortening the window the variance estimate averages over – one sampled
+negative per position makes the gradient noisy between steps but not biased,
+and a longer window spends that noise on a stale scale instead of adapting
+through it.</p>
+<p>The learning rate is deliberately constant: there is no schedule field,
+because the published results are a flat 0.001 for the whole run.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>d_model</strong> (<em>int</em>)</p></li>
+<li><p><strong>n_blocks</strong> (<em>int</em>)</p></li>
+<li><p><strong>n_heads</strong> (<em>int</em>)</p></li>
+<li><p><strong>dropout</strong> (<em>float</em>)</p></li>
+<li><p><strong>max_history_length</strong> (<em>int</em>)</p></li>
+<li><p><strong>n_negatives</strong> (<em>int</em>)</p></li>
+<li><p><strong>unk_dropout</strong> (<em>float</em>)</p></li>
+<li><p><strong>batch_size</strong> (<em>int</em>)</p></li>
+<li><p><strong>epochs</strong> (<em>int</em>)</p></li>
+<li><p><strong>lr</strong> (<em>float</em>)</p></li>
+<li><p><strong>optimizer</strong> (<em>Literal</em><em>[</em><em>'Adam'</em><em>]</em>)</p></li>
+<li><p><strong>betas</strong> (<em>tuple</em><em>[</em><em>float</em><em>, </em><em>float</em><em>]</em>)</p></li>
+<li><p><strong>device</strong> (<em>str</em><em> | </em><em>device</em>)</p></li>
+<li><p><strong>show_progress</strong> (<em>bool</em>)</p></li>
+<li><p><strong>seed</strong> (<em>int</em>)</p></li>
+<li><p><strong>log_prefix</strong> (<em>str</em>)</p></li>
+<li><p><strong>log_every_n_steps</strong> (<em>int</em>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.SASRecConfig.optimizer_kwargs">
+<span class="sig-name descname"><span class="pre">optimizer_kwargs</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/sasrec.html#SASRecConfig.optimizer_kwargs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.SASRecConfig.optimizer_kwargs" title="Link to this definition"></a></dt>
+<dd><p>Optimizer arguments beyond the parameters and <code class="docutils literal notranslate"><span class="pre">lr</span></code>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">betas</span></code> is Adam’s own hyperparameter rather than a universal one, so
+it is selected by <code class="xref py py-attr docutils literal notranslate"><span class="pre">optimizer</span></code> here instead of being handed to
+whatever <code class="docutils literal notranslate"><span class="pre">torch.optim</span></code> class the name resolves to. Today that name can
+only be <code class="docutils literal notranslate"><span class="pre">Adam</span></code>; the indirection is what keeps adding a second one from
+silently passing it an argument it does not take.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="compresso_recsys.models.SASRec">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">compresso_recsys.models.</span></span><span class="sig-name descname"><span class="pre">SASRec</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_items</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_reserved</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_history_length</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pad_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d_model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_blocks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_heads</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dropout</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/sasrec.html#SASRec"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.SASRec" title="Link to this definition"></a></dt>
+<dd><p>Item and position embeddings, causal blocks, and a tied dot-product score.</p>
+<p>This is a modernized SASRec variant, not a line-for-line port of the original
+TensorFlow attention block. Each block uses the conventional PyTorch pre-norm
+form: the normalized residual stream supplies queries, keys, and values;
+<code class="xref py py-class docutils literal notranslate"><span class="pre">MultiheadAttention</span></code> applies its output projection; and the
+result is added to the unnormalized residual stream. The reference code
+normalizes only the queries, uses the unnormalized stream for keys and
+values, adds its residual to the normalized queries, and has no attention
+output projection. The sequential objective, tied item scoring, and published
+MovieLens hyperparameters remain SASRec-derived, but published results are a
+point of comparison rather than exact implementation parity.</p>
+<p>There is no output head. A candidate is scored by the dot product of a state
+with that candidate’s <em>input</em> embedding, which is what makes the tie
+structural rather than an option – see <a class="reference internal" href="#compresso_recsys.models.SASRecConfig" title="compresso_recsys.models.SASRecConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">SASRecConfig</span></code></a>.</p>
+<p><a class="reference internal" href="#compresso_recsys.models.SASRec.forward" title="compresso_recsys.models.SASRec.forward"><code class="xref py py-meth docutils literal notranslate"><span class="pre">forward()</span></code></a> returns states; <a class="reference internal" href="#compresso_recsys.models.SASRec.score" title="compresso_recsys.models.SASRec.score"><code class="xref py py-meth docutils literal notranslate"><span class="pre">score()</span></code></a> and <a class="reference internal" href="#compresso_recsys.models.SASRec.score_items" title="compresso_recsys.models.SASRec.score_items"><code class="xref py py-meth docutils literal notranslate"><span class="pre">score_items()</span></code></a> turn
+states into scores, kept separate because the two callers want different
+widths. Training scores a handful of sampled items per position, while
+prediction scores the whole catalog at one position per row. Fusing them
+would materialise <code class="docutils literal notranslate"><span class="pre">rows</span> <span class="pre">x</span> <span class="pre">length</span> <span class="pre">x</span> <span class="pre">n_items</span></code>, which on a real catalog is
+where the memory goes.</p>
+<p>The embedding table holds <code class="docutils literal notranslate"><span class="pre">n_reserved</span> <span class="pre">+</span> <span class="pre">n_items</span></code> rows: the reserved ids
+first, the catalog after them, so catalog item <code class="docutils literal notranslate"><span class="pre">i</span></code> lives at row
+<code class="docutils literal notranslate"><span class="pre">i</span> <span class="pre">+</span> <span class="pre">n_reserved</span></code>. That is
+<a class="reference internal" href="#compresso_recsys.models.ItemTokenizer" title="compresso_recsys.models.ItemTokenizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">ItemTokenizer</span></code></a>’s layout, and taking
+<code class="docutils literal notranslate"><span class="pre">n_reserved</span></code> rather than a total keeps this module from having to work the
+split out for itself.</p>
+<p><strong>Padding is on the left</strong>, as the reference implementation has it, and
+<code class="docutils literal notranslate"><span class="pre">fit</span></code> configures the batcher for it. The reason is the positional table:
+every row is filled to <code class="docutils literal notranslate"><span class="pre">max_length</span></code>, so the newest interaction always lands
+in the final column and position <em>n</em> means “n from the end” for a user with
+twenty interactions and a user with two hundred alike. Under right padding
+position 1 would instead mean “oldest item still retained”, which is a
+different anchor for every history length and leaves the highest rows trained
+only by the longest histories.</p>
+<p>It costs two things. Batches are <code class="docutils literal notranslate"><span class="pre">max_length</span></code> wide however short their
+histories, and causal masking no longer excludes padding on its own – the
+pad steps now <em>precede</em> the real ones and sit inside every causal window, so
+<a class="reference internal" href="#compresso_recsys.models.SASRec.forward" title="compresso_recsys.models.SASRec.forward"><code class="xref py py-meth docutils literal notranslate"><span class="pre">forward()</span></code></a> masks them out of attention explicitly.</p>
+<p>Initialize internal Module state, shared by both nn.Module and ScriptModule.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n_items</strong> (<em>int</em>)</p></li>
+<li><p><strong>n_reserved</strong> (<em>int</em>)</p></li>
+<li><p><strong>max_history_length</strong> (<em>int</em>)</p></li>
+<li><p><strong>pad_id</strong> (<em>int</em>)</p></li>
+<li><p><strong>d_model</strong> (<em>int</em>)</p></li>
+<li><p><strong>n_blocks</strong> (<em>int</em>)</p></li>
+<li><p><strong>n_heads</strong> (<em>int</em>)</p></li>
+<li><p><strong>dropout</strong> (<em>float</em>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.SASRec.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">item_history</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/sasrec.html#SASRec.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.SASRec.forward" title="Link to this definition"></a></dt>
+<dd><p>States for every step, shape <code class="docutils literal notranslate"><span class="pre">(rows,</span> <span class="pre">length,</span> <span class="pre">d_model)</span></code>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">item_history</span></code> is <code class="docutils literal notranslate"><span class="pre">(rows,</span> <span class="pre">length)</span></code> of embedding-row ids, left
+padded – what the batcher’s <code class="docutils literal notranslate"><span class="pre">encode</span></code> returns. <code class="docutils literal notranslate"><span class="pre">states[:,</span> <span class="pre">i]</span></code> has
+read <code class="docutils literal notranslate"><span class="pre">item_history[:,</span> <span class="pre">:i</span> <span class="pre">+</span> <span class="pre">1]</span></code>, so it is the state from which
+<code class="docutils literal notranslate"><span class="pre">item_history[:,</span> <span class="pre">i</span> <span class="pre">+</span> <span class="pre">1]</span></code> should be predicted.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>item_history</strong> (<em>Tensor</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.SASRec.score">
+<span class="sig-name descname"><span class="pre">score</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">states</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/sasrec.html#SASRec.score"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.SASRec.score" title="Link to this definition"></a></dt>
+<dd><p>Catalog scores for the given states, one per item.</p>
+<p>The weight is a <em>slice</em> of the embedding rather than its own parameter.
+The reserved rows – padding, and an unknown item if the tokenizer names
+one – sit below <code class="docutils literal notranslate"><span class="pre">n_reserved</span></code> and so stay out of the scores, which is
+what we want anyway: neither is ever a recommendation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>states</strong> (<em>Tensor</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.SASRec.score_items">
+<span class="sig-name descname"><span class="pre">score_items</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">states</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">items</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/sasrec.html#SASRec.score_items"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.SASRec.score_items" title="Link to this definition"></a></dt>
+<dd><p>Score each state against specific items, for sampled negatives.</p>
+<p><code class="docutils literal notranslate"><span class="pre">items</span></code> holds embedding-row ids: <code class="docutils literal notranslate"><span class="pre">(rows,</span> <span class="pre">length)</span></code> to score one item
+per step, or <code class="docutils literal notranslate"><span class="pre">(rows,</span> <span class="pre">length,</span> <span class="pre">n)</span></code> for <code class="docutils literal notranslate"><span class="pre">n</span></code> of them, and the result
+carries the shape of <code class="docutils literal notranslate"><span class="pre">items</span></code>. Scoring a handful this way is the point
+of the binary objective – the full-catalog pass <a class="reference internal" href="#compresso_recsys.models.SASRec.score" title="compresso_recsys.models.SASRec.score"><code class="xref py py-meth docutils literal notranslate"><span class="pre">score()</span></code></a> would give
+is the cost SASRec is avoiding.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>states</strong> (<em>Tensor</em>)</p></li>
+<li><p><strong>items</strong> (<em>Tensor</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="compresso_recsys.models.SASRecTrainer">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">compresso_recsys.models.</span></span><span class="sig-name descname"><span class="pre">SASRecTrainer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batcher</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logger</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/sasrec.html#SASRecTrainer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.SASRecTrainer" title="Link to this definition"></a></dt>
+<dd><p>Trains and serves <a class="reference internal" href="#compresso_recsys.models.SASRec" title="compresso_recsys.models.SASRec"><code class="xref py py-class docutils literal notranslate"><span class="pre">SASRec</span></code></a>.</p>
+<p>Follows the package’s existing shape, where <code class="docutils literal notranslate"><span class="pre">fit</span></code> returns the trainer and
+the trainer answers the prediction contract:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="n">SASRecTrainer</span><span class="p">(</span><span class="n">SASRecConfig</span><span class="p">())</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">split</span><span class="p">[</span><span class="s2">"x_train_sequences"</span><span class="p">])</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">evaluate_recommender</span><span class="p">(</span>
+    <span class="n">model</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="n">split</span><span class="p">[</span><span class="s2">"test_source_sequences"</span><span class="p">],</span>
+    <span class="n">targets</span><span class="o">=</span><span class="n">split</span><span class="p">[</span><span class="s2">"test_target_matrix"</span><span class="p">],</span> <span class="n">metrics</span><span class="o">=</span><span class="p">[</span><span class="n">NDCG</span><span class="p">(</span><span class="mi">20</span><span class="p">)],</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>The encoder is a <em>parameter</em>, not something <code class="docutils literal notranslate"><span class="pre">fit</span></code> invents. Passing one is
+how you change the vocabulary – including giving it an <code class="docutils literal notranslate"><span class="pre">unk</span></code> slot so a
+later split stage’s unseen items become a reserved id rather than an error.
+Leave its <code class="docutils literal notranslate"><span class="pre">max_length</span></code> unset and it inherits the config’s window, so the
+number stays in one place:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">batcher</span> <span class="o">=</span> <span class="n">SequenceBatcher</span><span class="p">(</span>
+    <span class="n">ItemTokenizer</span><span class="p">(</span><span class="n">n_items</span><span class="p">,</span> <span class="n">item_ids</span><span class="o">=</span><span class="n">split</span><span class="p">[</span><span class="s2">"train_item_ids"</span><span class="p">]),</span>
+<span class="p">)</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">SASRecTrainer</span><span class="p">(</span><span class="n">SASRecConfig</span><span class="p">(),</span> <span class="n">batcher</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">sequences</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The context window is <code class="docutils literal notranslate"><span class="pre">SASRecConfig.max_history_length</span></code>, so a shorter one
+is <code class="docutils literal notranslate"><span class="pre">SASRecConfig(max_history_length=50)</span></code> rather than a number written on
+the batcher. A batcher that does state its own <code class="docutils literal notranslate"><span class="pre">max_length</span></code> must agree
+with the config, and <code class="docutils literal notranslate"><span class="pre">fit</span></code> refuses the pair when they differ: the window
+sizes a positional embedding that cannot be extended at prediction time.</p>
+<p>Hold the config and encoder; build nothing until <code class="docutils literal notranslate"><span class="pre">fit</span></code>.</p>
+<p>Sets <code class="docutils literal notranslate"><span class="pre">self.cfg</span></code>, <code class="docutils literal notranslate"><span class="pre">self.device</span></code>, <code class="docutils literal notranslate"><span class="pre">self.history</span></code>, <code class="docutils literal notranslate"><span class="pre">self.model</span></code>,
+<code class="docutils literal notranslate"><span class="pre">self.optimizer</span></code>, <code class="docutils literal notranslate"><span class="pre">self.batcher</span></code>, <code class="docutils literal notranslate"><span class="pre">self._owns_batcher</span></code> and
+<code class="docutils literal notranslate"><span class="pre">self._n_items</span></code>, matching the two sibling trainers so the inherited
+persistence and <code class="docutils literal notranslate"><span class="pre">to()</span></code> paths find what they expect.</p>
+<p><code class="docutils literal notranslate"><span class="pre">self._rng</span></code> is one addition. Negative sampling draws from NumPy and
+<code class="docutils literal notranslate"><span class="pre">_train_step</span></code>’s signature is fixed by the loop that calls it, so the
+generator <code class="docutils literal notranslate"><span class="pre">fit</span></code> seeds reaches it as state rather than as an argument.
+It is deliberately not checkpointed: a reloaded model predicts, and a
+further <code class="docutils literal notranslate"><span class="pre">fit</span></code> reseeds from <code class="docutils literal notranslate"><span class="pre">cfg.seed</span></code>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">self._train_batcher</span></code> is the other, and it exists because training
+reads one interaction more than the model has positions for – see
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">_train_step()</span></code>. <code class="docutils literal notranslate"><span class="pre">fit</span></code> derives it from <code class="docutils literal notranslate"><span class="pre">self.batcher</span></code>, so it is
+not checkpointed either: the window that a checkpoint records is the
+model’s, and a further <code class="docutils literal notranslate"><span class="pre">fit</span></code> derives this from it again.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>config</strong> (<a class="reference internal" href="#compresso_recsys.models.SASRecConfig" title="compresso_recsys.models.SASRecConfig"><em>SASRecConfig</em></a><em> | </em><em>None</em>)</p></li>
+<li><p><strong>batcher</strong> (<a class="reference internal" href="#compresso_recsys.models.SequenceBatcher" title="compresso_recsys.models.SequenceBatcher"><em>SequenceBatcher</em></a><em> | </em><em>None</em>)</p></li>
+<li><p><strong>logger</strong> (<em>Any</em><em> | </em><em>None</em>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="compresso_recsys.models.SASRecTrainer.checkpoint_type">
+<span class="sig-name descname"><span class="pre">checkpoint_type</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'sasrec_trainer'</span></span><a class="headerlink" href="#compresso_recsys.models.SASRecTrainer.checkpoint_type" title="Link to this definition"></a></dt>
+<dd><p>Context window used when <code class="docutils literal notranslate"><span class="pre">fit</span></code> has to build its own batcher.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="compresso_recsys.models.SASRecTrainer.is_fitted">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">is_fitted</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><a class="headerlink" href="#compresso_recsys.models.SASRecTrainer.is_fitted" title="Link to this definition"></a></dt>
+<dd><p>Whether the model has been built and trained.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="compresso_recsys.models.SASRecTrainer.n_items">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">n_items</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#compresso_recsys.models.SASRecTrainer.n_items" title="Link to this definition"></a></dt>
+<dd><p>Number of scoreable candidates, or <code class="docutils literal notranslate"><span class="pre">None</span></code> before fitting.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.SASRecTrainer.fit">
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sequences</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">item_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logger</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;inherit&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_progress</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;inherit&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/sasrec.html#SASRecTrainer.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.SASRecTrainer.fit" title="Link to this definition"></a></dt>
+<dd><p>Train on chronological histories, one example per position.</p>
+<p>Validates the input, builds a default batcher when none was supplied,
+checks it against the training catalog, records the item IDs, seeds
+Torch and NumPy from <code class="docutils literal notranslate"><span class="pre">cfg.seed</span></code>, builds the model, optimizer and
+scheduler, then runs <code class="docutils literal notranslate"><span class="pre">cfg.epochs</span></code> passes over shuffled rows and
+appends one entry per epoch to <code class="xref py py-attr docutils literal notranslate"><span class="pre">history</span></code>.</p>
+<p>Two of those validations are SASRec’s own. A history needs two
+retained interactions to yield even one shifted example, as
+<a class="reference internal" href="#compresso_recsys.models.SimpleRNNTrainer" title="compresso_recsys.models.SimpleRNNTrainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimpleRNNTrainer</span></code></a> does and unlike <a class="reference internal" href="#compresso_recsys.models.SimpleGPTTrainer" title="compresso_recsys.models.SimpleGPTTrainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimpleGPTTrainer</span></code></a>,
+whose <code class="docutils literal notranslate"><span class="pre">CLS</span></code> prefix makes a one-item history trainable. And the
+catalog needs two items, because a negative is drawn from the
+catalog minus the position’s own positive.</p>
+<p>Rebuilds the model on every call: early stopping and incremental
+training are not part of this contract.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#compresso_recsys.models.SASRecTrainer" title="compresso_recsys.models.sasrec.SASRecTrainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">SASRecTrainer</span></code></a></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>sequences</strong> (<a class="reference internal" href="sequences.html#compresso_recsys.ItemSequences" title="compresso_recsys.sequences.ItemSequences"><em>ItemSequences</em></a>)</p></li>
+<li><p><strong>item_ids</strong> (<em>Sequence</em><em>[</em><em>Hashable</em><em>] </em><em>| </em><em>ndarray</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>logger</strong> (<em>Any</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>show_progress</strong> (<em>bool</em><em> | </em><em>None</em><em> | </em><em>_Inherit</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.SASRecTrainer.predict_on_batch">
+<span class="sig-name descname"><span class="pre">predict_on_batch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exclude_seen</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">candidate_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/sasrec.html#SASRecTrainer.predict_on_batch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.SASRecTrainer.predict_on_batch" title="Link to this definition"></a></dt>
+<dd><p>Rank the catalog for each history from its final state.</p>
+<p>Resolves candidates, validates <code class="docutils literal notranslate"><span class="pre">k</span></code>, and returns an empty
+<code class="xref py py-class docutils literal notranslate"><span class="pre">SRPTensor</span></code> for an empty batch. Otherwise encodes the
+source, takes each row’s own last real state through the batcher’s
+<code class="docutils literal notranslate"><span class="pre">gather_final</span></code> – never <code class="docutils literal notranslate"><span class="pre">states[:,</span> <span class="pre">-1]</span></code>, which is padding for every
+row shorter than the batch maximum – scores the catalog, masks seen
+items when asked, and takes the top <code class="docutils literal notranslate"><span class="pre">k</span></code> over the candidate columns.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">SRPTensor</span></code></span></p>

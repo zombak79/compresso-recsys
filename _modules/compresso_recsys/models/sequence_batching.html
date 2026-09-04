@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>compresso_recsys.models.sequence_batching &mdash; Compresso Recsys 0.3.1 documentation</title>
+  <title>compresso_recsys.models.sequence_batching &mdash; Compresso Recsys 0.3.2 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
 
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=385a908f"></script>
+      <script src="../../../_static/documentation_options.js?v=2f2e10e9"></script>
       <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -103,6 +103,18 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../implementing-a-recommender.html#Extending-the-pattern">Extending the pattern</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reproducing-sasrec-results-on-ml1m.html">Reproducing SASRec Results on ML1M</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../reproducing-sasrec-results-on-ml1m.html#Configuration-and-run-modes">Configuration and run modes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../reproducing-sasrec-results-on-ml1m.html#Build-the-MovieLens-1M-checkpoint">Build the MovieLens 1M checkpoint</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../reproducing-sasrec-results-on-ml1m.html#Inspect-the-split">Inspect the split</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../reproducing-sasrec-results-on-ml1m.html#Train-SASRec">Train SASRec</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../reproducing-sasrec-results-on-ml1m.html#Score-the-catalog">Score the catalog</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../reproducing-sasrec-results-on-ml1m.html#Published-protocol:-100-sampled-negatives-at-10">Published protocol: 100 sampled negatives at 10</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../reproducing-sasrec-results-on-ml1m.html#Package-protocol:-full-catalog-at-20">Package protocol: full catalog at 20</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../reproducing-sasrec-results-on-ml1m.html#Check-the-epoch-budget-on-validation-data">Check the epoch budget on validation data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../reproducing-sasrec-results-on-ml1m.html#Save-the-trained-model">Save the trained model</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="../../../statistical-comparison.html">Comparing Models Statistically</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../statistical-comparison.html#why-the-aggregates-are-not-enough">Why the aggregates are not enough</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../statistical-comparison.html#do-the-comparison">Do the comparison</a></li>
@@ -159,6 +171,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../citing.html#elsa">ELSA</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../citing.html#elsa-with-sampled-output-candidates">ELSA with sampled output candidates</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../citing.html#compressed-elsa">Compressed ELSA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../citing.html#sasrec">SASRec</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../citing.html#evaluation-protocol">Evaluation Protocol</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../citing.html#statistical-comparison">Statistical Comparison</a></li>
 </ul>
@@ -288,6 +301,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../api/models.html#tokenizing-histories">Tokenizing Histories</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/models.html#simplernn">SimpleRNN</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/models.html#simplegpt">SimpleGPT</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/models.html#sasrec">SASRec</a></li>
 </ul>
 </li>
 </ul>
@@ -393,6 +407,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Literal</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
@@ -413,19 +428,31 @@
 <span class="sd">    The tokenizer is positional because it is a collaborator rather than an</span>
 <span class="sd">    option: without a vocabulary there is nothing to encode.</span>
 
-<span class="sd">    Padding is always on the right. A recurrent model can gather each row's last</span>
-<span class="sd">    real state before the padding, while a causal model never lets a real token</span>
-<span class="sd">    attend to padding that follows it. Supporting left padding would require</span>
-<span class="sd">    each model to skip or mask leading pad steps, so it is not exposed as a</span>
-<span class="sd">    batcher option.</span>
+<span class="sd">    Padding defaults to the right, where a recurrent model can gather each row's</span>
+<span class="sd">    last real state and a causal model never lets a real token attend to the</span>
+<span class="sd">    padding that follows it. ``padding="left"`` is the opt-in for models whose</span>
+<span class="sd">    absolute positions have to be anchored to the newest interaction; it obliges</span>
+<span class="sd">    the model to mask the leading pad steps out of attention itself, because</span>
+<span class="sd">    causal masking no longer does it for free.</span>
 
 <span class="sd">    ``max_length`` truncates to the **most recent** interactions, the only</span>
 <span class="sd">    sensible direction: a context window is a claim about recency, not about</span>
 <span class="sd">    where a history happened to start.</span>
+
+<span class="sd">    ``padding`` chooses the side, and the two sides are not interchangeable.</span>
+<span class="sd">    Right padding, the default, packs each batch to its own longest row and</span>
+<span class="sd">    leaves a model to find each row's last real state. Left padding instead</span>
+<span class="sd">    fills every row to ``max_length``, so the newest interaction always lands in</span>
+<span class="sd">    the final column and an absolute position means "this far from the end" for</span>
+<span class="sd">    every user alike -- which is what a model with a learned positional table</span>
+<span class="sd">    needs, and what SASRec's published results assume. It costs the ragged</span>
+<span class="sd">    packing: every batch is ``max_length`` wide however short its histories are,</span>
+<span class="sd">    so ``max_length`` must be set for it.</span>
 <span class="sd">    """</span>
 
     <span class="n">tokenizer</span><span class="p">:</span> <span class="n">Tokenizer</span>
     <span class="n">max_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">padding</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"left"</span><span class="p">,</span> <span class="s2">"right"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"right"</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="p">,</span> <span class="n">Tokenizer</span><span class="p">):</span>
@@ -436,6 +463,16 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_length</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_length</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">"max_length must be &gt;= 1 when set, got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">max_length</span><span class="si">}</span><span class="s2">"</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">padding</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"left"</span><span class="p">,</span> <span class="s2">"right"</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"padding must be 'left' or 'right', got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">padding</span><span class="si">!r}</span><span class="s2">"</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">padding</span> <span class="o">==</span> <span class="s2">"left"</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_length</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">"left padding fills every row to max_length so that a column "</span>
+                <span class="s2">"index means the same thing in every batch, which an unbounded "</span>
+                <span class="s2">"window cannot provide. Set max_length, or pad on the right"</span>
             <span class="p">)</span>
 
     <span class="nd">@property</span>
@@ -469,7 +506,12 @@
 <span class="sd">        """</span>
         <span class="n">lengths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">truncated_lengths</span><span class="p">(</span><span class="n">sequences</span><span class="p">)</span>
         <span class="n">rows</span> <span class="o">=</span> <span class="n">sequences</span><span class="o">.</span><span class="n">n_rows</span>
-        <span class="n">width</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">lengths</span><span class="o">.</span><span class="n">max</span><span class="p">())</span> <span class="k">if</span> <span class="n">lengths</span><span class="o">.</span><span class="n">size</span> <span class="k">else</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="c1"># Left padding pins the width so a column index carries the same</span>
+        <span class="c1"># meaning in every batch; right padding packs to the batch instead.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">padding</span> <span class="o">==</span> <span class="s2">"left"</span><span class="p">:</span>
+            <span class="n">width</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_length</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">width</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">lengths</span><span class="o">.</span><span class="n">max</span><span class="p">())</span> <span class="k">if</span> <span class="n">lengths</span><span class="o">.</span><span class="n">size</span> <span class="k">else</span> <span class="mi">1</span><span class="p">)</span>
 
         <span class="n">tokens</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">rows</span><span class="p">,</span> <span class="n">width</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">pad_id</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
         <span class="n">mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">rows</span><span class="p">,</span> <span class="n">width</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
@@ -482,8 +524,9 @@
             <span class="c1"># Truncation keeps the tail, so a context window means "the most</span>
             <span class="c1"># recent N" rather than "the first N".</span>
             <span class="n">history</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">encode_indices</span><span class="p">(</span><span class="n">sequences</span><span class="o">.</span><span class="n">row</span><span class="p">(</span><span class="n">row</span><span class="p">)[</span><span class="o">-</span><span class="n">length</span><span class="p">:])</span>
-            <span class="n">tokens</span><span class="p">[</span><span class="n">row</span><span class="p">,</span> <span class="p">:</span><span class="n">length</span><span class="p">]</span> <span class="o">=</span> <span class="n">history</span>
-            <span class="n">mask</span><span class="p">[</span><span class="n">row</span><span class="p">,</span> <span class="p">:</span><span class="n">length</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">start</span> <span class="o">=</span> <span class="n">width</span> <span class="o">-</span> <span class="n">length</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">padding</span> <span class="o">==</span> <span class="s2">"left"</span> <span class="k">else</span> <span class="mi">0</span>
+            <span class="n">tokens</span><span class="p">[</span><span class="n">row</span><span class="p">,</span> <span class="n">start</span> <span class="p">:</span> <span class="n">start</span> <span class="o">+</span> <span class="n">length</span><span class="p">]</span> <span class="o">=</span> <span class="n">history</span>
+            <span class="n">mask</span><span class="p">[</span><span class="n">row</span><span class="p">,</span> <span class="n">start</span> <span class="p">:</span> <span class="n">start</span> <span class="o">+</span> <span class="n">length</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
 
         <span class="k">return</span> <span class="p">(</span>
             <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">),</span>
@@ -514,11 +557,22 @@
 <span class="sd">        from a pad embedding — and agrees with itself at ``batch_size=1``, where</span>
 <span class="sd">        every row fills its own batch, which is what lets the bug survive.</span>
 
-<span class="sd">        Empty rows report 0, which is padding. Pair this with :meth:`has_history`</span>
-<span class="sd">        rather than trusting the position alone.</span>
+<span class="sd">        Under left padding it is the last column for every row, since the real</span>
+<span class="sd">        tokens are the suffix -- the arithmetic below would instead point at the</span>
+<span class="sd">        padding that precedes them.</span>
+
+<span class="sd">        Empty rows report a padding position either way. Pair this with</span>
+<span class="sd">        :meth:`has_history` rather than trusting the position alone.</span>
 <span class="sd">        """</span>
         <span class="k">if</span> <span class="n">mask</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"mask must be two-dimensional"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">padding</span> <span class="o">==</span> <span class="s2">"left"</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
+                <span class="p">(</span><span class="n">mask</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],),</span>
+                <span class="n">mask</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">,</span>
+                <span class="n">device</span><span class="o">=</span><span class="n">mask</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+            <span class="p">)</span>
         <span class="n">lengths</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
         <span class="k">return</span> <span class="p">(</span><span class="n">lengths</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">clamp_min</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span></div>
 
