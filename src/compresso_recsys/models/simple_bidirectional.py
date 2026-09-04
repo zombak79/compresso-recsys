@@ -682,7 +682,11 @@ class SimpleBidirectionalTransformerTrainer(BaseSequentialRecommender):
             SimpleBidirectionalTransformerConfig(
                 transformer=transformer, **config
             ),
-            SequenceBatcher(tokenizer, max_length=max_length),
+            SequenceBatcher(
+                tokenizer,
+                max_length=max_length,
+                padding=state.get("padding", "right"),
+            ),
         )
         trainer._n_items = tokenizer.n_items
         trainer.model = trainer._build_model()
@@ -704,6 +708,7 @@ class SimpleBidirectionalTransformerTrainer(BaseSequentialRecommender):
             "state/trainer.json",
             {
                 "max_length": int(self.batcher.max_length),
+                "padding": self.batcher.padding,
                 "history": self.history,
                 "trained_with_explicit_targets": self._trained_with_explicit_targets,
             },

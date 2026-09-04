@@ -46,8 +46,12 @@ def _config(**overrides) -> SimpleBidirectionalTransformerConfig:
     return SimpleBidirectionalTransformerConfig(**{**defaults, **overrides})
 
 
-def _batcher(n_items=N_ITEMS, max_length=8) -> SequenceBatcher:
-    return SequenceBatcher(ItemTokenizer(n_items), max_length=max_length)
+def _batcher(n_items=N_ITEMS, max_length=8, padding="right") -> SequenceBatcher:
+    return SequenceBatcher(
+        ItemTokenizer(n_items),
+        max_length=max_length,
+        padding=padding,
+    )
 
 
 def _sequences(rows, n_items=N_ITEMS) -> ItemSequences:
@@ -391,6 +395,25 @@ def test_self_supervised_mode_survives_a_checkpoint(tmp_path):
     restored = SimpleBidirectionalTransformerTrainer.load(path)
 
     assert not restored.trained_with_explicit_targets
+
+
+def test_left_padding_survives_a_checkpoint(tmp_path):
+    source = _sequences([[0, 1], [2]])
+    trainer = SimpleBidirectionalTransformerTrainer(
+        _config(),
+        _batcher(padding="left"),
+    ).fit(source)
+    before = trainer.predict_on_batch(source, k=2, exclude_seen=False)
+    path = tmp_path / "left-padded.zip"
+
+    trainer.save(path)
+    restored = SimpleBidirectionalTransformerTrainer.load(path)
+    after = restored.predict_on_batch(source, k=2, exclude_seen=False)
+
+    assert restored.batcher is not None
+    assert restored.batcher.padding == "left"
+    torch.testing.assert_close(after.cols, before.cols)
+    torch.testing.assert_close(after.vals, before.vals)
 
 
 def test_evaluation_needs_no_target_trained_model_special_case():
