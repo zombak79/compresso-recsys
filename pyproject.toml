@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "compresso-recsys"
-version = "0.3.2"
+version = "0.3.3"
 description = "Recommender-system experiments and checkpoint pipelines for Compresso"
 readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.10"

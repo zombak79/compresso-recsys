@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+## [0.3.3] — 2026-09-04
+
 ### Added
 
 - `SimpleBidirectionalTransformer`, a padding-aware sequential encoder that
@@ -599,7 +601,8 @@ depends on, and two evaluation-protocol corrections found while validating it.
 Initial release. EASE, ELSA and CompressedELSA, checkpoint building and the
 dataset loaders.
 
-[Unreleased]: https://github.com/zombak79/compresso-recsys/compare/v0.3.2...HEAD
+[Unreleased]: https://github.com/zombak79/compresso-recsys/compare/v0.3.3...HEAD
+[0.3.3]: https://github.com/zombak79/compresso-recsys/releases/tag/v0.3.3
 [0.3.2]: https://github.com/zombak79/compresso-recsys/releases/tag/v0.3.2
 [0.3.1]: https://github.com/zombak79/compresso-recsys/releases/tag/v0.3.1
 [0.3.0]: https://github.com/zombak79/compresso-recsys/releases/tag/v0.3.0
