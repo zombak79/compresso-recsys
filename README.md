@@ -92,8 +92,23 @@ corresponding `train_item_ids`, `val_item_ids`, and `test_item_ids` arrays.
 
 ## What Is Included
 
-- Dataset utilities for GoodBooks, MovieLens 1M, MovieLens 20M, and Amazon
-  Reviews 2023.
+Steam supports game metadata for item cold-start and review dates for sequential
+and temporal checkpoints:
+
+```python
+checkpoint_path = cr.build_recsys_checkpoint(
+    dataset="steam",
+    split_mode="leave_last_out",  # Or "item_split" / "temporal".
+    checkpoint_path="artifacts/steam/llo.zip",
+)
+```
+
+The first run downloads about 1.2 GB of reviews plus game metadata; later runs
+reuse the local archive and parsed cache. See the
+[dataset guide](docs/source/api/datasets.rst) for cold-start examples and defaults.
+
+- Dataset utilities for GoodBooks, MovieLens 1M, MovieLens 20M, Amazon
+  Reviews 2023, Steam, Netflix Prize, MSD Taste Profile, and Gowalla.
 - ZIP checkpoint format for source/target splits, embeddings, sparse
   embeddings, metrics, and Compresso cluster-graph stages.
 - Calibrated Recall and nDCG defaults, with optional standard Recall,

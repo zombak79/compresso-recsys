@@ -17,6 +17,8 @@ from compresso_recsys.checkpoint import (
     update_checkpoint,
 )
 from compresso_recsys.datasets import AmazonReviews2023, Goodbooks, MovieLens1M, MovieLens20M
+from compresso_recsys.datasets import Steam, NetflixPrize, TasteProfile, Gowalla
+from compresso_recsys.datasets._public import PublicDataset
 from compresso_recsys.sequences import ItemSequences
 from compresso_recsys.retrieval import (
     LEAVE_LAST_OUT_MIN_HISTORY,
@@ -40,11 +42,23 @@ class DatasetSpec:
     test_users: int
     min_user_support: int = 5
     item_min_support: int = 1
-    min_value_to_keep: float = 4.0
+    min_value_to_keep: float | None = 4.0
     set_all_values_to: float = 1.0
+    min_entity_text_words: int = 30
 
 
 DATASETS = {
+    "steam": DatasetSpec(Steam, "artifacts/steam/recsys_checkpoint.zip", seed=42,
+                         val_users=10000, test_users=10000, min_value_to_keep=None,
+                         min_entity_text_words=0),
+    "netflix": DatasetSpec(NetflixPrize, "artifacts/netflix/recsys_checkpoint.zip", seed=98765,
+                           val_users=40000, test_users=40000, min_entity_text_words=0),
+    "taste-profile": DatasetSpec(TasteProfile, "artifacts/taste-profile/recsys_checkpoint.zip", seed=98765,
+                                 val_users=50000, test_users=50000, min_user_support=20,
+                                 item_min_support=200, min_value_to_keep=None, min_entity_text_words=0),
+    "gowalla": DatasetSpec(Gowalla, "artifacts/gowalla/recsys_checkpoint.zip", seed=42,
+                           val_users=10000, test_users=10000, min_user_support=10,
+                           item_min_support=10, min_value_to_keep=None, min_entity_text_words=0),
     "goodbooks": DatasetSpec(Goodbooks, "artifacts/goodbooks/recsys_checkpoint.zip", seed=0, val_users=1000, test_users=2500),
     "ml1m": DatasetSpec(MovieLens1M, "artifacts/ml1m/recsys_checkpoint.zip", seed=42, val_users=500, test_users=1000),
     "ml20m": DatasetSpec(MovieLens20M, "artifacts/ml20m/recsys_checkpoint.zip", seed=42, val_users=2500, test_users=5000),
@@ -159,8 +173,8 @@ def parse_args():
     p.add_argument(
         "--min_entity_text_words",
         type=int,
-        default=30,
-        help="Drop items whose constructed entity_text has fewer words. Mostly useful for Amazon 2023.",
+        default=None,
+        help="Minimum item text words. Defaults to 30 for existing datasets, 0 for Steam/Netflix/Taste Profile/Gowalla.",
     )
     p.add_argument(
         "--include_image_urls",
@@ -209,7 +223,7 @@ def _build_args(
     min_target_items: int = 1,
     amazon_category: str = "Toys_and_Games",
     metadata_text_fields: str | list[str] | tuple[str, ...] | None = None,
-    min_entity_text_words: int = 30,
+    min_entity_text_words: int | None = None,
     include_image_urls: bool = False,
     annotation_source: str = "genres",
     annotation_min_count: int = 100,
@@ -286,6 +300,9 @@ def _resolve_args(args):
     args.item_min_support = spec.item_min_support if args.item_min_support is None else args.item_min_support
     args.min_value_to_keep = spec.min_value_to_keep if args.min_value_to_keep is None else args.min_value_to_keep
     args.set_all_values_to = spec.set_all_values_to if args.set_all_values_to is None else args.set_all_values_to
+    args.min_entity_text_words = spec.min_entity_text_words if args.min_entity_text_words is None else args.min_entity_text_words
+    if args.split_mode in {"leave_last_out", "temporal"} and not getattr(spec.cls, "has_timestamps", True):
+        raise ValueError(f"{args.dataset} has no interaction timestamps; use user_split or item_split")
     return args, spec
 
 
@@ -296,8 +313,12 @@ def _make_dataset(args, spec: DatasetSpec):
         if args.metadata_text_fields
         else list(default_fields)
     )
-    if not fields:
+    if not fields and not issubclass(spec.cls, PublicDataset):
         raise ValueError("--metadata_text_fields must contain at least one field")
+    if issubclass(spec.cls, PublicDataset):
+        return spec.cls(data_dir=args.data_dir, metadata_text_fields=fields,
+                        min_entity_text_words=args.min_entity_text_words,
+                        show_progress=getattr(args, "show_progress", True))
     if spec.cls is AmazonReviews2023:
         return AmazonReviews2023(
             data_dir=args.data_dir,
@@ -328,7 +349,7 @@ def _build_genre_tag_matrix(ds, item_ids: np.ndarray):
 
     for row, item_id in enumerate(item_ids.tolist()):
         raw = item_to_genres.get(item_id)
-        if raw is None or raw == "nan":
+        if raw is None or pd.isna(raw) or raw == "nan":
             continue
         for tag in raw.split("|"):
             tag = tag.strip()
@@ -1283,6 +1304,12 @@ def _build_recsys_checkpoint_from_args(args) -> Path:
         progress.step("Loading interactions")
         ds = _make_dataset(args, spec)
         raw_df = ds.get_interactions()
+        if raw_df.empty:
+            raise ValueError(f"{args.dataset} has no interactions after metadata filtering")
+        # Collapse repeated pairs only for CF splits. Ordered protocols retain
+        # every check-in/review event, including repeat visits on different days.
+        if isinstance(ds, PublicDataset) and args.split_mode in {"user_split", "item_split"}:
+            raw_df = raw_df.drop_duplicates(["user_id", "item_id"], keep="first")
 
         progress.step("Preprocessing interactions")
         temporal = args.split_mode == "temporal"
@@ -1293,6 +1320,8 @@ def _build_recsys_checkpoint_from_args(args) -> Path:
             item_min_support=1 if temporal else args.item_min_support,
             set_all_values_to=args.set_all_values_to,
         )
+        if proc_df.empty:
+            raise ValueError(f"{args.dataset} has no interactions after preprocessing; lower support/text thresholds")
 
         progress.step(f"Building {args.split_mode} split")
         split_payload = _build_split_payload(args, ds, proc_df, progress=progress)
@@ -1348,6 +1377,8 @@ def _build_recsys_checkpoint_from_args(args) -> Path:
                 entity_metadata=entity_metadata,
                 metadata={
                     "dataset": args.dataset,
+                    "source_page": getattr(ds, "source_page", None),
+                    "timestamp_precision": getattr(ds, "timestamp_precision", None),
                     "seed": args.seed,
                     "val_users": args.val_users,
                     "test_users": args.test_users,
@@ -1449,7 +1480,7 @@ def build_recsys_checkpoint(
     min_target_items: int = 1,
     amazon_category: str = "Toys_and_Games",
     metadata_text_fields: str | list[str] | tuple[str, ...] | None = None,
-    min_entity_text_words: int = 30,
+    min_entity_text_words: int | None = None,
     include_image_urls: bool = False,
     annotation_source: str = "genres",
     annotation_min_count: int = 100,

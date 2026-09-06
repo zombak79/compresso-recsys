@@ -1,5 +1,18 @@
 ## [Unreleased]
 
+### Added
+
+- Dataset/model validation matrix with published EASE and MultDAE/VAE reference
+  scores, explicit protocol caveats, and runnable checkpoint/training recipes
+  that select on validation and report the held-out test metrics as JSON.
+- Steam, Netflix Prize, MSD Taste Profile, and raw Gowalla adapters, available
+  through the Python checkpoint builder and CLI. Downloads are cached atomically;
+  canonical interactions are parsed in chunks and cached as Parquet.
+- Steam game metadata and genre annotations for item cold-start checkpoints,
+  with review dates for leave-last-out and temporal splits. New adapters retain
+  items without descriptions by default and use dataset-specific support and
+  feedback thresholds; existing dataset defaults are preserved.
+
 ## [0.3.3] — 2026-09-04
 
 ### Added

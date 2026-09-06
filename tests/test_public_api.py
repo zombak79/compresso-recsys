@@ -13,6 +13,10 @@ import compresso_recsys.stats as stats
 
 def test_top_level_public_api_is_intentional():
     expected = {
+        "Steam",
+        "NetflixPrize",
+        "TasteProfile",
+        "Gowalla",
         "AmazonReviews2023",
         "build_recsys_checkpoint",
         "Goodbooks",
@@ -85,6 +89,10 @@ def test_submodule_public_apis_are_intentional():
             "load_cluster_graph_stage",
         },
         datasets: {
+            "Steam",
+            "NetflixPrize",
+            "TasteProfile",
+            "Gowalla",
             "SplitBundle",
             "RecSysDataset",
             "MovieLens1M",

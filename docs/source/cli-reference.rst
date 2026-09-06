@@ -13,6 +13,26 @@ Basic usage:
      --checkpoint_path artifacts/ml1m/exp001.zip \
      --annotation_source genres
 
+Steam
+-----
+
+Steam checkpoints include game metadata and genre annotations. Review dates
+support LLO and temporal splits; an item split holds out games for cold-start
+evaluation. See :doc:`api/datasets` for source details and :ref:`cite-datasets`
+for citations.
+
+.. code-block:: bash
+
+   compresso-recsys-build-checkpoint \
+     --dataset steam \
+     --split_mode item_split \
+     --min_entity_text_words 1 \
+     --checkpoint_path artifacts/steam/cold.zip
+
+Use ``--split_mode leave_last_out`` for sequential evaluation, or
+``--split_mode temporal --temporal_period_hours 720`` for 30-day target windows.
+The first download includes approximately 1.2 GB of reviews plus game metadata.
+
 Amazon Reviews 2023
 -------------------
 
@@ -200,7 +220,7 @@ Full ``compresso-recsys-build-checkpoint`` parameter table:
    * - ``--dataset``
      - required
      - Dataset to build. Choices: ``goodbooks``, ``ml1m``, ``ml20m``,
-       ``amazon2023``.
+       ``amazon2023``, ``steam``, ``netflix``, ``taste-profile``, ``gowalla``.
    * - ``--data_dir``
      - ``data``
      - Directory where raw/downloaded dataset files are stored.
@@ -273,13 +293,14 @@ Full ``compresso-recsys-build-checkpoint`` parameter table:
      - Amazon Reviews 2023 category. Supports official names and aliases like
        ``toys``, ``electronics``, ``clothing``.
    * - ``--metadata_text_fields``
-     - ``title,features,description,categories``
-     - Metadata columns joined into canonical ``entity_text``. Mostly important
-       for Amazon/SBERT.
+     - dataset-specific
+     - Metadata columns joined into canonical ``entity_text``. Steam uses
+       title, genres, tags, developer, and publisher by default.
    * - ``--min_entity_text_words``
-     - ``30``
+     - dataset-specific
      - Drop items whose constructed ``entity_text`` is shorter than this many
-       words. Mostly useful for Amazon.
+       words. Defaults to ``30`` for the existing MovieLens/Goodbooks/Amazon
+       adapters and ``0`` for Steam/Netflix/Taste Profile/Gowalla.
    * - ``--include_image_urls``
      - ``False``
      - For Amazon, include ``image_url`` and ``image_urls`` columns in
@@ -335,7 +356,36 @@ Dataset-specific defaults:
      - ``20``
      - ``20``
 
-All datasets currently default to:
+   * - ``steam``
+     - ``artifacts/steam/recsys_checkpoint.zip``
+     - ``42``
+     - ``10000``
+     - ``10000``
+     - ``5``
+     - ``1``
+   * - ``netflix``
+     - ``artifacts/netflix/recsys_checkpoint.zip``
+     - ``98765``
+     - ``40000``
+     - ``40000``
+     - ``5``
+     - ``1``
+   * - ``taste-profile``
+     - ``artifacts/taste-profile/recsys_checkpoint.zip``
+     - ``98765``
+     - ``50000``
+     - ``50000``
+     - ``20``
+     - ``200``
+   * - ``gowalla``
+     - ``artifacts/gowalla/recsys_checkpoint.zip``
+     - ``42``
+     - ``10000``
+     - ``10000``
+     - ``10``
+     - ``10``
+
+Feedback defaults:
 
 .. list-table::
    :header-rows: 1
@@ -343,7 +393,8 @@ All datasets currently default to:
    * - Parameter
      - Default
    * - ``min_value_to_keep``
-     - ``4.0``
+     - ``4.0`` for MovieLens, Goodbooks, Amazon, and Netflix; no rating
+       threshold for Steam, Taste Profile, or Gowalla
    * - ``set_all_values_to``
      - ``1.0``
 

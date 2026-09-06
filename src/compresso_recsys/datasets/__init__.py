@@ -3,6 +3,10 @@ from .base import RecSysDataset, SplitBundle
 from .movielens20m import MovieLens20M
 from .movielens1m import MovieLens1M
 from .goodbooks import Goodbooks
+from .steam import Steam
+from .netflix import NetflixPrize
+from .taste_profile import TasteProfile
+from .gowalla import Gowalla
 
 __all__ = [
     "SplitBundle",
@@ -11,4 +15,8 @@ __all__ = [
     "MovieLens20M",
     "Goodbooks",
     "AmazonReviews2023",
+    "Steam",
+    "NetflixPrize",
+    "TasteProfile",
+    "Gowalla",
 ]

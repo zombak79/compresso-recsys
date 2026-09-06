@@ -6,7 +6,8 @@ around Compresso sparse representation learning.
 
 The public API is centered on:
 
-* dataset loaders for GoodBooks, MovieLens, and Amazon Reviews 2023
+* dataset loaders for GoodBooks, MovieLens, Amazon Reviews 2023, Steam,
+  Netflix Prize, MSD Taste Profile, and Gowalla
 * ZIP checkpoint helpers for storing splits, embeddings, sparse embeddings, and
   metrics
 * retrieval holdout builders for user split, item cold-start split,
