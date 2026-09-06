@@ -164,6 +164,10 @@ memory-constrained machine. Neural recipes stream sparse training minibatches.
 Sequential, cold-start, and other models
 ---------------------------------------------
 
+For SWAP ML-1M/DBbook/Last.fm feature checkpoints, see :doc:`multimodal-datasets`.
+Those adapters preserve incomplete feature coverage and do not reproduce the
+authors' all-modalities MMRec benchmark; no matching score target is assigned yet.
+
 .. list-table:: Additional coverage and honest comparison boundaries
    :header-rows: 1
    :widths: 18 27 27 28

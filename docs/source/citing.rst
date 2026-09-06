@@ -566,3 +566,57 @@ so that ``alpha * (B + 1)`` is an integer:
      year={1997},
      doi={10.1017/CBO9780511802843}
    }
+.. _cite-swap-multimodal:
+
+SWAP multimodal ML-1M, DBbook, and Last.fm-2K
+----------------------------------------------------
+
+For pretrained features, cite the resource paper and the versioned dataset.
+Continue citing MovieLens for ML-1M. For DBbook, this adapter uses the reconstructed
+interaction release described by SWAP, not a claim of retrieving the original
+ESWC challenge service.
+
+Paper: `See the Movie, Hear the Song, Read the Book
+<https://doi.org/10.1145/3705328.3748162>`_.
+Data: `Zenodo record 15403972 <https://zenodo.org/records/15403972>`_.
+Processing: `authors' repository
+<https://github.com/swapUniba/multimodal_ml1m_dbbook_lfm2k>`_.
+
+.. code-block:: bibtex
+
+   @inproceedings{spillo2025multimodal,
+     author = {Spillo, Giuseppe and Musacchio, Elio and Musto, Cataldo and
+               de Gemmis, Marco and Lops, Pasquale and Semeraro, Giovanni},
+     title = {See the Movie, Hear the Song, Read the Book: Extending
+              MovieLens-1M, Last.fm-2K, and DBbook with Multimodal Data},
+     booktitle = {Proceedings of the Nineteenth ACM Conference on Recommender Systems},
+     year = {2025},
+     doi = {10.1145/3705328.3748162}
+   }
+
+   @misc{spillo2025multimodaldata,
+     author = {Spillo, Giuseppe and Musacchio, Elio and Musto, Cataldo and
+               de Gemmis, Marco and Lops, Pasquale and Semeraro, Giovanni},
+     title = {See the Movie, Hear the Song, Read the Book: Extending
+              MovieLens-1M, Last.fm 2K, and DBBook with multimodal Data},
+     year = {2025},
+     publisher = {Zenodo},
+     doi = {10.5281/zenodo.15403972}
+   }
+
+For Last.fm, the original README requests attribution to `Last.fm
+<https://www.last.fm/>`_ and suggests the HetRec workshop citation below.
+See `GroupLens HetRec 2011 <https://grouplens.org/datasets/hetrec-2011/>`_
+and the supplied README for usage terms; availability in a public archive does
+not waive the original dataset restrictions.
+
+.. code-block:: bibtex
+
+   @inproceedings{cantador2011hetrec,
+     author = {Cantador, Iv{\'a}n and Brusilovsky, Peter and Kuflik, Tsvi},
+     title = {2nd Workshop on Information Heterogeneity and Fusion in
+              Recommender Systems (HetRec 2011)},
+     booktitle = {Proceedings of the 5th ACM Conference on Recommender Systems},
+     year = {2011},
+     publisher = {ACM}
+   }

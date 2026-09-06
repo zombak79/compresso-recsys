@@ -220,7 +220,8 @@ Full ``compresso-recsys-build-checkpoint`` parameter table:
    * - ``--dataset``
      - required
      - Dataset to build. Choices: ``goodbooks``, ``ml1m``, ``ml20m``,
-       ``amazon2023``, ``steam``, ``netflix``, ``taste-profile``, ``gowalla``.
+       ``amazon2023``, ``steam``, ``netflix``, ``taste-profile``, ``gowalla``,
+       ``dbbook``, ``lfm2k``.
    * - ``--data_dir``
      - ``data``
      - Directory where raw/downloaded dataset files are stored.
@@ -262,7 +263,7 @@ Full ``compresso-recsys-build-checkpoint`` parameter table:
    * - ``--split_mode``
      - ``user_split``
      - Split protocol. Choices: ``user_split``, ``item_split``,
-       ``leave_last_out``, ``temporal``.
+       ``leave_last_out``, ``temporal``, or DBbook-only ``official``.
    * - ``--val_items``
      - ``None``
      - Exact number of cold validation items for ``item_split``. Overrides
@@ -300,7 +301,7 @@ Full ``compresso-recsys-build-checkpoint`` parameter table:
      - dataset-specific
      - Drop items whose constructed ``entity_text`` is shorter than this many
        words. Defaults to ``30`` for the existing MovieLens/Goodbooks/Amazon
-       adapters and ``0`` for Steam/Netflix/Taste Profile/Gowalla.
+       adapters and ``0`` for Steam/Netflix/Taste Profile/Gowalla/DBbook/Last.fm.
    * - ``--include_image_urls``
      - ``False``
      - For Amazon, include ``image_url`` and ``image_urls`` columns in
@@ -385,6 +386,21 @@ Dataset-specific defaults:
      - ``10``
      - ``10``
 
+   * - ``dbbook``
+     - ``artifacts/dbbook/recsys_checkpoint.zip``
+     - ``42``
+     - ``500``
+     - ``1000``
+     - ``5``
+     - ``1``
+   * - ``lfm2k``
+     - ``artifacts/lfm2k/recsys_checkpoint.zip``
+     - ``42``
+     - ``200``
+     - ``400``
+     - ``5``
+     - ``1``
+
 Feedback defaults:
 
 .. list-table::
@@ -394,7 +410,7 @@ Feedback defaults:
      - Default
    * - ``min_value_to_keep``
      - ``4.0`` for MovieLens, Goodbooks, Amazon, and Netflix; no rating
-       threshold for Steam, Taste Profile, or Gowalla
+       threshold for Steam, Taste Profile, Gowalla, or Last.fm; ``1.0`` for DBbook
    * - ``set_all_values_to``
      - ``1.0``
 
@@ -507,3 +523,9 @@ Supported Amazon Reviews 2023 Datasets
    * - ``Video_Games``
      - none
      - yes
+.. note::
+
+   ``--dataset dbbook`` and ``--dataset lfm2k`` support optional pretrained
+   features via ``--multimodal_features text/minilm,image/resnet152``.
+   ML-1M supports the same enrichment. ``--split_mode official`` is available
+   for DBbook only. See :doc:`multimodal-datasets` for defaults and restrictions.

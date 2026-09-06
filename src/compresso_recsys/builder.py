@@ -18,6 +18,7 @@ from compresso_recsys.checkpoint import (
 )
 from compresso_recsys.datasets import AmazonReviews2023, Goodbooks, MovieLens1M, MovieLens20M
 from compresso_recsys.datasets import Steam, NetflixPrize, TasteProfile, Gowalla
+from compresso_recsys.datasets import DBbook, LastFM2K
 from compresso_recsys.datasets._public import PublicDataset
 from compresso_recsys.sequences import ItemSequences
 from compresso_recsys.retrieval import (
@@ -48,6 +49,12 @@ class DatasetSpec:
 
 
 DATASETS = {
+    "dbbook": DatasetSpec(DBbook, "artifacts/dbbook/recsys_checkpoint.zip", seed=42,
+                          val_users=500, test_users=1000, min_value_to_keep=1.0,
+                          min_entity_text_words=0),
+    "lfm2k": DatasetSpec(LastFM2K, "artifacts/lfm2k/recsys_checkpoint.zip", seed=42,
+                         val_users=200, test_users=400, min_value_to_keep=None,
+                         min_entity_text_words=0),
     "steam": DatasetSpec(Steam, "artifacts/steam/recsys_checkpoint.zip", seed=42,
                          val_users=10000, test_users=10000, min_value_to_keep=None,
                          min_entity_text_words=0),
@@ -138,12 +145,14 @@ def parse_args():
     p.add_argument("--min_value_to_keep", type=float, default=None)
     p.add_argument("--set_all_values_to", type=float, default=None)
     p.add_argument("--eval_draws", type=int, default=5)
+    p.add_argument("--multimodal_features", default=None,
+                   help="Optional comma-separated SWAP features, e.g. text/minilm,image/resnet152")
     p.add_argument("--eval_holdout_frac", type=float, default=0.2)
     p.add_argument(
         "--split_mode",
         type=str,
         default="user_split",
-        choices=["user_split", "item_split", "leave_last_out", "temporal"],
+        choices=["user_split", "item_split", "leave_last_out", "temporal", "official"],
     )
     p.add_argument("--val_items", type=int, default=None, help="Number of cold validation items for item_split.")
     p.add_argument("--test_items", type=int, default=None, help="Number of cold test items for item_split.")
@@ -228,6 +237,7 @@ def _build_args(
     annotation_source: str = "genres",
     annotation_min_count: int = 100,
     show_progress: bool = True,
+    multimodal_features: str | list[str] | None = None,
 ) -> argparse.Namespace:
     if dataset not in DATASETS:
         choices = ", ".join(sorted(DATASETS))
@@ -239,7 +249,7 @@ def _build_args(
             f"eval_holdout_frac must be strictly between 0 and 1, "
             f"got {eval_holdout_frac!r}"
         )
-    if split_mode not in {"user_split", "item_split", "leave_last_out", "temporal"}:
+    if split_mode not in {"user_split", "item_split", "leave_last_out", "temporal", "official"}:
         raise ValueError(f"Unsupported split_mode: {split_mode!r}")
     if annotation_source not in {"genres", "ml20m_tags", "goodbooks_tags", "none"}:
         raise ValueError(f"Unsupported annotation_source: {annotation_source!r}")
@@ -257,6 +267,7 @@ def _build_args(
             stacklevel=2,
         )
     return argparse.Namespace(
+        multimodal_features=multimodal_features,
         dataset=dataset,
         data_dir=data_dir,
         checkpoint_path=checkpoint_path,
@@ -290,6 +301,11 @@ def _build_args(
 
 def _resolve_args(args):
     spec = DATASETS[args.dataset]
+    if args.split_mode == "official" and args.dataset != "dbbook":
+        raise ValueError("official split is supported only for dbbook")
+    if getattr(args, "multimodal_features", None) is not None:
+        from compresso_recsys.multimodal import _selection
+        _selection(args.dataset, args.multimodal_features)
     args.checkpoint_path = args.checkpoint_path or spec.checkpoint_path.format(
         amazon_category=args.amazon_category,
     )
@@ -525,6 +541,74 @@ def _split_item_ids_random(item_ids: np.ndarray, *, args) -> tuple[np.ndarray, n
     test_idx = np.sort(perm[n_val : n_val + n_test])
     train_idx = np.sort(perm[n_val + n_test :])
     return train_idx.astype(np.int64), val_idx.astype(np.int64), test_idx.astype(np.int64)
+
+
+def _build_official_split(args, ds, proc_df):
+    """DBbook's supplied test boundary, with validation carved from train only."""
+    train = proc_df.drop_duplicates(["user_id", "item_id"]).copy()
+    original_train, users, item_ids = ds.to_sparse_matrix(train)
+    users, item_ids = np.asarray(users).astype(str), np.asarray(item_ids).astype(str)
+    validation = build_eval_holdout(
+        train_item_ids=item_ids, eval_interactions=train,
+        min_user_support=max(2, args.min_source_items + args.min_target_items),
+        random_state=args.seed, eval_draws=1, eval_holdout_frac=args.eval_holdout_frac,
+    )
+    eligible = [row for row, (source, target) in enumerate(zip(
+        validation["source_indices"], validation["target_indices"]
+    )) if len(source) >= args.min_source_items and len(target) >= args.min_target_items]
+    validation["source_indices"] = [validation["source_indices"][row] for row in eligible]
+    validation["target_indices"] = [validation["target_indices"][row] for row in eligible]
+    validation["user_ids"] = np.asarray(validation["user_ids"])[eligible]
+    if not len(validation["user_ids"]):
+        raise ValueError("Official split has no eligible validation users")
+    # The model must not see validation targets in its training matrix.
+    x_train = original_train.tolil()
+    user_rows = {key: row for row, key in enumerate(users)}
+    for key, targets in zip(validation["user_ids"], validation["target_indices"]):
+        x_train[user_rows[str(key)], targets] = 0
+    x_train = x_train.tocsr()
+    x_train.eliminate_zeros()
+    test = ds.get_official_split()["test"]
+    if args.min_value_to_keep is not None:
+        test = test[test.value >= args.min_value_to_keep]
+    test = test.drop_duplicates(["user_id", "item_id"])
+    before = len(test)
+    test = test[test.user_id.isin(users) & test.item_id.isin(item_ids)]
+    excluded = before - len(test)
+    item_rows = {key: row for row, key in enumerate(item_ids)}
+    test_users, source_indices, target_indices = [], [], []
+    for key, group in test.groupby("user_id", sort=True):
+        source = original_train[user_rows[str(key)]].indices.astype(np.int64)
+        target = np.array([item_rows[str(item)] for item in group.item_id], dtype=np.int64)
+        if np.intersect1d(source, target).size:
+            raise ValueError("Official DBbook train/test contain overlapping user-item pairs")
+        if len(source) < args.min_source_items or len(target) < args.min_target_items:
+            excluded += len(target)
+            continue
+        test_users.append(str(key))
+        source_indices.append(source)
+        target_indices.append(target)
+    if not test_users:
+        raise ValueError("Official split has no eligible test users")
+    return {
+        "item_ids": item_ids, "x_train": x_train,
+        "train_source_matrix": x_train, "train_target_matrix": x_train,
+        "train_user_ids": users,
+        "val_user_ids": np.asarray(validation["user_ids"]).astype(str),
+        "test_user_ids": np.asarray(test_users),
+        "val_holdout": validation,
+        "test_holdout": {"source_indices": source_indices, "target_indices": target_indices,
+                         "user_ids": np.asarray(test_users)},
+        "extra_metadata": {
+            "has_user_partitions": False, "has_item_partitions": False,
+            "is_temporal": False, "is_future_blind": False,
+            "official_test_excluded_interactions": excluded,
+            "effective_eval_draws": 1,
+            "leakage_note": "Supplied DBbook test boundary. Validation withheld from train. "
+                            "Test histories use full supplied train; model is not refit. "
+                            "Test users/items outside the training vocabulary are excluded.",
+        },
+    }
 
 
 def _build_user_split(args, ds, proc_df):
@@ -1284,6 +1368,8 @@ def _distinct_eval_users(holdout) -> int | None:
 
 
 def _build_split_payload(args, ds, proc_df, progress: _CheckpointProgress | None = None):
+    if args.split_mode == "official":
+        return _build_official_split(args, ds, proc_df)
     if args.split_mode == "user_split":
         return _build_user_split(args, ds, proc_df)
     if args.split_mode == "item_split":
@@ -1313,8 +1399,9 @@ def _build_recsys_checkpoint_from_args(args) -> Path:
 
         progress.step("Preprocessing interactions")
         temporal = args.split_mode == "temporal"
+        preprocessing_df = raw_df[raw_df.source_split == "train"] if args.split_mode == "official" else raw_df
         proc_df = ds.preprocess_interactions_for_recsys(
-            raw_df,
+            preprocessing_df,
             min_value_to_keep=args.min_value_to_keep,
             user_min_support=1 if temporal else args.min_user_support,
             item_min_support=1 if temporal else args.item_min_support,
@@ -1452,6 +1539,12 @@ def _build_recsys_checkpoint_from_args(args) -> Path:
                     },
                 },
             )
+            if getattr(args, "multimodal_features", None) is not None:
+                from compresso_recsys.multimodal import import_multimodal_embeddings
+                import_multimodal_embeddings(
+                    root, dataset=args.dataset, features=args.multimodal_features,
+                    data_dir=args.data_dir, show_progress=getattr(args, "show_progress", True),
+                )
     return Path(args.checkpoint_path)
 
 
@@ -1485,9 +1578,11 @@ def build_recsys_checkpoint(
     annotation_source: str = "genres",
     annotation_min_count: int = 100,
     show_progress: bool = True,
+    multimodal_features: str | list[str] | None = None,
 ) -> Path:
     """Build a recommender-system split checkpoint and return its path."""
     args = _build_args(
+        multimodal_features=multimodal_features,
         dataset=dataset,
         data_dir=data_dir,
         checkpoint_path=checkpoint_path,

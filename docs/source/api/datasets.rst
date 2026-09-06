@@ -5,6 +5,15 @@ For dataset BibTeX entries and preprocessing references, see
 :ref:`cite-datasets`. Cite additional metadata sources when their features
 contribute to your experiment.
 
+For optional pretrained features, DBbook, Last.fm-2K, and ML-1M enrichment, see
+:doc:`../multimodal-datasets`.
+
+.. autoclass:: compresso_recsys.datasets.DBbook
+   :members:
+
+.. autoclass:: compresso_recsys.datasets.LastFM2K
+   :members:
+
 Steam checkpoints
 -----------------
 
@@ -72,6 +81,12 @@ Additional datasets and defaults
    * - ``gowalla`` / ``Gowalla``
      - Check-ins; 10 per user, 10 per item
      - Latitude/longitude; timestamped events
+   * - ``dbbook`` / ``DBbook``
+     - Ratings >= 1; 5 per user, 1 per item
+     - Titles/DBpedia mappings; optional embeddings; no timestamps
+   * - ``lfm2k`` / ``LastFM2K``
+     - Listening counts binarized; 5 per user, 1 per item
+     - Artist names/URLs; optional embeddings; no listening timestamps
 
 Raw adapters preserve ratings/counts and repeated events. The builder collapses
 duplicate user-item pairs for user/item CF splits; ordered splits retain events.

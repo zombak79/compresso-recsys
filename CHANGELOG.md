@@ -2,6 +2,9 @@
 
 ### Added
 
+- Optional ID-aligned multimodal checkpoint features with presence masks and
+  provenance; SWAP ML-1M enrichment, DBbook and Last.fm-2K adapters, and a
+  DBbook supplied-test-boundary split with training-only validation holdout.
 - Dataset/model validation matrix with published EASE and MultDAE/VAE reference
   scores, explicit protocol caveats, and runnable checkpoint/training recipes
   that select on validation and report the held-out test metrics as JSON.

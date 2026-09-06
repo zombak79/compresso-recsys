@@ -7,6 +7,7 @@ from .steam import Steam
 from .netflix import NetflixPrize
 from .taste_profile import TasteProfile
 from .gowalla import Gowalla
+from .multimodal import DBbook, LastFM2K
 
 __all__ = [
     "SplitBundle",
@@ -19,4 +20,6 @@ __all__ = [
     "NetflixPrize",
     "TasteProfile",
     "Gowalla",
+    "DBbook",
+    "LastFM2K",
 ]

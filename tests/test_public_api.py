@@ -13,6 +13,12 @@ import compresso_recsys.stats as stats
 
 def test_top_level_public_api_is_intentional():
     expected = {
+        "DBbook",
+        "LastFM2K",
+        "save_item_embeddings",
+        "load_item_embeddings",
+        "list_item_embeddings",
+        "enrich_multimodal_checkpoint",
         "Steam",
         "NetflixPrize",
         "TasteProfile",
@@ -89,6 +95,8 @@ def test_submodule_public_apis_are_intentional():
             "load_cluster_graph_stage",
         },
         datasets: {
+            "DBbook",
+            "LastFM2K",
             "Steam",
             "NetflixPrize",
             "TasteProfile",

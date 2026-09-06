@@ -26,6 +26,7 @@ is imported as ``compresso_recsys``.
    implementing-a-recommender
    reproducing-sasrec-results-on-ml1m
    dataset-validation
+   multimodal-datasets
    statistical-comparison
    citing
    cli-reference

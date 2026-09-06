@@ -1,6 +1,19 @@
 Checkpoint API
 ==============
 
+Item embeddings
+--------------------
+
+See :doc:`../multimodal-datasets` for named feature spaces and missingness masks.
+
+.. autofunction:: compresso_recsys.embeddings.save_item_embeddings
+
+.. autofunction:: compresso_recsys.embeddings.load_item_embeddings
+
+.. autofunction:: compresso_recsys.embeddings.list_item_embeddings
+
+.. autofunction:: compresso_recsys.multimodal.enrich_multimodal_checkpoint
+
 Checkpoint Contexts
 -------------------
 
