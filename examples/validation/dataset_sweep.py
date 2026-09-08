@@ -13,6 +13,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 import sys
 import time
@@ -218,11 +219,23 @@ def digest_file(path):
 
 
 def code_version():
-    repo = Path(__file__).resolve().parents[2]
+    # The script may be downloaded/copied elsewhere. Attribute Git provenance
+    # to the imported package, never to the script's enclosing repository.
+    source = Path(cr.__file__).resolve()
     try:
-        commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo, text=True).strip()
-        diff = subprocess.check_output(["git", "diff", "HEAD", "--", "src"], cwd=repo)
-    except (OSError, subprocess.CalledProcessError):
+        repo = Path(subprocess.check_output(
+            ["git", "rev-parse", "--show-toplevel"], cwd=source.parent,
+            text=True, stderr=subprocess.DEVNULL,
+        ).strip())
+        relative_source = source.relative_to(repo)
+        # A wheel inside another project's .venv is not that project's source.
+        subprocess.check_output(["git", "ls-files", "--error-unmatch", "--", str(relative_source)],
+                                cwd=repo, stderr=subprocess.DEVNULL)
+        commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo,
+                                         text=True, stderr=subprocess.DEVNULL).strip()
+        diff = subprocess.check_output(["git", "diff", "HEAD", "--", str(relative_source.parent)],
+                                       cwd=repo, stderr=subprocess.DEVNULL)
+    except (OSError, subprocess.CalledProcessError, ValueError):
         commit, diff = None, b""
     return {"package": version("compresso-recsys"), "commit": commit,
             "source_diff_sha256": hashlib.sha256(diff).hexdigest(),
@@ -236,6 +249,17 @@ def unsupported(dataset, mode):
     if mode in ("temporal", "leave_last_out") and not timed:
         return "No interaction timestamps"
     return None
+
+
+def dataset_label(record):
+    category = record.get("amazon_category")
+    return f"{record['dataset']}[{category}]" if category else record["dataset"]
+
+
+def dataset_jobs(args):
+    """Each category has its own cache; never concatenate Amazon categories."""
+    return [(dataset, category) for dataset in args.datasets
+            for category in (args.amazon_categories if dataset == "amazon2023" else [None])]
 
 
 def write_summary(output, records):
@@ -253,11 +277,12 @@ def write_summary(output, records):
              "|---|---:|---:|---:|---:|---:|---:|"]
     seen = set()
     for record in records:
-        if record["dataset"] in seen or "loaded_data" not in record:
+        label = dataset_label(record)
+        if label in seen or "loaded_data" not in record:
             continue
-        seen.add(record["dataset"])
+        seen.add(label)
         data = record["loaded_data"]
-        lines.append(f"| {record['dataset']} | {data['n_users']} | {data['n_items']} | "
+        lines.append(f"| {label} | {data['n_users']} | {data['n_items']} | "
                      f"{data['n_events']} | {data['n_unique_pairs']} | {pct(data['sparsity'])} | "
                      f"{pct(data['repeat_event_fraction'])} |")
     lines.extend(["", "## Training splits", "", "Item counts include inactive/cold columns. "
@@ -267,7 +292,7 @@ def write_summary(output, records):
     for record in records:
         train = record.get("stats", {}).get("train", {})
         sparsity = train.get("sparsity")
-        lines.append(f"| {record['dataset']} | {record['split']} | {record['status']} | "
+        lines.append(f"| {dataset_label(record)} | {record['split']} | {record['status']} | "
                      f"{train.get('n_users', '—')} | {train.get('n_items', '—')} | "
                      f"{train.get('nnz', '—')} | {pct(sparsity)} | "
                      f"{safe(record.get('error', record.get('reason', '')))} |")
@@ -281,7 +306,7 @@ def write_summary(output, records):
             if stage is None:
                 continue
             target, source = stage["target"], stage["source"]
-            lines.append(f"| {record['dataset']} | {record['split']} | {phase} | "
+            lines.append(f"| {dataset_label(record)} | {record['split']} | {phase} | "
                          f"{target['n_users']} | {target['n_rows']} | {target['n_items']} | "
                          f"{source['nnz']} | {target['nnz']} | {pct(target['sparsity'])} | "
                          f"{pct(stage['cold_target_fraction'])} |")
@@ -298,7 +323,7 @@ def write_summary(output, records):
                     detail = ", ".join(f"{key}={value:.5f}" for key, value in entry["metrics"].items()
                                        if "@" in key)
                 detail = str(detail).replace("|", "/").replace("\n", " ")
-                lines.append(f"| {record['dataset']} | {record['split']} | {name} | {phase} | "
+                lines.append(f"| {dataset_label(record)} | {record['split']} | {name} | {phase} | "
                              f"{entry['status']} | {entry.get('evaluated_users', '—')} | "
                              f"{entry.get('evaluated_rows', '—')} | {detail} |")
     temporary = output / "summary.md.tmp"
@@ -316,11 +341,13 @@ def parse_args(argv=None):
     parser.add_argument("--datasets", nargs="+", choices=sorted(builder.DATASETS), default=sorted(builder.DATASETS))
     parser.add_argument("--splits", nargs="+", choices=SPLITS, default=list(SPLITS))
     parser.add_argument("--baselines", nargs="*", choices=["popularity", "itemknn"], default=["popularity"])
-    parser.add_argument("--workers", type=int, default=1, help="Parallel dataset processes; splits stay sequential")
+    parser.add_argument("--workers", type=int, default=1,
+                        help="Parallel dataset/category processes; splits stay sequential")
     parser.add_argument("--threads-per-worker", type=int, default=4, help="Numerical-library threads per process")
     parser.add_argument("--data-dir", type=Path, default=Path("data"))
     parser.add_argument("--output", type=Path, default=Path("artifacts/dataset-sweep"))
-    parser.add_argument("--amazon-category", default="Toys_and_Games")
+    parser.add_argument("--amazon-categories", "--amazon-category", nargs="+", default=["Toys_and_Games"],
+                        help="Amazon subsets to run independently (default: Toys_and_Games); never combined")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--cutoffs", type=int, nargs="+", default=[10, 20])
     parser.add_argument("--neighbors", type=int, default=100)
@@ -341,11 +368,21 @@ def parse_args(argv=None):
     args.cutoffs = sorted(set(args.cutoffs))
     if len(set(args.datasets)) != len(args.datasets) or len(set(args.splits)) != len(args.splits):
         parser.error("Dataset and split lists must not contain duplicates")
+    try:
+        args.amazon_categories = [cr.AmazonReviews2023.normalize_category(category)
+                                  for category in args.amazon_categories]
+    except ValueError as error:
+        parser.error(str(error))
+    if any(not re.fullmatch(r"[A-Za-z0-9_]+", category) or category.lower() == "all"
+           for category in args.amazon_categories):
+        parser.error("Select explicit Amazon category names, not 'all', paths, or a combined dataset")
+    if len(set(args.amazon_categories)) != len(args.amazon_categories):
+        parser.error("Amazon category list must not contain duplicates (including aliases)")
     return args
 
 
-def run_dataset(args, dataset, overrides, provenance):
-    """One process owns a dataset's source cache and executes its splits in order."""
+def run_dataset(args, dataset, overrides, provenance, category=None):
+    """One process owns a dataset/category cache and executes its splits in order."""
     torch.set_num_threads(args.threads_per_worker)
     pa.set_cpu_count(args.threads_per_worker)
     pa.set_io_thread_count(args.threads_per_worker)
@@ -358,21 +395,27 @@ def run_dataset(args, dataset, overrides, provenance):
         params = dict(dataset=dataset, data_dir=str(args.data_dir.resolve()), seed=args.seed,
                       split_mode=mode, eval_draws=1, min_entity_text_words=0,
                       annotation_source="none", show_progress=False,
-                      amazon_category=args.amazon_category, temporal_period_hours=args.temporal_period_hours)
+                      temporal_period_hours=args.temporal_period_hours)
+        if dataset == "amazon2023":
+            if category is None:
+                raise ValueError("An Amazon category is required for each worker")
+            params["amazon_category"] = category
         params.update(overrides.get(dataset, {}))
         signature = hashlib.sha256(json.dumps([params, evaluation, provenance], sort_keys=True).encode()).hexdigest()
-        folder = args.output / f"{dataset}-{mode}-{signature[:12]}"
+        slug = f"{dataset}-{category}" if category else dataset
+        folder = args.output / f"{slug}-{mode}-{signature[:12]}"
         result_path, checkpoint_path = folder / "result.json", folder / "checkpoint.zip"
-        record = {"dataset": dataset, "split": mode, "signature": signature,
+        record = {"dataset": dataset, "amazon_category": category, "split": mode, "signature": signature,
                   "build_parameters": params, "evaluation_parameters": evaluation,
                   "provenance": provenance, "status": "pending"}
+        label = dataset_label(record)
         if result_path.exists():
             previous = json.loads(result_path.read_text())
             if not args.resume or previous.get("signature") != signature:
                 raise FileExistsError(f"Existing run {folder}; use --resume or a new output directory")
             if previous["status"] in ("complete", "unsupported"):
                 records.append(previous)
-                print(f"Reused {dataset}/{mode}", flush=True)
+                print(f"Reused {label}/{mode}", flush=True)
                 continue
             record = previous
             record.pop("error", None)
@@ -381,7 +424,7 @@ def run_dataset(args, dataset, overrides, provenance):
             record.update(status="unsupported", reason=reason)
         else:
             started = time.perf_counter()
-            print(f"Running {dataset}/{mode}", flush=True)
+            print(f"Running {label}/{mode}", flush=True)
             try:
                 if raw is None:
                     resolved, spec = builder._resolve_args(builder._build_args(**params))
@@ -427,7 +470,7 @@ def run_dataset(args, dataset, overrides, provenance):
                                     else "complete")
             except Exception as error:
                 record.update(status="failed", error=f"{type(error).__name__}: {error}")
-                print(f"  Failed: {record['error']}", file=sys.stderr, flush=True)
+                print(f"  Failed {label}/{mode}: {record['error']}", file=sys.stderr, flush=True)
             record["seconds_this_attempt"] = time.perf_counter() - started
         atomic_json(result_path, record)
         records.append(record)
@@ -445,27 +488,33 @@ def main(argv=None):
     for dataset, settings in overrides.items():
         if dataset not in builder.DATASETS or not isinstance(settings, dict) or forbidden & settings.keys():
             raise ValueError(f"Invalid builder overrides for {dataset}")
+        if "amazon_category" in settings:
+            raise ValueError("Select Amazon subsets with --amazon-categories, not builder overrides")
     provenance = code_version()
     # Spawned children import NumPy/BLAS only after inheriting these limits.
     for name in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
                  "VECLIB_MAXIMUM_THREADS", "NUMEXPR_NUM_THREADS", "BLIS_NUM_THREADS"):
         os.environ[name] = str(args.threads_per_worker)
-    workers = min(args.workers, len(args.datasets))
-    print(f"Starting {workers} dataset workers, {args.threads_per_worker} numerical threads each", flush=True)
+    jobs = dataset_jobs(args)
+    job_order = {job: index for index, job in enumerate(jobs)}
+    workers = min(args.workers, len(jobs))
+    print(f"Starting {workers} dataset/category workers for {len(jobs)} jobs, "
+          f"{args.threads_per_worker} numerical threads each", flush=True)
     records = []
     with ProcessPoolExecutor(max_workers=workers, mp_context=multiprocessing.get_context("spawn")) as pool:
-        futures = {pool.submit(run_dataset, args, dataset, overrides, provenance): dataset
-                   for dataset in args.datasets}
+        futures = {pool.submit(run_dataset, args, dataset, overrides, provenance, category): (dataset, category)
+                   for dataset, category in jobs}
         for future in as_completed(futures):
-            dataset = futures[future]
+            dataset, category = futures[future]
             try:
                 records.extend(future.result())
             except FileExistsError:
                 raise
             except Exception as error:
-                records.append({"dataset": dataset, "split": "worker", "status": "failed",
+                records.append({"dataset": dataset, "amazon_category": category,
+                                "split": "worker", "status": "failed",
                                 "error": f"{type(error).__name__}: {error}"})
-            records.sort(key=lambda row: (args.datasets.index(row["dataset"]), row["split"]))
+            records.sort(key=lambda row: (job_order[(row["dataset"], row.get("amazon_category"))], row["split"]))
             write_summary(args.output, records)
     print(args.output / "summary.md")
     return 1 if any(record["status"] == "failed" for record in records) else 0

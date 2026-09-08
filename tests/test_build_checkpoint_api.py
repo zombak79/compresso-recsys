@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 
 import compresso_recsys as cr
-from compresso_recsys.builder import _build_args
+from compresso_recsys.builder import DATASETS, _build_args, _make_dataset, _resolve_args
 
 
 def test_build_recsys_checkpoint_is_public_function():
@@ -19,6 +19,23 @@ def test_build_checkpoint_args_accept_python_metadata_field_list():
     args = _build_args(dataset="ml1m", metadata_text_fields=["title", "genres"])
 
     assert args.metadata_text_fields == "title,genres"
+
+
+@pytest.mark.parametrize("dataset", sorted(DATASETS))
+def test_every_dataset_can_be_constructed_with_builder_defaults(dataset, tmp_path):
+    args, spec = _resolve_args(_build_args(dataset=dataset, data_dir=str(tmp_path)))
+    ds = _make_dataset(args, spec)
+    assert isinstance(ds, spec.cls)
+    if dataset == "amazon2023":
+        assert ds.metadata_text_fields == ("title", "features", "description", "categories")
+        assert ds.category == "Toys_and_Games"
+
+
+def test_amazon_builder_accepts_custom_metadata_fields(tmp_path):
+    args, spec = _resolve_args(_build_args(
+        dataset="amazon2023", data_dir=str(tmp_path), metadata_text_fields=["title", "store"],
+    ))
+    assert _make_dataset(args, spec).metadata_text_fields == ("title", "store")
 
 
 def test_build_checkpoint_show_progress_defaults_true_and_can_be_disabled():

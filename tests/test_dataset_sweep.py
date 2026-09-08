@@ -124,3 +124,122 @@ def test_two_parallel_dataset_workers_and_default_first_pass(sweep, tmp_path):
     assert len(records) == 2
     assert {record["dataset"] for record in records} == {"goodbooks", "lfm2k"}
     assert all(record["status"] == "unsupported" for record in records)
+
+
+def test_copied_script_uses_imported_package_provenance(sweep, tmp_path, monkeypatch):
+    expected = sweep.code_version()
+    copied = tmp_path / "dataset_sweep.py"
+    copied.write_bytes(Path(sweep.__file__).read_bytes())
+    monkeypatch.setattr(sweep, "__file__", str(copied))
+    assert sweep.code_version() == expected
+
+
+def test_package_without_git_provenance_is_quiet(sweep, tmp_path, monkeypatch, capfd):
+    installed = tmp_path / "__init__.py"
+    installed.touch()
+    monkeypatch.setattr(sweep.cr, "__file__", str(installed))
+    result = sweep.code_version()
+    assert result["commit"] is None
+    assert result["script_sha256"]
+    assert not capfd.readouterr().err
+
+
+def test_untracked_package_does_not_claim_enclosing_repo_commit(sweep, monkeypatch):
+    # Wheel installed in this checkout's ignored .venv: Git can find HEAD,
+    # but it belongs to the enclosing project, not the installed package.
+    repo = Path(sweep.__file__).resolve().parents[2]
+    monkeypatch.setattr(sweep.cr, "__file__", str(repo / ".venv" / "__init__.py"))
+    assert sweep.code_version()["commit"] is None
+
+
+def test_missing_git_is_optional(sweep, monkeypatch):
+    def unavailable(*args, **kwargs):
+        raise FileNotFoundError("git")
+
+    monkeypatch.setattr(sweep.subprocess, "check_output", unavailable)
+    assert sweep.code_version()["commit"] is None
+
+
+def test_amazon_category_job_selection(sweep):
+    assert sweep.parse_args([]).amazon_categories == ["Toys_and_Games"]
+    args = sweep.parse_args(["--datasets", "amazon2023", "dbbook",
+                             "--amazon-categories", "toys", "Office_Products"])
+    assert sweep.dataset_jobs(args) == [("amazon2023", "Toys_and_Games"),
+                                        ("amazon2023", "Office_Products"), ("dbbook", None)]
+    assert sweep.parse_args(["--amazon-category", "toys"]).amazon_categories == ["Toys_and_Games"]
+
+
+@pytest.mark.parametrize("categories", [["toys", "Toys_and_Games"], [""], ["../foo"], ["all"]])
+def test_amazon_rejects_duplicate_or_unsafe_categories(sweep, categories):
+    with pytest.raises(SystemExit):
+        sweep.parse_args(["--amazon-categories", *categories])
+
+
+def test_category_cannot_be_changed_through_overrides(sweep, tmp_path):
+    settings = tmp_path / "settings.json"
+    settings.write_text(json.dumps({"amazon2023": {"amazon_category": "Electronics"}}))
+    with pytest.raises(ValueError, match="--amazon-categories"):
+        sweep.main(["--builder-overrides", str(settings), "--output", str(tmp_path / "out")])
+
+
+def test_parallel_amazon_category_jobs_and_resume(sweep, tmp_path):
+    # Unsupported mode exercises process scheduling/identity without downloads.
+    command = [sys.executable, sweep.__file__, "--workers", "20", "--threads-per-worker", "1",
+               "--datasets", "amazon2023", "--amazon-categories", "toys", "Office_Products",
+               "--splits", "official", "--output", str(tmp_path)]
+    result = subprocess.run(command, capture_output=True, text=True)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "Starting 2 dataset/category workers for 2 jobs" in result.stdout
+    records = [json.loads(line) for line in (tmp_path / "results.jsonl").read_text().splitlines()]
+    assert [record["amazon_category"] for record in records] == ["Toys_and_Games", "Office_Products"]
+    assert all(record["status"] == "unsupported" for record in records)
+    for record in records:
+        assert record["build_parameters"]["amazon_category"] == record["amazon_category"]
+        assert sweep.dataset_label(record) in (tmp_path / "summary.md").read_text()
+    paths = sorted(tmp_path.glob("*/result.json"))
+    old_times = [path.stat().st_mtime_ns for path in paths]
+    resumed = subprocess.run(command + ["--resume"], capture_output=True, text=True)
+    assert resumed.returncode == 0, resumed.stdout + resumed.stderr
+    assert [path.stat().st_mtime_ns for path in paths] == old_times
+
+
+def test_amazon_subsets_build_independent_checkpoints_and_stats(sweep, tmp_path, monkeypatch, capsys):
+    def load_subset(ds, config, *, split="full"):
+        assert ds.metadata_text_fields == ("title", "features", "description", "categories")
+        size = 8 if ds.category == "Toys_and_Games" else 10
+        if config == ds.metadata_config:
+            return pd.DataFrame({"parent_asin": [f"i{i}" for i in range(size)],
+                                 "title": [f"{ds.category} product {i}" for i in range(size)]})
+        assert config == ds.interactions_config
+        return pd.DataFrame([
+            {"user_id": f"u{u}", "parent_asin": f"i{i}", "rating": 5, "timestamp": u * size + i}
+            for u in range(size) for i in range(size) if u != i
+        ])
+
+    monkeypatch.setattr(sweep.cr.AmazonReviews2023, "_load_hf_dataframe", load_subset)
+    args = sweep.parse_args([
+        "--datasets", "amazon2023", "--amazon-categories", "toys", "Office_Products",
+        "--splits", "user_split", "item_split", "--threads-per-worker", "1", "--cutoffs", "1",
+        "--data-dir", str(tmp_path / "data"), "--output", str(tmp_path / "out"),
+    ])
+    overrides = {"amazon2023": {"val_users": 1, "test_users": 1, "val_items": 1, "test_items": 1,
+                                "min_user_support": 1, "item_min_support": 1}}
+    records = []
+    for dataset, category in sweep.dataset_jobs(args):
+        records.extend(sweep.run_dataset(args, dataset, overrides, {}, category))
+    assert len(records) == 4
+    assert all(record["status"] == "complete" for record in records), records
+    assert [record["loaded_data"]["n_items"] for record in records] == [8, 8, 10, 10]
+    assert len({record["signature"] for record in records}) == 4
+    for category in args.amazon_categories:
+        assert len(list(args.output.glob(f"amazon2023-{category}-*/checkpoint.zip"))) == 2
+        assert (args.data_dir / "amazon2023" / category).is_dir()
+    log = capsys.readouterr().out
+    for category in args.amazon_categories:
+        assert f"Running amazon2023[{category}]/user_split" in log
+    sweep.write_summary(args.output, records)
+    report = (args.output / "summary.md").read_text()
+    loaded = report.split("## Training splits")[0]
+    for category in args.amazon_categories:
+        assert loaded.count(f"amazon2023[{category}]") == 1
+        assert report.count(f"amazon2023[{category}]") == 11

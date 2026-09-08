@@ -32,6 +32,7 @@ class AmazonReviews2023(RecSysDataset):
     """
 
     name = "amazon2023"
+    default_text_fields = DEFAULT_TEXT_FIELDS
     hf_name = "McAuley-Lab/Amazon-Reviews-2023"
     hf_revision = "main"
     source_base_url = "https://mcauleylab.ucsd.edu/public_datasets/data/amazon_2023"

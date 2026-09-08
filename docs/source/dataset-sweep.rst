@@ -5,8 +5,8 @@ Download :download:`dataset_sweep.py <../../examples/validation/dataset_sweep.py
 or run it from the repository root after installing the package. The first pass
 defaults to **statistics plus popularity**, without KNN or embedding downloads.
 It covers every registered dataset and split mode; unsupported combinations are
-recorded explicitly. Amazon uses one category (``Toys_and_Games`` by default),
-not every Amazon category.
+recorded explicitly. Amazon runs **per category**, with ``Toys_and_Games`` as the
+only default. Selected categories are never combined into a full-Amazon dataset.
 
 Parallel server run
 --------------------
@@ -21,18 +21,42 @@ numerical-library threads each. Choose fewer workers if RAM is limited:
      --output artifacts/dataset-sweep \
      > dataset-sweep.log 2>&1 &
 
-Workers own different datasets and run their splits sequentially. With the ten
-current datasets, at most ten workers run; ``--workers 20`` will not create twenty
-simultaneous jobs for those same sources. This avoids concurrent downloads and
-cache writes for one dataset. Spawned processes inherit BLAS/OpenMP thread limits;
+Workers own different datasets or Amazon categories and run their splits
+sequentially. With the ten current datasets and one Amazon category, at most ten
+workers run; additional selected Amazon categories create additional independent
+jobs. ``--workers`` caps simultaneous jobs, not the total number of jobs. This
+avoids concurrent downloads and cache writes for the same source.
+Spawned processes inherit BLAS/OpenMP thread limits;
 PyTorch and Arrow thread pools are also capped. CPU limits are not memory limits:
 large datasets can still require substantial RAM, disk space, and download time.
 KNN, if enabled, has a separate ``--knn-jobs`` setting (default 1).
 
 Do not run multiple sweeps against the same data/output directories concurrently.
-For manually scheduled server jobs, use disjoint dataset lists and separate
-output directories. This script's built-in worker pool handles that coordination
-within one run.
+For manually scheduled server jobs, use disjoint dataset/category lists and
+separate output directories. This script's built-in worker pool handles that
+coordination within one run.
+
+Amazon subsets
+---------------
+
+Select one or more categories explicitly. Each has its own worker job, source
+cache, checkpoints, statistics, and popularity evaluation:
+
+.. code-block:: bash
+
+   python -u examples/validation/dataset_sweep.py \
+     --datasets amazon2023 \
+     --amazon-categories Toys_and_Games Office_Products All_Beauty \
+     --workers 3 --threads-per-worker 2 \
+     --output artifacts/amazon-sweep
+
+Omit ``--datasets amazon2023`` to include the other datasets in the same sweep.
+The existing ``--amazon-category Toys_and_Games`` spelling still works.
+Logs and tables show labels such as ``amazon2023[Toys_and_Games]``; JSON records
+include ``amazon_category``. Duplicate categories (including recognized aliases)
+are rejected to prevent two workers writing the same cache. There is no implicit
+"all Amazon" expansion or cross-category concatenation. Individual categories
+can still be large; reduce ``--workers`` to limit simultaneous memory use.
 
 Useful variants
 ----------------
@@ -105,15 +129,22 @@ Outputs and recovery
   baseline tables, with unsupported combinations and errors.
 * ``results.jsonl`` contains the full records from this invocation.
 * Each ``<dataset>-<split>-<fingerprint>/`` contains ``result.json`` and a
-  ``checkpoint.zip`` for successful builds.
+  ``checkpoint.zip`` for successful builds. Amazon paths include the category:
+  ``amazon2023-<category>-<split>-<fingerprint>/``.
 
 Detailed records are saved after each combination; combined summaries update
-as dataset workers finish. Fingerprints include settings and code provenance.
+as dataset/category workers finish. Fingerprints include settings and code provenance.
 ``--resume`` skips complete runs and retries failed ones, reusing only checkpoints
 whose recorded hashes match. Without it, existing runs are not overwritten.
 Do not edit the generated report files by hand if you intend to resume into the
 same directory. Keep the log and per-run JSON files if a worker is interrupted
 or runs out of memory.
+
+Updating the script or package source changes the fingerprint, so ``--resume``
+does not reuse results from an older code fingerprint. A copied script uses the
+imported package's Git provenance when available; wheel installations without
+tracked source record a null commit without printing a Git error. Package version
+and script hash are recorded in either case.
 
 Build/model errors are recorded and other work continues; a failure produces a
 nonzero final exit code. Unsupported timestamp combinations and non-DBbook
@@ -124,8 +155,8 @@ windows are failures, not a reason to silently adjust the protocol. Use
 Dataset-specific overrides
 ----------------------------
 
-``--amazon-category`` selects a category. For other dataset-specific builder
-changes, pass ``--builder-overrides settings.json``, for example:
+``--amazon-categories`` selects independent subsets. For other dataset-specific
+builder changes, pass ``--builder-overrides settings.json``, for example:
 
 .. code-block:: json
 
@@ -138,7 +169,8 @@ changes, pass ``--builder-overrides settings.json``, for example:
      }
    }
 
-Dataset identity, split mode, paths, and embedding downloads cannot be changed
-through this file. All effective settings and the checkpoint manifest are saved
+Dataset identity, Amazon category, split mode, paths, and embedding downloads
+cannot be changed through this file. Amazon overrides apply to each selected
+category. All effective settings and the checkpoint manifest are saved
 with the statistics. These are descriptive benchmarks, not claims of matching
 the paper targets in :doc:`dataset-validation`.
