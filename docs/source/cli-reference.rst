@@ -18,7 +18,7 @@ Steam
 
 Steam checkpoints include game metadata and genre annotations. Review dates
 support LLO and temporal splits; an item split holds out games for cold-start
-evaluation. See :doc:`api/datasets` for source details and :ref:`cite-datasets`
+evaluation. See :doc:`datasets` for source details and :ref:`cite-datasets`
 for citations.
 
 .. code-block:: bash
@@ -528,4 +528,4 @@ Supported Amazon Reviews 2023 Datasets
    ``--dataset dbbook`` and ``--dataset lfm2k`` support optional pretrained
    features via ``--multimodal_features text/minilm,image/resnet152``.
    ML-1M supports the same enrichment. ``--split_mode official`` is available
-   for DBbook only. See :doc:`multimodal-datasets` for defaults and restrictions.
+   for DBbook only. See :doc:`datasets` for defaults and restrictions.

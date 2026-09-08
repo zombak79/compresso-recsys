@@ -1,0 +1,475 @@
+"""Build dataset/split checkpoints, gather statistics, and evaluate CF baselines.
+
+Run with --help. Defaults cover every registered dataset and split, but just one
+Amazon category. This can download many GB and take hours; narrow --datasets and
+--splits for a first run. No embeddings or media are downloaded by this script.
+"""
+from __future__ import annotations
+
+import argparse
+from concurrent.futures import ProcessPoolExecutor, as_completed
+import multiprocessing
+import hashlib
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+import time
+from importlib.metadata import version
+
+import numpy as np
+import pandas as pd
+import torch
+import pyarrow as pa
+from scipy.sparse import csr_matrix
+
+import compresso_recsys as cr
+from compresso_recsys import builder
+from compresso_recsys.datasets._public import PublicDataset
+from compresso_recsys.evaluation import evaluate_recommender
+from compresso_recsys.metrics import CalibratedRecall, HitRate, NDCG, Recall
+from compresso_recsys.models import ItemKNNConfig, ItemKNNRecommender, PopularityBaseline
+
+SPLITS = ("user_split", "item_split", "leave_last_out", "temporal", "official")
+
+
+def distribution(values):
+    values = np.asarray(values)
+    if not values.size:
+        return None
+    return {"min": float(values.min()), "mean": float(values.mean()),
+            "p50": float(np.quantile(values, .5)), "p90": float(np.quantile(values, .9)),
+            "p99": float(np.quantile(values, .99)), "max": float(values.max())}
+
+
+def frame_stats(frame):
+    """Density uses unique pairs, not repeated events or rating/play-count sums."""
+    pairs = frame[["user_id", "item_id"]].drop_duplicates()
+    users, items = pairs.user_id.nunique(), pairs.item_id.nunique()
+    timestamps = pd.to_numeric(frame.timestamp, errors="coerce").to_numpy(dtype=float)
+    valid = np.isfinite(timestamps)
+    return {
+        "n_users": int(users), "n_items": int(items), "n_events": len(frame),
+        "n_unique_pairs": len(pairs),
+        "sparsity": 1 - len(pairs) / (users * items) if users and items else None,
+        "repeat_event_fraction": 1 - len(pairs) / len(frame) if len(frame) else None,
+        "unique_items_per_user": distribution(pairs.groupby("user_id").size()),
+        "unique_users_per_item": distribution(pairs.groupby("item_id").size()),
+        "timestamp_coverage": float(valid.mean()) if len(frame) else None,
+        "timestamp_min_native_units": float(timestamps[valid].min()) if valid.any() else None,
+        "timestamp_max_native_units": float(timestamps[valid].max()) if valid.any() else None,
+    }
+
+
+def binary(matrix):
+    matrix = matrix.tocsr(copy=True)
+    matrix.sum_duplicates()
+    matrix.eliminate_zeros()
+    matrix.data = np.ones(matrix.nnz, dtype=np.float32)
+    return matrix
+
+
+def matrix_stats(matrix, user_ids=None):
+    matrix = binary(matrix)
+    rows, columns = matrix.shape
+    per_row = np.diff(matrix.indptr)
+    per_item = np.bincount(matrix.indices, minlength=columns)
+    return {
+        "n_rows": rows, "n_users": int(len(np.unique(user_ids))) if user_ids is not None else None,
+        "n_items": columns, "active_rows": int((per_row > 0).sum()),
+        "active_items": int((per_item > 0).sum()), "nnz": matrix.nnz,
+        "sparsity": 1 - matrix.nnz / (rows * columns) if rows and columns else None,
+        "items_per_row": distribution(per_row), "rows_per_item": distribution(per_item),
+    }
+
+
+def align_columns(matrix, local_ids, global_ids):
+    """Remap sparse columns by original IDs, including permuted phase vocabularies."""
+    index = pd.Index(np.asarray(global_ids).astype(str))
+    columns = index.get_indexer(np.asarray(local_ids).astype(str))
+    if matrix.shape[1] != len(columns) or (columns < 0).any() or not index.is_unique:
+        raise ValueError("Invalid checkpoint item vocabulary")
+    result = csr_matrix((matrix.data.copy(), columns[matrix.indices], matrix.indptr.copy()),
+                        shape=(matrix.shape[0], len(global_ids)))
+    return binary(result)
+
+
+def checkpoint_stats(split, root):
+    global_ids = split["item_ids"]
+    train = align_columns(split["x_train"], split["train_item_ids"], global_ids)
+    active = np.bincount(train.indices, minlength=len(global_ids)) > 0
+    stats = {"catalog_items": len(global_ids), "train_observed_items": int(active.sum()),
+             "train": matrix_stats(split["x_train"], split["train_user_ids"]),
+             "precomputed_features": cr.list_item_embeddings(root)}
+    for phase in ("train", "val", "test"):
+        ids = split[f"{phase}_item_ids"]
+        users = split["train_user_ids"] if phase == "train" else split[f"{phase}_eval_user_ids"]
+        source = split[f"{phase}_source_matrix"]
+        target = split[f"{phase}_target_matrix"]
+        global_target = align_columns(target, ids, global_ids)
+        seen_target = source.multiply(target)
+        candidates = pd.Index(global_ids).get_indexer(ids)
+        sequence = split.get(f"{phase}_source_sequences")
+        stats[phase + "_evaluation"] = {
+            "source": matrix_stats(source, users), "target": matrix_stats(target, users),
+            "source_target_overlap_nnz": binary(seen_target).nnz,
+            "cold_candidate_items": int((~active[candidates]).sum()),
+            "cold_target_fraction": (float((~active[global_target.indices]).mean())
+                                     if global_target.nnz else None),
+            "source_sequence_events": int(sequence.values.size) if sequence is not None else None,
+        }
+    metadata = split.get("entity_metadata")
+    stats["metadata_coverage"] = {}
+    if metadata is not None:
+        for field in ("entity_text", "image_url"):
+            if field in metadata:
+                stats["metadata_coverage"][field] = float(
+                    metadata[field].fillna("").astype(str).str.strip().ne("").mean())
+    return stats
+
+
+class PhaseCandidates:
+    """Keep predictions in global columns while restricting to this phase's items."""
+
+    def __init__(self, model, item_ids):
+        self.model, self.item_ids = model, item_ids
+
+    def predict_on_batch(self, source, *, k):
+        return self.model.predict_on_batch(source, k=k, candidate_ids=self.item_ids)
+
+
+def evaluate_phase(model, split, phase, *, cutoffs, max_users, seed, batch_size):
+    ids = split[f"{phase}_item_ids"]
+    source = align_columns(split[f"{phase}_source_matrix"], ids, split["item_ids"])
+    targets = align_columns(split[f"{phase}_target_matrix"], ids, split["item_ids"])
+    users = split[f"{phase}_eval_user_ids"]
+    if users is None or len(users) != source.shape[0]:
+        raise ValueError("Evaluation row user IDs are required for an auditable sweep")
+    eligible = (np.diff(targets.indptr) > 0) & (len(ids) - np.diff(source.indptr) >= max(cutoffs))
+    selected = eligible.copy()
+    if max_users is not None:
+        unique = np.unique(users[eligible])
+        if len(unique) > max_users:
+            chosen = np.random.default_rng(seed).choice(unique, max_users, replace=False)
+            selected &= np.isin(users, chosen)
+    info = {"total_rows": len(users), "eligible_rows": int(eligible.sum()),
+            "evaluated_rows": int(selected.sum()), "evaluated_users": int(len(np.unique(users[selected]))),
+            "excluded_rows": int((~eligible).sum()),
+            "exclusion_rule": "no targets or fewer unseen candidates than largest requested cutoff"}
+    if not selected.any():
+        return {"status": "skipped", "reason": "No eligible rows at requested cutoffs", **info}
+    started = time.perf_counter()
+    result = evaluate_recommender(
+        PhaseCandidates(model, ids), source=source[selected], targets=targets[selected],
+        sample_ids=users[selected], metrics=[Recall(cutoffs), CalibratedRecall(cutoffs),
+                                          NDCG(cutoffs), HitRate(cutoffs)],
+        batch_size=batch_size, collect_per_user=False,
+    )
+    return {"status": "ok", **info, "seconds": time.perf_counter() - started,
+            "metrics": dict(result)}
+
+
+def evaluate_baselines(split, args):
+    if not args.baselines:
+        return {}
+    train = align_columns(split["x_train"], split["train_item_ids"], split["item_ids"])
+    results = {}
+    for name in args.baselines:
+        if name == "itemknn" and train.shape[1] > args.knn_max_items:
+            results[name] = {"status": "skipped", "reason": "catalog exceeds --knn-max-items"}
+            continue
+        started = time.perf_counter()
+        try:
+            model = (PopularityBaseline() if name == "popularity" else ItemKNNRecommender(
+                ItemKNNConfig(n_neighbors=args.neighbors, n_jobs=args.knn_jobs)))
+            model.fit(train, item_ids=split["item_ids"])
+            entry = {"status": "ok", "fit_seconds": time.perf_counter() - started,
+                     "config": vars(model.cfg)}
+            for phase in ("val", "test"):
+                try:
+                    entry[phase] = evaluate_phase(
+                        model, split, phase, cutoffs=args.cutoffs, max_users=args.max_eval_users,
+                        seed=args.seed, batch_size=args.batch_size,
+                    )
+                except Exception as error:
+                    entry[phase] = {"status": "failed", "error": f"{type(error).__name__}: {error}"}
+                    entry["status"] = "failed"
+            results[name] = entry
+            del model
+        except Exception as error:
+            results[name] = {"status": "failed", "error": f"{type(error).__name__}: {error}"}
+    return results
+
+
+def atomic_json(path, value):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(".tmp")
+    temporary.write_text(json.dumps(value, indent=2, allow_nan=False) + "\n")
+    os.replace(temporary, path)
+
+
+def digest_file(path):
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for block in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def code_version():
+    repo = Path(__file__).resolve().parents[2]
+    try:
+        commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo, text=True).strip()
+        diff = subprocess.check_output(["git", "diff", "HEAD", "--", "src"], cwd=repo)
+    except (OSError, subprocess.CalledProcessError):
+        commit, diff = None, b""
+    return {"package": version("compresso-recsys"), "commit": commit,
+            "source_diff_sha256": hashlib.sha256(diff).hexdigest(),
+            "script_sha256": digest_file(Path(__file__))}
+
+
+def unsupported(dataset, mode):
+    if mode == "official" and dataset != "dbbook":
+        return "Only DBbook supplies the supported official split"
+    timed = dataset != "goodbooks" and getattr(builder.DATASETS[dataset].cls, "has_timestamps", True)
+    if mode in ("temporal", "leave_last_out") and not timed:
+        return "No interaction timestamps"
+    return None
+
+
+def write_summary(output, records):
+    def pct(value):
+        return f"{value:.6%}" if value is not None else "—"
+
+    def safe(value):
+        return str(value).replace("|", "/").replace("\n", " ")
+
+    lines = ["# Dataset sweep", "", "Sparsity is 1 - unique pairs / (users × items). "
+             "Loaded data is after adapter metadata filtering, before feedback/support filtering. "
+             "Counts are observations, not sums of ratings or listening counts.", "",
+             "## Loaded datasets", "",
+             "| Dataset | Users | Items | Events | Unique pairs | Sparsity | Repeat events |",
+             "|---|---:|---:|---:|---:|---:|---:|"]
+    seen = set()
+    for record in records:
+        if record["dataset"] in seen or "loaded_data" not in record:
+            continue
+        seen.add(record["dataset"])
+        data = record["loaded_data"]
+        lines.append(f"| {record['dataset']} | {data['n_users']} | {data['n_items']} | "
+                     f"{data['n_events']} | {data['n_unique_pairs']} | {pct(data['sparsity'])} | "
+                     f"{pct(data['repeat_event_fraction'])} |")
+    lines.extend(["", "## Training splits", "", "Item counts include inactive/cold columns. "
+                  "Full preprocessing settings and pre-split counts are saved in JSON.", "",
+                  "| Dataset | Split | Status | Train users | Train items | Train pairs | Train sparsity | Reason |",
+                  "|---|---|---|---:|---:|---:|---:|---|"])
+    for record in records:
+        train = record.get("stats", {}).get("train", {})
+        sparsity = train.get("sparsity")
+        lines.append(f"| {record['dataset']} | {record['split']} | {record['status']} | "
+                     f"{train.get('n_users', '—')} | {train.get('n_items', '—')} | "
+                     f"{train.get('nnz', '—')} | {pct(sparsity)} | "
+                     f"{safe(record.get('error', record.get('reason', '')))} |")
+    lines.extend(["", "## Validation/test stages", "", "Rows can repeat users when evaluation draws "
+                  "are enabled. Source/target histories overlap across stages; do not sum them as a dataset total.", "",
+                  "| Dataset | Split | Stage | Users | Rows | Candidates | Source pairs | Target pairs | Target sparsity | Cold targets |",
+                  "|---|---|---|---:|---:|---:|---:|---:|---:|---:|"])
+    for record in records:
+        for phase in ("val", "test"):
+            stage = record.get("stats", {}).get(phase + "_evaluation")
+            if stage is None:
+                continue
+            target, source = stage["target"], stage["source"]
+            lines.append(f"| {record['dataset']} | {record['split']} | {phase} | "
+                         f"{target['n_users']} | {target['n_rows']} | {target['n_items']} | "
+                         f"{source['nnz']} | {target['nnz']} | {pct(target['sparsity'])} | "
+                         f"{pct(stage['cold_target_fraction'])} |")
+    lines.extend(["", "## Baselines", "", "Fixed training split; no tuning or refitting. "
+                  "Cold items have zero collaborative signal; ties are not a cold-start capability.", "",
+                  "| Dataset | Split | Model | Phase | Status | Evaluated users | Evaluated rows | Metrics / reason |",
+                  "|---|---|---|---|---|---:|---:|---|"])
+    for record in records:
+        for name, baseline in record.get("baselines", {}).items():
+            for phase in ("val", "test"):
+                entry = baseline.get(phase, baseline)
+                detail = entry.get("error", entry.get("reason", ""))
+                if "metrics" in entry:
+                    detail = ", ".join(f"{key}={value:.5f}" for key, value in entry["metrics"].items()
+                                       if "@" in key)
+                detail = str(detail).replace("|", "/").replace("\n", " ")
+                lines.append(f"| {record['dataset']} | {record['split']} | {name} | {phase} | "
+                             f"{entry['status']} | {entry.get('evaluated_users', '—')} | "
+                             f"{entry.get('evaluated_rows', '—')} | {detail} |")
+    temporary = output / "summary.md.tmp"
+    temporary.write_text("\n".join(lines) + "\n")
+    os.replace(temporary, output / "summary.md")
+    temporary = output / "results.jsonl.tmp"
+    with temporary.open("w") as stream:
+        for record in records:
+            stream.write(json.dumps(record, allow_nan=False) + "\n")
+    os.replace(temporary, output / "results.jsonl")
+
+
+def parse_args(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--datasets", nargs="+", choices=sorted(builder.DATASETS), default=sorted(builder.DATASETS))
+    parser.add_argument("--splits", nargs="+", choices=SPLITS, default=list(SPLITS))
+    parser.add_argument("--baselines", nargs="*", choices=["popularity", "itemknn"], default=["popularity"])
+    parser.add_argument("--workers", type=int, default=1, help="Parallel dataset processes; splits stay sequential")
+    parser.add_argument("--threads-per-worker", type=int, default=4, help="Numerical-library threads per process")
+    parser.add_argument("--data-dir", type=Path, default=Path("data"))
+    parser.add_argument("--output", type=Path, default=Path("artifacts/dataset-sweep"))
+    parser.add_argument("--amazon-category", default="Toys_and_Games")
+    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--cutoffs", type=int, nargs="+", default=[10, 20])
+    parser.add_argument("--neighbors", type=int, default=100)
+    parser.add_argument("--knn-max-items", type=int, default=30_000)
+    parser.add_argument("--knn-jobs", type=int, default=1)
+    parser.add_argument("--max-eval-users", type=int, default=None)
+    parser.add_argument("--batch-size", type=int, default=128)
+    parser.add_argument("--temporal-period-hours", type=float, default=builder.DEFAULT_TEMPORAL_PERIOD_HOURS)
+    parser.add_argument("--builder-overrides", type=Path,
+                        help="JSON mapping dataset names to builder keyword overrides")
+    parser.add_argument("--resume", action="store_true", help="Reuse completed runs and verified checkpoints")
+    args = parser.parse_args(argv)
+    if any(k < 1 for k in args.cutoffs) or min(args.neighbors, args.knn_max_items, args.batch_size,
+                                             args.workers, args.threads_per_worker) < 1:
+        parser.error("Cutoffs, neighbors, item limit and batch size must be positive")
+    if args.max_eval_users is not None and args.max_eval_users < 1:
+        parser.error("--max-eval-users must be positive")
+    args.cutoffs = sorted(set(args.cutoffs))
+    if len(set(args.datasets)) != len(args.datasets) or len(set(args.splits)) != len(args.splits):
+        parser.error("Dataset and split lists must not contain duplicates")
+    return args
+
+
+def run_dataset(args, dataset, overrides, provenance):
+    """One process owns a dataset's source cache and executes its splits in order."""
+    torch.set_num_threads(args.threads_per_worker)
+    pa.set_cpu_count(args.threads_per_worker)
+    pa.set_io_thread_count(args.threads_per_worker)
+    evaluation = {key: getattr(args, key) for key in (
+        "baselines", "cutoffs", "neighbors", "knn_max_items", "knn_jobs",
+        "max_eval_users", "batch_size", "seed", "threads_per_worker")}
+    records = []
+    loaded_stats, raw, ds = None, None, None
+    for mode in args.splits:
+        params = dict(dataset=dataset, data_dir=str(args.data_dir.resolve()), seed=args.seed,
+                      split_mode=mode, eval_draws=1, min_entity_text_words=0,
+                      annotation_source="none", show_progress=False,
+                      amazon_category=args.amazon_category, temporal_period_hours=args.temporal_period_hours)
+        params.update(overrides.get(dataset, {}))
+        signature = hashlib.sha256(json.dumps([params, evaluation, provenance], sort_keys=True).encode()).hexdigest()
+        folder = args.output / f"{dataset}-{mode}-{signature[:12]}"
+        result_path, checkpoint_path = folder / "result.json", folder / "checkpoint.zip"
+        record = {"dataset": dataset, "split": mode, "signature": signature,
+                  "build_parameters": params, "evaluation_parameters": evaluation,
+                  "provenance": provenance, "status": "pending"}
+        if result_path.exists():
+            previous = json.loads(result_path.read_text())
+            if not args.resume or previous.get("signature") != signature:
+                raise FileExistsError(f"Existing run {folder}; use --resume or a new output directory")
+            if previous["status"] in ("complete", "unsupported"):
+                records.append(previous)
+                print(f"Reused {dataset}/{mode}", flush=True)
+                continue
+            record = previous
+            record.pop("error", None)
+        reason = unsupported(dataset, mode)
+        if reason:
+            record.update(status="unsupported", reason=reason)
+        else:
+            started = time.perf_counter()
+            print(f"Running {dataset}/{mode}", flush=True)
+            try:
+                if raw is None:
+                    resolved, spec = builder._resolve_args(builder._build_args(**params))
+                    ds = builder._make_dataset(resolved, spec)
+                    raw = ds.get_interactions()
+                    if loaded_stats is None:
+                        loaded_stats = frame_stats(raw)
+                record["loaded_data"] = loaded_stats
+                resolved, _ = builder._resolve_args(builder._build_args(**params))
+                record["resolved_build_parameters"] = vars(resolved)
+                pre = raw[raw.source_split == "train"] if mode == "official" else raw
+                if isinstance(ds, PublicDataset) and mode in ("user_split", "item_split"):
+                    pre = pre.drop_duplicates(["user_id", "item_id"])
+                pre = ds.preprocess_interactions_for_recsys(
+                    pre, min_value_to_keep=resolved.min_value_to_keep,
+                    user_min_support=1 if mode == "temporal" else resolved.min_user_support,
+                    item_min_support=1 if mode == "temporal" else resolved.item_min_support,
+                    set_all_values_to=resolved.set_all_values_to,
+                )
+                record["pre_split_data"] = frame_stats(pre)
+                del pre
+                # The builder reloads cached input. Do not retain a second
+                # full source dataset alongside building/fitting matrices.
+                raw, ds = None, None
+                if checkpoint_path.exists():
+                    if record.get("checkpoint_sha256") != digest_file(checkpoint_path):
+                        raise ValueError("Unverified existing checkpoint; use a new output directory")
+                else:
+                    atomic_json(result_path, record)
+                    built = time.perf_counter()
+                    cr.build_recsys_checkpoint(**params, checkpoint_path=str(checkpoint_path))
+                    record["build_seconds"] = time.perf_counter() - built
+                    record["checkpoint_sha256"] = digest_file(checkpoint_path)
+                    atomic_json(result_path, record)
+                record["checkpoint_bytes"] = checkpoint_path.stat().st_size
+                with cr.read_checkpoint(checkpoint_path) as root:
+                    split = cr.load_recsys_split(root)
+                    record["manifest"] = cr.load_manifest(root)
+                    record["stats"] = checkpoint_stats(split, root)
+                    record["baselines"] = evaluate_baselines(split, args)
+                del split
+                record["status"] = ("failed" if any(v["status"] == "failed" for v in record["baselines"].values())
+                                    else "complete")
+            except Exception as error:
+                record.update(status="failed", error=f"{type(error).__name__}: {error}")
+                print(f"  Failed: {record['error']}", file=sys.stderr, flush=True)
+            record["seconds_this_attempt"] = time.perf_counter() - started
+        atomic_json(result_path, record)
+        records.append(record)
+    del raw, ds
+    return records
+
+
+def main(argv=None):
+    args = parse_args(argv)
+    args.output.mkdir(parents=True, exist_ok=True)
+    overrides = json.loads(args.builder_overrides.read_text()) if args.builder_overrides else {}
+    forbidden = {"dataset", "split_mode", "checkpoint_path", "data_dir", "multimodal_features"}
+    if not isinstance(overrides, dict):
+        raise ValueError("Builder overrides must be an object keyed by dataset")
+    for dataset, settings in overrides.items():
+        if dataset not in builder.DATASETS or not isinstance(settings, dict) or forbidden & settings.keys():
+            raise ValueError(f"Invalid builder overrides for {dataset}")
+    provenance = code_version()
+    # Spawned children import NumPy/BLAS only after inheriting these limits.
+    for name in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
+                 "VECLIB_MAXIMUM_THREADS", "NUMEXPR_NUM_THREADS", "BLIS_NUM_THREADS"):
+        os.environ[name] = str(args.threads_per_worker)
+    workers = min(args.workers, len(args.datasets))
+    print(f"Starting {workers} dataset workers, {args.threads_per_worker} numerical threads each", flush=True)
+    records = []
+    with ProcessPoolExecutor(max_workers=workers, mp_context=multiprocessing.get_context("spawn")) as pool:
+        futures = {pool.submit(run_dataset, args, dataset, overrides, provenance): dataset
+                   for dataset in args.datasets}
+        for future in as_completed(futures):
+            dataset = futures[future]
+            try:
+                records.extend(future.result())
+            except FileExistsError:
+                raise
+            except Exception as error:
+                records.append({"dataset": dataset, "split": "worker", "status": "failed",
+                                "error": f"{type(error).__name__}: {error}"})
+            records.sort(key=lambda row: (args.datasets.index(row["dataset"]), row["split"]))
+            write_summary(args.output, records)
+    print(args.output / "summary.md")
+    return 1 if any(record["status"] == "failed" for record in records) else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

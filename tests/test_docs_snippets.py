@@ -93,6 +93,37 @@ def test_the_documentation_actually_contains_snippets():
     assert any(s[0].endswith(".rst") for s in SNIPPETS)
 
 
+def test_dataset_guide_covers_every_registered_dataset():
+    from compresso_recsys.builder import DATASETS
+
+    guide = (DOCS / "datasets.rst").read_text()
+    for dataset in DATASETS:
+        assert f".. _dataset-{dataset}:" in guide
+    navigation = (DOCS / "index.rst").read_text()
+    assert "   datasets\n" in navigation
+    assert "   multimodal-datasets\n" not in navigation
+
+
+def test_user_computed_feature_example_round_trips(tmp_path):
+    snippets = [code for source, _, code in SNIPPETS
+                if source == "datasets.rst" and "def attach_computed_features" in code]
+    assert len(snippets) == 1
+    namespace = {}
+    exec(compile(snippets[0], "datasets.rst#user-computed-features", "exec"), namespace)
+    path = tmp_path / "features.zip"
+    namespace["attach_computed_features"](
+        path, "image/my_encoder", {"product-b": [1., 2.], "product-a": [3., 4.]},
+        encoder="example-v1",
+    )
+    with compresso_recsys.read_checkpoint(path) as root:
+        features = compresso_recsys.load_item_embeddings(
+            root, "image/my_encoder", item_ids=["product-a", "missing", "product-b"]
+        )
+    np.testing.assert_array_equal(features["embeddings"], [[3, 4], [0, 0], [1, 2]])
+    assert features["available"].tolist() == [True, False, True]
+    assert features["metadata"]["encoder"] == "example-v1"
+
+
 @pytest.mark.parametrize(
     ("source", "line", "code"), SNIPPETS, ids=[f"{s}:{l}" for s, l, _ in SNIPPETS]
 )

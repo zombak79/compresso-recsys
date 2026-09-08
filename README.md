@@ -105,13 +105,15 @@ checkpoint_path = cr.build_recsys_checkpoint(
 
 The first run downloads about 1.2 GB of reviews plus game metadata; later runs
 reuse the local archive and parsed cache. See the
-[dataset guide](docs/source/api/datasets.rst) for cold-start examples and defaults.
+[dataset guide](docs/source/datasets.rst) for metadata, feature availability,
+cold-start examples, and defaults.
 
 - Dataset utilities for GoodBooks, MovieLens 1M, MovieLens 20M, Amazon
   Reviews 2023, Steam, Netflix Prize, MSD Taste Profile, Gowalla, DBbook, and Last.fm-2K.
 - Optional pretrained multimodal features for ML-1M, DBbook, and Last.fm-2K,
   stored with item IDs, availability masks, and encoder provenance. See
-  [the multimodal guide](docs/source/multimodal-datasets.rst).
+  [the dataset guide](docs/source/datasets.rst). Other datasets can use the same
+  feature format for user-computed embeddings, including Amazon text/images.
 - ZIP checkpoint format for source/target splits, embeddings, sparse
   embeddings, metrics, and Compresso cluster-graph stages.
 - Calibrated Recall and nDCG defaults, with optional standard Recall,

@@ -4,7 +4,8 @@ Checkpoint API
 Item embeddings
 --------------------
 
-See :doc:`../multimodal-datasets` for named feature spaces and missingness masks.
+See :ref:`dataset-item-embeddings` for named feature spaces and missingness masks,
+whether the vectors are imported or computed by the user.
 
 .. autofunction:: compresso_recsys.embeddings.save_item_embeddings
 

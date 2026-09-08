@@ -4,7 +4,7 @@ Citing Compresso Recsys
 If you use Compresso Recsys in academic work, cite the methods, datasets, and
 additional metadata sources used in your experiment. Dataset citations and
 preprocessing-method citations serve different purposes; include both when
-applicable. See :doc:`api/datasets` for the actual sources and loader defaults.
+applicable. See :doc:`datasets` for the actual sources and loader defaults.
 
 .. contents:: On this page
    :local:

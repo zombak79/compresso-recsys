@@ -8,6 +8,13 @@ scores below are reference targets; no full-data training runs have been measure
 for this matrix yet. Small numerical differences are expected, but different
 architectures, candidate sets, or split protocols are not rounding differences.
 
+For an all-dataset statistics and baseline run, see :doc:`dataset-sweep`.
+
+.. toctree::
+   :maxdepth: 1
+
+   dataset-sweep
+
 Runnable code
 -------------
 
@@ -141,7 +148,7 @@ Checkpoint protocol and limitations
 The recipe fixes seed 98765, disjoint held-out users, an 80/20 source/target
 split, one evaluation draw, and no minimum metadata-text length. This overrides
 the normal ML-20M builder defaults. Netflix requires the source files to be
-available locally; consult :doc:`api/datasets` for download availability and terms.
+available locally; consult :doc:`datasets` for download availability and terms.
 
 The current builder is paper-inspired, not the authors' preprocessing program:
 filter ordering, iterative support pruning, random-number generation, catalog
@@ -164,7 +171,7 @@ memory-constrained machine. Neural recipes stream sparse training minibatches.
 Sequential, cold-start, and other models
 ---------------------------------------------
 
-For SWAP ML-1M/DBbook/Last.fm feature checkpoints, see :doc:`multimodal-datasets`.
+For ML-1M/DBbook/Last.fm precomputed features, see :doc:`datasets`.
 Those adapters preserve incomplete feature coverage and do not reproduce the
 authors' all-modalities MMRec benchmark; no matching score target is assigned yet.
 
@@ -188,7 +195,7 @@ authors' all-modalities MMRec benchmark; no matching score target is assigned ye
      - Runnable warm-start baseline; establish a new measured baseline
    * - Steam cold-start / temporal / LLO
      - :ref:`cite-datasets`
-     - :doc:`cli-reference` and :doc:`api/datasets` describe checkpoint construction
+     - :doc:`cli-reference` and :doc:`datasets` describe checkpoint construction
      - No matched published target established; CF script is not a cold-start trainer
    * - ELSA
      - `Authors' reproduction code <https://github.com/recombee/ELSA/tree/reproduce_movielens>`_;

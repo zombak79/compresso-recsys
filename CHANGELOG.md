@@ -1,7 +1,16 @@
 ## [Unreleased]
 
+### Changed
+
+- Consolidated dataset documentation into a single guide with one subsection
+  per dataset, distinguishing metadata modalities from precomputed embeddings
+  and documenting user-computed Amazon text/image features.
+
 ### Added
 
+- Resumable dataset/split statistics sweep with dataset-level process workers,
+  per-worker thread limits, popularity by default, optional item-KNN, and
+  structured per-run results plus Markdown summaries.
 - Optional ID-aligned multimodal checkpoint features with presence masks and
   provenance; SWAP ML-1M enrichment, DBbook and Last.fm-2K adapters, and a
   DBbook supplied-test-boundary split with training-only validation holdout.
