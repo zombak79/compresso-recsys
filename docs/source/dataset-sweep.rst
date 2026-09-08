@@ -87,13 +87,39 @@ Collected statistics
 * User/item activity distributions: min, mean, median, p90, p99, and max.
 * Training matrix counts, active versus catalog items, and source/target statistics
   for every stage, including unique users versus repeated evaluation rows.
+* Separate observed-item and full-catalog sparsities, with explicit denominators.
 * Cold-candidate counts, cold-target fraction, source/target overlap, and sequence
   event counts when available.
 * Text/image-URL coverage, checkpoint size/hash, settings, provenance, and timings.
 
-For interaction tables, sparsity is ``1 - unique_pairs / (users * items)``;
-for matrices, it is ``1 - nnz / (rows * columns)``. Ratings and play-count sums
-are not interaction counts. Loaded data has already passed the adapter's metadata
+For interaction tables, sparsity is ``1 - unique_pairs / (users * items)``.
+Matrix statistics distinguish:
+
+* **Catalog columns** (JSON ``n_items``): the matrix width, including zero-only
+  columns for held-out or otherwise unobserved items.
+* **Observed items** (JSON ``active_items``): columns with at least one interaction
+  in that particular training, source, or target matrix. An assigned split item
+  with no retained interactions is not counted as observed.
+* **Observed-item sparsity** (JSON ``observed_item_sparsity``):
+  ``1 - nnz / (n_rows * active_items)``.
+* **Catalog sparsity** (JSON ``catalog_sparsity``):
+  ``1 - nnz / (n_rows * n_items)``. The existing JSON ``sparsity`` field retains
+  this meaning for compatibility.
+
+Both matrix sparsities keep every row, including empty histories and repeated
+evaluation users; they do not substitute unique-user or active-row counts.
+Zero-sized denominators produce JSON null and a dash in the report. An all-zero
+matrix with nonzero dimensions has catalog sparsity 100%, but undefined
+observed-item sparsity. Candidate catalog counts are before per-user seen-item
+exclusion and do not imply that every candidate occurs in the targets.
+
+For example, the default seed-42 Goodbooks item split has 10,000 catalog columns,
+but 8,500 observed training items, 500 observed validation target items, and 1,000
+observed test target items. The report shows those counts separately. Its 100%
+cold target pairs are expected: every held-out target item is absent from training,
+while users can occur in both training and evaluation.
+
+Ratings and play-count sums are not interaction counts. Loaded data has already passed the adapter's metadata
 filtering; it is not an untouched-source-file count. Defaults disable minimum
 text length, use one evaluation draw and seed 42, and otherwise use each dataset's
 builder rating/support/held-out user defaults. No annotations or embeddings are
@@ -139,6 +165,22 @@ whose recorded hashes match. Without it, existing runs are not overwritten.
 Do not edit the generated report files by hand if you intend to resume into the
 same directory. Keep the log and per-run JSON files if a worker is interrupted
 or runs out of memory.
+
+To correct tables from an existing sweep without downloading data, rebuilding
+checkpoints, or rerunning baselines:
+
+.. code-block:: bash
+
+   python examples/validation/dataset_sweep.py \
+     --report-only --output artifacts/dataset-sweep
+
+This regenerates only ``summary.md`` from every record in that directory's
+``results.jsonl``, including records produced by older script versions. It derives
+the sparsities from saved row, observed-item, catalog, and pair counts. It leaves
+JSON files, checkpoints, scores, and provenance unchanged. No dataset/split
+selection or evaluation options are applied in this mode. A missing
+``results.jsonl`` is an error; report-only does not start a new sweep or discover
+additional results from unfinished workers.
 
 Updating the script or package source changes the fingerprint, so ``--resume``
 does not reuse results from an older code fingerprint. A copied script uses the

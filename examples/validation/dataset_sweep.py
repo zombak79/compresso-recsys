@@ -71,16 +71,26 @@ def binary(matrix):
     return matrix
 
 
+def matrix_sparsity(nnz, rows, items):
+    """Keep all evaluation rows, including repeated users and empty histories."""
+    return 1 - nnz / (rows * items) if rows and items else None
+
+
 def matrix_stats(matrix, user_ids=None):
     matrix = binary(matrix)
     rows, columns = matrix.shape
     per_row = np.diff(matrix.indptr)
     per_item = np.bincount(matrix.indices, minlength=columns)
+    observed_items = int((per_item > 0).sum())
+    catalog_sparsity = matrix_sparsity(matrix.nnz, rows, columns)
     return {
         "n_rows": rows, "n_users": int(len(np.unique(user_ids))) if user_ids is not None else None,
         "n_items": columns, "active_rows": int((per_row > 0).sum()),
-        "active_items": int((per_item > 0).sum()), "nnz": matrix.nnz,
-        "sparsity": 1 - matrix.nnz / (rows * columns) if rows and columns else None,
+        "active_items": observed_items, "nnz": matrix.nnz,
+        # Preserve the original JSON fields; n_items/sparsity describe the
+        # full matrix, not just columns with observed interactions.
+        "sparsity": catalog_sparsity, "catalog_sparsity": catalog_sparsity,
+        "observed_item_sparsity": matrix_sparsity(matrix.nnz, rows, observed_items),
         "items_per_row": distribution(per_row), "rows_per_item": distribution(per_item),
     }
 
@@ -262,16 +272,25 @@ def dataset_jobs(args):
             for category in (args.amazon_categories if dataset == "amazon2023" else [None])]
 
 
-def write_summary(output, records):
+def write_summary(output, records, *, write_records=True):
     def pct(value):
         return f"{value:.6%}" if value is not None else "—"
 
     def safe(value):
         return str(value).replace("|", "/").replace("\n", " ")
 
-    lines = ["# Dataset sweep", "", "Sparsity is 1 - unique pairs / (users × items). "
+    def sparsity(stats, item_key):
+        # Derive from counts so old results can be re-rendered without
+        # loading checkpoints or changing their original provenance.
+        return pct(matrix_sparsity(stats.get("nnz", 0), stats.get("n_rows", 0), stats.get(item_key, 0)))
+
+    lines = ["# Dataset sweep", "", "For loaded interactions, sparsity is 1 - unique pairs / (users × items). "
              "Loaded data is after adapter metadata filtering, before feedback/support filtering. "
              "Counts are observations, not sums of ratings or listening counts.", "",
+             "For matrices, observed-item sparsity is 1 - pairs / (rows × observed items); "
+             "catalog sparsity uses rows × catalog columns instead. Observed items have at least one "
+             "interaction in that matrix; catalog columns may be entirely empty. Both keep all rows, "
+             "including empty histories and repeated evaluation users. Undefined sparsities are shown as —.", "",
              "## Loaded datasets", "",
              "| Dataset | Users | Items | Events | Unique pairs | Sparsity | Repeat events |",
              "|---|---:|---:|---:|---:|---:|---:|"]
@@ -285,21 +304,24 @@ def write_summary(output, records):
         lines.append(f"| {label} | {data['n_users']} | {data['n_items']} | "
                      f"{data['n_events']} | {data['n_unique_pairs']} | {pct(data['sparsity'])} | "
                      f"{pct(data['repeat_event_fraction'])} |")
-    lines.extend(["", "## Training splits", "", "Item counts include inactive/cold columns. "
+    lines.extend(["", "## Training splits", "", "Observed train items exclude zero-only cold/catalog columns. "
                   "Full preprocessing settings and pre-split counts are saved in JSON.", "",
-                  "| Dataset | Split | Status | Train users | Train items | Train pairs | Train sparsity | Reason |",
-                  "|---|---|---|---:|---:|---:|---:|---|"])
+                  "| Dataset | Split | Status | Train users | Train rows | Catalog columns | Observed train items | Train pairs | Observed-item sparsity | Catalog sparsity | Reason |",
+                  "|---|---|---|---:|---:|---:|---:|---:|---:|---:|---|"])
     for record in records:
         train = record.get("stats", {}).get("train", {})
-        sparsity = train.get("sparsity")
         lines.append(f"| {dataset_label(record)} | {record['split']} | {record['status']} | "
-                     f"{train.get('n_users', '—')} | {train.get('n_items', '—')} | "
-                     f"{train.get('nnz', '—')} | {pct(sparsity)} | "
+                     f"{train.get('n_users', '—')} | {train.get('n_rows', '—')} | "
+                     f"{train.get('n_items', '—')} | {train.get('active_items', '—')} | "
+                     f"{train.get('nnz', '—')} | {sparsity(train, 'active_items')} | {sparsity(train, 'n_items')} | "
                      f"{safe(record.get('error', record.get('reason', '')))} |")
     lines.extend(["", "## Validation/test stages", "", "Rows can repeat users when evaluation draws "
-                  "are enabled. Source/target histories overlap across stages; do not sum them as a dataset total.", "",
-                  "| Dataset | Split | Stage | Users | Rows | Candidates | Source pairs | Target pairs | Target sparsity | Cold targets |",
-                  "|---|---|---|---:|---:|---:|---:|---:|---:|---:|"])
+                  "are enabled. Source/target histories overlap across stages; do not sum them as a dataset total. "
+                  "Candidate catalog size is before per-user seen-item exclusion, not the number of target items. "
+                  "Cold target pairs are target interactions with items absent from training; 100% is expected "
+                  "for item_split, whose users can overlap across stages.", "",
+                  "| Dataset | Split | Stage | Users | Rows | Candidate catalog | Observed source items | Observed target items | Source pairs | Target pairs | Target observed-item sparsity | Target catalog sparsity | Cold target pairs |",
+                  "|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|"])
     for record in records:
         for phase in ("val", "test"):
             stage = record.get("stats", {}).get(phase + "_evaluation")
@@ -308,7 +330,9 @@ def write_summary(output, records):
             target, source = stage["target"], stage["source"]
             lines.append(f"| {dataset_label(record)} | {record['split']} | {phase} | "
                          f"{target['n_users']} | {target['n_rows']} | {target['n_items']} | "
-                         f"{source['nnz']} | {target['nnz']} | {pct(target['sparsity'])} | "
+                         f"{source['active_items']} | {target['active_items']} | "
+                         f"{source['nnz']} | {target['nnz']} | {sparsity(target, 'active_items')} | "
+                         f"{sparsity(target, 'n_items')} | "
                          f"{pct(stage['cold_target_fraction'])} |")
     lines.extend(["", "## Baselines", "", "Fixed training split; no tuning or refitting. "
                   "Cold items have zero collaborative signal; ties are not a cold-start capability.", "",
@@ -329,6 +353,8 @@ def write_summary(output, records):
     temporary = output / "summary.md.tmp"
     temporary.write_text("\n".join(lines) + "\n")
     os.replace(temporary, output / "summary.md")
+    if not write_records:
+        return
     temporary = output / "results.jsonl.tmp"
     with temporary.open("w") as stream:
         for record in records:
@@ -359,6 +385,8 @@ def parse_args(argv=None):
     parser.add_argument("--builder-overrides", type=Path,
                         help="JSON mapping dataset names to builder keyword overrides")
     parser.add_argument("--resume", action="store_true", help="Reuse completed runs and verified checkpoints")
+    parser.add_argument("--report-only", action="store_true",
+                        help="Regenerate summary.md from --output/results.jsonl without running any jobs")
     args = parser.parse_args(argv)
     if any(k < 1 for k in args.cutoffs) or min(args.neighbors, args.knn_max_items, args.batch_size,
                                              args.workers, args.threads_per_worker) < 1:
@@ -480,6 +508,12 @@ def run_dataset(args, dataset, overrides, provenance, category=None):
 
 def main(argv=None):
     args = parse_args(argv)
+    if args.report_only:
+        records = [json.loads(line) for line in (args.output / "results.jsonl").read_text().splitlines()
+                   if line.strip()]
+        write_summary(args.output, records, write_records=False)
+        print(f"Regenerated {args.output / 'summary.md'} from saved statistics; no jobs were run.")
+        return 0
     args.output.mkdir(parents=True, exist_ok=True)
     overrides = json.loads(args.builder_overrides.read_text()) if args.builder_overrides else {}
     forbidden = {"dataset", "split_mode", "checkpoint_path", "data_dir", "multimodal_features"}

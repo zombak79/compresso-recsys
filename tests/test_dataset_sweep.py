@@ -38,6 +38,82 @@ def test_counts_distinguish_rows_from_users_and_inactive_items(sweep):
     assert result["n_users"] == 1 and result["n_rows"] == 2
     assert result["active_items"] == 2 and result["n_items"] == 3
     assert result["sparsity"] == pytest.approx(2 / 3)
+    assert result["catalog_sparsity"] == result["sparsity"]
+    assert result["observed_item_sparsity"] == .5  # Use two rows, not one unique user.
+
+
+def test_observed_item_sparsity_keeps_empty_rows(sweep):
+    result = sweep.matrix_stats(csr_matrix([[1, 0, 0], [0, 0, 0]]), ["u", "v"])
+    assert result["active_rows"] == 1
+    assert result["active_items"] == 1
+    assert result["observed_item_sparsity"] == .5
+    assert result["catalog_sparsity"] == pytest.approx(5 / 6)
+
+
+@pytest.mark.parametrize("shape", [(0, 0), (0, 3), (2, 0), (2, 3)])
+def test_empty_matrix_sparsities_are_explicit(sweep, shape):
+    result = sweep.matrix_stats(csr_matrix(shape))
+    assert result["active_items"] == 0
+    assert result["observed_item_sparsity"] is None
+    assert result["catalog_sparsity"] == (1. if all(shape) else None)
+    json.dumps(result, allow_nan=False)
+
+
+@pytest.fixture
+def legacy_goodbooks_record():
+    """Counts from the real seed-42 run, using the original result schema."""
+    def matrix(users, items, pairs):
+        return {"n_users": users, "n_rows": users, "n_items": 10000,
+                "active_items": items, "nnz": pairs, "sparsity": 1 - pairs / (users * 10000)}
+
+    stats = {"train": matrix(53366, 8500, 3553429)}
+    for phase, users, items, source_pairs, target_pairs in (
+        ("val", 50318, 500, 3415938, 183194), ("test", 52929, 1000, 3541158, 385384),
+    ):
+        stats[f"{phase}_evaluation"] = {
+            "source": matrix(users, 8500, source_pairs), "target": matrix(users, items, target_pairs),
+            "cold_target_fraction": 1.,
+        }
+    return {"dataset": "goodbooks", "split": "item_split", "status": "complete", "stats": stats}
+
+
+def test_goodbooks_report_distinguishes_catalog_and_observed_items(sweep, tmp_path, legacy_goodbooks_record):
+    sweep.write_summary(tmp_path, [legacy_goodbooks_record])
+    report = (tmp_path / "summary.md").read_text()
+    assert "| Catalog columns | Observed train items |" in report
+    assert "| Candidate catalog | Observed source items | Observed target items |" in report
+    assert "| goodbooks | item_split | complete | 53366 | 53366 | 10000 | 8500 | 3553429 | 99.216635% | 99.334140% |" in report
+    assert "| goodbooks | item_split | val | 50318 | 50318 | 10000 | 8500 | 500 | 3415938 | 183194 | 99.271855% | 99.963593% | 100.000000% |" in report
+    assert "| goodbooks | item_split | test | 52929 | 52929 | 10000 | 8500 | 1000 | 3541158 | 385384 | 99.271885% | 99.927188% | 100.000000% |" in report
+    assert "1 - pairs / (rows × observed items)" in report
+
+
+def test_report_only_renders_old_results_without_jobs_or_record_changes(
+    sweep, tmp_path, monkeypatch, legacy_goodbooks_record,
+):
+    records = tmp_path / "results.jsonl"
+    original = json.dumps(legacy_goodbooks_record) + "\n"
+    records.write_text(original)
+    original_mtime = records.stat().st_mtime_ns
+
+    def forbidden(*args, **kwargs):
+        pytest.fail("Report-only must not inspect code, load checkpoints, or start workers")
+
+    monkeypatch.setattr(sweep, "code_version", forbidden)
+    monkeypatch.setattr(sweep, "ProcessPoolExecutor", forbidden)
+    monkeypatch.setattr(sweep.cr, "read_checkpoint", forbidden)
+    assert sweep.main(["--report-only", "--output", str(tmp_path)]) == 0
+    assert records.read_text() == original
+    assert records.stat().st_mtime_ns == original_mtime
+    assert "99.216635%" in (tmp_path / "summary.md").read_text()
+    assert set(path.name for path in tmp_path.iterdir()) == {"summary.md", "results.jsonl"}
+
+
+def test_report_only_requires_saved_statistics(sweep, tmp_path):
+    output = tmp_path / "missing"
+    with pytest.raises(FileNotFoundError, match="results.jsonl"):
+        sweep.main(["--report-only", "--output", str(output)])
+    assert not output.exists()
 
 
 def test_phase_alignment_and_cold_targets(sweep):
@@ -97,6 +173,13 @@ def test_sweep_builds_reports_and_resumes_offline(sweep, tmp_path):
     assert sum(result["status"] == "complete" for result in results) == 3
     assert sum(result["status"] == "unsupported" for result in results) == 2
     assert all("stats" in result for result in results if result["status"] == "complete")
+    for result in results:
+        if result["status"] != "complete":
+            continue
+        for matrix in [result["stats"]["train"], result["stats"]["val_evaluation"]["source"],
+                       result["stats"]["val_evaluation"]["target"]]:
+            assert matrix["catalog_sparsity"] == matrix["sparsity"]
+            assert matrix["observed_item_sparsity"] <= matrix["catalog_sparsity"]
     assert (tmp_path / "out" / "summary.md").exists()
     old_times = [path.stat().st_mtime_ns for path in paths]
     resumed = subprocess.run(command + argv + ["--resume"], capture_output=True, text=True)
