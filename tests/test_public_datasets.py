@@ -146,10 +146,13 @@ def test_new_defaults_preserve_implicit_interactions_and_short_metadata():
         args, _ = _resolve_args(_build_args(dataset=dataset))
         assert args.min_value_to_keep is None
         assert args.min_entity_text_words == 0
-    for dataset in ("ml1m", "ml20m", "goodbooks", "amazon2023"):
+    for dataset in ("ml1m", "ml20m", "goodbooks"):
         args, _ = _resolve_args(_build_args(dataset=dataset))
         assert args.min_entity_text_words == 30
         assert args.min_value_to_keep == 4.0
+    amazon, _ = _resolve_args(_build_args(dataset="amazon2023"))
+    assert amazon.min_entity_text_words == 0
+    assert amazon.min_value_to_keep is None
 
 
 def test_download_does_not_cache_partial_responses(tmp_path, monkeypatch):

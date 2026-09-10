@@ -483,8 +483,8 @@ def _unit_codes(sample_ids: np.ndarray) -> tuple[np.ndarray, int] | None:
     """Group rows by identifier, or ``None`` when every row is its own unit.
 
     Repeated identifiers mean one evaluation unit produced several rows.
-    :func:`compresso_recsys.retrieval.build_eval_holdout` does exactly that at
-    its default ``eval_draws=5``: each user is split into fold-in and scored
+    :func:`compresso_recsys.retrieval.build_eval_holdout` does exactly that with
+    an explicit ``eval_draws=5``: each user is split into fold-in and scored
     parts five times, so 2,500 users produce 12,500 rows. Those rows are not
     independent, and resampling them as though they were understates the
     interval by the square root of the design effect -- on GoodBooks, an

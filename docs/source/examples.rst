@@ -525,3 +525,127 @@ without retraining:
 
 To allow previously interacted items in a diagnostic ranking, pass
 ``exclude_seen=False`` to either method.
+
+.. _item-embedding-recipes:
+
+Using item embeddings
+---------------------
+
+The checkpoint feature format is the same for any dataset and modality.
+Each named feature space has its own float32 matrix, item IDs, availability mask,
+and manifest entry under ``item_embeddings``. Storing features does not make
+collaborative-only models multimodal; a model must explicitly consume them.
+
+Precomputed features
+~~~~~~~~~~~~~~~~~~~~
+
+See :ref:`dataset-item-embeddings` for the available feature names. For example,
+add plot/poster features while building an ML1M checkpoint, then enrich it
+without changing its split:
+
+.. code-block:: python
+
+   import compresso_recsys as cr
+
+   checkpoint = cr.build_recsys_checkpoint(
+       dataset="ml1m",
+       checkpoint_path="artifacts/ml1m/features.zip",
+       min_entity_text_words=0,
+       multimodal_features=["text/minilm", "image/resnet152"],
+   )
+
+   # Add more precomputed features without changing the existing split.
+   cr.enrich_multimodal_checkpoint(
+       checkpoint, dataset="ml1m", features=["audio/vggish", "video/i3d"]
+   )
+
+Features are opt-in: ordinary builds do not download embedding archives. Selecting
+a subset still downloads the full dataset JSON archive once (approximately
+264 MB ML-1M, 348 MB DBbook, 624 MB Last.fm). They are cached under
+``data/multimodal`` and checked against the release's published checksums.
+Raw media and encoders are not needed for this import.
+
+``enrich_multimodal_checkpoint`` also accepts ``archive_path`` for a local JSON
+ZIP with the upstream filenames. Local imports record a SHA-256 but are marked
+unverified. Imports reject duplicate IDs, inconsistent dimensions, nonfinite
+vectors, unsupported feature names, and zero catalog overlap. Checkpoint updates
+are atomic: a failed import does not replace the original ZIP. Downloaded pickle
+files are never executed. Cite :ref:`cite-swap-multimodal` when using these features.
+
+User-computed features
+~~~~~~~~~~~~~~~~~~~~~~
+
+For Amazon, retain image URLs while building the checkpoint:
+
+.. code-block:: python
+
+   import compresso_recsys as cr
+
+   amazon_checkpoint = cr.build_recsys_checkpoint(
+       dataset="amazon2023",
+       amazon_category="Toys_and_Games",
+       include_image_urls=True,
+       min_entity_text_words=0,
+       checkpoint_path="artifacts/amazon2023/toys.zip",
+   )
+   with cr.read_checkpoint(amazon_checkpoint) as root:
+       metadata = cr.load_recsys_split(root)["entity_metadata"]
+       # Feed entity_text and the image URLs to your own text/image pipeline.
+
+Do not pass ``multimodal_features`` for Amazon: that option imports only SWAP
+features. The generic embedding API below works with every dataset.
+
+For Amazon or any other dataset, run your chosen encoders outside the builder.
+Keep a mapping from original item IDs to vectors for every feature space. Store
+the available vectors; the loader can fill missing catalog items with a presence
+mask. This helper accepts the output of your own text or image pipeline:
+
+.. code-block:: python
+
+   import numpy as np
+   import compresso_recsys as cr
+
+   def attach_computed_features(checkpoint_path, name, vectors_by_item_id, *, encoder):
+       ids = np.asarray(list(vectors_by_item_id)).astype(str)
+       vectors = np.asarray(list(vectors_by_item_id.values()), dtype=np.float32)
+       with cr.update_checkpoint(checkpoint_path) as root:
+           cr.save_item_embeddings(
+               root, name, item_ids=ids, embeddings=vectors,
+               metadata={"source": "user-computed", "encoder": encoder},
+           )
+
+Use names such as ``text/my_encoder`` and ``image/my_encoder``. Record encoder
+versions, normalization, and data provenance in ``metadata`` for reproducibility.
+This generic API does not fetch media or run encoders. Source usage terms still
+apply to downloaded metadata and derived features.
+
+Reading and evaluating features
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: python
+
+   with cr.read_checkpoint(checkpoint) as root:
+       split = cr.load_recsys_split(root)
+       spaces = cr.list_item_embeddings(root)
+       features = cr.load_item_embeddings(
+           root, "text/minilm", item_ids=split["train_item_ids"]
+       )
+       matrix = features["embeddings"]
+       available = features["available"]
+
+``item_ids`` reorders rows by ID, not assumed positions. Without it, the loader
+returns stored order. Unknown IDs produce zero rows with ``available=False``;
+a valid zero vector is not automatically missing. Choose an explicit policy for
+missing features before training/evaluation. Loading an absent feature name raises
+``KeyError``. Old checkpoints need no migration; listing their spaces returns
+an empty mapping. See :doc:`api/checkpoint` for the complete API.
+
+Precomputed provenance includes encoder filenames, archive hashes, normalization,
+and pooling. Coverage can differ from published headline counts: inspect each
+manifest entry's ``available_items`` for the actual checkpoint. The SWAP MMRec
+benchmark filters to all modalities and remaps IDs; these adapters preserve
+original IDs and incomplete coverage, so defaults do not reproduce that benchmark.
+
+Fit learned normalization, dimensionality reduction, and fusion on training data
+only when evaluating cold items. An item split alone does not prove that metadata
+was historically available or independent of held-out interactions.

@@ -54,6 +54,39 @@ def _selection(dataset, features):
     return names
 
 
+def _read_feature_space(archive, dataset, name):
+    """Read and validate one space, with the importer's artist-level pooling."""
+    _selection(dataset, [name])
+    members = [member for member in archive.namelist()
+               if member.rsplit("/", 1)[-1] == ENCODERS[name]
+               and not member.startswith("__MACOSX/")]
+    if len(members) != 1:
+        raise ValueError(f"Expected exactly one {ENCODERS[name]} in {archive.filename}")
+    with archive.open(members[0]) as stream:
+        data = json.load(stream, object_pairs_hook=_unique_pairs)
+    if not isinstance(data, dict) or not data:
+        raise ValueError("Expected a nonempty item-ID-to-vector JSON object")
+    dimension = None
+    for key, value in data.items():
+        vector = np.asarray(value, dtype=np.float32)
+        if vector.ndim != 1 or not len(vector) or not np.isfinite(vector).all():
+            raise ValueError(f"Invalid embedding vector for item {key}")
+        dimension = len(vector) if dimension is None else dimension
+        if len(vector) != dimension:
+            raise ValueError("Embedding dimensions must agree")
+        data[key] = vector
+    if dataset == "lfm2k":
+        # Upstream media IDs like '6347_1' are averaged at artist level.
+        groups = {}
+        for key, vector in data.items():
+            if not re.fullmatch(r"[0-9]+(?:_[0-9]+)?", key):
+                raise ValueError(f"Invalid Last.fm artist/media ID: {key}")
+            groups.setdefault(str(int(key.split("_")[0])), []).append(vector)
+        data = {key: np.mean(vectors, axis=0, dtype=np.float32)
+                for key, vectors in groups.items()}
+    return data, dimension
+
+
 def import_multimodal_embeddings(root, *, dataset, features, data_dir="data",
                                 archive_path=None, show_progress=True):
     """Attach selected feature spaces to an extracted checkpoint.
@@ -85,34 +118,7 @@ def import_multimodal_embeddings(root, *, dataset, features, data_dir="data",
     catalog = split["item_ids"].astype(str)
     with zipfile.ZipFile(archive_path) as archive:
         for name in names:
-            members = [member for member in archive.namelist()
-                       if member.rsplit("/", 1)[-1] == ENCODERS[name]
-                       and not member.startswith("__MACOSX/")]
-            if len(members) != 1:
-                raise ValueError(f"Expected exactly one {ENCODERS[name]} in {archive_path}")
-            with archive.open(members[0]) as stream:
-                data = json.load(stream, object_pairs_hook=_unique_pairs)
-            if not isinstance(data, dict) or not data:
-                raise ValueError("Expected a nonempty item-ID-to-vector JSON object")
-            dimension = None
-            for key, value in data.items():
-                vector = np.asarray(value, dtype=np.float32)
-                if vector.ndim != 1 or not len(vector) or not np.isfinite(vector).all():
-                    raise ValueError(f"Invalid embedding vector for item {key}")
-                dimension = len(vector) if dimension is None else dimension
-                if len(vector) != dimension:
-                    raise ValueError("Embedding dimensions must agree")
-                data[key] = vector
-            if dataset == "lfm2k":
-                # Upstream JSON preserves media IDs like '6347_1', '6347_2'.
-                # Its MMRec conversion averages these vectors at artist level.
-                groups = {}
-                for key, vector in data.items():
-                    if not re.fullmatch(r"[0-9]+(?:_[0-9]+)?", key):
-                        raise ValueError(f"Invalid Last.fm artist/media ID: {key}")
-                    groups.setdefault(str(int(key.split("_")[0])), []).append(vector)
-                data = {key: np.mean(vectors, axis=0, dtype=np.float32)
-                        for key, vectors in groups.items()}
+            data, dimension = _read_feature_space(archive, dataset, name)
             values = np.zeros((len(catalog), dimension), dtype=np.float32)
             mask = np.array([key in data for key in catalog], dtype=bool)
             if not mask.any():

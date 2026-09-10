@@ -10,6 +10,19 @@ def test_build_recsys_checkpoint_is_public_function():
     assert cr.build_recsys_checkpoint.__name__ == "build_recsys_checkpoint"
 
 
+def test_eval_draws_defaults_to_one_in_api_and_cli(monkeypatch):
+    import inspect
+    from compresso_recsys.builder import parse_args
+
+    assert _build_args(dataset="ml1m").eval_draws == 1
+    assert inspect.signature(cr.build_recsys_checkpoint).parameters["eval_draws"].default == 1
+    monkeypatch.setattr("sys.argv", ["build-checkpoint", "--dataset", "ml1m"])
+    assert parse_args().eval_draws == 1
+    monkeypatch.setattr("sys.argv", ["build-checkpoint", "--dataset", "ml1m", "--eval_draws", "5"])
+    assert parse_args().eval_draws == 5
+    assert _build_args(dataset="ml1m", eval_draws=5).eval_draws == 5
+
+
 def test_build_recsys_checkpoint_rejects_unknown_dataset():
     with pytest.raises(ValueError, match="dataset must be one of"):
         cr.build_recsys_checkpoint(dataset="unknown")
@@ -27,7 +40,7 @@ def test_every_dataset_can_be_constructed_with_builder_defaults(dataset, tmp_pat
     ds = _make_dataset(args, spec)
     assert isinstance(ds, spec.cls)
     if dataset == "amazon2023":
-        assert ds.metadata_text_fields == ("title", "features", "description", "categories")
+        assert ds.metadata_text_fields == ds.text_fields_for_category("Toys_and_Games")
         assert ds.category == "Toys_and_Games"
 
 
@@ -36,6 +49,67 @@ def test_amazon_builder_accepts_custom_metadata_fields(tmp_path):
         dataset="amazon2023", data_dir=str(tmp_path), metadata_text_fields=["title", "store"],
     ))
     assert _make_dataset(args, spec).metadata_text_fields == ("title", "store")
+
+
+def test_amazon_defaults_use_measured_toys_profile_and_preserve_overrides():
+    args, _ = _resolve_args(_build_args(dataset="amazon2023"))
+    assert (args.min_user_support, args.item_min_support) == (6, 22)
+    assert (args.val_users, args.test_users) == (5000, 5000)
+    assert args.min_entity_text_words == 0
+    assert args.min_value_to_keep is None
+    custom, _ = _resolve_args(_build_args(dataset="amazon2023", min_user_support=20, item_min_support=20,
+                                        val_users=2500, test_users=5000, min_entity_text_words=30,
+                                        min_value_to_keep=4.0))
+    assert (custom.min_user_support, custom.item_min_support) == (20, 20)
+    assert (custom.val_users, custom.test_users) == (2500, 5000)
+    assert custom.min_entity_text_words == 30
+    assert custom.min_value_to_keep == 4.0
+
+
+def test_amazon_default_retains_every_rating_and_binarizes_it(tmp_path):
+    import pandas as pd
+
+    frame = pd.DataFrame({"user_id": ["u"] * 5, "item_id": list("abcde"),
+                          "value": [1., 2., 3., 4., 5.], "timestamp": range(5)})
+    # Isolate the default rating policy from support filtering on this tiny fixture.
+    args, spec = _resolve_args(_build_args(dataset="amazon2023", data_dir=str(tmp_path),
+                                          min_user_support=1, item_min_support=1))
+    dataset = _make_dataset(args, spec)
+    result = dataset.preprocess_interactions_for_recsys(
+        frame, min_value_to_keep=args.min_value_to_keep,
+        user_min_support=args.min_user_support, item_min_support=args.item_min_support,
+        set_all_values_to=args.set_all_values_to,
+    )
+    assert result.item_id.tolist() == list("abcde")
+    assert result.value.tolist() == [1.] * 5
+    assert frame.value.tolist() == [1., 2., 3., 4., 5.]  # Raw ratings stay intact.
+
+
+@pytest.mark.parametrize("category,support,heldout", [
+    ("All_Beauty", (2, 2), 2263),
+    ("Amazon_Fashion", (2, 4), 3571),
+    ("Digital_Music", (2, 2), 278),
+])
+def test_measured_amazon_profiles_are_split_specific_and_preserve_overrides(category, support, heldout):
+    args, _ = _resolve_args(_build_args(dataset="amazon2023", amazon_category=category))
+    assert (args.min_user_support, args.item_min_support) == support
+    assert (args.val_users, args.test_users) == (heldout, heldout)
+    assert args.eval_draws == 1
+    assert args.min_value_to_keep is None
+    custom, _ = _resolve_args(_build_args(dataset="amazon2023", amazon_category=category,
+        min_user_support=7, item_min_support=9, val_users=123, test_users=456))
+    assert (custom.min_user_support, custom.item_min_support) == (7, 9)
+    assert (custom.val_users, custom.test_users) == (123, 456)
+
+
+def test_unprofiled_amazon_category_still_uses_fallback_defaults(monkeypatch):
+    from compresso_recsys.datasets._amazon_defaults import AMAZON_SPLIT_DEFAULTS
+
+    monkeypatch.delitem(AMAZON_SPLIT_DEFAULTS, "Toys_and_Games")
+    for split in ("user_split", "item_split", "leave_last_out", "temporal"):
+        args, _ = _resolve_args(_build_args(dataset="amazon2023", amazon_category="Toys_and_Games", split_mode=split))
+        assert (args.min_user_support, args.item_min_support) == (5, 1)
+        assert (args.val_users, args.test_users) == (100, 200)
 
 
 def test_build_checkpoint_show_progress_defaults_true_and_can_be_disabled():

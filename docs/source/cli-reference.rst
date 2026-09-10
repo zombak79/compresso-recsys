@@ -80,7 +80,6 @@ user's test target.
      --min_entity_text_words 30 \
      --min_user_support 20 \
      --item_min_support 20 \
-     --min_value_to_keep 4.0 \
      --set_all_values_to 1.0 \
      --min_source_items 1 \
      --min_target_items 1 \
@@ -111,7 +110,6 @@ window.
      --min_entity_text_words 30 \
      --min_user_support 20 \
      --item_min_support 20 \
-     --min_value_to_keep 4.0 \
      --set_all_values_to 1.0 \
      --min_source_items 1 \
      --min_target_items 1 \
@@ -252,7 +250,7 @@ Full ``compresso-recsys-build-checkpoint`` parameter table:
      - If set, binarize all remaining interaction values to this value. Usually
        ``1.0``.
    * - ``--eval_draws``
-     - ``5``
+     - ``1``
      - How many independent fold-in/scored splits to draw per held-out user in
        ``user_split``, stacked one row per draw. More draws sharpen each user's
        score without adding independent users; ``1`` gives one row per user.
@@ -297,11 +295,16 @@ Full ``compresso-recsys-build-checkpoint`` parameter table:
      - dataset-specific
      - Metadata columns joined into canonical ``entity_text``. Steam uses
        title, genres, tags, developer, and publisher by default.
+       Amazon uses :ref:`per-subset defaults <amazon-installed-text-recipes>`
+       including selected detail attributes. Supports case-sensitive nested
+       paths such as ``details.Brand``; missing values are skipped. An explicit
+       list replaces the default. Selecting raw ``details`` includes all keys,
+       which may contain identifiers and popularity data.
    * - ``--min_entity_text_words``
      - dataset-specific
      - Drop items whose constructed ``entity_text`` is shorter than this many
-       words. Defaults to ``30`` for the existing MovieLens/Goodbooks/Amazon
-       adapters and ``0`` for Steam/Netflix/Taste Profile/Gowalla/DBbook/Last.fm.
+       words. Defaults to ``30`` for MovieLens/Goodbooks and ``0`` for
+       Amazon/Steam/Netflix/Taste Profile/Gowalla/DBbook/Last.fm.
    * - ``--include_image_urls``
      - ``False``
      - For Amazon, include ``image_url`` and ``image_urls`` columns in
@@ -352,10 +355,10 @@ Dataset-specific defaults:
    * - ``amazon2023``
      - ``artifacts/amazon2023/{amazon_category}/recsys_checkpoint.zip``
      - ``42``
-     - ``2500``
-     - ``5000``
-     - ``20``
-     - ``20``
+     - ``100``
+     - ``200``
+     - ``5``
+     - ``1``
 
    * - ``steam``
      - ``artifacts/steam/recsys_checkpoint.zip``
@@ -401,6 +404,11 @@ Dataset-specific defaults:
      - ``5``
      - ``1``
 
+Amazon defaults also set ``min_entity_text_words=0``. Its interaction
+category graphs may have no surviving 20-core, so 5/1 support and smaller user
+holdouts are intentional. Explicit support, holdout, and text-length arguments
+still take precedence; the defaults do not adapt silently to each run's results.
+
 Feedback defaults:
 
 .. list-table::
@@ -409,10 +417,14 @@ Feedback defaults:
    * - Parameter
      - Default
    * - ``min_value_to_keep``
-     - ``4.0`` for MovieLens, Goodbooks, Amazon, and Netflix; no rating
-       threshold for Steam, Taste Profile, Gowalla, or Last.fm; ``1.0`` for DBbook
+     - ``4.0`` for MovieLens, Goodbooks, and Netflix; no rating threshold for
+       Amazon, Steam, Taste Profile, Gowalla, or Last.fm; ``1.0`` for DBbook
    * - ``set_all_values_to``
      - ``1.0``
+
+Amazon treats every valid 1–5-star rating as an interaction and binarizes it to
+1 by default; it does not weight interactions by their star rating. An explicit
+``--min_value_to_keep`` still enables rating filtering when requested.
 
 Supported Amazon Reviews 2023 Datasets
 --------------------------------------

@@ -73,12 +73,15 @@ DATASETS = {
         AmazonReviews2023,
         "artifacts/amazon2023/{amazon_category}/recsys_checkpoint.zip",
         seed=42,
-        val_users=2500,
-        test_users=5000,
-        min_user_support=20,
-        item_min_support=20,
-        min_value_to_keep=4.0,
+        # Some category graphs are too sparse for a 20-core.
+        # Keep useful user histories without recursively deleting rare items.
+        val_users=100,
+        test_users=200,
+        min_user_support=5,
+        item_min_support=1,
+        min_value_to_keep=None,
         set_all_values_to=1.0,
+        min_entity_text_words=0,
     ),
 }
 
@@ -144,7 +147,7 @@ def parse_args():
     p.add_argument("--item_min_support", type=int, default=None)
     p.add_argument("--min_value_to_keep", type=float, default=None)
     p.add_argument("--set_all_values_to", type=float, default=None)
-    p.add_argument("--eval_draws", type=int, default=5)
+    p.add_argument("--eval_draws", type=int, default=1)
     p.add_argument("--multimodal_features", default=None,
                    help="Optional comma-separated SWAP features, e.g. text/minilm,image/resnet152")
     p.add_argument("--eval_holdout_frac", type=float, default=0.2)
@@ -177,7 +180,7 @@ def parse_args():
         "--metadata_text_fields",
         type=str,
         default=None,
-        help="Comma-separated metadata fields joined into entity_text for text-aware datasets.",
+        help="Comma-separated metadata fields joined into entity_text; Amazon defaults vary by category and support paths such as details.Brand.",
     )
     p.add_argument(
         "--min_entity_text_words",
@@ -219,7 +222,7 @@ def _build_args(
     item_min_support: int | None = None,
     min_value_to_keep: float | None = None,
     set_all_values_to: float | None = None,
-    eval_draws: int = 5,
+    eval_draws: int = 1,
     eval_holdout_frac: float = 0.2,
     split_mode: str = "user_split",
     val_items: int | None = None,
@@ -306,9 +309,22 @@ def _resolve_args(args):
     if getattr(args, "multimodal_features", None) is not None:
         from compresso_recsys.multimodal import _selection
         _selection(args.dataset, args.multimodal_features)
+    if args.dataset == "amazon2023":
+        args.amazon_category = AmazonReviews2023.normalize_category(args.amazon_category)
     args.checkpoint_path = args.checkpoint_path or spec.checkpoint_path.format(
         amazon_category=args.amazon_category,
     )
+    if args.dataset == "amazon2023":
+        from compresso_recsys.datasets._amazon_defaults import AMAZON_SPLIT_DEFAULTS
+
+        profile = AMAZON_SPLIT_DEFAULTS.get(args.amazon_category, {}).get(args.split_mode, {})
+        for name, value in profile.items():
+            if getattr(args, name) is None:
+                setattr(args, name, value)
+        if args.metadata_text_fields is None:
+            args.metadata_text_fields = ",".join(AmazonReviews2023.text_fields_for_category(args.amazon_category))
+        elif not any(field.strip() for field in args.metadata_text_fields.split(",")):
+            raise ValueError("--metadata_text_fields must contain at least one field")
     args.seed = spec.seed if args.seed is None else args.seed
     args.val_users = spec.val_users if args.val_users is None else args.val_users
     args.test_users = spec.test_users if args.test_users is None else args.test_users
@@ -1056,7 +1072,9 @@ def _temporal_user_upper_bound(
 
 
 def _timestamps_in_seconds(values: pd.Series) -> np.ndarray:
-    timestamps = pd.to_numeric(values, errors="coerce").to_numpy(dtype=np.float64)
+    # Parquet-backed/Pandas copy-on-write arrays may be read-only. Unit
+    # conversion must also never mutate the caller's original timestamps.
+    timestamps = pd.to_numeric(values, errors="coerce").to_numpy(dtype=np.float64, copy=True)
     finite = np.isfinite(timestamps)
     if not bool(finite.any()):
         raise ValueError("temporal split requires non-empty timestamp values")
@@ -1560,7 +1578,7 @@ def build_recsys_checkpoint(
     item_min_support: int | None = None,
     min_value_to_keep: float | None = None,
     set_all_values_to: float | None = None,
-    eval_draws: int = 5,
+    eval_draws: int = 1,
     eval_holdout_frac: float = 0.2,
     split_mode: str = "user_split",
     val_items: int | None = None,

@@ -252,6 +252,83 @@ def test_amazon_category_job_selection(sweep):
     assert sweep.parse_args(["--amazon-category", "toys"]).amazon_categories == ["Toys_and_Games"]
 
 
+def test_sweep_dataset_temporal_defaults_and_override_precedence(sweep):
+    args = sweep.parse_args([])
+    assert sweep.build_parameters(args, "gowalla", "temporal", {})["temporal_period_hours"] == 720
+    assert sweep.build_parameters(args, "ml1m", "temporal", {})["temporal_period_hours"] == 8136
+    assert sweep.build_parameters(args, "amazon2023", "temporal", {}, "Toys_and_Games")["temporal_period_hours"] == 8136
+    explicit = sweep.parse_args(["--temporal-period-hours", "200"])
+    assert sweep.build_parameters(explicit, "gowalla", "temporal", {})["temporal_period_hours"] == 200
+    assert sweep.build_parameters(explicit, "gowalla", "temporal", {
+        "gowalla": {"temporal_period_hours": 300},
+    })["temporal_period_hours"] == 300
+
+
+@pytest.mark.parametrize("period", ["0", "-1", "nan", "inf"])
+def test_sweep_rejects_invalid_temporal_period(sweep, period):
+    with pytest.raises(SystemExit):
+        sweep.parse_args(["--temporal-period-hours", period])
+
+
+def test_gowalla_sweep_window_fits_a_short_timeline(sweep):
+    # The reported Gowalla span is about 626 days, too short for three 339-day targets.
+    frame = pd.DataFrame([
+        {"user_id": f"u{u}", "item_id": f"i{i}", "value": 1., "timestamp": day * 86400}
+        for u in range(12) for day in (0, 550, 580, 610, 626) for i in range(12)
+    ])
+    params = sweep.build_parameters(sweep.parse_args([]), "gowalla", "temporal", {})
+    args, _ = sweep.builder._resolve_args(sweep.builder._build_args(**params))
+    split = sweep.builder._build_temporal_split(args, frame)
+    assert split["x_train"].nnz > 0
+    for phase in ("val", "test"):
+        assert split[f"{phase}_target_matrix"].nnz > 0
+    args.temporal_period_hours = 8136
+    with pytest.raises(ValueError, match="three target windows"):
+        sweep.builder._build_temporal_split(args, frame)
+
+
+@pytest.mark.parametrize("profiled", [False, True], ids=["fallback", "measured-toys"])
+def test_sparse_amazon_builds_with_default_preprocessing_and_user_holdouts(sweep, tmp_path, monkeypatch, profiled):
+    from compresso_recsys.datasets._amazon_defaults import AMAZON_SPLIT_DEFAULTS
+
+    # Exercise both unprofiled fallback and measured category settings. The
+    # profiled fixture must fit its 5,000-user validation and test partitions.
+    n_users = 10_320 if profiled else 320
+    if not profiled:
+        monkeypatch.delitem(AMAZON_SPLIT_DEFAULTS, "Toys_and_Games")
+    def load_subset(ds, config, *, split="full"):
+        if config == ds.metadata_config:
+            return pd.DataFrame({"parent_asin": [f"i{i}" for i in range(12)], "title": ["Toy"] * 12})
+        assert config == ds.interactions_config
+        return pd.DataFrame([
+            {"user_id": f"u{u}", "parent_asin": f"i{(u + i) % 12}", "rating": float(i % 5 + 1), "timestamp": i}
+            for u in range(n_users) for i in range(6)
+        ])
+
+    monkeypatch.setattr(sweep.cr.AmazonReviews2023, "_load_hf_dataframe", load_subset)
+    args = sweep.parse_args(["--datasets", "amazon2023", "--splits", "user_split", "item_split", "leave_last_out",
+                             "--data-dir", str(tmp_path / "data"), "--output", str(tmp_path / "out"),
+                             "--threads-per-worker", "1", "--cutoffs", "1"])
+    records = sweep.run_dataset(args, "amazon2023", {}, {}, "Toys_and_Games")
+    assert all(record["status"] == "complete" for record in records), records
+    assert records[0]["stats"]["train"]["n_users"] == (320 if profiled else 20)
+    for record in records:
+        assert record["pre_split_data"]["n_users"] == n_users
+        assert record["pre_split_data"]["n_events"] == n_users * 6
+        assert record["resolved_build_parameters"]["min_value_to_keep"] is None
+        assert record["stats"]["train"]["nnz"] > 0
+        assert record["resolved_build_parameters"]["min_user_support"] == (6 if profiled else 5)
+        assert record["resolved_build_parameters"]["item_min_support"] == (22 if profiled else 1)
+        for phase in ("val", "test"):
+            assert record["stats"][phase + "_evaluation"]["target"]["nnz"] > 0
+            assert record["baselines"]["popularity"][phase]["evaluated_rows"] > 0
+    for path in args.output.glob("*/checkpoint.zip"):
+        with sweep.cr.read_checkpoint(path) as root:
+            split = sweep.cr.load_recsys_split(root)
+            for key in ("x_train", "val_target_matrix", "test_target_matrix"):
+                assert np.all(split[key].data == 1.)
+
+
 @pytest.mark.parametrize("categories", [["toys", "Toys_and_Games"], [""], ["../foo"], ["all"]])
 def test_amazon_rejects_duplicate_or_unsafe_categories(sweep, categories):
     with pytest.raises(SystemExit):
@@ -288,7 +365,7 @@ def test_parallel_amazon_category_jobs_and_resume(sweep, tmp_path):
 
 def test_amazon_subsets_build_independent_checkpoints_and_stats(sweep, tmp_path, monkeypatch, capsys):
     def load_subset(ds, config, *, split="full"):
-        assert ds.metadata_text_fields == ("title", "features", "description", "categories")
+        assert ds.metadata_text_fields == ds.text_fields_for_category(ds.category)
         size = 8 if ds.category == "Toys_and_Games" else 10
         if config == ds.metadata_config:
             return pd.DataFrame({"parent_asin": [f"i{i}" for i in range(size)],

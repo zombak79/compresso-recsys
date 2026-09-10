@@ -58,6 +58,40 @@ are rejected to prevent two workers writing the same cache. There is no implicit
 "all Amazon" expansion or cross-category concatenation. Individual categories
 can still be large; reduce ``--workers`` to limit simultaneous memory use.
 
+Amazon preprocessing treats all valid ratings as binary interactions, with no
+rating cutoff (``min_value_to_keep=None``, ``set_all_values_to=1.0``). User/item
+support remains 5/1, with no minimum text length; user splits reserve 100
+validation users and 200 test users. Support and split-eligibility filters still
+apply, so retaining low-star ratings does not bypass those filters.
+The previous iterative 20/20 filter can delete an entire category, and its
+2,500/5,000 user holdouts do not fit smaller retained populations. These are
+starting settings for exploratory runs, not paper-reproduction settings. There
+is no automatic threshold relaxation. Tiny categories may still need smaller
+holdouts, and user-split evaluation can retain fewer users after restricting
+their histories to the training item catalog.
+
+Update the installed package as well as the script to obtain the new Amazon
+builder defaults. With an older package, the same settings can be supplied using
+``--builder-overrides``:
+
+.. code-block:: json
+
+   {
+     "amazon2023": {
+       "min_value_to_keep": 0.0,
+       "min_user_support": 5,
+       "item_min_support": 1,
+       "val_users": 100,
+       "test_users": 200,
+       "min_entity_text_words": 0
+     }
+   }
+
+The zero threshold in this older-package workaround retains all valid Amazon
+ratings (1–5); passing null to an older builder would restore its old dataset
+default instead of disabling the cutoff. With the updated package, omitting the
+threshold uses no rating filter. Explicit rating-threshold overrides still work.
+
 Useful variants
 ----------------
 
@@ -78,6 +112,135 @@ neighbors by default. Exact neighbor search can be expensive; catalogs above
 30,000 items are skipped unless ``--knn-max-items`` is raised deliberately.
 Changing baseline settings creates a new run fingerprint, rather than reusing
 the old scores; it also gets a separate checkpoint build in this version.
+
+.. _dataset-default-table-reproduction:
+
+Reproducing the documentation default tables
+--------------------------------------------
+
+The :ref:`tables in each dataset subsection <dataset-default-table-guide>` use
+the **installed builder defaults**, not this sweep's exploratory seed/text/window
+overrides. From the repository, the helper can measure available full caches and
+render each non-Amazon dataset's table:
+
+.. code-block:: bash
+
+   python examples/validation/dataset_default_tables.py measure \
+     --cache-root data --output artifacts/default-table-measurements.json
+
+   # Explicitly permit missing source and official feature downloads.
+   python examples/validation/dataset_default_tables.py measure \
+     --datasets ml1m dbbook lfm2k --features \
+     --cache-root data --download-root data \
+    --output artifacts/default-feature-measurements.json
+
+   python examples/validation/dataset_default_tables.py render \
+     artifacts/default-table-measurements.json --dataset ml1m
+
+Repeat ``--cache-root`` to search additional cache directories. MovieLens and
+Goodbooks require their extracted interaction/metadata files and description
+cache. Supply **full sources, never smoke-test samples**. Missing caches are
+recorded as ``not_measured``; unsupported protocols are recorded separately.
+Downloads require explicit ``--download-root``; measurement is otherwise offline.
+``--features`` measures every supported encoder in the official SWAP JSON archive
+against the union of measured item catalogs, including dimensions and availability
+after Last.fm artist pooling. It verifies the release MD5 and records SHA-256;
+it does not attach features to a checkpoint. No fitting or reusable checkpoint
+archives are produced, although adapters may create canonical interaction caches.
+The script uses the same split implementation as checkpoint construction and
+records code/source fingerprints, including any existing canonical input caches.
+Choose a new output path for each run; it refuses to overwrite an existing audit.
+Each completed split is saved atomically as progress, and each completed dataset
+is retained in the output. ``--datasets`` limits a worker to selected datasets;
+use separate output files for parallel workers. Combine disjoint, completed runs
+with ``dataset_default_tables.py merge worker-a.json worker-b.json --output combined.json``;
+this retains each run's provenance and rejects duplicate datasets, incomplete
+runs or parameters that differ from current installed defaults. Large datasets still
+require sufficient RAM and time to construct their splits. Rendering and
+measurement do not edit the docs or installed defaults.
+
+The published non-Amazon audit combines full-cache measurements on the local
+machine and abaddon. The archive preserves each run's code fingerprints and
+source paths/checksums. A failed installed configuration is kept visible, rather
+than silently replaced with a sweep override. These measurements are not a claim
+that every dataset's defaults have been size-tuned. Amazon uses the
+separate complete :doc:`support <amazon-profiling>` and :doc:`metadata <amazon-metadata>`
+audits.
+
+.. _dataset-default-table-details:
+
+Interpreting the documentation tables
+----------------------------------------
+
+Every dataset subsection has an installed-defaults table. **Support** is written
+as minimum user/item interactions (for example, ``5/1``). The user/item totals
+describe the graph after preprocessing for random and LLO splits; temporal
+totals describe distinct users and catalog items across its filtered stages.
+**Train** reports training users separately. **Val/Test** report distinct
+eligible users, distinct target items, and the percentage of those target items
+absent from nonzero training interactions. They are not candidate-catalog sizes
+or percentages of interactions. A dagger (†) flags fewer than 1,000 evaluation
+users; it is a warning, not an automatic change to a dataset's defaults.
+DBbook additionally has an **Official** column, whose preprocessing totals refer
+only to supplied training data. Other datasets have no supported official mode.
+For sources with repeated events (such as Steam and Gowalla), random splits
+deduplicate user/item pairs before support filtering, whereas ordered splits
+retain events. Their preprocessed user/item totals can therefore differ even
+with the same numerical support thresholds.
+
+The final column counts distinct items across the **union of measured splits**,
+including non-temporal preprocessed items. It shows independent counts for at
+least one image URL and at least ten words in the adapter's constructed
+``entity_text``. URLs are not fetched or validated. **Image URLs: not exposed**
+does not mean images do not exist upstream; optional precomputed image embeddings
+are not counted as raw images. MovieLens 1M, DBbook and Last.fm-2K also report
+**precomputed features**: available items, percentage of the same union catalog,
+and vector dimension (``d``) for each encoder. These are measured from the
+checksum-verified official JSON releases with the checkpoint importer's exact ID
+matching and validation. Missing vectors stay unavailable; valid zero vectors
+still count as available. Last.fm media IDs are pooled by artist, and its
+interaction-derived tag embeddings are identified separately from content text.
+The ten-word statistic does not change ``min_entity_text_words``.
+
+The non-Amazon tables use full source caches on this machine and abaddon,
+with the installed builder defaults. Unlike the exploratory
+sweep, these use the dataset's own seed and text-length default (30 words for
+MovieLens/Goodbooks); annotations are disabled because they do not change the
+interaction or text counts. **Build failed** records a real attempt with the
+installed configuration and its error, not a missing cache. **Not supported**
+denotes a protocol the adapter cannot supply.
+Amazon has a separate :doc:`category/protocol audit <amazon-profiling>`.
+
+The :download:`non-Amazon measurement archive <_static/dataset-default-measurements.json>`
+records parameters, source-file checksums, code fingerprints and status for every
+dataset/split. See :ref:`dataset-default-table-reproduction` to regenerate the
+tables. The missing optional feature releases were downloaded for the audit;
+no preprocessing defaults were changed and no embeddings were attached to user
+checkpoints.
+
+.. _dbbook-official-protocol:
+
+DBbook official protocol
+------------------------
+
+``DBbook.get_official_split()`` returns the supplied train and test DataFrames,
+including negative feedback. The combined interaction table retains
+``source_split``. Random user/item split modes create new partitions.
+
+For the supplied test boundary, use:
+
+.. code-block:: console
+
+   compresso-recsys-build-checkpoint --dataset dbbook --split_mode official --eval_draws 1 --checkpoint_path artifacts/dbbook/official.zip
+
+This mode filters support using training data only, withholds validation edges
+from supplied training interactions, and removes those edges from model training.
+Test histories use the full retained positive training history. The model is
+not refit automatically. Test positives outside the training user/item vocabulary
+or below evaluation support are excluded and counted in the manifest. Overlapping
+supplied train/test pairs are rejected. It always uses one validation draw;
+``val_users`` and ``test_users`` do not control this mode. This preserves the
+test boundary, not an exact published training/evaluation recipe.
 
 Collected statistics
 ---------------------
@@ -129,6 +292,15 @@ Temporal support filtering happens per stage: its pre-split counts are not the
 final filtered total. For DBbook's official mode, pre-split counts describe supplied
 training data only. Source histories overlap across stages and evaluation draws
 can repeat users, so never sum those matrix counts as a whole-dataset total.
+
+The sweep uses 30-day (720-hour) temporal target windows for Gowalla and 339-day
+(8,136-hour) windows for other datasets. Three 339-day targets cannot fit Gowalla's
+roughly 626-day timeline. ``--temporal-period-hours`` explicitly overrides the
+sweep default; a dataset-specific ``temporal_period_hours`` builder override takes
+precedence over that flag. This does not change the standalone builder's temporal
+default. Windows and support settings are printed in the log and saved in the
+resolved parameters; insufficient history or empty filtered windows still fail
+explicitly instead of triggering automatic changes to the evaluation protocol.
 
 Evaluation protocol
 --------------------

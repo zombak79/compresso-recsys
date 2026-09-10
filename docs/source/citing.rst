@@ -443,9 +443,9 @@ against. ``eval_holdout_frac`` defaults to 0.2, matching the 80/20 split
 described by Liang et al. If you report numbers from ``user_split``, cite the
 Mult-VAE/Mult-DAE paper above.
 
-Stacking several independent draws per user — ``eval_draws``, defaulting to 5 —
-follows the ELSA line of work; cite the ELSA papers above when reporting under
-that protocol.
+The default ``eval_draws=1`` produces one source/target split per held-out user.
+Opting into five independent draws per user with ``eval_draws=5`` follows the
+ELSA line of work; cite the ELSA papers above when reporting under that protocol.
 
 Dataset preprocessing
 ~~~~~~~~~~~~~~~~~~~~~

@@ -14,6 +14,7 @@ For an all-dataset statistics and baseline run, see :doc:`dataset-sweep`.
    :maxdepth: 1
 
    dataset-sweep
+   amazon-profiling
 
 Runnable code
 -------------

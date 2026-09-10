@@ -33,6 +33,7 @@ from compresso_recsys.metrics import CalibratedRecall, HitRate, NDCG, Recall
 from compresso_recsys.models import ItemKNNConfig, ItemKNNRecommender, PopularityBaseline
 
 SPLITS = ("user_split", "item_split", "leave_last_out", "temporal", "official")
+TEMPORAL_PERIOD_DEFAULTS = {"gowalla": 30 * 24}
 
 
 def distribution(values):
@@ -272,6 +273,22 @@ def dataset_jobs(args):
             for category in (args.amazon_categories if dataset == "amazon2023" else [None])]
 
 
+def build_parameters(args, dataset, mode, overrides, category=None):
+    """Resolve sweep defaults first, then preserve explicit builder overrides."""
+    period = args.temporal_period_hours
+    if period is None:
+        period = TEMPORAL_PERIOD_DEFAULTS.get(dataset, builder.DEFAULT_TEMPORAL_PERIOD_HOURS)
+    params = dict(dataset=dataset, data_dir=str(args.data_dir.resolve()), seed=args.seed,
+                  split_mode=mode, eval_draws=1, min_entity_text_words=0,
+                  annotation_source="none", show_progress=False, temporal_period_hours=period)
+    if dataset == "amazon2023":
+        if category is None:
+            raise ValueError("An Amazon category is required for each worker")
+        params["amazon_category"] = category
+    params.update(overrides.get(dataset, {}))
+    return params
+
+
 def write_summary(output, records, *, write_records=True):
     def pct(value):
         return f"{value:.6%}" if value is not None else "—"
@@ -381,7 +398,8 @@ def parse_args(argv=None):
     parser.add_argument("--knn-jobs", type=int, default=1)
     parser.add_argument("--max-eval-users", type=int, default=None)
     parser.add_argument("--batch-size", type=int, default=128)
-    parser.add_argument("--temporal-period-hours", type=float, default=builder.DEFAULT_TEMPORAL_PERIOD_HOURS)
+    parser.add_argument("--temporal-period-hours", type=float, default=None,
+                        help="Override target-window length (default: 720h for Gowalla, 8136h otherwise)")
     parser.add_argument("--builder-overrides", type=Path,
                         help="JSON mapping dataset names to builder keyword overrides")
     parser.add_argument("--resume", action="store_true", help="Reuse completed runs and verified checkpoints")
@@ -393,6 +411,10 @@ def parse_args(argv=None):
         parser.error("Cutoffs, neighbors, item limit and batch size must be positive")
     if args.max_eval_users is not None and args.max_eval_users < 1:
         parser.error("--max-eval-users must be positive")
+    if args.temporal_period_hours is not None and (
+        not np.isfinite(args.temporal_period_hours) or args.temporal_period_hours <= 0
+    ):
+        parser.error("--temporal-period-hours must be finite and positive")
     args.cutoffs = sorted(set(args.cutoffs))
     if len(set(args.datasets)) != len(args.datasets) or len(set(args.splits)) != len(args.splits):
         parser.error("Dataset and split lists must not contain duplicates")
@@ -420,15 +442,7 @@ def run_dataset(args, dataset, overrides, provenance, category=None):
     records = []
     loaded_stats, raw, ds = None, None, None
     for mode in args.splits:
-        params = dict(dataset=dataset, data_dir=str(args.data_dir.resolve()), seed=args.seed,
-                      split_mode=mode, eval_draws=1, min_entity_text_words=0,
-                      annotation_source="none", show_progress=False,
-                      temporal_period_hours=args.temporal_period_hours)
-        if dataset == "amazon2023":
-            if category is None:
-                raise ValueError("An Amazon category is required for each worker")
-            params["amazon_category"] = category
-        params.update(overrides.get(dataset, {}))
+        params = build_parameters(args, dataset, mode, overrides, category)
         signature = hashlib.sha256(json.dumps([params, evaluation, provenance], sort_keys=True).encode()).hexdigest()
         slug = f"{dataset}-{category}" if category else dataset
         folder = args.output / f"{slug}-{mode}-{signature[:12]}"
@@ -463,6 +477,12 @@ def run_dataset(args, dataset, overrides, provenance, category=None):
                 record["loaded_data"] = loaded_stats
                 resolved, _ = builder._resolve_args(builder._build_args(**params))
                 record["resolved_build_parameters"] = vars(resolved)
+                rating_filter = f"rating>={resolved.min_value_to_keep}" if resolved.min_value_to_keep is not None else "no rating threshold"
+                print(f"  Settings {label}/{mode}: {rating_filter}, "
+                      f"user/item support={resolved.min_user_support}/{resolved.item_min_support}, "
+                      f"min text words={resolved.min_entity_text_words}"
+                      + (f", val/test users={resolved.val_users}/{resolved.test_users}" if mode == "user_split" else "")
+                      + (f", window={resolved.temporal_period_hours:g}h" if mode == "temporal" else ""), flush=True)
                 pre = raw[raw.source_split == "train"] if mode == "official" else raw
                 if isinstance(ds, PublicDataset) and mode in ("user_split", "item_split"):
                     pre = pre.drop_duplicates(["user_id", "item_id"])

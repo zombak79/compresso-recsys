@@ -106,10 +106,10 @@ def test_dataset_guide_covers_every_registered_dataset():
 
 def test_user_computed_feature_example_round_trips(tmp_path):
     snippets = [code for source, _, code in SNIPPETS
-                if source == "datasets.rst" and "def attach_computed_features" in code]
+                if source == "examples.rst" and "def attach_computed_features" in code]
     assert len(snippets) == 1
     namespace = {}
-    exec(compile(snippets[0], "datasets.rst#user-computed-features", "exec"), namespace)
+    exec(compile(snippets[0], "examples.rst#user-computed-features", "exec"), namespace)
     path = tmp_path / "features.zip"
     namespace["attach_computed_features"](
         path, "image/my_encoder", {"product-b": [1., 2.], "product-a": [3., 4.]},
