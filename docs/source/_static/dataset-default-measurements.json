@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "assembled_at_utc": "2026-09-09T20:21:50.740869+00:00",
+  "assembled_at_utc": "2026-09-11T14:48:07.280327+00:00",
   "runs": [
     {
       "archive": "artifacts/dataset-default-tables/measurements-ml1m-features-v3.json",
@@ -141,8 +141,7 @@
       },
       "datasets": [
         "ml20m",
-        "steam",
-        "gowalla"
+        "steam"
       ]
     },
     {
@@ -213,6 +212,42 @@
       },
       "datasets": [
         "taste-profile"
+      ]
+    },
+    {
+      "archive": "artifacts/gowalla-default-verification/measurements-720h-verified.json",
+      "schema_version": 1,
+      "measured_at_utc": "2026-09-11T14:48:07.280327+00:00",
+      "method": "Installed builder defaults, annotations disabled, full sources, exact builder splits",
+      "downloads_permitted": false,
+      "code_sha256": {
+        "examples/validation/dataset_default_tables.py": "8f501ce4ee4b18f79abbd17f8cbfea146605a1d14e1df74afccf80641b87a1b0",
+        "examples/validation/amazon_evaluation_details.py": "5584b6c4a6a0b9e36983bfe52073020fcd7ca7853dca6ad3da31cecfe63bb28f",
+        "examples/validation/amazon_profile.py": "3921201c2513929546a780fd57bff300815298006ecb4de27be6fc2522821008",
+        "examples/validation/dataset_sweep.py": "96012711dce21a005728af0fbe56e45cb8e0f0c4e4c20e90f54dbe28c71c9a71",
+        "src/compresso_recsys/builder.py": "1b78047088e977a7e0d7b95259bbdb27e212f82147233d849048c20466578cf0",
+        "src/compresso_recsys/retrieval.py": "003349cd2027b7058ce46097eb6dacb4887584236695dcbda690d65b7e47fe10",
+        "src/compresso_recsys/multimodal.py": "7f72a29eceb3c511ca47f700b16d8ef22b1afeb6898b45f8d4991488ed7357f0",
+        "src/compresso_recsys/sequences.py": "2645bc8a9cdf26b227ad78b6a9485605d780f7637a887f06e5d6ea73421757db",
+        "src/compresso_recsys/datasets/__init__.py": "4c1d4fc61d38bd446343796d886078fc7b1cfa34430115e277e4f4f011d879e9",
+        "src/compresso_recsys/datasets/_amazon_defaults.py": "d4c8aa07bcb8b3bc4c9e309b4a1dedcac367838e112797892abe6b127052094e",
+        "src/compresso_recsys/datasets/_amazon_text_defaults.py": "05e9d93fadc1c58f1b0c2a69cf34a0ab5fe8ee5f1b067081dd0dfd98211eed2d",
+        "src/compresso_recsys/datasets/_download.py": "c04ac4f456d6355512eda2fcf18c93f57ec0e09c4ef7901830bfa4824d074e58",
+        "src/compresso_recsys/datasets/_grouplens.py": "6ef3bbce32aa774fa41834f607033455074b8c3312d67afa2a779d4adac8b490",
+        "src/compresso_recsys/datasets/_public.py": "36767d1830fa382d509942962df0a5e99d9bb137428eea90e4af3a69613b6af8",
+        "src/compresso_recsys/datasets/amazon2023.py": "22fbdb2f3afc9b7c583fa617ff8a69ee6db467b5c0109b09bcf30388b3acd005",
+        "src/compresso_recsys/datasets/base.py": "06ca01db4bba710cf3618a12eb816779ecf81015817cb1224fdc284555bece36",
+        "src/compresso_recsys/datasets/goodbooks.py": "8540e45a4d017c97a821fef75ef7a7d08a1e74c9cb9cb2226a8c314465a574da",
+        "src/compresso_recsys/datasets/gowalla.py": "5cad52d2273c800f3796533afb588749d5263818e3bbd9f4a109e079151ced28",
+        "src/compresso_recsys/datasets/movielens1m.py": "9f672f566296737c9e1d1d4b06e49ceb7b4907e07463552073665929d6d07423",
+        "src/compresso_recsys/datasets/movielens20m.py": "37e351cee35bfbcd386818893d0d87378d42d6b25903fe5255f99274ede1b50d",
+        "src/compresso_recsys/datasets/multimodal.py": "c0fd01413c6a10d2a6620ca37ed5a65d0c742afcf6c3f39e7f1ba3e68ef79198",
+        "src/compresso_recsys/datasets/netflix.py": "7f832e95bae427d0086aae5dc23437090ace244dce9b42b7d01e3d7a0c5a4710",
+        "src/compresso_recsys/datasets/steam.py": "c6bb6f8d1d26a8c38da6c0cf237e3b257708e325372116e6d9f30286559cc3a3",
+        "src/compresso_recsys/datasets/taste_profile.py": "19c598c278a81cfb3b0dc985c54cbd200105821d87bcaf8a0b740262bfff4af1"
+      },
+      "datasets": [
+        "gowalla"
       ]
     }
   ],
@@ -1691,7 +1726,7 @@
       "dataset": "gowalla",
       "sources": [
         {
-          "path": "/home/vojta/git/sae_adaptors/data/gowalla/loc-gowalla_totalCheckins.txt.gz",
+          "path": "artifacts/gowalla-default-verification/data/gowalla/loc-gowalla_totalCheckins.txt.gz",
           "bytes": 105470044,
           "sha256": "c1c3e19effba649b6c89aeab3c1f9459fad88cfdc2b460fc70fd54e295d83ea0"
         }
@@ -1707,7 +1742,7 @@
             "min_user_support": 10,
             "item_min_support": 10,
             "min_value_to_keep": null,
-            "set_all_values_to": 1.0,
+            "set_all_values_to": 1,
             "eval_draws": 1,
             "eval_holdout_frac": 0.2,
             "split_mode": "user_split",
@@ -1716,7 +1751,7 @@
             "item_val_frac": 0.05,
             "item_test_frac": 0.1,
             "temporal_test_frac": null,
-            "temporal_period_hours": 8136.0,
+            "temporal_period_hours": 720,
             "min_source_items": 1,
             "min_target_items": 1,
             "metadata_text_fields": [],
@@ -1743,11 +1778,11 @@
             "preprocessed_pairs": 1027464,
             "val_target_items": 28823,
             "val_cold_target_items": 0,
-            "val_cold_target_item_fraction": 0.0,
+            "val_cold_target_item_fraction": 0,
             "val_catalog_items": 40756,
             "test_target_items": 28653,
             "test_cold_target_items": 0,
-            "test_cold_target_item_fraction": 0.0,
+            "test_cold_target_item_fraction": 0,
             "test_catalog_items": 40756
           }
         },
@@ -1761,7 +1796,7 @@
             "min_user_support": 10,
             "item_min_support": 10,
             "min_value_to_keep": null,
-            "set_all_values_to": 1.0,
+            "set_all_values_to": 1,
             "eval_draws": 1,
             "eval_holdout_frac": 0.2,
             "split_mode": "item_split",
@@ -1770,7 +1805,7 @@
             "item_val_frac": 0.05,
             "item_test_frac": 0.1,
             "temporal_test_frac": null,
-            "temporal_period_hours": 8136.0,
+            "temporal_period_hours": 720,
             "min_source_items": 1,
             "min_target_items": 1,
             "metadata_text_fields": [],
@@ -1797,11 +1832,11 @@
             "preprocessed_pairs": 1027464,
             "val_target_items": 2050,
             "val_cold_target_items": 2050,
-            "val_cold_target_item_fraction": 1.0,
+            "val_cold_target_item_fraction": 1,
             "val_catalog_items": 40988,
             "test_target_items": 4099,
             "test_cold_target_items": 4099,
-            "test_cold_target_item_fraction": 1.0,
+            "test_cold_target_item_fraction": 1,
             "test_catalog_items": 40988
           }
         },
@@ -1815,7 +1850,7 @@
             "min_user_support": 10,
             "item_min_support": 10,
             "min_value_to_keep": null,
-            "set_all_values_to": 1.0,
+            "set_all_values_to": 1,
             "eval_draws": 1,
             "eval_holdout_frac": 0.2,
             "split_mode": "leave_last_out",
@@ -1824,7 +1859,7 @@
             "item_val_frac": 0.05,
             "item_test_frac": 0.1,
             "temporal_test_frac": null,
-            "temporal_period_hours": 8136.0,
+            "temporal_period_hours": 720,
             "min_source_items": 1,
             "min_target_items": 1,
             "metadata_text_fields": [],
@@ -1851,11 +1886,11 @@
             "preprocessed_pairs": 1540895,
             "val_target_items": 36247,
             "val_cold_target_items": 0,
-            "val_cold_target_item_fraction": 0.0,
+            "val_cold_target_item_fraction": 0,
             "val_catalog_items": 121866,
             "test_target_items": 36292,
             "test_cold_target_items": 0,
-            "test_cold_target_item_fraction": 0.0,
+            "test_cold_target_item_fraction": 0,
             "test_catalog_items": 121866
           }
         },
@@ -1869,7 +1904,7 @@
             "min_user_support": 10,
             "item_min_support": 10,
             "min_value_to_keep": null,
-            "set_all_values_to": 1.0,
+            "set_all_values_to": 1,
             "eval_draws": 1,
             "eval_holdout_frac": 0.2,
             "split_mode": "temporal",
@@ -1878,7 +1913,7 @@
             "item_val_frac": 0.05,
             "item_test_frac": 0.1,
             "temporal_test_frac": null,
-            "temporal_period_hours": 8136.0,
+            "temporal_period_hours": 720,
             "min_source_items": 1,
             "min_target_items": 1,
             "metadata_text_fields": [],
@@ -1888,8 +1923,27 @@
             "annotation_min_count": 100,
             "show_progress": false
           },
-          "status": "failed",
-          "reason": "ValueError: temporal_period_hours requires three target windows shorter than the available 15024.074-hour timestamp span"
+          "status": "measured",
+          "stats": {
+            "users": 16862,
+            "items": 21503,
+            "pairs": 310892,
+            "train_users": 8533,
+            "train_items": 12878,
+            "train_observed_items": 12878,
+            "val_users": 10557,
+            "val_target_pairs": 79114,
+            "test_users": 13091,
+            "test_target_pairs": 100088,
+            "val_target_items": 14713,
+            "val_cold_target_items": 3636,
+            "val_cold_target_item_fraction": 0.2471283898593081,
+            "val_catalog_items": 16781,
+            "test_target_items": 18537,
+            "test_cold_target_items": 7531,
+            "test_cold_target_item_fraction": 0.40626854399309487,
+            "test_catalog_items": 21503
+          }
         },
         "official": {
           "status": "unsupported",
@@ -1901,24 +1955,14 @@
         "splits": [
           "user_split",
           "item_split",
-          "leave_last_out"
+          "leave_last_out",
+          "temporal"
         ],
         "union_items": 121866,
         "image_url_items": null,
         "text_ge10_items": 0
       },
-      "interaction_caches": [
-        {
-          "path": "/home/vojta/git/sae_adaptors/data/gowalla/loc-gowalla_totalCheckins.txt.gz.interactions.parquet",
-          "bytes": 85455386,
-          "sha256": "f935a6772623537ec97c3ede2635ebb7bfefcdb58fa953ce9ea65e86861788e3"
-        },
-        {
-          "path": "/home/vojta/git/sae_adaptors/data/gowalla/loc-gowalla_totalCheckins.txt.gz.interactions.json",
-          "bytes": 66,
-          "sha256": "e2899f56a6d6be014dac7cd1e115c48938ea9c62891535e1d7be819fd731b3c7"
-        }
-      ]
+      "interaction_caches": []
     },
     {
       "dataset": "dbbook",

@@ -1543,8 +1543,8 @@ not the social graph or pre-made LightGCN splits.
 **Terms:** Retain `SNAP's source citation and usage information
 <https://snap.stanford.edu/data/loc-gowalla.html>`_.
 
-**Defaults:** NGCF-style 10/10 support. The **8,136-hour temporal default fails**
-because its windows exceed the data span; :doc:`dataset-sweep` uses 720 hours.
+**Defaults:** NGCF-style 10/10 support; 720-hour (30-day) temporal windows fit
+the available check-in history.
 
 .. list-table:: Installed Gowalla preprocessing and split defaults
    :header-rows: 1
@@ -1584,11 +1584,14 @@ because its windows exceed the data span; :doc:`dataset-sweep` uses 720 hours.
        | Test: 52,985 users
        | 36,292 items / 0.00% cold
      - | 10/10
-       | Build failed
-       | ValueError: temporal_period_hours requires three target
-       | windows shorter than the available 15024.074-hour timestamp
-       | span
-       | Window: 8136 h
+       | 16,862 users
+       | 21,503 items
+       | Train: 8,533 users
+       | Val: 10,557 users
+       | 14,713 items / 24.71% cold
+       | Test: 13,091 users
+       | 18,537 items / 40.63% cold
+       | Window: 720 h
      - | Union: 121,866 items
        | Image URLs: not exposed
        | ≥10 words: 0 (0.00%)

@@ -57,6 +57,21 @@ def test_temporal_period_defaults_to_official_339_day_scale():
     assert args.temporal_period_hours == 339 * 24
 
 
+def test_gowalla_temporal_default_builds_on_its_shorter_timestamp_span():
+    from compresso_recsys.builder import _resolve_args
+
+    frame = pd.DataFrame([
+        {"user_id": f"u{u}", "item_id": f"i{i}", "value": 1., "timestamp": day * 86400}
+        for u in range(12) for day in (0, 550, 580, 610, 626) for i in range(12)
+    ])
+    args, _ = _resolve_args(_build_args(dataset="gowalla", split_mode="temporal"))
+    assert args.temporal_period_hours == 720
+    split = _build_temporal_split(args, frame)
+    assert split["x_train"].nnz > 0
+    for phase in ("train", "val", "test"):
+        assert split[f"{phase}_target_matrix"].nnz > 0
+
+
 def test_temporal_fraction_is_deprecated_in_favor_of_hours():
     with pytest.warns(DeprecationWarning, match="temporal_period_hours"):
         args = _build_args(dataset="amazon2023", temporal_test_frac=0.2)

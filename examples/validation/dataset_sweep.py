@@ -14,9 +14,13 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import sys
+import tempfile
 import time
+import warnings
+import zipfile
 from importlib.metadata import version
 
 import numpy as np
@@ -33,7 +37,6 @@ from compresso_recsys.metrics import CalibratedRecall, HitRate, NDCG, Recall
 from compresso_recsys.models import ItemKNNConfig, ItemKNNRecommender, PopularityBaseline
 
 SPLITS = ("user_split", "item_split", "leave_last_out", "temporal", "official")
-TEMPORAL_PERIOD_DEFAULTS = {"gowalla": 30 * 24}
 
 
 def distribution(values):
@@ -144,36 +147,53 @@ def checkpoint_stats(split, root):
 class PhaseCandidates:
     """Keep predictions in global columns while restricting to this phase's items."""
 
-    def __init__(self, model, item_ids):
-        self.model, self.item_ids = model, item_ids
+    def __init__(self, model, item_ids, *, exclude_seen=True):
+        self.model, self.item_ids, self.exclude_seen = model, item_ids, exclude_seen
 
     def predict_on_batch(self, source, *, k):
-        return self.model.predict_on_batch(source, k=k, candidate_ids=self.item_ids)
+        return self.model.predict_on_batch(source, k=k, candidate_ids=self.item_ids,
+                                           exclude_seen=self.exclude_seen)
 
 
-def evaluate_phase(model, split, phase, *, cutoffs, max_users, seed, batch_size):
+def evaluate_phase(model, split, phase, *, cutoffs, max_users, seed, batch_size, exclude_seen=True):
     ids = split[f"{phase}_item_ids"]
     source = align_columns(split[f"{phase}_source_matrix"], ids, split["item_ids"])
     targets = align_columns(split[f"{phase}_target_matrix"], ids, split["item_ids"])
     users = split[f"{phase}_eval_user_ids"]
     if users is None or len(users) != source.shape[0]:
         raise ValueError("Evaluation row user IDs are required for an auditable sweep")
-    eligible = (np.diff(targets.indptr) > 0) & (len(ids) - np.diff(source.indptr) >= max(cutoffs))
+    candidate_counts = len(ids) - np.diff(source.indptr) if exclude_seen else np.full(len(users), len(ids))
+    eligible = (np.diff(targets.indptr) > 0) & (candidate_counts >= max(cutoffs))
     selected = eligible.copy()
     if max_users is not None:
         unique = np.unique(users[eligible])
         if len(unique) > max_users:
             chosen = np.random.default_rng(seed).choice(unique, max_users, replace=False)
             selected &= np.isin(users, chosen)
-    info = {"total_rows": len(users), "eligible_rows": int(eligible.sum()),
+    repeated = source.multiply(targets).tocsr()
+    selected_repeats = repeated[selected]
+    target_pairs = int(targets[selected].nnz)
+    repeat_pairs = int(selected_repeats.nnz)
+    info = {"exclude_seen": exclude_seen, "target_policy": "all_checkpoint_targets",
+            "total_rows": len(users), "eligible_rows": int(eligible.sum()),
             "evaluated_rows": int(selected.sum()), "evaluated_users": int(len(np.unique(users[selected]))),
             "excluded_rows": int((~eligible).sum()),
-            "exclusion_rule": "no targets or fewer unseen candidates than largest requested cutoff"}
+            "target_pairs": target_pairs, "repeat_target_pairs": repeat_pairs,
+            "repeat_target_fraction": repeat_pairs / target_pairs if target_pairs else None,
+            "rows_with_repeat_targets": int((np.diff(selected_repeats.indptr) > 0).sum()),
+            "unreachable_target_pairs": repeat_pairs if exclude_seen else 0,
+            "exclusion_rule": "no targets or fewer " + ("unseen " if exclude_seen else "")
+                              + "candidates than largest requested cutoff"}
     if not selected.any():
         return {"status": "skipped", "reason": "No eligible rows at requested cutoffs", **info}
+    if exclude_seen and repeat_pairs:
+        info["warning"] = (f"{repeat_pairs}/{target_pairs} scored target pairs already occur in source "
+                           "histories and cannot be recommended with exclude_seen=True. "
+                           "Use --no-exclude-seen for repeat-interaction prediction; targets were not filtered.")
+        warnings.warn(f"{phase}: {info['warning']}", RuntimeWarning, stacklevel=2)
     started = time.perf_counter()
     result = evaluate_recommender(
-        PhaseCandidates(model, ids), source=source[selected], targets=targets[selected],
+        PhaseCandidates(model, ids, exclude_seen=exclude_seen), source=source[selected], targets=targets[selected],
         sample_ids=users[selected], metrics=[Recall(cutoffs), CalibratedRecall(cutoffs),
                                           NDCG(cutoffs), HitRate(cutoffs)],
         batch_size=batch_size, collect_per_user=False,
@@ -189,7 +209,8 @@ def evaluate_baselines(split, args):
     results = {}
     for name in args.baselines:
         if name == "itemknn" and train.shape[1] > args.knn_max_items:
-            results[name] = {"status": "skipped", "reason": "catalog exceeds --knn-max-items"}
+            results[name] = {"status": "skipped", "reason": "catalog exceeds --knn-max-items",
+                             "exclude_seen": args.exclude_seen}
             continue
         started = time.perf_counter()
         try:
@@ -197,20 +218,22 @@ def evaluate_baselines(split, args):
                 ItemKNNConfig(n_neighbors=args.neighbors, n_jobs=args.knn_jobs)))
             model.fit(train, item_ids=split["item_ids"])
             entry = {"status": "ok", "fit_seconds": time.perf_counter() - started,
-                     "config": vars(model.cfg)}
+                     "config": vars(model.cfg), "exclude_seen": args.exclude_seen}
             for phase in ("val", "test"):
                 try:
                     entry[phase] = evaluate_phase(
                         model, split, phase, cutoffs=args.cutoffs, max_users=args.max_eval_users,
-                        seed=args.seed, batch_size=args.batch_size,
+                        seed=args.seed, batch_size=args.batch_size, exclude_seen=args.exclude_seen,
                     )
                 except Exception as error:
-                    entry[phase] = {"status": "failed", "error": f"{type(error).__name__}: {error}"}
+                    entry[phase] = {"status": "failed", "error": f"{type(error).__name__}: {error}",
+                                    "exclude_seen": args.exclude_seen}
                     entry["status"] = "failed"
             results[name] = entry
             del model
         except Exception as error:
-            results[name] = {"status": "failed", "error": f"{type(error).__name__}: {error}"}
+            results[name] = {"status": "failed", "error": f"{type(error).__name__}: {error}",
+                             "exclude_seen": args.exclude_seen}
     return results
 
 
@@ -227,6 +250,76 @@ def digest_file(path):
         for block in iter(lambda: stream.read(1024 * 1024), b""):
             digest.update(block)
     return digest.hexdigest()
+
+
+def fingerprint(value):
+    return hashlib.sha256(json.dumps(value, sort_keys=True).encode()).hexdigest()
+
+
+def evaluation_parameters(args):
+    return {key: getattr(args, key) for key in (
+        "baselines", "cutoffs", "neighbors", "knn_max_items", "knn_jobs",
+        "max_eval_users", "batch_size", "seed", "threads_per_worker", "exclude_seen")}
+
+
+def build_fingerprint(params, provenance):
+    # Evaluation settings and sweep/report code must not invalidate data splits.
+    # Conservative fallback for callers without a package source fingerprint.
+    package = {key: provenance.get(key) for key in ("package", "package_source_sha256")}
+    if package["package_source_sha256"] is None:
+        package.update({key: provenance.get(key) for key in ("commit", "source_diff_sha256")})
+    return fingerprint([params, package])
+
+
+def verify_checkpoint(path, record):
+    if not path.is_file():
+        raise ValueError(f"Missing checkpoint {path}")
+    if not record.get("checkpoint_sha256") or digest_file(path) != record["checkpoint_sha256"]:
+        raise ValueError(f"Checkpoint checksum mismatch or missing recorded hash: {path}")
+
+
+def archive_invalid_run(checkpoint_path, result_path):
+    """Preserve invalid artifacts before recovery; never overwrite a hard-linked ZIP."""
+    if checkpoint_path.exists() and not checkpoint_path.is_file() and not checkpoint_path.is_symlink():
+        raise ValueError(f"Checkpoint path is not a file: {checkpoint_path}")
+    backup = Path(tempfile.mkdtemp(prefix="recovery-", dir=result_path.parent))
+    shutil.copy2(result_path, backup / "result.json")
+    if checkpoint_path.is_file() or checkpoint_path.is_symlink():
+        checkpoint_path.replace(backup / "checkpoint.zip")
+    return backup
+
+
+def reusable_checkpoint(output, slug, mode, build_signature):
+    for result_path in sorted(output.glob(f"{slug}-{mode}-*/result.json")):
+        try:
+            previous = json.loads(result_path.read_text())
+            if previous.get("build_signature") != build_signature or not previous.get("checkpoint_sha256"):
+                continue
+            path = result_path.parent / "checkpoint.zip"
+            verify_checkpoint(path, previous)
+        except (OSError, ValueError) as error:
+            warnings.warn(f"Not reusing {result_path}: {error}", RuntimeWarning, stacklevel=2)
+            continue
+        return path, previous
+    return None
+
+
+def reuse_checkpoint(source, destination):
+    """Keep independent run paths without duplicating large archives when possible."""
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        os.link(source, destination)
+    except FileExistsError:
+        raise
+    except OSError:
+        # Filesystems without hard links still get an atomic copy.
+        with tempfile.NamedTemporaryFile(dir=destination.parent, suffix=".part", delete=False) as stream:
+            temporary = Path(stream.name)
+        try:
+            shutil.copyfile(source, temporary)
+            os.replace(temporary, destination)
+        finally:
+            temporary.unlink(missing_ok=True)
 
 
 def code_version():
@@ -248,7 +341,12 @@ def code_version():
                                        cwd=repo, stderr=subprocess.DEVNULL)
     except (OSError, subprocess.CalledProcessError, ValueError):
         commit, diff = None, b""
+    source_digest = hashlib.sha256()
+    for path in sorted(source.parent.rglob("*.py")) if source.is_file() else []:
+        source_digest.update(str(path.relative_to(source.parent)).encode())
+        source_digest.update(path.read_bytes())
     return {"package": version("compresso-recsys"), "commit": commit,
+            "package_source_sha256": source_digest.hexdigest() if source.is_file() else None,
             "source_diff_sha256": hashlib.sha256(diff).hexdigest(),
             "script_sha256": digest_file(Path(__file__))}
 
@@ -277,7 +375,7 @@ def build_parameters(args, dataset, mode, overrides, category=None):
     """Resolve sweep defaults first, then preserve explicit builder overrides."""
     period = args.temporal_period_hours
     if period is None:
-        period = TEMPORAL_PERIOD_DEFAULTS.get(dataset, builder.DEFAULT_TEMPORAL_PERIOD_HOURS)
+        period = builder.DATASETS[dataset].temporal_period_hours
     params = dict(dataset=dataset, data_dir=str(args.data_dir.resolve()), seed=args.seed,
                   split_mode=mode, eval_draws=1, min_entity_text_words=0,
                   annotation_source="none", show_progress=False, temporal_period_hours=period)
@@ -353,20 +451,29 @@ def write_summary(output, records, *, write_records=True):
                          f"{pct(stage['cold_target_fraction'])} |")
     lines.extend(["", "## Baselines", "", "Fixed training split; no tuning or refitting. "
                   "Cold items have zero collaborative signal; ties are not a cold-start capability.", "",
-                  "| Dataset | Split | Model | Phase | Status | Evaluated users | Evaluated rows | Metrics / reason |",
-                  "|---|---|---|---|---|---:|---:|---|"])
+                  "Exclude seen is an evaluation setting; results with different settings are not directly comparable. "
+                  "Repeat targets count scored user/item pairs already in that user's source history. "
+                  "Legacy records without an explicit flag are marked unknown, not inferred.", "",
+                  "| Dataset | Split | Model | Phase | Exclude seen | Status | Evaluated users | Evaluated rows | Repeat targets | Unreachable targets | Metrics / reason |",
+                  "|---|---|---|---|---|---|---:|---:|---:|---:|---|"])
     for record in records:
         for name, baseline in record.get("baselines", {}).items():
             for phase in ("val", "test"):
                 entry = baseline.get(phase, baseline)
+                exclude_seen = entry.get("exclude_seen", baseline.get("exclude_seen",
+                    record.get("evaluation_parameters", {}).get("exclude_seen")))
+                policy = str(exclude_seen).lower() if isinstance(exclude_seen, bool) else "unknown (legacy)"
                 detail = entry.get("error", entry.get("reason", ""))
                 if "metrics" in entry:
                     detail = ", ".join(f"{key}={value:.5f}" for key, value in entry["metrics"].items()
                                        if "@" in key)
+                if entry.get("warning"):
+                    detail += "; WARNING: " + entry["warning"]
                 detail = str(detail).replace("|", "/").replace("\n", " ")
                 lines.append(f"| {dataset_label(record)} | {record['split']} | {name} | {phase} | "
-                             f"{entry['status']} | {entry.get('evaluated_users', '—')} | "
-                             f"{entry.get('evaluated_rows', '—')} | {detail} |")
+                             f"{policy} | {entry['status']} | {entry.get('evaluated_users', '—')} | "
+                             f"{entry.get('evaluated_rows', '—')} | {entry.get('repeat_target_pairs', '—')} | "
+                             f"{entry.get('unreachable_target_pairs', '—')} | {detail} |")
     temporary = output / "summary.md.tmp"
     temporary.write_text("\n".join(lines) + "\n")
     os.replace(temporary, output / "summary.md")
@@ -384,6 +491,12 @@ def parse_args(argv=None):
     parser.add_argument("--datasets", nargs="+", choices=sorted(builder.DATASETS), default=sorted(builder.DATASETS))
     parser.add_argument("--splits", nargs="+", choices=SPLITS, default=list(SPLITS))
     parser.add_argument("--baselines", nargs="*", choices=["popularity", "itemknn"], default=["popularity"])
+    parser.add_argument("--exclude-seen", action=argparse.BooleanOptionalAction, default=True,
+                        help="Exclude source-history items from recommendations (default: true); "
+                             "--no-exclude-seen allows repeat predictions without changing targets")
+    parser.add_argument("--checkpoint", type=Path,
+                        help="Evaluate one existing checkpoint without downloading or building; "
+                             "dataset and split are read from its manifest")
     parser.add_argument("--workers", type=int, default=1,
                         help="Parallel dataset/category processes; splits stay sequential")
     parser.add_argument("--threads-per-worker", type=int, default=4, help="Numerical-library threads per process")
@@ -406,6 +519,8 @@ def parse_args(argv=None):
     parser.add_argument("--report-only", action="store_true",
                         help="Regenerate summary.md from --output/results.jsonl without running any jobs")
     args = parser.parse_args(argv)
+    if args.checkpoint is not None and (args.builder_overrides is not None or args.report_only):
+        parser.error("--checkpoint cannot be combined with --builder-overrides or --report-only")
     if any(k < 1 for k in args.cutoffs) or min(args.neighbors, args.knn_max_items, args.batch_size,
                                              args.workers, args.threads_per_worker) < 1:
         parser.error("Cutoffs, neighbors, item limit and batch size must be positive")
@@ -436,26 +551,28 @@ def run_dataset(args, dataset, overrides, provenance, category=None):
     torch.set_num_threads(args.threads_per_worker)
     pa.set_cpu_count(args.threads_per_worker)
     pa.set_io_thread_count(args.threads_per_worker)
-    evaluation = {key: getattr(args, key) for key in (
-        "baselines", "cutoffs", "neighbors", "knn_max_items", "knn_jobs",
-        "max_eval_users", "batch_size", "seed", "threads_per_worker")}
+    evaluation = evaluation_parameters(args)
     records = []
     loaded_stats, raw, ds = None, None, None
     for mode in args.splits:
         params = build_parameters(args, dataset, mode, overrides, category)
-        signature = hashlib.sha256(json.dumps([params, evaluation, provenance], sort_keys=True).encode()).hexdigest()
+        signature = fingerprint([params, evaluation, provenance])
+        build_signature = build_fingerprint(params, provenance)
         slug = f"{dataset}-{category}" if category else dataset
         folder = args.output / f"{slug}-{mode}-{signature[:12]}"
         result_path, checkpoint_path = folder / "result.json", folder / "checkpoint.zip"
-        record = {"dataset": dataset, "amazon_category": category, "split": mode, "signature": signature,
+        fresh_record = {"dataset": dataset, "amazon_category": category, "split": mode, "signature": signature,
+                  "build_signature": build_signature,
                   "build_parameters": params, "evaluation_parameters": evaluation,
                   "provenance": provenance, "status": "pending"}
+        record = fresh_record.copy()
         label = dataset_label(record)
-        if result_path.exists():
+        resuming = result_path.exists()
+        if resuming:
             previous = json.loads(result_path.read_text())
             if not args.resume or previous.get("signature") != signature:
                 raise FileExistsError(f"Existing run {folder}; use --resume or a new output directory")
-            if previous["status"] in ("complete", "unsupported"):
+            if previous["status"] == "unsupported":
                 records.append(previous)
                 print(f"Reused {label}/{mode}", flush=True)
                 continue
@@ -466,41 +583,67 @@ def run_dataset(args, dataset, overrides, provenance, category=None):
             record.update(status="unsupported", reason=reason)
         else:
             started = time.perf_counter()
-            print(f"Running {label}/{mode}", flush=True)
             try:
-                if raw is None:
+                if resuming and (checkpoint_path.exists() or record.get("checkpoint_sha256")
+                                 or record["status"] == "complete"):
+                    try:
+                        verify_checkpoint(checkpoint_path, record)
+                    except ValueError as error:
+                        backup = archive_invalid_run(checkpoint_path, result_path)
+                        recovery = {"reason": str(error), "backup_directory": str(backup.resolve()),
+                                    "previous_checkpoint_sha256": record.get("checkpoint_sha256")}
+                        record = {**fresh_record,
+                                  "recovery_attempts": [*record.get("recovery_attempts", []), recovery]}
+                        atomic_json(result_path, record)
+                        print(f"  Recovering {label}/{mode}: {error}; previous artifacts saved in {backup}",
+                              flush=True)
+                    else:
+                        if record["status"] == "complete":
+                            records.append(record)
+                            print(f"Reused {label}/{mode} (checkpoint hash verified)", flush=True)
+                            continue
+                print(f"Running {label}/{mode}", flush=True)
+                if not checkpoint_path.exists() and not record.get("checkpoint_sha256"):
+                    cached = reusable_checkpoint(args.output, slug, mode, build_signature)
+                    if cached is not None:
+                        source, original = cached
+                        for key in ("loaded_data", "pre_split_data", "resolved_build_parameters",
+                                    "checkpoint_sha256", "build_seconds"):
+                            if key in original:
+                                record[key] = original[key]
+                        record["checkpoint_reused_from"] = str(source.resolve())
+                        atomic_json(result_path, record)
+                        reuse_checkpoint(source, checkpoint_path)
+                        print(f"  Reused verified checkpoint from {source}", flush=True)
+                if checkpoint_path.exists() or record.get("checkpoint_sha256"):
+                    verify_checkpoint(checkpoint_path, record)
+                else:
                     resolved, spec = builder._resolve_args(builder._build_args(**params))
                     ds = builder._make_dataset(resolved, spec)
                     raw = ds.get_interactions()
                     if loaded_stats is None:
                         loaded_stats = frame_stats(raw)
-                record["loaded_data"] = loaded_stats
-                resolved, _ = builder._resolve_args(builder._build_args(**params))
-                record["resolved_build_parameters"] = vars(resolved)
-                rating_filter = f"rating>={resolved.min_value_to_keep}" if resolved.min_value_to_keep is not None else "no rating threshold"
-                print(f"  Settings {label}/{mode}: {rating_filter}, "
-                      f"user/item support={resolved.min_user_support}/{resolved.item_min_support}, "
-                      f"min text words={resolved.min_entity_text_words}"
-                      + (f", val/test users={resolved.val_users}/{resolved.test_users}" if mode == "user_split" else "")
-                      + (f", window={resolved.temporal_period_hours:g}h" if mode == "temporal" else ""), flush=True)
-                pre = raw[raw.source_split == "train"] if mode == "official" else raw
-                if isinstance(ds, PublicDataset) and mode in ("user_split", "item_split"):
-                    pre = pre.drop_duplicates(["user_id", "item_id"])
-                pre = ds.preprocess_interactions_for_recsys(
-                    pre, min_value_to_keep=resolved.min_value_to_keep,
-                    user_min_support=1 if mode == "temporal" else resolved.min_user_support,
-                    item_min_support=1 if mode == "temporal" else resolved.item_min_support,
-                    set_all_values_to=resolved.set_all_values_to,
-                )
-                record["pre_split_data"] = frame_stats(pre)
-                del pre
-                # The builder reloads cached input. Do not retain a second
-                # full source dataset alongside building/fitting matrices.
-                raw, ds = None, None
-                if checkpoint_path.exists():
-                    if record.get("checkpoint_sha256") != digest_file(checkpoint_path):
-                        raise ValueError("Unverified existing checkpoint; use a new output directory")
-                else:
+                    record["loaded_data"] = loaded_stats
+                    record["resolved_build_parameters"] = vars(resolved)
+                    rating_filter = f"rating>={resolved.min_value_to_keep}" if resolved.min_value_to_keep is not None else "no rating threshold"
+                    print(f"  Settings {label}/{mode}: {rating_filter}, "
+                          f"user/item support={resolved.min_user_support}/{resolved.item_min_support}, "
+                          f"min text words={resolved.min_entity_text_words}"
+                          + (f", val/test users={resolved.val_users}/{resolved.test_users}" if mode == "user_split" else "")
+                          + (f", window={resolved.temporal_period_hours:g}h" if mode == "temporal" else ""), flush=True)
+                    pre = raw[raw.source_split == "train"] if mode == "official" else raw
+                    if isinstance(ds, PublicDataset) and mode in ("user_split", "item_split"):
+                        pre = pre.drop_duplicates(["user_id", "item_id"])
+                    pre = ds.preprocess_interactions_for_recsys(
+                        pre, min_value_to_keep=resolved.min_value_to_keep,
+                        user_min_support=1 if mode == "temporal" else resolved.min_user_support,
+                        item_min_support=1 if mode == "temporal" else resolved.item_min_support,
+                        set_all_values_to=resolved.set_all_values_to,
+                    )
+                    record["pre_split_data"] = frame_stats(pre)
+                    del pre
+                    # The builder reloads cached input; release the first copy.
+                    raw, ds = None, None
                     atomic_json(result_path, record)
                     built = time.perf_counter()
                     cr.build_recsys_checkpoint(**params, checkpoint_path=str(checkpoint_path))
@@ -526,6 +669,61 @@ def run_dataset(args, dataset, overrides, provenance, category=None):
     return records
 
 
+def evaluate_checkpoint_file(args, provenance):
+    """Explicitly evaluate an older checkpoint without claiming a current-code build."""
+    checkpoint = args.checkpoint.resolve()
+    digest = digest_file(checkpoint)
+    with zipfile.ZipFile(checkpoint) as archive:
+        manifest = json.loads(archive.read("manifest.json"))
+    data = manifest.get("stages", {}).get("data", {})
+    dataset, mode, category = data.get("dataset"), data.get("split_mode"), data.get("amazon_category")
+    if dataset not in builder.DATASETS or mode not in SPLITS:
+        raise ValueError("Checkpoint manifest must identify a supported dataset and split_mode")
+    if dataset not in args.datasets or mode not in args.splits:
+        raise ValueError("Checkpoint dataset/split does not match --datasets/--splits selection")
+    if dataset == "amazon2023":
+        if not isinstance(category, str) or not re.fullmatch(r"[A-Za-z0-9_]+", category):
+            raise ValueError("Amazon checkpoint must identify its category")
+    else:
+        category = None
+    evaluation = evaluation_parameters(args)
+    signature = fingerprint(["existing-checkpoint", digest, evaluation, provenance])
+    slug = f"{dataset}-{category}" if category else dataset
+    result_path = args.output / f"checkpoint-{slug}-{mode}-{signature[:12]}" / "result.json"
+    record = {"dataset": dataset, "split": mode, "amazon_category": category,
+              "signature": signature, "checkpoint_path": str(checkpoint), "checkpoint_sha256": digest,
+              "checkpoint_bytes": checkpoint.stat().st_size, "manifest": manifest,
+              "evaluation_parameters": evaluation, "provenance": provenance,
+              "mode": "existing_checkpoint", "status": "pending"}
+    if result_path.exists():
+        previous = json.loads(result_path.read_text())
+        if not args.resume or previous.get("signature") != signature:
+            raise FileExistsError(f"Existing evaluation {result_path}; use --resume or a new output directory")
+        if previous["status"] == "complete":
+            # The input hash was checked before selecting the run directory.
+            write_summary(args.output, [previous])
+            return 0
+    atomic_json(result_path, record)
+    started = time.perf_counter()
+    torch.set_num_threads(args.threads_per_worker)
+    pa.set_cpu_count(args.threads_per_worker)
+    pa.set_io_thread_count(args.threads_per_worker)
+    try:
+        with cr.read_checkpoint(checkpoint) as root:
+            split = cr.load_recsys_split(root)
+            record["stats"] = checkpoint_stats(split, root)
+            record["baselines"] = evaluate_baselines(split, args)
+        record["status"] = ("failed" if any(v["status"] == "failed" for v in record["baselines"].values())
+                            else "complete")
+    except Exception as error:
+        record.update(status="failed", error=f"{type(error).__name__}: {error}")
+    record["seconds_this_attempt"] = time.perf_counter() - started
+    atomic_json(result_path, record)
+    write_summary(args.output, [record])
+    print(args.output / "summary.md")
+    return int(record["status"] == "failed")
+
+
 def main(argv=None):
     args = parse_args(argv)
     if args.report_only:
@@ -549,6 +747,8 @@ def main(argv=None):
     for name in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
                  "VECLIB_MAXIMUM_THREADS", "NUMEXPR_NUM_THREADS", "BLIS_NUM_THREADS"):
         os.environ[name] = str(args.threads_per_worker)
+    if args.checkpoint is not None:
+        return evaluate_checkpoint_file(args, provenance)
     jobs = dataset_jobs(args)
     job_order = {job: index for index, job in enumerate(jobs)}
     workers = min(args.workers, len(jobs))

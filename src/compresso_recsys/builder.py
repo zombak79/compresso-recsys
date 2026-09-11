@@ -46,6 +46,7 @@ class DatasetSpec:
     min_value_to_keep: float | None = 4.0
     set_all_values_to: float = 1.0
     min_entity_text_words: int = 30
+    temporal_period_hours: float = DEFAULT_TEMPORAL_PERIOD_HOURS
 
 
 DATASETS = {
@@ -65,7 +66,8 @@ DATASETS = {
                                  item_min_support=200, min_value_to_keep=None, min_entity_text_words=0),
     "gowalla": DatasetSpec(Gowalla, "artifacts/gowalla/recsys_checkpoint.zip", seed=42,
                            val_users=10000, test_users=10000, min_user_support=10,
-                           item_min_support=10, min_value_to_keep=None, min_entity_text_words=0),
+                           item_min_support=10, min_value_to_keep=None, min_entity_text_words=0,
+                           temporal_period_hours=720),
     "goodbooks": DatasetSpec(Goodbooks, "artifacts/goodbooks/recsys_checkpoint.zip", seed=0, val_users=1000, test_users=2500),
     "ml1m": DatasetSpec(MovieLens1M, "artifacts/ml1m/recsys_checkpoint.zip", seed=42, val_users=500, test_users=1000),
     "ml20m": DatasetSpec(MovieLens20M, "artifacts/ml20m/recsys_checkpoint.zip", seed=42, val_users=2500, test_users=5000),
@@ -84,6 +86,13 @@ DATASETS = {
         min_entity_text_words=0,
     ),
 }
+
+
+def _temporal_period_hours(dataset: str, value: float | None) -> float:
+    value = DATASETS[dataset].temporal_period_hours if value is None else value
+    if isinstance(value, bool) or not np.isfinite(value) or value <= 0:
+        raise ValueError("temporal_period_hours must be finite and > 0")
+    return float(value)
 
 
 def _metadata_text_fields_arg(value: str | list[str] | tuple[str, ...] | None) -> str | None:
@@ -165,8 +174,9 @@ def parse_args():
     p.add_argument(
         "--temporal_period_hours",
         type=float,
-        default=DEFAULT_TEMPORAL_PERIOD_HOURS,
-        help="Width in hours of each train/validation/test temporal target window.",
+        default=None,
+        help="Width in hours of each train/validation/test temporal target window "
+             "(default: 720 for Gowalla, 8136 otherwise).",
     )
     p.add_argument("--min_source_items", type=int, default=1)
     p.add_argument("--min_target_items", type=int, default=1)
@@ -230,7 +240,7 @@ def _build_args(
     item_val_frac: float = 0.05,
     item_test_frac: float = 0.10,
     temporal_test_frac: float | None = None,
-    temporal_period_hours: float = DEFAULT_TEMPORAL_PERIOD_HOURS,
+    temporal_period_hours: float | None = None,
     min_source_items: int = 1,
     min_target_items: int = 1,
     amazon_category: str = "Toys_and_Games",
@@ -256,12 +266,7 @@ def _build_args(
         raise ValueError(f"Unsupported split_mode: {split_mode!r}")
     if annotation_source not in {"genres", "ml20m_tags", "goodbooks_tags", "none"}:
         raise ValueError(f"Unsupported annotation_source: {annotation_source!r}")
-    if (
-        isinstance(temporal_period_hours, bool)
-        or not np.isfinite(temporal_period_hours)
-        or temporal_period_hours <= 0
-    ):
-        raise ValueError("temporal_period_hours must be finite and > 0")
+    temporal_period_hours = _temporal_period_hours(dataset, temporal_period_hours)
     if temporal_test_frac is not None:
         warnings.warn(
             "temporal_test_frac is deprecated and ignored; use "
@@ -304,6 +309,7 @@ def _build_args(
 
 def _resolve_args(args):
     spec = DATASETS[args.dataset]
+    args.temporal_period_hours = _temporal_period_hours(args.dataset, args.temporal_period_hours)
     if args.split_mode == "official" and args.dataset != "dbbook":
         raise ValueError("official split is supported only for dbbook")
     if getattr(args, "multimodal_features", None) is not None:
@@ -1586,7 +1592,7 @@ def build_recsys_checkpoint(
     item_val_frac: float = 0.05,
     item_test_frac: float = 0.10,
     temporal_test_frac: float | None = None,
-    temporal_period_hours: float = DEFAULT_TEMPORAL_PERIOD_HOURS,
+    temporal_period_hours: float | None = None,
     min_source_items: int = 1,
     min_target_items: int = 1,
     amazon_category: str = "Toys_and_Games",
@@ -1598,7 +1604,11 @@ def build_recsys_checkpoint(
     show_progress: bool = True,
     multimodal_features: str | list[str] | None = None,
 ) -> Path:
-    """Build a recommender-system split checkpoint and return its path."""
+    """Build a recommender-system split checkpoint and return its path.
+
+    ``temporal_period_hours=None`` uses 720 hours for Gowalla and 8136 for
+    other datasets. An explicit positive period overrides that default.
+    """
     args = _build_args(
         multimodal_features=multimodal_features,
         dataset=dataset,
