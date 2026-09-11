@@ -231,7 +231,8 @@ Full ``compresso-recsys-build-checkpoint`` parameter table:
      - required
      - Dataset to build. Choices: ``goodbooks``, ``ml1m``, ``ml20m``,
        ``amazon2023``, ``steam``, ``netflix``, ``taste-profile``, ``gowalla``,
-       ``dbbook``, ``lfm2k``.
+       ``dbbook``, ``lfm2k``, ``retailrocket``, ``music4all-onion``, ``otto``,
+       ``yambda``.
    * - ``--data_dir``
      - ``data``
      - Directory where raw/downloaded dataset files are stored.
@@ -289,8 +290,14 @@ Full ``compresso-recsys-build-checkpoint`` parameter table:
      - ``0.10``
      - Fraction of items held out as cold test items for ``item_split``.
    * - ``--temporal_period_hours``
-     - ``8136``
-     - Width of each temporal target window in hours. ``8136`` is 339 days.
+     - dataset-specific
+     - Width of each temporal target window in hours. Defaults to the value the
+       dataset is registered with. The split needs three windows to fit inside
+       the log, so a value above a third of the available span fails rather
+       than silently truncating, and the shorter logs are registered
+       accordingly: ``336`` for Retailrocket (4.5 months), ``48`` for OTTO
+       (4 weeks), ``720`` for Yambda, Music4All-Onion and Gowalla. Everything
+       else uses ``8136`` (339 days).
    * - ``--min_source_items``
      - ``1``
      - Minimum number of source/profile items an eval user must have. For
@@ -303,6 +310,12 @@ Full ``compresso-recsys-build-checkpoint`` parameter table:
      - ``Toys_and_Games``
      - Amazon Reviews 2023 category. Supports official names and aliases like
        ``toys``, ``electronics``, ``clothing``.
+   * - ``--dataset_option``
+     - none
+     - Adapter-specific option as ``KEY=VALUE``, repeatable. Values are parsed
+       using the adapter's annotations, so ``session_sample=0.1`` arrives as a
+       float and ``events=clicks,orders`` as a tuple. An unknown name lists the
+       options the chosen dataset accepts. See :ref:`dataset-options`.
    * - ``--metadata_text_fields``
      - dataset-specific
      - Metadata columns joined into canonical ``entity_text``. Steam uses

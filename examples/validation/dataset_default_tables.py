@@ -33,7 +33,9 @@ from dataset_sweep import unsupported
 NAMES = {
     "ml1m": "MovieLens 1M", "ml20m": "MovieLens 20M", "goodbooks": "Goodbooks-10k",
     "steam": "Steam", "netflix": "Netflix Prize", "taste-profile": "MSD Taste Profile",
-    "gowalla": "Gowalla", "dbbook": "DBbook", "lfm2k": "Last.fm-2K",
+    "gowalla": "Gowalla", "retailrocket": "Retailrocket",
+    "music4all-onion": "Music4All-Onion", "otto": "OTTO", "yambda": "Yambda",
+    "dbbook": "DBbook", "lfm2k": "Last.fm-2K",
 }
 SPLITS = ("user_split", "item_split", "leave_last_out", "temporal", "official")
 HEADERS = dict(zip(SPLITS, ("User split", "Item split", "Leave-last-out", "Temporal", "Official")))
@@ -48,6 +50,13 @@ SOURCES = {
     "netflix": ("netflix/nf_prize_dataset.tar.gz",),
     "taste-profile": ("taste-profile/train_triplets.txt.zip",),
     "gowalla": ("gowalla/loc-gowalla_totalCheckins.txt.gz",),
+    # Kaggle exports, placed by hand; the adapter reads only these members.
+    "retailrocket": ("retailrocket/events.csv",),
+    "otto": ("otto/train.jsonl",),
+    "music4all-onion": ("music4all-onion/userid_trackid_timestamp.tsv.bz2",),
+    # The default variant. A different one is a different file and a different
+    # measurement, so it would need its own entry rather than replacing this.
+    "yambda": ("yambda/listens-50m.parquet",),
     "dbbook": ("dbbook/dbbook_interaction_data.zip",),
     "lfm2k": ("lfm2k/lfm2k_interaction_data.zip",),
 }
@@ -70,6 +79,11 @@ def parameters(dataset, mode):
     values = {key: value for key, value in vars(args).items()
               if key not in {"data_dir", "checkpoint_path", "amazon_category"}}
     values["metadata_text_fields"] = list(spec.cls.default_text_fields)
+    # Measurements record the installed defaults, which set no adapter options.
+    # Omitting the empty mapping keeps archives comparable across the release
+    # that introduced them, while a measured run that does set one still says so.
+    if not values.get("dataset_options"):
+        values.pop("dataset_options", None)
     return args, values
 
 

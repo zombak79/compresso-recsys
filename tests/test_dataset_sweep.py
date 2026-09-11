@@ -254,9 +254,16 @@ def test_amazon_category_job_selection(sweep):
 
 def test_sweep_dataset_temporal_defaults_and_override_precedence(sweep):
     args = sweep.parse_args([])
-    assert sweep.build_parameters(args, "gowalla", "temporal", {})["temporal_period_hours"] == 720
-    assert sweep.build_parameters(args, "ml1m", "temporal", {})["temporal_period_hours"] == 8136
-    assert sweep.build_parameters(args, "amazon2023", "temporal", {}, "Toys_and_Games")["temporal_period_hours"] == 8136
+
+    def resolved(dataset, category=None, overrides={}):
+        params = sweep.build_parameters(args, dataset, "temporal", overrides, category)
+        return sweep.builder._resolve_args(sweep.builder._build_args(**params))[0]
+
+    # Unset means "ask the dataset", so the sweep no longer carries its own
+    # per-dataset table; the window comes from DatasetSpec.
+    assert resolved("gowalla").temporal_period_hours == 720
+    assert resolved("ml1m").temporal_period_hours == 8136
+    assert resolved("amazon2023", "Toys_and_Games").temporal_period_hours == 8136
     explicit = sweep.parse_args(["--temporal-period-hours", "200"])
     assert sweep.build_parameters(explicit, "gowalla", "temporal", {})["temporal_period_hours"] == 200
     assert sweep.build_parameters(explicit, "gowalla", "temporal", {

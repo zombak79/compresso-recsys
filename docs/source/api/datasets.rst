@@ -45,6 +45,22 @@ are listed in :ref:`cite-datasets`.
    :members:
    :no-index:
 
+.. autoclass:: compresso_recsys.datasets.RetailRocket
+   :members:
+   :no-index:
+
+.. autoclass:: compresso_recsys.datasets.Music4AllOnion
+   :members:
+   :no-index:
+
+.. autoclass:: compresso_recsys.datasets.OTTO
+   :members:
+   :no-index:
+
+.. autoclass:: compresso_recsys.datasets.Yambda
+   :members:
+   :no-index:
+
 .. autoclass:: compresso_recsys.datasets.DBbook
    :members:
 

@@ -33,9 +33,6 @@ from compresso_recsys.metrics import CalibratedRecall, HitRate, NDCG, Recall
 from compresso_recsys.models import ItemKNNConfig, ItemKNNRecommender, PopularityBaseline
 
 SPLITS = ("user_split", "item_split", "leave_last_out", "temporal", "official")
-TEMPORAL_PERIOD_DEFAULTS = {"gowalla": 30 * 24}
-
-
 def distribution(values):
     values = np.asarray(values)
     if not values.size:
@@ -276,8 +273,6 @@ def dataset_jobs(args):
 def build_parameters(args, dataset, mode, overrides, category=None):
     """Resolve sweep defaults first, then preserve explicit builder overrides."""
     period = args.temporal_period_hours
-    if period is None:
-        period = TEMPORAL_PERIOD_DEFAULTS.get(dataset, builder.DEFAULT_TEMPORAL_PERIOD_HOURS)
     params = dict(dataset=dataset, data_dir=str(args.data_dir.resolve()), seed=args.seed,
                   split_mode=mode, eval_draws=1, min_entity_text_words=0,
                   annotation_source="none", show_progress=False, temporal_period_hours=period)

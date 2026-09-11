@@ -112,10 +112,11 @@ class RecSysDataset:
     ) -> pd.DataFrame:
         if "item_id" not in metadata.columns:
             raise ValueError("metadata must contain item_id")
-        valid_items = set(metadata["item_id"].astype(str))
-        out = interactions.copy()
+        valid_items = pd.Index(metadata["item_id"].astype(str).unique())
+        keep = interactions["item_id"].astype(str).isin(valid_items)
+        out = interactions[keep].reset_index(drop=True)
         out["item_id"] = out["item_id"].astype(str)
-        return out[out["item_id"].isin(valid_items)].reset_index(drop=True)
+        return out
 
     def split_users_strong_generalization(
         self,

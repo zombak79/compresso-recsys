@@ -1,9 +1,13 @@
 from __future__ import annotations
 
 import argparse
+import collections.abc
+import inspect
 import random
+import types
+import typing
 import warnings
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -18,6 +22,7 @@ from compresso_recsys.checkpoint import (
 )
 from compresso_recsys.datasets import AmazonReviews2023, Goodbooks, MovieLens1M, MovieLens20M
 from compresso_recsys.datasets import Steam, NetflixPrize, TasteProfile, Gowalla
+from compresso_recsys.datasets import RetailRocket, Music4AllOnion, OTTO, Yambda
 from compresso_recsys.datasets import DBbook, LastFM2K
 from compresso_recsys.datasets._public import PublicDataset
 from compresso_recsys.sequences import ItemSequences
@@ -46,6 +51,19 @@ class DatasetSpec:
     min_value_to_keep: float | None = 4.0
     set_all_values_to: float = 1.0
     min_entity_text_words: int = 30
+    #: Adapter options this dataset is registered with, e.g. a sample fraction
+    #: for a source too large to hold whole. Anything the caller passes wins, so
+    #: a default here narrows what a bare build reads without taking the choice
+    #: away. OTTO and Music4All-Onion set one because their full logs do not fit
+    #: in memory as a DataFrame, so a bare build of either would fail rather
+    #: than produce the numbers the measured tables document.
+    dataset_options: dict[str, Any] = field(default_factory=dict)
+    #: Width of each temporal target window. The split needs three of them to
+    #: fit inside the log, so a dataset whose history is shorter than three
+    #: times this cannot build a temporal split at all. Defaulting to the
+    #: global value keeps every already-measured dataset exactly where it was;
+    #: override it per dataset once the span is known.
+    temporal_period_hours: float = DEFAULT_TEMPORAL_PERIOD_HOURS
 
 
 DATASETS = {
@@ -63,9 +81,57 @@ DATASETS = {
     "taste-profile": DatasetSpec(TasteProfile, "artifacts/taste-profile/recsys_checkpoint.zip", seed=98765,
                                  val_users=50000, test_users=50000, min_user_support=20,
                                  item_min_support=200, min_value_to_keep=None, min_entity_text_words=0),
+    # A 626-day span cannot hold three 339-day windows either. The sweep script
+    # carried this as its own constant before the spec could express it.
     "gowalla": DatasetSpec(Gowalla, "artifacts/gowalla/recsys_checkpoint.zip", seed=42,
                            val_users=10000, test_users=10000, min_user_support=10,
-                           item_min_support=10, min_value_to_keep=None, min_entity_text_words=0),
+                           item_min_support=10, min_value_to_keep=None, min_entity_text_words=0,
+                           temporal_period_hours=30 * 24),
+    # 4.5 months of history, so the 339-day global window cannot fit three
+    # target periods and the temporal split fails outright. Fourteen days
+    # spends 42 of those days on evaluation and leaves roughly 95 for training.
+    "retailrocket": DatasetSpec(RetailRocket, "artifacts/retailrocket/recsys_checkpoint.zip", seed=42,
+                                val_users=2500, test_users=5000, min_user_support=5,
+                                item_min_support=5, min_value_to_keep=None, min_entity_text_words=0,
+                                temporal_period_hours=14 * 24),
+    # A quarter of a billion listens does not fit in memory, and the cost is not
+    # the interactions frame -- at 43 bytes a row that is under two gigabytes --
+    # but the split payload built from it, which holds a Python list entry per
+    # event. One calendar year is 33.7M events. Window by time rather than by
+    # sampling rows: dropping random events destroys the adjacency any
+    # sequential claim rests on. Three 339-day windows do not fit in one year,
+    # so temporal uses 30 days, leaving nine months of training history.
+    "music4all-onion": DatasetSpec(Music4AllOnion, "artifacts/music4all-onion/recsys_checkpoint.zip",
+                                   seed=42, val_users=2500, test_users=5000, min_user_support=5,
+                                   item_min_support=5, min_value_to_keep=None, min_entity_text_words=0,
+                                   dataset_options={"start": "2014-01-01", "end": "2015-01-01"},
+                                   temporal_period_hours=30 * 24),
+    # 194M clicks does not fit either. A tenth of the sessions is 19.5M events,
+    # the largest of these three defaults -- kept because that cache already
+    # exists and rebuilding it means re-parsing 11 GB of JSON. Lower it to 0.05
+    # if the split payload proves too large. Sample whole sessions, never rows:
+    # a session cut in half is not a shorter session, it is a different one.
+    # Measured at this sample: 543,448 users over 360,552 items, so the 10,000
+    # hold-outs are comfortable. The log is only 672 hours long, so temporal
+    # uses two days -- six days of evaluation against twenty-two of history.
+    "otto": DatasetSpec(OTTO, "artifacts/otto/recsys_checkpoint.zip", seed=42,
+                        val_users=10000, test_users=10000, min_user_support=5,
+                        item_min_support=5, min_value_to_keep=None, min_entity_text_words=0,
+                        dataset_options={"session_sample": 0.1},
+                        temporal_period_hours=2 * 24),
+    # The smallest variant is still 46.5M listens, and the release ships no
+    # smaller one, so a fifth of the users -- 9.3M events -- is the default.
+    # Sample users rather than rows for the same reason OTTO samples sessions.
+    # Few users, very long histories: this sample measures 1,800 users over
+    # 149,971 items, which is why the hold-outs are hundreds rather than the
+    # thousands every other dataset can afford. Both fall under the 1,000-user
+    # mark the tables flag, and that is the dataset's shape, not a mistake.
+    # The log runs 7,222 hours, so temporal uses 30 days.
+    "yambda": DatasetSpec(Yambda, "artifacts/yambda/recsys_checkpoint.zip", seed=42,
+                          val_users=200, test_users=400, min_user_support=5,
+                          item_min_support=5, min_value_to_keep=None, min_entity_text_words=0,
+                          dataset_options={"user_sample": 0.2},
+                          temporal_period_hours=30 * 24),
     "goodbooks": DatasetSpec(Goodbooks, "artifacts/goodbooks/recsys_checkpoint.zip", seed=0, val_users=1000, test_users=2500),
     "ml1m": DatasetSpec(MovieLens1M, "artifacts/ml1m/recsys_checkpoint.zip", seed=42, val_users=500, test_users=1000),
     "ml20m": DatasetSpec(MovieLens20M, "artifacts/ml20m/recsys_checkpoint.zip", seed=42, val_users=2500, test_users=5000),
@@ -165,8 +231,9 @@ def parse_args():
     p.add_argument(
         "--temporal_period_hours",
         type=float,
-        default=DEFAULT_TEMPORAL_PERIOD_HOURS,
-        help="Width in hours of each train/validation/test temporal target window.",
+        default=None,
+        help="Width in hours of each train/validation/test temporal target window. "
+             "Defaults to the value the dataset is registered with.",
     )
     p.add_argument("--min_source_items", type=int, default=1)
     p.add_argument("--min_target_items", type=int, default=1)
@@ -175,6 +242,16 @@ def parse_args():
         type=str,
         default="Toys_and_Games",
         help="Amazon Reviews 2023 category, e.g. Toys_and_Games, Electronics, Clothing_Shoes_and_Jewelry.",
+    )
+    p.add_argument(
+        "--dataset_option",
+        dest="dataset_options",
+        action="append",
+        metavar="KEY=VALUE",
+        default=None,
+        help="Adapter-specific option, repeatable. For example --dataset_option variant=500m "
+             "--dataset_option organic_only=true for yambda, or --dataset_option session_sample=0.1 "
+             "for otto. An unknown name lists the options the chosen dataset accepts.",
     )
     p.add_argument(
         "--metadata_text_fields",
@@ -210,6 +287,154 @@ def parse_args():
     return p.parse_args()
 
 
+#: Adapter constructor arguments the builder already owns. They are configured
+#: through the dedicated flags above, so exposing them again as dataset options
+#: would let one build be told two different things.
+_BUILDER_MANAGED_DATASET_OPTIONS = frozenset({
+    "self", "data_dir", "metadata_text_fields", "min_entity_text_words",
+    "show_progress", "category", "include_image_urls",
+})
+
+
+def _dataset_option_names(cls) -> list[str]:
+    """Adapter constructor arguments a caller may set for ``cls``."""
+    try:
+        parameters = inspect.signature(cls.__init__).parameters
+    except (TypeError, ValueError):  # pragma: no cover - builtins have no signature
+        return []
+    return [
+        name for name, parameter in parameters.items()
+        if name not in _BUILDER_MANAGED_DATASET_OPTIONS
+        and parameter.kind not in (parameter.VAR_POSITIONAL, parameter.VAR_KEYWORD)
+    ]
+
+
+def _coerce_dataset_option(value, annotation):
+    """Parse one command-line option value using the adapter's own annotation.
+
+    Only strings are converted, so a Python caller that already passes a float
+    or a tuple keeps exactly what it passed. The annotation is the adapter's, so
+    a new option becomes settable from the command line by being annotated
+    rather than by being registered anywhere here.
+    """
+    if not isinstance(value, str) or annotation is inspect.Parameter.empty:
+        return value
+    origin = typing.get_origin(annotation)
+    if origin in (typing.Union, types.UnionType):
+        members = [arg for arg in typing.get_args(annotation) if arg is not type(None)]
+        # ``key=`` clears an optional option. Only the empty string means this,
+        # so the literal word "none" is still usable as a value.
+        if len(members) < len(typing.get_args(annotation)) and not value.strip():
+            return None
+        return _coerce_dataset_option(value, members[0]) if members else value
+    if (
+        origin is not None
+        and isinstance(origin, type)
+        and not issubclass(origin, str)
+        and issubclass(origin, collections.abc.Sequence)
+    ):
+        return tuple(part.strip() for part in value.split(",") if part.strip())
+    if annotation is bool:
+        lowered = value.strip().lower()
+        if lowered in {"true", "1", "yes", "on"}:
+            return True
+        if lowered in {"false", "0", "no", "off"}:
+            return False
+        raise ValueError(f"expected true or false, got {value!r}")
+    if annotation is int:
+        return int(value)
+    if annotation is float:
+        return float(value)
+    return value
+
+
+#: What to pass to undo each registered option and read the whole source. The
+#: builder cannot infer this: "all of it" is ``1.0`` for a fraction but an
+#: absent bound for a window, and only the adapter knows which it has.
+_FULL_SOURCE_OPTION = {
+    "session_sample": "1.0",
+    "user_sample": "1.0",
+    "start": "",
+    "end": "",
+}
+
+
+def _registered_subset_notice(spec, dataset: str, options: dict[str, Any]) -> str | None:
+    """Say so when a build silently reads a registered subset of its source.
+
+    Only the registered defaults still in force are reported: an option the
+    caller set themselves is a deliberate choice and needs no warning. Without
+    this a bare build of OTTO looks exactly like a full one and quietly
+    measures a tenth of the log.
+    """
+    registered = getattr(spec, "dataset_options", None) or {}
+    in_force = {key: value for key, value in registered.items() if options.get(key) == value}
+    if not in_force:
+        return None
+    settings = ", ".join(f"{key}={value!r}" for key, value in sorted(in_force.items()))
+    flags = " ".join(f"--dataset_option {key}={_FULL_SOURCE_OPTION.get(key, '')}"
+                     for key in sorted(in_force))
+    return (f"{dataset} is reading a registered subset of its source, not the whole of it: "
+            f"{settings}. This is what the published default tables measure. "
+            f"For everything, pass {flags} -- which needs substantially more memory.")
+
+
+def _dataset_options_for(spec, args) -> dict[str, Any]:
+    """The options to construct this dataset with: spec defaults, then the caller's.
+
+    Resolving both through the same validator means a typo in the registry is
+    caught exactly like a typo on the command line, and re-running it on an
+    already-resolved mapping is a no-op, so it does not matter whether the
+    caller reached _make_dataset through _resolve_args or built a namespace.
+    """
+    return {
+        **_resolve_dataset_options(spec, getattr(spec, "dataset_options", None)),
+        **_resolve_dataset_options(spec, getattr(args, "dataset_options", None)),
+    }
+
+
+def _resolve_dataset_options(spec, raw) -> dict[str, Any]:
+    """Validate adapter options and coerce the ones that arrived as strings.
+
+    Accepts either the mapping the Python API takes or the repeated
+    ``--dataset_option key=value`` strings argparse collects. An unknown name is
+    an error rather than a silently ignored keyword, because the failure it
+    replaces -- a build that quietly used the default variant -- is invisible in
+    the resulting checkpoint.
+    """
+    if not raw:
+        return {}
+    if isinstance(raw, collections.abc.Mapping):
+        items = list(raw.items())
+    else:
+        items = []
+        for entry in raw:
+            key, separator, value = str(entry).partition("=")
+            if not separator or not key.strip():
+                raise ValueError(
+                    f"dataset options must be given as key=value, got {entry!r}"
+                )
+            items.append((key.strip(), value))
+    allowed = _dataset_option_names(spec.cls)
+    try:
+        hints = typing.get_type_hints(spec.cls.__init__)
+    except Exception:  # pragma: no cover - unresolvable annotations
+        hints = {}
+    resolved: dict[str, Any] = {}
+    for key, value in items:
+        if key not in allowed:
+            choices = ", ".join(allowed) if allowed else "no options"
+            raise ValueError(
+                f"unknown dataset option {key!r} for dataset {spec.cls.__name__}; "
+                f"accepts: {choices}"
+            )
+        try:
+            resolved[key] = _coerce_dataset_option(value, hints.get(key, inspect.Parameter.empty))
+        except ValueError as error:
+            raise ValueError(f"invalid value for dataset option {key!r}: {error}") from error
+    return resolved
+
+
 def _build_args(
     *,
     dataset: str,
@@ -230,7 +455,7 @@ def _build_args(
     item_val_frac: float = 0.05,
     item_test_frac: float = 0.10,
     temporal_test_frac: float | None = None,
-    temporal_period_hours: float = DEFAULT_TEMPORAL_PERIOD_HOURS,
+    temporal_period_hours: float | None = None,
     min_source_items: int = 1,
     min_target_items: int = 1,
     amazon_category: str = "Toys_and_Games",
@@ -241,6 +466,7 @@ def _build_args(
     annotation_min_count: int = 100,
     show_progress: bool = True,
     multimodal_features: str | list[str] | None = None,
+    dataset_options: dict[str, Any] | None = None,
 ) -> argparse.Namespace:
     if dataset not in DATASETS:
         choices = ", ".join(sorted(DATASETS))
@@ -256,7 +482,7 @@ def _build_args(
         raise ValueError(f"Unsupported split_mode: {split_mode!r}")
     if annotation_source not in {"genres", "ml20m_tags", "goodbooks_tags", "none"}:
         raise ValueError(f"Unsupported annotation_source: {annotation_source!r}")
-    if (
+    if temporal_period_hours is not None and (
         isinstance(temporal_period_hours, bool)
         or not np.isfinite(temporal_period_hours)
         or temporal_period_hours <= 0
@@ -289,7 +515,9 @@ def _build_args(
         item_val_frac=item_val_frac,
         item_test_frac=item_test_frac,
         temporal_test_frac=temporal_test_frac,
-        temporal_period_hours=float(temporal_period_hours),
+        temporal_period_hours=(
+            None if temporal_period_hours is None else float(temporal_period_hours)
+        ),
         min_source_items=min_source_items,
         min_target_items=min_target_items,
         amazon_category=amazon_category,
@@ -299,11 +527,18 @@ def _build_args(
         annotation_source=annotation_source,
         annotation_min_count=annotation_min_count,
         show_progress=show_progress,
+        dataset_options=dataset_options,
     )
 
 
 def _resolve_args(args):
     spec = DATASETS[args.dataset]
+    # Normalised here rather than in _build_args because the console script
+    # builds its namespace straight from argparse and never calls that.
+    args.dataset_options = _dataset_options_for(spec, args)
+    notice = _registered_subset_notice(spec, args.dataset, args.dataset_options)
+    if notice is not None and getattr(args, "show_progress", True):
+        print(f"[compresso-recsys] {notice}", flush=True)
     if args.split_mode == "official" and args.dataset != "dbbook":
         raise ValueError("official split is supported only for dbbook")
     if getattr(args, "multimodal_features", None) is not None:
@@ -333,6 +568,10 @@ def _resolve_args(args):
     args.min_value_to_keep = spec.min_value_to_keep if args.min_value_to_keep is None else args.min_value_to_keep
     args.set_all_values_to = spec.set_all_values_to if args.set_all_values_to is None else args.set_all_values_to
     args.min_entity_text_words = spec.min_entity_text_words if args.min_entity_text_words is None else args.min_entity_text_words
+    args.temporal_period_hours = (
+        spec.temporal_period_hours if getattr(args, "temporal_period_hours", None) is None
+        else args.temporal_period_hours
+    )
     if args.split_mode in {"leave_last_out", "temporal"} and not getattr(spec.cls, "has_timestamps", True):
         raise ValueError(f"{args.dataset} has no interaction timestamps; use user_split or item_split")
     return args, spec
@@ -347,10 +586,14 @@ def _make_dataset(args, spec: DatasetSpec):
     )
     if not fields and not issubclass(spec.cls, PublicDataset):
         raise ValueError("--metadata_text_fields must contain at least one field")
+    # Validated against this adapter's signature by _resolve_args, so an unknown
+    # name has already been rejected by the time it would become a TypeError.
+    options = _dataset_options_for(spec, args)
     if issubclass(spec.cls, PublicDataset):
         return spec.cls(data_dir=args.data_dir, metadata_text_fields=fields,
                         min_entity_text_words=args.min_entity_text_words,
-                        show_progress=getattr(args, "show_progress", True))
+                        show_progress=getattr(args, "show_progress", True),
+                        **options)
     if spec.cls is AmazonReviews2023:
         return AmazonReviews2023(
             data_dir=args.data_dir,
@@ -359,11 +602,13 @@ def _make_dataset(args, spec: DatasetSpec):
             min_entity_text_words=args.min_entity_text_words,
             include_image_urls=getattr(args, "include_image_urls", False),
             show_progress=getattr(args, "show_progress", True),
+            **options,
         )
     return spec.cls(
         data_dir=args.data_dir,
         metadata_text_fields=fields,
         min_entity_text_words=args.min_entity_text_words,
+        **options,
     )
 
 
@@ -1543,6 +1788,13 @@ def _build_recsys_checkpoint_from_args(args) -> Path:
                     "annotation_source": args.annotation_source,
                     "annotation_min_count": args.annotation_min_count,
                     "amazon_category": args.amazon_category if args.dataset == "amazon2023" else None,
+                    # Which variant, sample or event filter produced this
+                    # checkpoint. Without it two checkpoints built from the same
+                    # dataset at different settings are indistinguishable.
+                    "dataset_options": {
+                        key: list(value) if isinstance(value, tuple) else value
+                        for key, value in (getattr(args, "dataset_options", None) or {}).items()
+                    },
                     "metadata_text_fields": (
                         [field.strip() for field in args.metadata_text_fields.split(",") if field.strip()]
                         if args.metadata_text_fields
@@ -1586,7 +1838,7 @@ def build_recsys_checkpoint(
     item_val_frac: float = 0.05,
     item_test_frac: float = 0.10,
     temporal_test_frac: float | None = None,
-    temporal_period_hours: float = DEFAULT_TEMPORAL_PERIOD_HOURS,
+    temporal_period_hours: float | None = None,
     min_source_items: int = 1,
     min_target_items: int = 1,
     amazon_category: str = "Toys_and_Games",
@@ -1597,6 +1849,7 @@ def build_recsys_checkpoint(
     annotation_min_count: int = 100,
     show_progress: bool = True,
     multimodal_features: str | list[str] | None = None,
+    dataset_options: dict[str, Any] | None = None,
 ) -> Path:
     """Build a recommender-system split checkpoint and return its path."""
     args = _build_args(
@@ -1629,5 +1882,6 @@ def build_recsys_checkpoint(
         annotation_source=annotation_source,
         annotation_min_count=annotation_min_count,
         show_progress=show_progress,
+        dataset_options=dataset_options,
     )
     return _build_recsys_checkpoint_from_args(args)

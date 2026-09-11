@@ -50,9 +50,15 @@ def test_every_non_amazon_dataset_has_a_current_default_table(tables):
                     assert s[f"{phase}_cold_target_item_fraction"] == pytest.approx(cold / n)
                 assert mode in record["metadata"]["splits"]
             else:
-                assert record["dataset"] == "gowalla" and mode == "temporal"
-                assert entry["status"] == "failed" and "stats" not in entry
-                assert "15024.074-hour timestamp span" in entry["reason"]
+                # Gowalla/temporal used to be allowed to fail here, because the
+                # 339-day global window could not fit its 626-day span. The
+                # window is registered per dataset now, so every published table
+                # is measured and anything else means the archive predates a
+                # default change and needs remeasuring.
+                raise AssertionError(
+                    f"{record['dataset']}/{mode} is {entry['status']}, not measured: "
+                    f"{entry.get('reason', 'no reason recorded')}"
+                )
         assert record["metadata"]["status"] == "measured"
         if record["metadata"]["status"] == "measured":
             m = record["metadata"]
@@ -150,7 +156,8 @@ def test_unknown_counts_and_no_image_exposure_are_not_reported_as_zero(tables):
     records = {r["dataset"]: r for r in json.loads(ARCHIVE_PATH.read_text())["datasets"]}
     assert "Image URLs: not exposed" in tables.render_table(records["ml1m"])
     assert "≥1 image: 0" not in tables.render_table(records["ml1m"])
-    assert "Window: 8136 h" in tables.render_table(records["gowalla"])
+    # The temporal cell always states its window; Gowalla's is registered at 720.
+    assert "Window: 720 h" in tables.render_table(records["gowalla"])
     assert "Not supported" in tables.render_table(records["goodbooks"])
     failed = copy.deepcopy(records["ml1m"])
     failed["splits"]["temporal"] = {**failed["splits"]["temporal"], "status": "failed", "reason": "Empty stage"}
