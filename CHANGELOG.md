@@ -1,29 +1,24 @@
 ## [Unreleased]
 
-### Changed
-
-- Consolidated dataset documentation into a single guide with one subsection
-  per dataset, distinguishing metadata modalities from precomputed embeddings
-  and documenting user-computed Amazon text/image features.
+## [0.3.4] — 2026-09-11
 
 ### Added
 
-- Resumable dataset/split statistics sweep with dataset-level process workers,
-  per-worker thread limits, popularity by default, optional item-KNN, and
-  structured per-run results plus Markdown summaries.
-- Optional ID-aligned multimodal checkpoint features with presence masks and
-  provenance; SWAP ML-1M enrichment, DBbook and Last.fm-2K adapters, and a
-  DBbook supplied-test-boundary split with training-only validation holdout.
-- Dataset/model validation matrix with published EASE and MultDAE/VAE reference
-  scores, explicit protocol caveats, and runnable checkpoint/training recipes
-  that select on validation and report the held-out test metrics as JSON.
-- Steam, Netflix Prize, MSD Taste Profile, and raw Gowalla adapters, available
-  through the Python checkpoint builder and CLI. Downloads are cached atomically;
-  canonical interactions are parsed in chunks and cached as Parquet.
-- Steam game metadata and genre annotations for item cold-start checkpoints,
-  with review dates for leave-last-out and temporal splits. New adapters retain
-  items without descriptions by default and use dataset-specific support and
-  feedback thresholds; existing dataset defaults are preserved.
+- Steam, Netflix Prize, MSD Taste Profile, Gowalla, DBbook, and Last.fm-2K datasets.
+- Optional multimodal checkpoint embeddings and DBbook official splits.
+- Parallel dataset statistics and popularity/ItemKNN evaluation.
+
+### Changed
+
+- Tuned Amazon category support/text defaults; retain all ratings.
+- Default to one evaluation draw.
+- Unified dataset docs with measured tables, citations, and validation recipes.
+
+### Fixed
+
+- Sweep counts/sparsity, explicit `exclude_seen` reporting, and checkpoint reuse/recovery.
+- Gowalla's 720-hour temporal default and strict documentation builds.
+- Temporary GroupLens-only fallback for expired SSL certificates.
 
 ## [0.3.3] — 2026-09-04
 
