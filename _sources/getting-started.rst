@@ -6,7 +6,8 @@ around Compresso sparse representation learning.
 
 The public API is centered on:
 
-* dataset loaders for GoodBooks, MovieLens, and Amazon Reviews 2023
+* dataset loaders for GoodBooks, MovieLens, Amazon Reviews 2023, Steam,
+  Netflix Prize, MSD Taste Profile, Gowalla, DBbook, and Last.fm-2K
 * ZIP checkpoint helpers for storing splits, embeddings, sparse embeddings, and
   metrics
 * retrieval holdout builders for user split, item cold-start split,
@@ -113,7 +114,7 @@ Split Modes
 
 ``temporal``
    Builds three equal target windows at the end of the timestamp range. The
-   default window is 339 days and can be changed with
+   default window is 30 days for Gowalla and 339 days otherwise; change it with
    ``temporal_period_hours``. Histories expand through time, and each split has
    a cumulative catalog containing warm items plus newly supported cold items.
    Source and target share a column order within a split, but train,

@@ -1,6 +1,9 @@
 Models API
 ==========
 
+See :doc:`../citing` for method references and attribution guidance, including
+the distinction between published models and Compresso's simple baselines.
+
 Recommender Contract
 --------------------
 

@@ -1,0 +1,2945 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Datasets &mdash; Compresso Recsys 0.3.4 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=01c71025"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Bringing Your Own Dataset" href="bring-your-own-dataset.html" />
+    <link rel="prev" title="Examples" href="examples.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Compresso Recsys
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#install-from-pypi">Install from PyPI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#optional-extras">Optional Extras</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#local-development">Local Development</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#install-from-github">Install from GitHub</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#build-the-documentation-locally">Build the Documentation Locally</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="getting-started.html">Getting Started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="getting-started.html#basic-python-usage">Basic Python Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started.html#checkpoint-workflow">Checkpoint Workflow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started.html#what-goes-into-a-checkpoint">What Goes Into a Checkpoint</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started.html#split-modes">Split Modes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started.html#retrieval-metrics">Retrieval Metrics</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#choose-a-split-mode">Choose a Split Mode</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#dataset-loader">Dataset Loader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#building-checkpoints">Building Checkpoints</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#checkpoint-read-write">Checkpoint Read/Write</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#evaluate-embeddings-from-python">Evaluate Embeddings From Python</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#evaluate-model-predictions">Evaluate Model Predictions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#train-teaser-for-cold-items">Train TEASER for Cold Items</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#train-teaser-with-gradient-descent">Train TEASER with Gradient Descent</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#serve-new-teaser-candidates">Serve New TEASER Candidates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#train-and-evaluate-elsa">Train and Evaluate ELSA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#using-item-embeddings">Using item embeddings</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="examples.html#precomputed-features">Precomputed features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples.html#user-computed-features">User-computed features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples.html#reading-and-evaluating-features">Reading and evaluating features</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Datasets</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#reading-the-default-tables">Reading the default tables</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#movielens-1m">MovieLens 1M</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#movielens-20m">MovieLens 20M</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#goodbooks-10k">Goodbooks-10k</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#amazon-reviews-2023">Amazon Reviews 2023</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#steam">Steam</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#netflix-prize">Netflix Prize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#msd-taste-profile">MSD Taste Profile</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#gowalla">Gowalla</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#dbbook">DBbook</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#last-fm-2k">Last.fm-2K</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#using-item-embeddings">Using item embeddings</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="bring-your-own-dataset.html">Bringing Your Own Dataset</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="bring-your-own-dataset.html#What-a-dataset-has-to-produce">What a dataset has to produce</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bring-your-own-dataset.html#The-dataset">The dataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bring-your-own-dataset.html#The-dataset-class">The dataset class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bring-your-own-dataset.html#Two-defaults-that-will-empty-your-dataset">Two defaults that will empty your dataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bring-your-own-dataset.html#What-is-in-it">What is in it</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bring-your-own-dataset.html#Does-it-work?">Does it work?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bring-your-own-dataset.html#Cold-items,-for-free">Cold items, for free</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bring-your-own-dataset.html#What-timestamps-would-have-added">What timestamps would have added</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bring-your-own-dataset.html#You-do-not-need-a-dataset-class-at-all">You do not need a dataset class at all</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="implementing-a-recommender.html">Implementing a Recommender</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="implementing-a-recommender.html#What-the-base-class-owns">What the base class owns</a></li>
+<li class="toctree-l2"><a class="reference internal" href="implementing-a-recommender.html#Data">Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="implementing-a-recommender.html#Configuration">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="implementing-a-recommender.html#The-complete-model">The complete model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="implementing-a-recommender.html#Low-level-prediction">Low-level prediction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="implementing-a-recommender.html#Stable-ID-recommendation">Stable-ID recommendation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="implementing-a-recommender.html#Standalone-persistence">Standalone persistence</a></li>
+<li class="toctree-l2"><a class="reference internal" href="implementing-a-recommender.html#Persistence-inside-a-data-checkpoint">Persistence inside a data checkpoint</a></li>
+<li class="toctree-l2"><a class="reference internal" href="implementing-a-recommender.html#Evaluation">Evaluation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="implementing-a-recommender.html#Executable-contract-checks">Executable contract checks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="implementing-a-recommender.html#Extending-the-pattern">Extending the pattern</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="reproducing-sasrec-results-on-ml1m.html">Reproducing SASRec Results on ML1M</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="reproducing-sasrec-results-on-ml1m.html#Configuration-and-run-modes">Configuration and run modes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reproducing-sasrec-results-on-ml1m.html#Build-the-MovieLens-1M-checkpoint">Build the MovieLens 1M checkpoint</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reproducing-sasrec-results-on-ml1m.html#Inspect-the-split">Inspect the split</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reproducing-sasrec-results-on-ml1m.html#Train-SASRec">Train SASRec</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reproducing-sasrec-results-on-ml1m.html#Score-the-catalog">Score the catalog</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reproducing-sasrec-results-on-ml1m.html#Published-protocol:-100-sampled-negatives-at-10">Published protocol: 100 sampled negatives at 10</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reproducing-sasrec-results-on-ml1m.html#Package-protocol:-full-catalog-at-20">Package protocol: full catalog at 20</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reproducing-sasrec-results-on-ml1m.html#Check-the-epoch-budget-on-validation-data">Check the epoch budget on validation data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reproducing-sasrec-results-on-ml1m.html#Save-the-trained-model">Save the trained model</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="statistical-comparison.html">Comparing Models Statistically</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="statistical-comparison.html#why-the-aggregates-are-not-enough">Why the aggregates are not enough</a></li>
+<li class="toctree-l2"><a class="reference internal" href="statistical-comparison.html#do-the-comparison">Do the comparison</a></li>
+<li class="toctree-l2"><a class="reference internal" href="statistical-comparison.html#a-complete-worked-example">A complete worked example</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#build-the-split">Build the split</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#train-both-models">Train both models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#evaluate-both-on-identical-users">Evaluate both on identical users</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#compare">Compare</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#reading-it">Reading it</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="statistical-comparison.html#reading-the-output">Reading the output</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#the-effect">The effect</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#how-precisely-you-know-it">How precisely you know it</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#how-often-the-two-models-tied">How often the two models tied</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#whether-it-could-be-chance">Whether it could be chance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#the-verdict">The verdict</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="statistical-comparison.html#five-traps">Five traps</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#p-values-have-a-floor">p-values have a floor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#ties-are-not-missing-data">Ties are not missing data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#the-interval-and-the-p-value-can-disagree">The interval and the p-value can disagree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#confidence-level-also-moves-the-significance-bar"><code class="docutils literal notranslate"><span class="pre">confidence_level</span></code> also moves the significance bar</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#one-trained-model-is-not-the-method">One trained model is not the method</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="statistical-comparison.html#choosing-the-settings">Choosing the settings</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#n-resamples"><code class="docutils literal notranslate"><span class="pre">n_resamples</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#test-method"><code class="docutils literal notranslate"><span class="pre">test_method</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#test-method-why-not-a-t-test"><code class="docutils literal notranslate"><span class="pre">test_method</span></code>: why not a t-test?</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#alternative"><code class="docutils literal notranslate"><span class="pre">alternative</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#correction"><code class="docutils literal notranslate"><span class="pre">correction</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="statistical-comparison.html#when-one-user-owns-several-rows">When one user owns several rows</a></li>
+<li class="toctree-l2"><a class="reference internal" href="statistical-comparison.html#what-the-methods-do-formally">What the methods do, formally</a></li>
+<li class="toctree-l2"><a class="reference internal" href="statistical-comparison.html#reporting-the-result">Reporting the result</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#methods">Methods</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#results">Results</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#checklist">Checklist</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="statistical-comparison.html#references">References</a></li>
+<li class="toctree-l2"><a class="reference internal" href="statistical-comparison.html#see-also">See also</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="citing.html">Citing Compresso Recsys</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#compresso">Compresso</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#ease">EASE</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#neighborhood-models">Neighborhood Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#mult-vae-mult-dae-and-autorec">Mult-VAE, Mult-DAE, and AutoRec</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#teaser">TEASER</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#elsa">ELSA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#elsa-with-sampled-output-candidates">ELSA with sampled output candidates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#compressed-elsa">Compressed ELSA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#sasrec">SASRec</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#simplernn">SimpleRNN</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#simplegpt-and-simplebidirectionaltransformer">SimpleGPT and SimpleBidirectionalTransformer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#content-popularity-and-random-baselines">Content, Popularity, and Random Baselines</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#datasets">Datasets</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="citing.html#movielens-1m-and-20m">MovieLens 1M and 20M</a></li>
+<li class="toctree-l3"><a class="reference internal" href="citing.html#goodbooks-10k">Goodbooks-10k</a></li>
+<li class="toctree-l3"><a class="reference internal" href="citing.html#amazon-reviews-2023">Amazon Reviews 2023</a></li>
+<li class="toctree-l3"><a class="reference internal" href="citing.html#steam">Steam</a></li>
+<li class="toctree-l3"><a class="reference internal" href="citing.html#netflix-prize">Netflix Prize</a></li>
+<li class="toctree-l3"><a class="reference internal" href="citing.html#msd-taste-profile">MSD / Taste Profile</a></li>
+<li class="toctree-l3"><a class="reference internal" href="citing.html#gowalla">Gowalla</a></li>
+<li class="toctree-l3"><a class="reference internal" href="citing.html#additional-movie-and-book-descriptions">Additional Movie and Book Descriptions</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#evaluation-protocol">Evaluation Protocol</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="citing.html#dataset-preprocessing">Dataset preprocessing</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#statistical-comparison">Statistical Comparison</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#swap-multimodal-ml-1m-dbbook-and-last-fm-2k">SWAP multimodal ML-1M, DBbook, and Last.fm-2K</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="cli-reference.html">Checkpoint CLI Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="cli-reference.html#temporary-movielens-download-workaround">Temporary MovieLens download workaround</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cli-reference.html#steam">Steam</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cli-reference.html#amazon-reviews-2023">Amazon Reviews 2023</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cli-reference.html#leave-last-out-checkpoint">Leave-Last-Out Checkpoint</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cli-reference.html#temporal-checkpoint">Temporal Checkpoint</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cli-reference.html#checkpoint-split-schema">Checkpoint Split Schema</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cli-reference.html#builder-parameters">Builder Parameters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cli-reference.html#supported-amazon-reviews-2023-datasets">Supported Amazon Reviews 2023 Datasets</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="api/index.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/compresso_recsys.html">Core API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/compresso_recsys.html#datasets">Datasets</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.SplitBundle"><code class="docutils literal notranslate"><span class="pre">SplitBundle</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.RecSysDataset"><code class="docutils literal notranslate"><span class="pre">RecSysDataset</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.Goodbooks"><code class="docutils literal notranslate"><span class="pre">Goodbooks</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.MovieLens1M"><code class="docutils literal notranslate"><span class="pre">MovieLens1M</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.MovieLens20M"><code class="docutils literal notranslate"><span class="pre">MovieLens20M</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.AmazonReviews2023"><code class="docutils literal notranslate"><span class="pre">AmazonReviews2023</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/compresso_recsys.html#checkpoint-helpers">Checkpoint Helpers</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.build_recsys_checkpoint"><code class="docutils literal notranslate"><span class="pre">build_recsys_checkpoint()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.update_checkpoint"><code class="docutils literal notranslate"><span class="pre">update_checkpoint()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.read_checkpoint"><code class="docutils literal notranslate"><span class="pre">read_checkpoint()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.load_manifest"><code class="docutils literal notranslate"><span class="pre">load_manifest()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.save_manifest"><code class="docutils literal notranslate"><span class="pre">save_manifest()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.update_stage_manifest"><code class="docutils literal notranslate"><span class="pre">update_stage_manifest()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.save_json"><code class="docutils literal notranslate"><span class="pre">save_json()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.load_json"><code class="docutils literal notranslate"><span class="pre">load_json()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.save_recsys_split"><code class="docutils literal notranslate"><span class="pre">save_recsys_split()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.load_recsys_split"><code class="docutils literal notranslate"><span class="pre">load_recsys_split()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.save_cluster_graph_stage"><code class="docutils literal notranslate"><span class="pre">save_cluster_graph_stage()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.load_cluster_graph_stage"><code class="docutils literal notranslate"><span class="pre">load_cluster_graph_stage()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api/datasets.html">Datasets API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/datasets.html#compresso_recsys.datasets.DBbook"><code class="docutils literal notranslate"><span class="pre">DBbook</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/datasets.html#compresso_recsys.datasets.DBbook.timestamp_precision"><code class="docutils literal notranslate"><span class="pre">DBbook.timestamp_precision</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/datasets.html#compresso_recsys.datasets.DBbook.get_official_split"><code class="docutils literal notranslate"><span class="pre">DBbook.get_official_split()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/datasets.html#compresso_recsys.datasets.LastFM2K"><code class="docutils literal notranslate"><span class="pre">LastFM2K</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/datasets.html#compresso_recsys.datasets.LastFM2K.timestamp_precision"><code class="docutils literal notranslate"><span class="pre">LastFM2K.timestamp_precision</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api/checkpoint.html">Checkpoint API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/checkpoint.html#item-embeddings">Item embeddings</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/checkpoint.html#compresso_recsys.embeddings.save_item_embeddings"><code class="docutils literal notranslate"><span class="pre">save_item_embeddings()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/checkpoint.html#compresso_recsys.embeddings.load_item_embeddings"><code class="docutils literal notranslate"><span class="pre">load_item_embeddings()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/checkpoint.html#compresso_recsys.embeddings.list_item_embeddings"><code class="docutils literal notranslate"><span class="pre">list_item_embeddings()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/checkpoint.html#compresso_recsys.multimodal.enrich_multimodal_checkpoint"><code class="docutils literal notranslate"><span class="pre">enrich_multimodal_checkpoint()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/checkpoint.html#checkpoint-contexts">Checkpoint Contexts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/checkpoint.html#manifest-and-json-helpers">Manifest and JSON Helpers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/checkpoint.html#split-and-cluster-stages">Split and Cluster Stages</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/checkpoint.html#item-partitions">Item partitions</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api/persistence.html">Fitted Model Persistence</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/persistence.html#embedding-models-in-data-checkpoints">Embedding Models in Data Checkpoints</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/persistence.html#stable-item-ids">Stable Item IDs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/persistence.html#optimizer-state">Optimizer State</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/persistence.html#checkpoint-format">Checkpoint Format</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/persistence.html#compresso_recsys.ModelCheckpointWriter"><code class="docutils literal notranslate"><span class="pre">ModelCheckpointWriter</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/persistence.html#compresso_recsys.ModelCheckpointReader"><code class="docutils literal notranslate"><span class="pre">ModelCheckpointReader</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/persistence.html#extending-persistence">Extending Persistence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/persistence.html#warm-catalog-adapters">Warm Catalog Adapters</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api/sequences.html">Sequences API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/sequences.html#interaction-histories">Interaction Histories</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/sequences.html#compresso_recsys.ItemSequences"><code class="docutils literal notranslate"><span class="pre">ItemSequences</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/sequences.html#compresso_recsys.save_item_sequences"><code class="docutils literal notranslate"><span class="pre">save_item_sequences()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/sequences.html#compresso_recsys.load_item_sequences"><code class="docutils literal notranslate"><span class="pre">load_item_sequences()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/sequences.html#which-split-modes-produce-them">Which Split Modes Produce Them</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api/models.html">Models API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#recommender-contract">Recommender Contract</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.Recommender"><code class="docutils literal notranslate"><span class="pre">Recommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.ColdStartRecommender"><code class="docutils literal notranslate"><span class="pre">ColdStartRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.ItemVocabulary"><code class="docutils literal notranslate"><span class="pre">ItemVocabulary</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.SequentialRecommender"><code class="docutils literal notranslate"><span class="pre">SequentialRecommender</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#production-recommendations">Production Recommendations</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.IdentifiedRecommender"><code class="docutils literal notranslate"><span class="pre">IdentifiedRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.Recommendations"><code class="docutils literal notranslate"><span class="pre">Recommendations</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#training-and-prediction-progress">Training and Prediction Progress</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#fitted-model-persistence">Fitted Model Persistence</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.PersistableRecommender"><code class="docutils literal notranslate"><span class="pre">PersistableRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.BasePersistableRecommender"><code class="docutils literal notranslate"><span class="pre">BasePersistableRecommender</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#implementing-new-models">Implementing New Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.BaseIdentifiedRecommender"><code class="docutils literal notranslate"><span class="pre">BaseIdentifiedRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.BaseCollaborativeRecommender"><code class="docutils literal notranslate"><span class="pre">BaseCollaborativeRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.BaseColdStartRecommender"><code class="docutils literal notranslate"><span class="pre">BaseColdStartRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.BaseSequentialRecommender"><code class="docutils literal notranslate"><span class="pre">BaseSequentialRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#the-owned-candidate-catalog">The Owned Candidate Catalog</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#training-interaction-batches">Training Interaction Batches</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#transductive-models-in-expanding-catalogs">Transductive Models in Expanding Catalogs</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#when-to-reach-for-it-outside-temporal">When to Reach for It Outside <code class="docutils literal notranslate"><span class="pre">temporal</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#collaborative-filtering-models">Collaborative Filtering Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#baselines">Baselines</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#neighborhood-models">Neighborhood Models</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#multinomial-autoencoders">Multinomial Autoencoders</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#ease">EASE</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#elsa">ELSA</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#cold-start-models">Cold-Start Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#contentrecommender">ContentRecommender</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#teaser">TEASER</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#teasergd">TEASERGD</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#sequential-models">Sequential Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#tokenizing-histories">Tokenizing Histories</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#simplernn">SimpleRNN</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#simplegpt">SimpleGPT</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#sasrec">SASRec</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#simplebidirectionaltransformer">SimpleBidirectionalTransformer</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api/retrieval.html">Retrieval API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/retrieval.html#holdout-builders">Holdout Builders</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/retrieval.html#compresso_recsys.retrieval.build_eval_holdout"><code class="docutils literal notranslate"><span class="pre">build_eval_holdout()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/retrieval.html#compresso_recsys.retrieval.build_item_cold_holdout"><code class="docutils literal notranslate"><span class="pre">build_item_cold_holdout()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/retrieval.html#compresso_recsys.retrieval.build_leave_last_out_holdout"><code class="docutils literal notranslate"><span class="pre">build_leave_last_out_holdout()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/retrieval.html#compresso_recsys.retrieval.build_temporal_holdout"><code class="docutils literal notranslate"><span class="pre">build_temporal_holdout()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/retrieval.html#embedding-evaluation">Embedding Evaluation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/retrieval.html#compresso_recsys.retrieval.evaluate_item_embeddings"><code class="docutils literal notranslate"><span class="pre">evaluate_item_embeddings()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/retrieval.html#compresso_recsys.retrieval.evaluate_item_embeddings_with_holdout"><code class="docutils literal notranslate"><span class="pre">evaluate_item_embeddings_with_holdout()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api/evaluation.html">Ranking Evaluation API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/evaluation.html#predictions-and-targets">Predictions and Targets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/evaluation.html#evaluation-results">Evaluation Results</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/evaluation.html#compresso_recsys.evaluation.EvaluationResult"><code class="docutils literal notranslate"><span class="pre">EvaluationResult</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/evaluation.html#custom-metrics">Custom Metrics</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/evaluation.html#compresso_recsys.evaluation.evaluate_recommender"><code class="docutils literal notranslate"><span class="pre">evaluate_recommender()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/evaluation.html#compresso_recsys.evaluation.evaluate_ranked_predictions"><code class="docutils literal notranslate"><span class="pre">evaluate_ranked_predictions()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/evaluation.html#compresso_recsys.evaluation.RankingEvaluator"><code class="docutils literal notranslate"><span class="pre">RankingEvaluator</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/evaluation.html#metrics">Metrics</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/evaluation.html#default-metrics">Default Metrics</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/evaluation.html#optional-metrics">Optional Metrics</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api/statistics.html">Statistics API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/statistics.html#comparison-functions">Comparison Functions</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/statistics.html#compresso_recsys.stats.compare_models"><code class="docutils literal notranslate"><span class="pre">compare_models()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/statistics.html#compresso_recsys.stats.compare_pair"><code class="docutils literal notranslate"><span class="pre">compare_pair()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/statistics.html#results">Results</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/statistics.html#compresso_recsys.stats.PairwiseComparison"><code class="docutils literal notranslate"><span class="pre">PairwiseComparison</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/statistics.html#compresso_recsys.stats.ComparisonReport"><code class="docutils literal notranslate"><span class="pre">ComparisonReport</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/statistics.html#parameter-values">Parameter Values</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Compresso Recsys</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Datasets</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/datasets.rst" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="datasets">
+<h1>Datasets<a class="headerlink" href="#datasets" title="Link to this heading"></a></h1>
+<p>Available loaders, metadata, and measured defaults. See <a class="reference internal" href="citing.html#cite-datasets"><span class="std std-ref">Datasets</span></a>
+for citations, <a class="reference internal" href="cli-reference.html"><span class="doc">Checkpoint CLI Reference</span></a> for parameters, and <a class="reference internal" href="examples.html"><span class="doc">Examples</span></a> for code.</p>
+<table class="docutils align-default" id="id1">
+<caption><span class="caption-text">Dataset capabilities</span><a class="headerlink" href="#id1" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 18.0%" />
+<col style="width: 34.0%" />
+<col style="width: 30.0%" />
+<col style="width: 18.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Dataset</p></th>
+<th class="head"><p>Item metadata</p></th>
+<th class="head"><p>Precomputed embeddings importable here</p></th>
+<th class="head"><p>Interaction timestamps</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="#dataset-ml1m"><span class="std std-ref">MovieLens 1M</span></a></p></td>
+<td><p>Titles, genres, descriptions; optional features from plots/posters/trailers</p></td>
+<td><p>Text, image, audio, video (SWAP)</p></td>
+<td><p>Yes</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#dataset-ml20m"><span class="std std-ref">MovieLens 20M</span></a></p></td>
+<td><p>Titles, genres, descriptions; optional tag annotations</p></td>
+<td><p>None integrated</p></td>
+<td><p>Yes</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#dataset-goodbooks"><span class="std std-ref">Goodbooks-10k</span></a></p></td>
+<td><p>Titles, authors, descriptions; optional tag annotations</p></td>
+<td><p>None integrated</p></td>
+<td><p>No</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#dataset-amazon2023"><span class="std std-ref">Amazon Reviews 2023</span></a></p></td>
+<td><p>Product text and optional image URLs</p></td>
+<td><p>Compute text/image embeddings yourself</p></td>
+<td><p>Yes</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#dataset-steam"><span class="std std-ref">Steam</span></a></p></td>
+<td><p>Titles, genres, tags, developers and other game fields</p></td>
+<td><p>None integrated</p></td>
+<td><p>Yes, day precision</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#dataset-netflix"><span class="std std-ref">Netflix Prize</span></a></p></td>
+<td><p>Movie titles and years</p></td>
+<td><p>None integrated</p></td>
+<td><p>Yes, day precision</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#dataset-taste-profile"><span class="std std-ref">MSD Taste Profile</span></a></p></td>
+<td><p>Item IDs only</p></td>
+<td><p>None integrated</p></td>
+<td><p>No</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#dataset-gowalla"><span class="std std-ref">Gowalla</span></a></p></td>
+<td><p>Location coordinates</p></td>
+<td><p>None integrated</p></td>
+<td><p>Yes</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#dataset-dbbook"><span class="std std-ref">DBbook</span></a></p></td>
+<td><p>Book titles and DBpedia mappings; optional abstract/cover features</p></td>
+<td><p>Text, image (SWAP)</p></td>
+<td><p>No</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#dataset-lfm2k"><span class="std std-ref">Last.fm-2K</span></a></p></td>
+<td><p>Artist names and page/image URLs; optional tag/cover/song features</p></td>
+<td><p>Text, image, audio (SWAP)</p></td>
+<td><p>No listening timestamps</p></td>
+</tr>
+</tbody>
+</table>
+<section id="reading-the-default-tables">
+<span id="dataset-default-table-guide"></span><h2>Reading the default tables<a class="headerlink" href="#reading-the-default-tables" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>Support:</strong> minimum user/item interactions. Totals are after preprocessing;
+temporal totals span all stages. DBbook official totals use training data only.</p></li>
+<li><p><strong>Val/Test:</strong> eligible users, distinct target items, and <strong>cold %</strong> (items absent
+from original training interactions). <strong>†</strong> means fewer than 1,000 users.</p></li>
+<li><p><strong>Metadata:</strong> union of measured catalogs, including preprocessed items.
+Image URLs are not validated; text means constructed <code class="docutils literal notranslate"><span class="pre">entity_text</span></code>.
+Feature coverage uses this union; <code class="docutils literal notranslate"><span class="pre">d</span></code> is vector dimension. Unknown is not zero.</p></li>
+<li><p><strong>Splits:</strong> random item defaults are <strong>85/5/10</strong> train/val/test. Random splits
+deduplicate repeated user/item pairs; ordered splits retain events.</p></li>
+</ul>
+<p>Defaults binarize retained feedback; measured does not mean paper-reproducing.
+See <a class="reference internal" href="dataset-sweep.html#dataset-default-table-details"><span class="std std-ref">Interpreting the documentation tables</span></a> for definitions, methodology, and
+the <a class="reference download internal" download="" href="_downloads/462446f2cb55224b6b93d2eff394a55d/dataset-default-measurements.json"><code class="xref download docutils literal notranslate"><span class="pre">non-Amazon</span> <span class="pre">measurement</span> <span class="pre">archive</span></code></a>.</p>
+</section>
+<section id="movielens-1m">
+<span id="dataset-ml1m"></span><h2>MovieLens 1M<a class="headerlink" href="#movielens-1m" title="Link to this heading"></a></h2>
+<p><strong>Loading:</strong> <code class="docutils literal notranslate"><span class="pre">dataset=&quot;ml1m&quot;</span></code> downloads GroupLens ratings and beeFormer
+descriptions; SWAP features are optional. A temporary
+<a class="reference internal" href="cli-reference.html#grouplens-tls-workaround"><span class="std std-ref">expired-certificate workaround</span></a> applies.</p>
+<p><strong>Terms:</strong> <a class="reference external" href="https://grouplens.org/datasets/movielens/1m/">MovieLens research-use conditions</a>;
+commercial use requires permission. Cite the description/feature sources too.</p>
+<p><strong>Defaults:</strong> Positive ratings and support filtering retain useful histories;
+the 30-word minimum selects descriptive metadata. The temporal default is
+poorly sized here: only <strong>91 training users</strong>.</p>
+<table class="docutils align-default" id="id2">
+<caption><span class="caption-text">Installed MovieLens 1M preprocessing and split defaults</span><a class="headerlink" href="#id2" title="Link to this table"></a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Dataset / preprocessing</p></th>
+<th class="head"><p>User split</p></th>
+<th class="head"><p>Item split</p></th>
+<th class="head"><p>Leave-last-out</p></th>
+<th class="head"><p>Temporal</p></th>
+<th class="head"><p>Item metadata (union of measured splits)</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><div class="line-block">
+<div class="line">MovieLens 1M</div>
+<div class="line">Rating ≥4</div>
+<div class="line">Min text: 30 words</div>
+<div class="line">Seed: 42</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">5/1</div>
+<div class="line">6,033 users</div>
+<div class="line">3,295 items</div>
+<div class="line">Train: 4,533 users</div>
+<div class="line">Val: 500 users †</div>
+<div class="line">1,860 items / 0.00% cold</div>
+<div class="line">Test: 1,000 users</div>
+<div class="line">2,256 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">5/1</div>
+<div class="line">6,033 users</div>
+<div class="line">3,295 items</div>
+<div class="line">Train: 6,033 users</div>
+<div class="line">Val: 5,338 users</div>
+<div class="line">165 items / 100.00% cold</div>
+<div class="line">Test: 5,643 users</div>
+<div class="line">330 items / 100.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">5/1</div>
+<div class="line">6,033 users</div>
+<div class="line">3,295 items</div>
+<div class="line">Train: 6,033 users</div>
+<div class="line">Val: 6,033 users</div>
+<div class="line">1,722 items / 0.29% cold</div>
+<div class="line">Test: 6,033 users</div>
+<div class="line">1,758 items / 0.17% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">5/1</div>
+<div class="line">943 users</div>
+<div class="line">3,117 items</div>
+<div class="line">Train: 91 users</div>
+<div class="line">Val: 771 users †</div>
+<div class="line">2,439 items / 26.98% cold</div>
+<div class="line">Test: 435 users †</div>
+<div class="line">2,033 items / 19.43% cold</div>
+<div class="line">Window: 8136 h</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">Union: 3,295 items</div>
+<div class="line">Image URLs: not exposed</div>
+<div class="line">≥10 words: 3,295 (100.00%)</div>
+<div class="line">Precomputed features:</div>
+<div class="line">text/minilm: 3,295 (100.00%), 384d</div>
+<div class="line">text/mpnet: 3,295 (100.00%), 768d</div>
+<div class="line">image/resnet152: 2,942 (89.29%), 1,000d</div>
+<div class="line">image/vgg: 2,942 (89.29%), 4,096d</div>
+<div class="line">image/vit_cls: 2,942 (89.29%), 768d</div>
+<div class="line">image/vit_avg: 2,942 (89.29%), 768d</div>
+<div class="line">audio/vggish: 3,171 (96.24%), 128d</div>
+<div class="line">audio/whisper: 3,171 (96.24%), 512d</div>
+<div class="line">video/i3d: 3,170 (96.21%), 2,048d</div>
+<div class="line">video/r2p1d: 3,171 (96.24%), 512d</div>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="movielens-20m">
+<span id="dataset-ml20m"></span><h2>MovieLens 20M<a class="headerlink" href="#movielens-20m" title="Link to this heading"></a></h2>
+<p><strong>Loading:</strong> <code class="docutils literal notranslate"><span class="pre">dataset=&quot;ml20m&quot;</span></code> downloads GroupLens ratings and beeFormer
+descriptions; user-tag annotations are optional. The same
+<a class="reference internal" href="cli-reference.html#grouplens-tls-workaround"><span class="std std-ref">expired-certificate workaround</span></a> applies.</p>
+<p><strong>Terms:</strong> <a class="reference external" href="https://grouplens.org/datasets/movielens/20m/">GroupLens usage conditions</a>;
+commercial use requires permission. Cite beeFormer when using its descriptions.</p>
+<p><strong>Defaults:</strong> MultVAE-style positive-feedback filtering, plus a 30-word text
+minimum. Holdout sizes are practical defaults, not the paper’s exact split.</p>
+<table class="docutils align-default" id="id3">
+<caption><span class="caption-text">Installed MovieLens 20M preprocessing and split defaults</span><a class="headerlink" href="#id3" title="Link to this table"></a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Dataset / preprocessing</p></th>
+<th class="head"><p>User split</p></th>
+<th class="head"><p>Item split</p></th>
+<th class="head"><p>Leave-last-out</p></th>
+<th class="head"><p>Temporal</p></th>
+<th class="head"><p>Item metadata (union of measured splits)</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><div class="line-block">
+<div class="line">MovieLens 20M</div>
+<div class="line">Rating ≥4</div>
+<div class="line">Min text: 30 words</div>
+<div class="line">Seed: 42</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">5/1</div>
+<div class="line">136,589 users</div>
+<div class="line">16,902 items</div>
+<div class="line">Train: 129,089 users</div>
+<div class="line">Val: 2,500 users</div>
+<div class="line">4,549 items / 0.00% cold</div>
+<div class="line">Test: 5,000 users</div>
+<div class="line">5,972 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">5/1</div>
+<div class="line">136,589 users</div>
+<div class="line">16,902 items</div>
+<div class="line">Train: 136,589 users</div>
+<div class="line">Val: 102,285 users</div>
+<div class="line">846 items / 100.00% cold</div>
+<div class="line">Test: 124,822 users</div>
+<div class="line">1,691 items / 100.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">5/1</div>
+<div class="line">136,589 users</div>
+<div class="line">16,902 items</div>
+<div class="line">Train: 136,589 users</div>
+<div class="line">Val: 136,589 users</div>
+<div class="line">7,353 items / 0.60% cold</div>
+<div class="line">Test: 136,589 users</div>
+<div class="line">7,784 items / 0.90% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">5/1</div>
+<div class="line">5,903 users</div>
+<div class="line">15,399 items</div>
+<div class="line">Train: 3,801 users</div>
+<div class="line">Val: 3,323 users</div>
+<div class="line">6,705 items / 12.17% cold</div>
+<div class="line">Test: 3,217 users</div>
+<div class="line">7,346 items / 18.46% cold</div>
+<div class="line">Window: 8136 h</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">Union: 16,902 items</div>
+<div class="line">Image URLs: not exposed</div>
+<div class="line">≥10 words: 16,902 (100.00%)</div>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="goodbooks-10k">
+<span id="dataset-goodbooks"></span><h2>Goodbooks-10k<a class="headerlink" href="#goodbooks-10k" title="Link to this heading"></a></h2>
+<p><strong>Loading:</strong> <code class="docutils literal notranslate"><span class="pre">dataset=&quot;goodbooks&quot;</span></code> downloads book ratings/metadata and
+beeFormer descriptions; tag annotations are optional.</p>
+<p><strong>Terms:</strong> <a class="reference external" href="https://github.com/zygmuntz/goodbooks-10k/blob/master/LICENSE">CC BY-SA 4.0</a>
+for the upstream release; cite the additional description source.</p>
+<p><strong>Defaults:</strong> Positive ratings, minimum interaction support, and 30-word metadata
+give a text-ready benchmark. No timestamps: user/item splits only.</p>
+<table class="docutils align-default" id="id4">
+<caption><span class="caption-text">Installed Goodbooks-10k preprocessing and split defaults</span><a class="headerlink" href="#id4" title="Link to this table"></a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Dataset / preprocessing</p></th>
+<th class="head"><p>User split</p></th>
+<th class="head"><p>Item split</p></th>
+<th class="head"><p>Leave-last-out</p></th>
+<th class="head"><p>Temporal</p></th>
+<th class="head"><p>Item metadata (union of measured splits)</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><div class="line-block">
+<div class="line">Goodbooks-10k</div>
+<div class="line">Rating ≥4</div>
+<div class="line">Min text: 30 words</div>
+<div class="line">Seed: 0</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">5/1</div>
+<div class="line">53,365 users</div>
+<div class="line">9,975 items</div>
+<div class="line">Train: 49,865 users</div>
+<div class="line">Val: 1,000 users</div>
+<div class="line">5,361 items / 0.00% cold</div>
+<div class="line">Test: 2,500 users</div>
+<div class="line">7,820 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">5/1</div>
+<div class="line">53,365 users</div>
+<div class="line">9,975 items</div>
+<div class="line">Train: 53,365 users</div>
+<div class="line">Val: 51,301 users</div>
+<div class="line">499 items / 100.00% cold</div>
+<div class="line">Test: 53,070 users</div>
+<div class="line">998 items / 100.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">Not supported</div>
+<div class="line">No interaction timestamps</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">Not supported</div>
+<div class="line">No interaction timestamps</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">Union: 9,975 items</div>
+<div class="line">Image URLs: not exposed</div>
+<div class="line">≥10 words: 9,975 (100.00%)</div>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="amazon-reviews-2023">
+<span id="dataset-amazon2023"></span><h2>Amazon Reviews 2023<a class="headerlink" href="#amazon-reviews-2023" title="Link to this heading"></a></h2>
+<p><strong>Loading:</strong> <code class="docutils literal notranslate"><span class="pre">dataset=&quot;amazon2023&quot;</span></code> downloads one category’s ratings and item
+metadata, not review text. <code class="docutils literal notranslate"><span class="pre">include_image_urls=True</span></code> retains image links.</p>
+<p><strong>Terms:</strong> Follow the <a class="reference external" href="https://amazon-reviews-2023.github.io/">Amazon Reviews 2023 release’s usage conditions</a> and source attribution.</p>
+<p><strong>Defaults:</strong> All ratings count as feedback. Category-specific support filters
+keep graphs manageable while preserving evaluation users; no sampling or text
+minimum. Text fields also vary by category. Small holdouts remain flagged (†).</p>
+<p>Details: <a class="reference internal" href="amazon-profiling.html"><span class="doc">Amazon default-setting audit</span></a>, <a class="reference internal" href="amazon-metadata.html"><span class="doc">Amazon text and image coverage</span></a>, and
+<a class="reference download internal" download="" href="_downloads/dcef876516dc7cb1b65edd01db647a58/amazon-default-profiles.json"><code class="xref download docutils literal notranslate"><span class="pre">measured</span> <span class="pre">profiles</span></code></a>.</p>
+<table class="docutils align-default" id="id5">
+<caption><span class="caption-text">Installed category-specific Amazon support defaults</span><a class="headerlink" href="#id5" title="Link to this table"></a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Category</p></th>
+<th class="head"><p>User split</p></th>
+<th class="head"><p>Item split</p></th>
+<th class="head"><p>Leave-last-out</p></th>
+<th class="head"><p>Temporal</p></th>
+<th class="head"><p>Item metadata (union of splits)</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>All_Beauty</p></td>
+<td><div class="line-block">
+<div class="line">2/2</div>
+<div class="line">22,634 users</div>
+<div class="line">12,105 items</div>
+<div class="line">Val: 2,097 users</div>
+<div class="line">1,826 items / 0.00% cold</div>
+<div class="line">Test: 2,068 users</div>
+<div class="line">1,854 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">2/2</div>
+<div class="line">22,634 users</div>
+<div class="line">12,105 items</div>
+<div class="line">Val: 2,414 users</div>
+<div class="line">602 items / 100.00% cold</div>
+<div class="line">Test: 4,813 users</div>
+<div class="line">1,203 items / 100.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">4/1</div>
+<div class="line">2,909 users</div>
+<div class="line">10,266 items</div>
+<div class="line">Val: 2,909 users</div>
+<div class="line">2,503 items / 60.53% cold</div>
+<div class="line">Test: 2,909 users</div>
+<div class="line">2,487 items / 64.41% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">3/1</div>
+<div class="line">3,622 users</div>
+<div class="line">10,734 items</div>
+<div class="line">Val: 1,410 users</div>
+<div class="line">1,657 items / 81.11% cold</div>
+<div class="line">Test: 670 users †</div>
+<div class="line">618 items / 89.97% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">Union: 18,755 items</div>
+<div class="line">≥1 image: 18,755 (100.00%)</div>
+<div class="line">≥10 words: 18,528 (98.79%)</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p>Amazon_Fashion</p></td>
+<td><div class="line-block">
+<div class="line">2/4</div>
+<div class="line">35,714 users</div>
+<div class="line">10,217 items</div>
+<div class="line">Val: 3,551 users</div>
+<div class="line">2,779 items / 0.00% cold</div>
+<div class="line">Test: 3,560 users</div>
+<div class="line">2,692 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">2/4</div>
+<div class="line">35,714 users</div>
+<div class="line">10,217 items</div>
+<div class="line">Val: 3,762 users</div>
+<div class="line">511 items / 100.00% cold</div>
+<div class="line">Test: 6,772 users</div>
+<div class="line">1,022 items / 100.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">4/2</div>
+<div class="line">1,717 users</div>
+<div class="line">4,098 items</div>
+<div class="line">Val: 1,717 users</div>
+<div class="line">1,292 items / 15.48% cold</div>
+<div class="line">Test: 1,717 users</div>
+<div class="line">1,190 items / 21.18% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">2/2</div>
+<div class="line">3,157 users</div>
+<div class="line">4,080 items</div>
+<div class="line">Val: 1,116 users</div>
+<div class="line">673 items / 72.07% cold</div>
+<div class="line">Test: 791 users †</div>
+<div class="line">467 items / 80.09% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">Union: 13,201 items</div>
+<div class="line">≥1 image: 13,201 (100.00%)</div>
+<div class="line">≥10 words: 13,093 (99.18%)</div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p>Appliances</p></td>
+<td><div class="line-block">
+<div class="line">3/2</div>
+<div class="line">52,101 users</div>
+<div class="line">19,327 items</div>
+<div class="line">Val: 4,872 users</div>
+<div class="line">3,391 items / 0.00% cold</div>
+<div class="line">Test: 4,859 users</div>
+<div class="line">3,277 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">3/2</div>
+<div class="line">52,101 users</div>
+<div class="line">19,327 items</div>
+<div class="line">Val: 9,980 users</div>
+<div class="line">967 items / 100.00% cold</div>
+<div class="line">Test: 16,170 users</div>
+<div class="line">1,933 items / 100.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">4/2</div>
+<div class="line">14,826 users</div>
+<div class="line">10,896 items</div>
+<div class="line">Val: 14,826 users</div>
+<div class="line">6,274 items / 14.87% cold</div>
+<div class="line">Test: 14,826 users</div>
+<div class="line">6,215 items / 17.28% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">2/2</div>
+<div class="line">71,639 users</div>
+<div class="line">16,820 items</div>
+<div class="line">Val: 28,766 users</div>
+<div class="line">8,307 items / 37.52% cold</div>
+<div class="line">Test: 20,484 users</div>
+<div class="line">7,199 items / 47.84% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">Union: 22,334 items</div>
+<div class="line">≥1 image: 22,334 (100.00%)</div>
+<div class="line">≥10 words: 22,323 (99.95%)</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p>Arts_Crafts_and_Sewing</p></td>
+<td><div class="line-block">
+<div class="line">5/16</div>
+<div class="line">97,533 users</div>
+<div class="line">18,043 items</div>
+<div class="line">Val: 5,000 users</div>
+<div class="line">6,506 items / 0.00% cold</div>
+<div class="line">Test: 5,000 users</div>
+<div class="line">6,613 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">5/16</div>
+<div class="line">97,533 users</div>
+<div class="line">18,043 items</div>
+<div class="line">Val: 31,814 users</div>
+<div class="line">903 items / 100.00% cold</div>
+<div class="line">Test: 52,915 users</div>
+<div class="line">1,805 items / 100.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">5/16</div>
+<div class="line">97,533 users</div>
+<div class="line">18,043 items</div>
+<div class="line">Val: 97,533 users</div>
+<div class="line">16,863 items / 0.00% cold</div>
+<div class="line">Test: 97,533 users</div>
+<div class="line">16,459 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">3/12</div>
+<div class="line">96,749 users</div>
+<div class="line">12,713 items</div>
+<div class="line">Val: 42,979 users</div>
+<div class="line">9,307 items / 21.85% cold</div>
+<div class="line">Test: 29,693 users</div>
+<div class="line">9,221 items / 37.64% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">Union: 19,690 items</div>
+<div class="line">≥1 image: 19,680 (99.95%)</div>
+<div class="line">≥10 words: 19,688 (99.99%)</div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p>Automotive</p></td>
+<td><div class="line-block">
+<div class="line">7/25</div>
+<div class="line">99,264 users</div>
+<div class="line">16,079 items</div>
+<div class="line">Val: 5,000 users</div>
+<div class="line">7,492 items / 0.00% cold</div>
+<div class="line">Test: 5,000 users</div>
+<div class="line">7,574 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">7/25</div>
+<div class="line">99,264 users</div>
+<div class="line">16,079 items</div>
+<div class="line">Val: 42,440 users</div>
+<div class="line">804 items / 100.00% cold</div>
+<div class="line">Test: 66,549 users</div>
+<div class="line">1,608 items / 100.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">7/25</div>
+<div class="line">99,264 users</div>
+<div class="line">16,079 items</div>
+<div class="line">Val: 99,264 users</div>
+<div class="line">15,101 items / 0.00% cold</div>
+<div class="line">Test: 99,264 users</div>
+<div class="line">14,639 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">6/12</div>
+<div class="line">86,556 users</div>
+<div class="line">19,182 items</div>
+<div class="line">Val: 49,082 users</div>
+<div class="line">15,181 items / 25.95% cold</div>
+<div class="line">Test: 30,194 users</div>
+<div class="line">12,891 items / 29.71% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">Union: 20,809 items</div>
+<div class="line">≥1 image: 20,808 (&gt;99.99%)</div>
+<div class="line">≥10 words: 20,808 (&gt;99.99%)</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p>Baby_Products</p></td>
+<td><div class="line-block">
+<div class="line">6/9</div>
+<div class="line">85,240 users</div>
+<div class="line">17,987 items</div>
+<div class="line">Val: 5,000 users</div>
+<div class="line">6,029 items / 0.00% cold</div>
+<div class="line">Test: 5,000 users</div>
+<div class="line">6,056 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">6/9</div>
+<div class="line">85,240 users</div>
+<div class="line">17,987 items</div>
+<div class="line">Val: 29,585 users</div>
+<div class="line">900 items / 100.00% cold</div>
+<div class="line">Test: 49,964 users</div>
+<div class="line">1,799 items / 100.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">6/9</div>
+<div class="line">85,240 users</div>
+<div class="line">17,987 items</div>
+<div class="line">Val: 85,240 users</div>
+<div class="line">14,115 items / 0.03% cold</div>
+<div class="line">Test: 85,240 users</div>
+<div class="line">13,560 items / 0.03% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">3/7</div>
+<div class="line">95,735 users</div>
+<div class="line">13,365 items</div>
+<div class="line">Val: 38,591 users</div>
+<div class="line">7,822 items / 22.00% cold</div>
+<div class="line">Test: 25,313 users</div>
+<div class="line">8,198 items / 43.40% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">Union: 20,108 items</div>
+<div class="line">≥1 image: 20,105 (99.99%)</div>
+<div class="line">≥10 words: 20,103 (99.98%)</div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p>Beauty_and_Personal_Care</p></td>
+<td><div class="line-block">
+<div class="line">8/25</div>
+<div class="line">95,840 users</div>
+<div class="line">16,817 items</div>
+<div class="line">Val: 5,000 users</div>
+<div class="line">7,981 items / 0.00% cold</div>
+<div class="line">Test: 5,000 users</div>
+<div class="line">8,008 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">8/25</div>
+<div class="line">95,840 users</div>
+<div class="line">16,817 items</div>
+<div class="line">Val: 44,765 users</div>
+<div class="line">841 items / 100.00% cold</div>
+<div class="line">Test: 66,388 users</div>
+<div class="line">1,682 items / 100.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">8/25</div>
+<div class="line">95,840 users</div>
+<div class="line">16,817 items</div>
+<div class="line">Val: 95,840 users</div>
+<div class="line">15,180 items / 0.00% cold</div>
+<div class="line">Test: 95,840 users</div>
+<div class="line">14,750 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">6/18</div>
+<div class="line">95,044 users</div>
+<div class="line">14,656 items</div>
+<div class="line">Val: 50,440 users</div>
+<div class="line">9,685 items / 28.90% cold</div>
+<div class="line">Test: 40,215 users</div>
+<div class="line">11,789 items / 48.75% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">Union: 19,153 items</div>
+<div class="line">≥1 image: 19,153 (100.00%)</div>
+<div class="line">≥10 words: 19,153 (100.00%)</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p>Books</p></td>
+<td><div class="line-block">
+<div class="line">5/17</div>
+<div class="line">428,352 users</div>
+<div class="line">94,864 items</div>
+<div class="line">Val: 20,000 users</div>
+<div class="line">31,567 items / 0.00% cold</div>
+<div class="line">Test: 20,000 users</div>
+<div class="line">32,453 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">5/17</div>
+<div class="line">428,352 users</div>
+<div class="line">94,864 items</div>
+<div class="line">Val: 161,770 users</div>
+<div class="line">4,744 items / 100.00% cold</div>
+<div class="line">Test: 241,076 users</div>
+<div class="line">9,487 items / 100.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">5/17</div>
+<div class="line">428,352 users</div>
+<div class="line">94,864 items</div>
+<div class="line">Val: 428,352 users</div>
+<div class="line">80,327 items / 0.04% cold</div>
+<div class="line">Test: 428,352 users</div>
+<div class="line">76,778 items / 0.05% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">6/6</div>
+<div class="line">112,433 users</div>
+<div class="line">96,465 items</div>
+<div class="line">Val: 63,581 users</div>
+<div class="line">37,923 items / 28.87% cold</div>
+<div class="line">Test: 41,812 users</div>
+<div class="line">26,194 items / 40.21% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">Union: 127,961 items</div>
+<div class="line">≥1 image: 113,452 (88.66%)</div>
+<div class="line">≥10 words: 127,913 (99.96%)</div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p>CDs_and_Vinyl</p></td>
+<td><div class="line-block">
+<div class="line">5/16</div>
+<div class="line">66,625 users</div>
+<div class="line">18,586 items</div>
+<div class="line">Val: 5,000 users</div>
+<div class="line">8,295 items / 0.00% cold</div>
+<div class="line">Test: 5,000 users</div>
+<div class="line">8,493 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">5/16</div>
+<div class="line">66,625 users</div>
+<div class="line">18,586 items</div>
+<div class="line">Val: 24,546 users</div>
+<div class="line">930 items / 100.00% cold</div>
+<div class="line">Test: 38,473 users</div>
+<div class="line">1,859 items / 100.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">5/16</div>
+<div class="line">66,625 users</div>
+<div class="line">18,586 items</div>
+<div class="line">Val: 66,625 users</div>
+<div class="line">16,271 items / &lt;0.01% cold</div>
+<div class="line">Test: 66,625 users</div>
+<div class="line">16,039 items / 0.01% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">2/5</div>
+<div class="line">29,237 users</div>
+<div class="line">13,650 items</div>
+<div class="line">Val: 13,120 users</div>
+<div class="line">6,986 items / 22.70% cold</div>
+<div class="line">Test: 6,481 users</div>
+<div class="line">4,566 items / 24.11% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">Union: 23,072 items</div>
+<div class="line">≥1 image: 23,054 (99.92%)</div>
+<div class="line">≥10 words: 23,072 (100.00%)</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p>Cell_Phones_and_Accessories</p></td>
+<td><div class="line-block">
+<div class="line">6/13</div>
+<div class="line">92,781 users</div>
+<div class="line">19,322 items</div>
+<div class="line">Val: 5,000 users</div>
+<div class="line">6,692 items / 0.00% cold</div>
+<div class="line">Test: 5,000 users</div>
+<div class="line">6,736 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">6/13</div>
+<div class="line">92,781 users</div>
+<div class="line">19,322 items</div>
+<div class="line">Val: 28,616 users</div>
+<div class="line">967 items / 100.00% cold</div>
+<div class="line">Test: 52,067 users</div>
+<div class="line">1,933 items / 100.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">6/13</div>
+<div class="line">92,781 users</div>
+<div class="line">19,322 items</div>
+<div class="line">Val: 92,781 users</div>
+<div class="line">16,504 items / 0.04% cold</div>
+<div class="line">Test: 92,781 users</div>
+<div class="line">15,069 items / 0.05% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">5/8</div>
+<div class="line">89,713 users</div>
+<div class="line">19,096 items</div>
+<div class="line">Val: 41,928 users</div>
+<div class="line">7,932 items / 38.87% cold</div>
+<div class="line">Test: 35,885 users</div>
+<div class="line">10,338 items / 66.97% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">Union: 23,458 items</div>
+<div class="line">≥1 image: 23,458 (100.00%)</div>
+<div class="line">≥10 words: 23,454 (99.98%)</div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p>Clothing_Shoes_and_Jewelry</p></td>
+<td><div class="line-block">
+<div class="line">10/35</div>
+<div class="line">93,809 users</div>
+<div class="line">14,289 items</div>
+<div class="line">Val: 5,000 users</div>
+<div class="line">8,145 items / 0.00% cold</div>
+<div class="line">Test: 5,000 users</div>
+<div class="line">8,166 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">10/35</div>
+<div class="line">93,809 users</div>
+<div class="line">14,289 items</div>
+<div class="line">Val: 46,057 users</div>
+<div class="line">715 items / 100.00% cold</div>
+<div class="line">Test: 70,344 users</div>
+<div class="line">1,429 items / 100.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">10/35</div>
+<div class="line">93,809 users</div>
+<div class="line">14,289 items</div>
+<div class="line">Val: 93,809 users</div>
+<div class="line">13,220 items / 0.00% cold</div>
+<div class="line">Test: 93,809 users</div>
+<div class="line">12,877 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">10/17</div>
+<div class="line">113,384 users</div>
+<div class="line">24,824 items</div>
+<div class="line">Val: 76,251 users</div>
+<div class="line">20,663 items / 54.84% cold</div>
+<div class="line">Test: 59,629 users</div>
+<div class="line">19,421 items / 57.30% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">Union: 24,842 items</div>
+<div class="line">≥1 image: 24,839 (99.99%)</div>
+<div class="line">≥10 words: 24,842 (100.00%)</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p>Digital_Music</p></td>
+<td><div class="line-block">
+<div class="line">2/2</div>
+<div class="line">2,782 users</div>
+<div class="line">2,389 items</div>
+<div class="line">Val: 254 users †</div>
+<div class="line">252 items / 0.00% cold</div>
+<div class="line">Test: 244 users †</div>
+<div class="line">240 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">2/2</div>
+<div class="line">2,782 users</div>
+<div class="line">2,389 items</div>
+<div class="line">Val: 314 users †</div>
+<div class="line">119 items / 100.00% cold</div>
+<div class="line">Test: 563 users †</div>
+<div class="line">236 items / 100.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">4/1</div>
+<div class="line">2,243 users</div>
+<div class="line">16,240 items</div>
+<div class="line">Val: 2,243 users</div>
+<div class="line">2,184 items / 85.21% cold</div>
+<div class="line">Test: 2,243 users</div>
+<div class="line">2,177 items / 86.08% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">2/1</div>
+<div class="line">2,115 users</div>
+<div class="line">8,154 items</div>
+<div class="line">Val: 862 users †</div>
+<div class="line">1,121 items / 92.51% cold</div>
+<div class="line">Test: 604 users †</div>
+<div class="line">735 items / 93.61% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">Union: 18,995 items</div>
+<div class="line">≥1 image: 18,995 (100.00%)</div>
+<div class="line">≥10 words: 16,956 (89.27%)</div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p>Electronics</p></td>
+<td><div class="line-block">
+<div class="line">8/16</div>
+<div class="line">494,089 users</div>
+<div class="line">92,180 items</div>
+<div class="line">Val: 20,000 users</div>
+<div class="line">31,288 items / 0.00% cold</div>
+<div class="line">Test: 20,000 users</div>
+<div class="line">31,489 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">8/16</div>
+<div class="line">494,089 users</div>
+<div class="line">92,180 items</div>
+<div class="line">Val: 224,865 users</div>
+<div class="line">4,609 items / 100.00% cold</div>
+<div class="line">Test: 347,160 users</div>
+<div class="line">9,218 items / 100.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">8/16</div>
+<div class="line">494,089 users</div>
+<div class="line">92,180 items</div>
+<div class="line">Val: 494,089 users</div>
+<div class="line">72,119 items / &lt;0.01% cold</div>
+<div class="line">Test: 494,089 users</div>
+<div class="line">66,509 items / &lt;0.01% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">6/12</div>
+<div class="line">484,391 users</div>
+<div class="line">78,239 items</div>
+<div class="line">Val: 252,303 users</div>
+<div class="line">39,800 items / 21.04% cold</div>
+<div class="line">Test: 177,638 users</div>
+<div class="line">40,647 items / 40.37% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">Union: 99,261 items</div>
+<div class="line">≥1 image: 99,256 (&gt;99.99%)</div>
+<div class="line">≥10 words: 99,242 (99.98%)</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p>Gift_Cards</p></td>
+<td><div class="line-block">
+<div class="line">2/1</div>
+<div class="line">11,426 users</div>
+<div class="line">749 items</div>
+<div class="line">Val: 1,135 users</div>
+<div class="line">230 items / 0.00% cold</div>
+<div class="line">Test: 1,131 users</div>
+<div class="line">240 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">2/2</div>
+<div class="line">11,333 users</div>
+<div class="line">575 items</div>
+<div class="line">Val: 2,285 users</div>
+<div class="line">29 items / 100.00% cold</div>
+<div class="line">Test: 1,445 users</div>
+<div class="line">58 items / 100.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">4/1</div>
+<div class="line">1,201 users</div>
+<div class="line">503 items</div>
+<div class="line">Val: 1,201 users</div>
+<div class="line">253 items / 14.62% cold</div>
+<div class="line">Test: 1,201 users</div>
+<div class="line">244 items / 14.75% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">2/1</div>
+<div class="line">2,313 users</div>
+<div class="line">421 items</div>
+<div class="line">Val: 1,092 users</div>
+<div class="line">123 items / 28.46% cold</div>
+<div class="line">Test: 577 users †</div>
+<div class="line">120 items / 38.33% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">Union: 749 items</div>
+<div class="line">≥1 image: 749 (100.00%)</div>
+<div class="line">≥10 words: 748 (99.87%)</div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p>Grocery_and_Gourmet_Food</p></td>
+<td><div class="line-block">
+<div class="line">7/24</div>
+<div class="line">98,300 users</div>
+<div class="line">16,735 items</div>
+<div class="line">Val: 5,000 users</div>
+<div class="line">7,768 items / 0.00% cold</div>
+<div class="line">Test: 5,000 users</div>
+<div class="line">7,813 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">7/24</div>
+<div class="line">98,300 users</div>
+<div class="line">16,735 items</div>
+<div class="line">Val: 42,173 users</div>
+<div class="line">837 items / 100.00% cold</div>
+<div class="line">Test: 63,925 users</div>
+<div class="line">1,674 items / 100.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">7/24</div>
+<div class="line">98,300 users</div>
+<div class="line">16,735 items</div>
+<div class="line">Val: 98,300 users</div>
+<div class="line">15,347 items / 0.00% cold</div>
+<div class="line">Test: 98,300 users</div>
+<div class="line">14,851 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">6/13</div>
+<div class="line">86,148 users</div>
+<div class="line">19,238 items</div>
+<div class="line">Val: 50,360 users</div>
+<div class="line">14,478 items / 32.93% cold</div>
+<div class="line">Test: 34,731 users</div>
+<div class="line">13,429 items / 39.73% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">Union: 21,273 items</div>
+<div class="line">≥1 image: 21,262 (99.95%)</div>
+<div class="line">≥10 words: 21,266 (99.97%)</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p>Handmade_Products</p></td>
+<td><div class="line-block">
+<div class="line">2/2</div>
+<div class="line">22,156 users</div>
+<div class="line">11,878 items</div>
+<div class="line">Val: 2,006 users</div>
+<div class="line">1,725 items / 0.00% cold</div>
+<div class="line">Test: 2,040 users</div>
+<div class="line">1,788 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">2/2</div>
+<div class="line">22,156 users</div>
+<div class="line">11,878 items</div>
+<div class="line">Val: 2,335 users</div>
+<div class="line">587 items / 100.00% cold</div>
+<div class="line">Test: 4,283 users</div>
+<div class="line">1,180 items / 100.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">4/1</div>
+<div class="line">3,716 users</div>
+<div class="line">14,723 items</div>
+<div class="line">Val: 3,716 users</div>
+<div class="line">3,350 items / 76.24% cold</div>
+<div class="line">Test: 3,716 users</div>
+<div class="line">3,347 items / 77.14% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">3/1</div>
+<div class="line">3,774 users</div>
+<div class="line">11,710 items</div>
+<div class="line">Val: 1,410 users</div>
+<div class="line">2,029 items / 88.66% cold</div>
+<div class="line">Test: 1,251 users</div>
+<div class="line">1,708 items / 92.62% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">Union: 23,704 items</div>
+<div class="line">≥1 image: 23,704 (100.00%)</div>
+<div class="line">≥10 words: 23,703 (&gt;99.99%)</div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p>Health_and_Household</p></td>
+<td><div class="line-block">
+<div class="line">10/20</div>
+<div class="line">84,204 users</div>
+<div class="line">19,922 items</div>
+<div class="line">Val: 5,000 users</div>
+<div class="line">9,180 items / 0.00% cold</div>
+<div class="line">Test: 5,000 users</div>
+<div class="line">8,986 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">10/20</div>
+<div class="line">84,204 users</div>
+<div class="line">19,922 items</div>
+<div class="line">Val: 44,334 users</div>
+<div class="line">997 items / 100.00% cold</div>
+<div class="line">Test: 63,720 users</div>
+<div class="line">1,993 items / 100.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">10/20</div>
+<div class="line">84,204 users</div>
+<div class="line">19,922 items</div>
+<div class="line">Val: 84,204 users</div>
+<div class="line">16,439 items / 0.00% cold</div>
+<div class="line">Test: 84,204 users</div>
+<div class="line">15,703 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">8/15</div>
+<div class="line">88,598 users</div>
+<div class="line">19,907 items</div>
+<div class="line">Val: 50,052 users</div>
+<div class="line">13,166 items / 26.50% cold</div>
+<div class="line">Test: 38,620 users</div>
+<div class="line">14,545 items / 44.23% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">Union: 23,856 items</div>
+<div class="line">≥1 image: 23,856 (100.00%)</div>
+<div class="line">≥10 words: 23,856 (100.00%)</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p>Health_and_Personal_Care</p></td>
+<td><div class="line-block">
+<div class="line">2/1</div>
+<div class="line">18,396 users</div>
+<div class="line">17,288 items</div>
+<div class="line">Val: 1,041 users</div>
+<div class="line">940 items / 0.00% cold</div>
+<div class="line">Test: 1,038 users</div>
+<div class="line">877 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">2/1</div>
+<div class="line">18,396 users</div>
+<div class="line">17,288 items</div>
+<div class="line">Val: 1,758 users</div>
+<div class="line">784 items / 100.00% cold</div>
+<div class="line">Test: 3,890 users</div>
+<div class="line">1,585 items / 100.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">4/1</div>
+<div class="line">1,109 users</div>
+<div class="line">3,448 items</div>
+<div class="line">Val: 1,109 users</div>
+<div class="line">911 items / 42.26% cold</div>
+<div class="line">Test: 1,109 users</div>
+<div class="line">857 items / 47.37% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">2/1</div>
+<div class="line">5,291 users</div>
+<div class="line">7,604 items</div>
+<div class="line">Val: 2,100 users</div>
+<div class="line">1,603 items / 72.99% cold</div>
+<div class="line">Test: 1,040 users</div>
+<div class="line">762 items / 77.30% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">Union: 17,288 items</div>
+<div class="line">≥1 image: 17,288 (100.00%)</div>
+<div class="line">≥10 words: 16,849 (97.46%)</div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p>Home_and_Kitchen</p></td>
+<td><div class="line-block">
+<div class="line">12/35</div>
+<div class="line">96,909 users</div>
+<div class="line">17,431 items</div>
+<div class="line">Val: 5,000 users</div>
+<div class="line">9,721 items / 0.00% cold</div>
+<div class="line">Test: 5,000 users</div>
+<div class="line">9,750 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">12/35</div>
+<div class="line">96,909 users</div>
+<div class="line">17,431 items</div>
+<div class="line">Val: 51,957 users</div>
+<div class="line">872 items / 100.00% cold</div>
+<div class="line">Test: 78,055 users</div>
+<div class="line">1,744 items / 100.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">12/35</div>
+<div class="line">96,909 users</div>
+<div class="line">17,431 items</div>
+<div class="line">Val: 96,909 users</div>
+<div class="line">15,181 items / 0.00% cold</div>
+<div class="line">Test: 96,909 users</div>
+<div class="line">14,374 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">10/25</div>
+<div class="line">93,903 users</div>
+<div class="line">14,879 items</div>
+<div class="line">Val: 53,997 users</div>
+<div class="line">11,264 items / 20.23% cold</div>
+<div class="line">Test: 38,614 users</div>
+<div class="line">10,726 items / 28.82% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">Union: 18,990 items</div>
+<div class="line">≥1 image: 18,990 (100.00%)</div>
+<div class="line">≥10 words: 18,990 (100.00%)</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p>Industrial_and_Scientific</p></td>
+<td><div class="line-block">
+<div class="line">4/8</div>
+<div class="line">74,487 users</div>
+<div class="line">19,251 items</div>
+<div class="line">Val: 5,000 users</div>
+<div class="line">5,348 items / 0.00% cold</div>
+<div class="line">Test: 5,000 users</div>
+<div class="line">5,350 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">4/8</div>
+<div class="line">74,487 users</div>
+<div class="line">19,251 items</div>
+<div class="line">Val: 17,942 users</div>
+<div class="line">963 items / 100.00% cold</div>
+<div class="line">Test: 33,333 users</div>
+<div class="line">1,926 items / 100.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">4/8</div>
+<div class="line">74,487 users</div>
+<div class="line">19,251 items</div>
+<div class="line">Val: 74,487 users</div>
+<div class="line">16,742 items / 0.12% cold</div>
+<div class="line">Test: 74,487 users</div>
+<div class="line">16,000 items / 0.14% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">3/5</div>
+<div class="line">66,901 users</div>
+<div class="line">17,690 items</div>
+<div class="line">Val: 31,809 users</div>
+<div class="line">10,279 items / 36.56% cold</div>
+<div class="line">Test: 23,291 users</div>
+<div class="line">10,034 items / 52.33% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">Union: 22,281 items</div>
+<div class="line">≥1 image: 22,281 (100.00%)</div>
+<div class="line">≥10 words: 22,278 (99.99%)</div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p>Kindle_Store</p></td>
+<td><div class="line-block">
+<div class="line">12/76</div>
+<div class="line">98,841 users</div>
+<div class="line">17,800 items</div>
+<div class="line">Val: 5,000 users</div>
+<div class="line">13,209 items / 0.00% cold</div>
+<div class="line">Test: 5,000 users</div>
+<div class="line">13,406 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">12/76</div>
+<div class="line">98,841 users</div>
+<div class="line">17,800 items</div>
+<div class="line">Val: 63,226 users</div>
+<div class="line">890 items / 100.00% cold</div>
+<div class="line">Test: 85,505 users</div>
+<div class="line">1,780 items / 100.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">12/76</div>
+<div class="line">98,841 users</div>
+<div class="line">17,800 items</div>
+<div class="line">Val: 98,841 users</div>
+<div class="line">15,961 items / 0.00% cold</div>
+<div class="line">Test: 98,841 users</div>
+<div class="line">15,154 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">8/50</div>
+<div class="line">96,853 users</div>
+<div class="line">19,957 items</div>
+<div class="line">Val: 60,020 users</div>
+<div class="line">15,954 items / 16.75% cold</div>
+<div class="line">Test: 42,975 users</div>
+<div class="line">14,155 items / 24.56% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">Union: 23,549 items</div>
+<div class="line">≥1 image: 21,033 (89.32%)</div>
+<div class="line">≥10 words: 23,549 (100.00%)</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p>Magazine_Subscriptions</p></td>
+<td><div class="line-block">
+<div class="line">2/1</div>
+<div class="line">6,808 users</div>
+<div class="line">2,003 items</div>
+<div class="line">Val: 1,115 users</div>
+<div class="line">472 items / 0.00% cold</div>
+<div class="line">Test: 1,093 users</div>
+<div class="line">463 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">2/2</div>
+<div class="line">6,408 users</div>
+<div class="line">1,241 items</div>
+<div class="line">Val: 1,070 users</div>
+<div class="line">63 items / 100.00% cold</div>
+<div class="line">Test: 1,594 users</div>
+<div class="line">124 items / 100.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">4/1</div>
+<div class="line">797 users</div>
+<div class="line">1,110 items</div>
+<div class="line">Val: 797 users †</div>
+<div class="line">353 items / 25.21% cold</div>
+<div class="line">Test: 797 users †</div>
+<div class="line">381 items / 30.45% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">2/1</div>
+<div class="line">458 users</div>
+<div class="line">522 items</div>
+<div class="line">Val: 151 users †</div>
+<div class="line">117 items / 45.30% cold</div>
+<div class="line">Test: 74 users †</div>
+<div class="line">66 items / 33.33% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">Union: 2,003 items</div>
+<div class="line">≥1 image: 2,003 (100.00%)</div>
+<div class="line">≥10 words: 1,870 (93.36%)</div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p>Movies_and_TV</p></td>
+<td><div class="line-block">
+<div class="line">10/36</div>
+<div class="line">97,871 users</div>
+<div class="line">18,324 items</div>
+<div class="line">Val: 5,000 users</div>
+<div class="line">10,254 items / 0.00% cold</div>
+<div class="line">Test: 5,000 users</div>
+<div class="line">10,070 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">10/36</div>
+<div class="line">97,871 users</div>
+<div class="line">18,324 items</div>
+<div class="line">Val: 50,964 users</div>
+<div class="line">917 items / 100.00% cold</div>
+<div class="line">Test: 76,392 users</div>
+<div class="line">1,833 items / 100.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">10/36</div>
+<div class="line">97,871 users</div>
+<div class="line">18,324 items</div>
+<div class="line">Val: 97,871 users</div>
+<div class="line">16,454 items / 0.00% cold</div>
+<div class="line">Test: 97,871 users</div>
+<div class="line">15,927 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">5/12</div>
+<div class="line">60,122 users</div>
+<div class="line">17,522 items</div>
+<div class="line">Val: 31,406 users</div>
+<div class="line">10,612 items / 18.37% cold</div>
+<div class="line">Test: 16,203 users</div>
+<div class="line">6,941 items / 23.51% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">Union: 24,791 items</div>
+<div class="line">≥1 image: 24,791 (100.00%)</div>
+<div class="line">≥10 words: 24,636 (99.37%)</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p>Musical_Instruments</p></td>
+<td><div class="line-block">
+<div class="line">5/7</div>
+<div class="line">50,431 users</div>
+<div class="line">16,766 items</div>
+<div class="line">Val: 5,000 users</div>
+<div class="line">5,933 items / 0.00% cold</div>
+<div class="line">Test: 5,000 users</div>
+<div class="line">5,863 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">5/7</div>
+<div class="line">50,431 users</div>
+<div class="line">16,766 items</div>
+<div class="line">Val: 18,353 users</div>
+<div class="line">839 items / 100.00% cold</div>
+<div class="line">Test: 27,033 users</div>
+<div class="line">1,677 items / 100.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">5/7</div>
+<div class="line">50,431 users</div>
+<div class="line">16,766 items</div>
+<div class="line">Val: 50,431 users</div>
+<div class="line">12,985 items / 0.05% cold</div>
+<div class="line">Test: 50,431 users</div>
+<div class="line">12,681 items / 0.05% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">2/5</div>
+<div class="line">77,684 users</div>
+<div class="line">15,914 items</div>
+<div class="line">Val: 32,616 users</div>
+<div class="line">10,123 items / 23.50% cold</div>
+<div class="line">Test: 23,272 users</div>
+<div class="line">9,093 items / 33.53% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">Union: 20,065 items</div>
+<div class="line">≥1 image: 20,061 (99.98%)</div>
+<div class="line">≥10 words: 20,057 (99.96%)</div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p>Office_Products</p></td>
+<td><div class="line-block">
+<div class="line">5/18</div>
+<div class="line">98,570 users</div>
+<div class="line">12,740 items</div>
+<div class="line">Val: 5,000 users</div>
+<div class="line">5,177 items / 0.00% cold</div>
+<div class="line">Test: 5,000 users</div>
+<div class="line">5,178 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">5/18</div>
+<div class="line">98,570 users</div>
+<div class="line">12,740 items</div>
+<div class="line">Val: 30,907 users</div>
+<div class="line">637 items / 100.00% cold</div>
+<div class="line">Test: 49,343 users</div>
+<div class="line">1,274 items / 100.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">5/18</div>
+<div class="line">98,570 users</div>
+<div class="line">12,740 items</div>
+<div class="line">Val: 98,570 users</div>
+<div class="line">12,194 items / 0.02% cold</div>
+<div class="line">Test: 98,570 users</div>
+<div class="line">11,905 items / 0.02% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">4/8</div>
+<div class="line">90,062 users</div>
+<div class="line">19,965 items</div>
+<div class="line">Val: 39,715 users</div>
+<div class="line">11,142 items / 22.83% cold</div>
+<div class="line">Test: 29,909 users</div>
+<div class="line">12,535 items / 47.53% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">Union: 22,096 items</div>
+<div class="line">≥1 image: 22,029 (99.70%)</div>
+<div class="line">≥10 words: 22,095 (&gt;99.99%)</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p>Patio_Lawn_and_Garden</p></td>
+<td><div class="line-block">
+<div class="line">6/21</div>
+<div class="line">98,613 users</div>
+<div class="line">14,019 items</div>
+<div class="line">Val: 5,000 users</div>
+<div class="line">6,556 items / 0.00% cold</div>
+<div class="line">Test: 5,000 users</div>
+<div class="line">6,539 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">6/21</div>
+<div class="line">98,613 users</div>
+<div class="line">14,019 items</div>
+<div class="line">Val: 33,334 users</div>
+<div class="line">701 items / 100.00% cold</div>
+<div class="line">Test: 55,849 users</div>
+<div class="line">1,402 items / 100.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">6/21</div>
+<div class="line">98,613 users</div>
+<div class="line">14,019 items</div>
+<div class="line">Val: 98,613 users</div>
+<div class="line">13,333 items / 0.00% cold</div>
+<div class="line">Test: 98,613 users</div>
+<div class="line">12,826 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">5/13</div>
+<div class="line">89,415 users</div>
+<div class="line">14,329 items</div>
+<div class="line">Val: 52,279 users</div>
+<div class="line">10,667 items / 35.60% cold</div>
+<div class="line">Test: 28,043 users</div>
+<div class="line">9,718 items / 46.72% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">Union: 17,357 items</div>
+<div class="line">≥1 image: 17,352 (99.97%)</div>
+<div class="line">≥10 words: 17,357 (100.00%)</div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p>Pet_Supplies</p></td>
+<td><div class="line-block">
+<div class="line">10/16</div>
+<div class="line">89,150 users</div>
+<div class="line">19,880 items</div>
+<div class="line">Val: 5,000 users</div>
+<div class="line">8,436 items / 0.00% cold</div>
+<div class="line">Test: 5,000 users</div>
+<div class="line">8,533 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">10/16</div>
+<div class="line">89,150 users</div>
+<div class="line">19,880 items</div>
+<div class="line">Val: 46,784 users</div>
+<div class="line">994 items / 100.00% cold</div>
+<div class="line">Test: 68,722 users</div>
+<div class="line">1,988 items / 100.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">10/16</div>
+<div class="line">89,150 users</div>
+<div class="line">19,880 items</div>
+<div class="line">Val: 89,150 users</div>
+<div class="line">16,106 items / 0.00% cold</div>
+<div class="line">Test: 89,150 users</div>
+<div class="line">15,361 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">8/12</div>
+<div class="line">88,279 users</div>
+<div class="line">18,400 items</div>
+<div class="line">Val: 47,781 users</div>
+<div class="line">11,921 items / 19.44% cold</div>
+<div class="line">Test: 34,883 users</div>
+<div class="line">12,385 items / 36.15% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">Union: 22,828 items</div>
+<div class="line">≥1 image: 22,824 (99.98%)</div>
+<div class="line">≥10 words: 22,825 (99.99%)</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p>Software</p></td>
+<td><div class="line-block">
+<div class="line">6/6</div>
+<div class="line">98,634 users</div>
+<div class="line">13,664 items</div>
+<div class="line">Val: 5,000 users</div>
+<div class="line">4,254 items / 0.00% cold</div>
+<div class="line">Test: 5,000 users</div>
+<div class="line">4,129 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">6/6</div>
+<div class="line">98,634 users</div>
+<div class="line">13,664 items</div>
+<div class="line">Val: 34,962 users</div>
+<div class="line">684 items / 100.00% cold</div>
+<div class="line">Test: 62,676 users</div>
+<div class="line">1,367 items / 100.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">6/6</div>
+<div class="line">98,634 users</div>
+<div class="line">13,664 items</div>
+<div class="line">Val: 98,634 users</div>
+<div class="line">9,800 items / 0.17% cold</div>
+<div class="line">Test: 98,634 users</div>
+<div class="line">9,400 items / 0.27% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">2/2</div>
+<div class="line">76,101 users</div>
+<div class="line">14,548 items</div>
+<div class="line">Val: 29,981 users</div>
+<div class="line">5,902 items / 22.89% cold</div>
+<div class="line">Test: 14,134 users</div>
+<div class="line">3,762 items / 24.83% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">Union: 18,322 items</div>
+<div class="line">≥1 image: 18,321 (&gt;99.99%)</div>
+<div class="line">≥10 words: 18,318 (99.98%)</div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p>Sports_and_Outdoors</p></td>
+<td><div class="line-block">
+<div class="line">6/17</div>
+<div class="line">99,084 users</div>
+<div class="line">19,023 items</div>
+<div class="line">Val: 5,000 users</div>
+<div class="line">7,398 items / 0.00% cold</div>
+<div class="line">Test: 5,000 users</div>
+<div class="line">7,431 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">6/17</div>
+<div class="line">99,084 users</div>
+<div class="line">19,023 items</div>
+<div class="line">Val: 35,955 users</div>
+<div class="line">952 items / 100.00% cold</div>
+<div class="line">Test: 55,955 users</div>
+<div class="line">1,903 items / 100.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">6/17</div>
+<div class="line">99,084 users</div>
+<div class="line">19,023 items</div>
+<div class="line">Val: 99,084 users</div>
+<div class="line">17,601 items / 0.00% cold</div>
+<div class="line">Test: 99,084 users</div>
+<div class="line">16,816 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">5/9</div>
+<div class="line">61,892 users</div>
+<div class="line">18,592 items</div>
+<div class="line">Val: 29,250 users</div>
+<div class="line">10,372 items / 24.21% cold</div>
+<div class="line">Test: 20,849 users</div>
+<div class="line">11,653 items / 48.85% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">Union: 25,641 items</div>
+<div class="line">≥1 image: 25,641 (100.00%)</div>
+<div class="line">≥10 words: 25,637 (99.98%)</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p>Subscription_Boxes</p></td>
+<td><div class="line-block">
+<div class="line">2/1</div>
+<div class="line">572 users</div>
+<div class="line">327 items</div>
+<div class="line">Val: 42 users †</div>
+<div class="line">28 items / 0.00% cold</div>
+<div class="line">Test: 47 users †</div>
+<div class="line">36 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">2/1</div>
+<div class="line">572 users</div>
+<div class="line">327 items</div>
+<div class="line">Val: 56 users †</div>
+<div class="line">16 items / 100.00% cold</div>
+<div class="line">Test: 141 users †</div>
+<div class="line">31 items / 100.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">4/1</div>
+<div class="line">24 users</div>
+<div class="line">86 items</div>
+<div class="line">Val: 24 users †</div>
+<div class="line">23 items / 78.26% cold</div>
+<div class="line">Test: 24 users †</div>
+<div class="line">21 items / 95.24% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">2/1</div>
+<div class="line">152 users</div>
+<div class="line">191 items</div>
+<div class="line">Val: 59 users †</div>
+<div class="line">62 items / 77.42% cold</div>
+<div class="line">Test: 42 users †</div>
+<div class="line">34 items / 88.24% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">Union: 327 items</div>
+<div class="line">≥1 image: 327 (100.00%)</div>
+<div class="line">≥10 words: 326 (99.69%)</div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p>Tools_and_Home_Improvement</p></td>
+<td><div class="line-block">
+<div class="line">8/26</div>
+<div class="line">94,834 users</div>
+<div class="line">17,307 items</div>
+<div class="line">Val: 5,000 users</div>
+<div class="line">8,377 items / 0.00% cold</div>
+<div class="line">Test: 5,000 users</div>
+<div class="line">8,199 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">8/26</div>
+<div class="line">94,834 users</div>
+<div class="line">17,307 items</div>
+<div class="line">Val: 45,023 users</div>
+<div class="line">866 items / 100.00% cold</div>
+<div class="line">Test: 66,710 users</div>
+<div class="line">1,731 items / 100.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">8/26</div>
+<div class="line">94,834 users</div>
+<div class="line">17,307 items</div>
+<div class="line">Val: 94,834 users</div>
+<div class="line">15,754 items / 0.00% cold</div>
+<div class="line">Test: 94,834 users</div>
+<div class="line">15,151 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">6/18</div>
+<div class="line">99,815 users</div>
+<div class="line">15,514 items</div>
+<div class="line">Val: 52,511 users</div>
+<div class="line">11,518 items / 21.32% cold</div>
+<div class="line">Test: 37,242 users</div>
+<div class="line">11,481 items / 33.10% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">Union: 19,936 items</div>
+<div class="line">≥1 image: 19,935 (&gt;99.99%)</div>
+<div class="line">≥10 words: 19,936 (100.00%)</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p>Toys_and_Games</p></td>
+<td><div class="line-block">
+<div class="line">6/22</div>
+<div class="line">98,065 users</div>
+<div class="line">15,609 items</div>
+<div class="line">Val: 5,000 users</div>
+<div class="line">7,090 items / 0.00% cold</div>
+<div class="line">Test: 5,000 users</div>
+<div class="line">7,031 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">6/22</div>
+<div class="line">98,065 users</div>
+<div class="line">15,609 items</div>
+<div class="line">Val: 34,026 users</div>
+<div class="line">781 items / 100.00% cold</div>
+<div class="line">Test: 56,767 users</div>
+<div class="line">1,561 items / 100.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">6/22</div>
+<div class="line">98,065 users</div>
+<div class="line">15,609 items</div>
+<div class="line">Val: 98,065 users</div>
+<div class="line">14,818 items / &lt;0.01% cold</div>
+<div class="line">Test: 98,065 users</div>
+<div class="line">14,342 items / &lt;0.01% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">5/10</div>
+<div class="line">55,927 users</div>
+<div class="line">17,369 items</div>
+<div class="line">Val: 23,364 users</div>
+<div class="line">8,553 items / 20.29% cold</div>
+<div class="line">Test: 20,412 users</div>
+<div class="line">11,428 items / 54.60% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">Union: 23,646 items</div>
+<div class="line">≥1 image: 23,644 (&gt;99.99%)</div>
+<div class="line">≥10 words: 23,644 (&gt;99.99%)</div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p>Video_Games</p></td>
+<td><div class="line-block">
+<div class="line">5/7</div>
+<div class="line">88,081 users</div>
+<div class="line">19,227 items</div>
+<div class="line">Val: 5,000 users</div>
+<div class="line">5,574 items / 0.00% cold</div>
+<div class="line">Test: 5,000 users</div>
+<div class="line">5,551 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">5/7</div>
+<div class="line">88,081 users</div>
+<div class="line">19,227 items</div>
+<div class="line">Val: 30,322 users</div>
+<div class="line">962 items / 100.00% cold</div>
+<div class="line">Test: 48,790 users</div>
+<div class="line">1,923 items / 100.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">5/7</div>
+<div class="line">88,081 users</div>
+<div class="line">19,227 items</div>
+<div class="line">Val: 88,081 users</div>
+<div class="line">15,526 items / 0.15% cold</div>
+<div class="line">Test: 88,081 users</div>
+<div class="line">15,042 items / 0.17% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">3/4</div>
+<div class="line">70,806 users</div>
+<div class="line">16,463 items</div>
+<div class="line">Val: 30,103 users</div>
+<div class="line">7,650 items / 29.50% cold</div>
+<div class="line">Test: 21,917 users</div>
+<div class="line">7,253 items / 48.01% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">Union: 23,083 items</div>
+<div class="line">≥1 image: 23,082 (&gt;99.99%)</div>
+<div class="line">≥10 words: 23,057 (99.89%)</div>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="steam">
+<span id="dataset-steam"></span><h2>Steam<a class="headerlink" href="#steam" title="Link to this heading"></a></h2>
+<p><strong>Loading:</strong> <code class="docutils literal notranslate"><span class="pre">dataset=&quot;steam&quot;</span></code> downloads McAuley’s review and game-metadata
+archives, then caches parsed interactions as Parquet.</p>
+<p><strong>Terms:</strong> Retain <a class="reference external" href="https://cseweb.ucsd.edu/~jmcauley/datasets.html#steam_data">upstream usage and citation information</a>.</p>
+<p><strong>Defaults:</strong> Every review, including negative ones, counts as feedback
+(BERT4Rec’s convention). Support filtering removes short histories; no text
+minimum, so missing metadata does not erase interactions.</p>
+<table class="docutils align-default" id="id6">
+<caption><span class="caption-text">Installed Steam preprocessing and split defaults</span><a class="headerlink" href="#id6" title="Link to this table"></a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Dataset / preprocessing</p></th>
+<th class="head"><p>User split</p></th>
+<th class="head"><p>Item split</p></th>
+<th class="head"><p>Leave-last-out</p></th>
+<th class="head"><p>Temporal</p></th>
+<th class="head"><p>Item metadata (union of measured splits)</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><div class="line-block">
+<div class="line">Steam</div>
+<div class="line">All feedback</div>
+<div class="line">Min text: 0 words</div>
+<div class="line">Seed: 42</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">5/1</div>
+<div class="line">281,645 users</div>
+<div class="line">15,051 items</div>
+<div class="line">Train: 261,645 users</div>
+<div class="line">Val: 9,994 users</div>
+<div class="line">4,949 items / 0.00% cold</div>
+<div class="line">Test: 9,998 users</div>
+<div class="line">4,897 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">5/1</div>
+<div class="line">281,645 users</div>
+<div class="line">15,051 items</div>
+<div class="line">Train: 281,639 users</div>
+<div class="line">Val: 98,181 users</div>
+<div class="line">753 items / 100.00% cold</div>
+<div class="line">Test: 162,161 users</div>
+<div class="line">1,506 items / 100.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">5/1</div>
+<div class="line">334,730 users</div>
+<div class="line">15,068 items</div>
+<div class="line">Train: 334,730 users</div>
+<div class="line">Val: 334,730 users</div>
+<div class="line">10,453 items / 2.06% cold</div>
+<div class="line">Test: 334,730 users</div>
+<div class="line">10,621 items / 3.29% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">5/1</div>
+<div class="line">250,498 users</div>
+<div class="line">14,965 items</div>
+<div class="line">Train: 91,041 users</div>
+<div class="line">Val: 138,434 users</div>
+<div class="line">9,904 items / 35.00% cold</div>
+<div class="line">Test: 192,164 users</div>
+<div class="line">13,781 items / 54.84% cold</div>
+<div class="line">Window: 8136 h</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">Union: 15,068 items</div>
+<div class="line">Image URLs: not exposed</div>
+<div class="line">≥10 words: 9,727 (64.55%)</div>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="netflix-prize">
+<span id="dataset-netflix"></span><h2>Netflix Prize<a class="headerlink" href="#netflix-prize" title="Link to this heading"></a></h2>
+<p><strong>Loading:</strong> <code class="docutils literal notranslate"><span class="pre">dataset=&quot;netflix&quot;</span></code> reads the original-format ratings archive
+from Internet Archive, including dates and movie titles/years.</p>
+<p><strong>Terms:</strong> Original Netflix Prize conditions apply; the
+<a class="reference external" href="https://archive.org/details/nf_prize_dataset.tar">archive mirror</a> does not
+replace those terms.</p>
+<p><strong>Defaults:</strong> MultVAE-style positive-rating and support filtering.
+No text minimum: short movie titles remain usable metadata.</p>
+<table class="docutils align-default" id="id7">
+<caption><span class="caption-text">Installed Netflix Prize preprocessing and split defaults</span><a class="headerlink" href="#id7" title="Link to this table"></a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Dataset / preprocessing</p></th>
+<th class="head"><p>User split</p></th>
+<th class="head"><p>Item split</p></th>
+<th class="head"><p>Leave-last-out</p></th>
+<th class="head"><p>Temporal</p></th>
+<th class="head"><p>Item metadata (union of measured splits)</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><div class="line-block">
+<div class="line">Netflix Prize</div>
+<div class="line">Rating ≥4</div>
+<div class="line">Min text: 0 words</div>
+<div class="line">Seed: 98765</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">5/1</div>
+<div class="line">463,435 users</div>
+<div class="line">17,769 items</div>
+<div class="line">Train: 383,435 users</div>
+<div class="line">Val: 40,000 users</div>
+<div class="line">14,546 items / 0.00% cold</div>
+<div class="line">Test: 40,000 users</div>
+<div class="line">14,474 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">5/1</div>
+<div class="line">463,435 users</div>
+<div class="line">17,769 items</div>
+<div class="line">Train: 463,434 users</div>
+<div class="line">Val: 377,662 users</div>
+<div class="line">889 items / 100.00% cold</div>
+<div class="line">Test: 440,315 users</div>
+<div class="line">1,777 items / 100.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">5/1</div>
+<div class="line">463,435 users</div>
+<div class="line">17,769 items</div>
+<div class="line">Train: 463,435 users</div>
+<div class="line">Val: 463,435 users</div>
+<div class="line">13,185 items / 0.00% cold</div>
+<div class="line">Test: 463,435 users</div>
+<div class="line">13,433 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">5/1</div>
+<div class="line">262,636 users</div>
+<div class="line">17,766 items</div>
+<div class="line">Train: 58,419 users</div>
+<div class="line">Val: 130,014 users</div>
+<div class="line">15,317 items / 22.21% cold</div>
+<div class="line">Test: 241,687 users</div>
+<div class="line">17,612 items / 31.77% cold</div>
+<div class="line">Window: 8136 h</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">Union: 17,769 items</div>
+<div class="line">Image URLs: not exposed</div>
+<div class="line">≥10 words: 581 (3.27%)</div>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="msd-taste-profile">
+<span id="dataset-taste-profile"></span><h2>MSD Taste Profile<a class="headerlink" href="#msd-taste-profile" title="Link to this heading"></a></h2>
+<p><strong>Loading:</strong> <code class="docutils literal notranslate"><span class="pre">dataset=&quot;taste-profile&quot;</span></code> downloads the original user/song
+play-count ZIP, not the full MSD audio features or metadata.</p>
+<p><strong>Terms:</strong> <a class="reference external" href="http://millionsongdataset.com/tasteprofile/">MSD / Echo Nest usage conditions</a> apply.</p>
+<p><strong>Defaults:</strong> MultVAE-style support (20 interactions per user, 200 per item)
+removes sparse tails; play counts become binary feedback. No timestamps or text.</p>
+<table class="docutils align-default" id="id8">
+<caption><span class="caption-text">Installed MSD Taste Profile preprocessing and split defaults</span><a class="headerlink" href="#id8" title="Link to this table"></a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Dataset / preprocessing</p></th>
+<th class="head"><p>User split</p></th>
+<th class="head"><p>Item split</p></th>
+<th class="head"><p>Leave-last-out</p></th>
+<th class="head"><p>Temporal</p></th>
+<th class="head"><p>Item metadata (union of measured splits)</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><div class="line-block">
+<div class="line">MSD Taste Profile</div>
+<div class="line">All feedback</div>
+<div class="line">Min text: 0 words</div>
+<div class="line">Seed: 98765</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">20/200</div>
+<div class="line">558,350 users</div>
+<div class="line">36,385 items</div>
+<div class="line">Train: 458,350 users</div>
+<div class="line">Val: 50,000 users</div>
+<div class="line">36,262 items / 0.00% cold</div>
+<div class="line">Test: 50,000 users</div>
+<div class="line">36,256 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">20/200</div>
+<div class="line">558,350 users</div>
+<div class="line">36,385 items</div>
+<div class="line">Train: 558,350 users</div>
+<div class="line">Val: 478,324 users</div>
+<div class="line">1,820 items / 100.00% cold</div>
+<div class="line">Test: 543,782 users</div>
+<div class="line">3,639 items / 100.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">Not supported</div>
+<div class="line">No interaction timestamps</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">Not supported</div>
+<div class="line">No interaction timestamps</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">Union: 36,385 items</div>
+<div class="line">Image URLs: not exposed</div>
+<div class="line">≥10 words: 0 (0.00%)</div>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="gowalla">
+<span id="dataset-gowalla"></span><h2>Gowalla<a class="headerlink" href="#gowalla" title="Link to this heading"></a></h2>
+<p><strong>Loading:</strong> <code class="docutils literal notranslate"><span class="pre">dataset=&quot;gowalla&quot;</span></code> downloads raw SNAP check-ins and coordinates,
+not the social graph or pre-made LightGCN splits.</p>
+<p><strong>Terms:</strong> Retain <a class="reference external" href="https://snap.stanford.edu/data/loc-gowalla.html">SNAP’s source citation and usage information</a>.</p>
+<p><strong>Defaults:</strong> NGCF-style 10/10 support; 720-hour (30-day) temporal windows fit
+the available check-in history.</p>
+<table class="docutils align-default" id="id9">
+<caption><span class="caption-text">Installed Gowalla preprocessing and split defaults</span><a class="headerlink" href="#id9" title="Link to this table"></a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Dataset / preprocessing</p></th>
+<th class="head"><p>User split</p></th>
+<th class="head"><p>Item split</p></th>
+<th class="head"><p>Leave-last-out</p></th>
+<th class="head"><p>Temporal</p></th>
+<th class="head"><p>Item metadata (union of measured splits)</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><div class="line-block">
+<div class="line">Gowalla</div>
+<div class="line">All feedback</div>
+<div class="line">Min text: 0 words</div>
+<div class="line">Seed: 42</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">10/10</div>
+<div class="line">29,858 users</div>
+<div class="line">40,988 items</div>
+<div class="line">Train: 9,858 users</div>
+<div class="line">Val: 9,966 users</div>
+<div class="line">28,823 items / 0.00% cold</div>
+<div class="line">Test: 9,961 users</div>
+<div class="line">28,653 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">10/10</div>
+<div class="line">29,858 users</div>
+<div class="line">40,988 items</div>
+<div class="line">Train: 29,858 users</div>
+<div class="line">Val: 19,376 users</div>
+<div class="line">2,050 items / 100.00% cold</div>
+<div class="line">Test: 25,848 users</div>
+<div class="line">4,099 items / 100.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">10/10</div>
+<div class="line">52,985 users</div>
+<div class="line">121,866 items</div>
+<div class="line">Train: 52,985 users</div>
+<div class="line">Val: 52,985 users</div>
+<div class="line">36,247 items / 0.00% cold</div>
+<div class="line">Test: 52,985 users</div>
+<div class="line">36,292 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">10/10</div>
+<div class="line">16,862 users</div>
+<div class="line">21,503 items</div>
+<div class="line">Train: 8,533 users</div>
+<div class="line">Val: 10,557 users</div>
+<div class="line">14,713 items / 24.71% cold</div>
+<div class="line">Test: 13,091 users</div>
+<div class="line">18,537 items / 40.63% cold</div>
+<div class="line">Window: 720 h</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">Union: 121,866 items</div>
+<div class="line">Image URLs: not exposed</div>
+<div class="line">≥10 words: 0 (0.00%)</div>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="dbbook">
+<span id="dataset-dbbook"></span><h2>DBbook<a class="headerlink" href="#dbbook" title="Link to this heading"></a></h2>
+<p><strong>Loading:</strong> <code class="docutils literal notranslate"><span class="pre">dataset=&quot;dbbook&quot;</span></code> downloads SWAP’s reconstructed interaction
+ZIP and DBpedia title mappings; abstract/cover embeddings are optional.</p>
+<p><strong>Terms:</strong> Consult the <a class="reference external" href="https://zenodo.org/records/15403972">SWAP release</a>;
+original DBbook/DBpedia rights still apply.</p>
+<p><strong>Defaults:</strong> Keep positive feedback and sufficiently supported histories,
+without filtering short titles. <code class="docutils literal notranslate"><span class="pre">official</span></code> preserves the supplied test
+boundary; see <a class="reference internal" href="dataset-sweep.html#dbbook-official-protocol"><span class="std std-ref">DBbook official protocol</span></a> for validation details.</p>
+<table class="docutils align-default" id="id10">
+<caption><span class="caption-text">Installed DBbook preprocessing and split defaults</span><a class="headerlink" href="#id10" title="Link to this table"></a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Dataset / preprocessing</p></th>
+<th class="head"><p>User split</p></th>
+<th class="head"><p>Item split</p></th>
+<th class="head"><p>Leave-last-out</p></th>
+<th class="head"><p>Temporal</p></th>
+<th class="head"><p>Official</p></th>
+<th class="head"><p>Item metadata (union of measured splits)</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><div class="line-block">
+<div class="line">DBbook</div>
+<div class="line">Rating ≥1</div>
+<div class="line">Min text: 0 words</div>
+<div class="line">Seed: 42</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">5/1</div>
+<div class="line">5,884 users</div>
+<div class="line">6,538 items</div>
+<div class="line">Train: 4,384 users</div>
+<div class="line">Val: 496 users †</div>
+<div class="line">916 items / 0.00% cold</div>
+<div class="line">Test: 998 users †</div>
+<div class="line">1,443 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">5/1</div>
+<div class="line">5,884 users</div>
+<div class="line">6,538 items</div>
+<div class="line">Train: 5,883 users</div>
+<div class="line">Val: 2,498 users</div>
+<div class="line">327 items / 100.00% cold</div>
+<div class="line">Test: 3,974 users</div>
+<div class="line">654 items / 100.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">Not supported</div>
+<div class="line">No interaction timestamps</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">Not supported</div>
+<div class="line">No interaction timestamps</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">5/1</div>
+<div class="line">2,799 users</div>
+<div class="line">4,548 items</div>
+<div class="line">Train: 2,799 users</div>
+<div class="line">Val: 2,799 users</div>
+<div class="line">2,335 items / 20.00% cold</div>
+<div class="line">Test: 2,144 users</div>
+<div class="line">2,742 items / 6.78% cold</div>
+<div class="line">Users/items above: training-only preprocessing</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">Union: 6,538 items</div>
+<div class="line">Image URLs: not exposed</div>
+<div class="line">≥10 words: 64 (0.98%)</div>
+<div class="line">Precomputed features:</div>
+<div class="line">text/minilm: 5,698 (87.15%), 384d</div>
+<div class="line">text/mpnet: 5,698 (87.15%), 768d</div>
+<div class="line">image/resnet152: 6,287 (96.16%), 1,000d</div>
+<div class="line">image/vgg: 6,287 (96.16%), 4,096d</div>
+<div class="line">image/vit_cls: 6,287 (96.16%), 768d</div>
+<div class="line">image/vit_avg: 6,287 (96.16%), 768d</div>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="last-fm-2k">
+<span id="dataset-lfm2k"></span><h2>Last.fm-2K<a class="headerlink" href="#last-fm-2k" title="Link to this heading"></a></h2>
+<p><strong>Loading:</strong> <code class="docutils literal notranslate"><span class="pre">dataset=&quot;lfm2k&quot;</span></code> loads HetRec artist listening counts and metadata
+from SWAP’s ZIP; optional media vectors are pooled by artist.</p>
+<p><strong>Terms:</strong> <a class="reference external" href="https://grouplens.org/datasets/hetrec-2011/">Last.fm / HetRec non-commercial-use conditions</a>; commercial use requires permission.
+Cite SWAP for its features.</p>
+<p><strong>Defaults:</strong> Binarize play counts, filter short histories, and retain short
+artist names. Tag-derived embeddings are <strong>interaction-derived</strong>, not independent
+content metadata.</p>
+<table class="docutils align-default" id="id11">
+<caption><span class="caption-text">Installed Last.fm-2K preprocessing and split defaults</span><a class="headerlink" href="#id11" title="Link to this table"></a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Dataset / preprocessing</p></th>
+<th class="head"><p>User split</p></th>
+<th class="head"><p>Item split</p></th>
+<th class="head"><p>Leave-last-out</p></th>
+<th class="head"><p>Temporal</p></th>
+<th class="head"><p>Item metadata (union of measured splits)</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><div class="line-block">
+<div class="line">Last.fm-2K</div>
+<div class="line">All feedback</div>
+<div class="line">Min text: 0 words</div>
+<div class="line">Seed: 42</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">5/1</div>
+<div class="line">1,877 users</div>
+<div class="line">17,617 items</div>
+<div class="line">Train: 1,277 users</div>
+<div class="line">Val: 200 users †</div>
+<div class="line">1,070 items / 0.00% cold</div>
+<div class="line">Test: 400 users †</div>
+<div class="line">1,731 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">5/1</div>
+<div class="line">1,877 users</div>
+<div class="line">17,617 items</div>
+<div class="line">Train: 1,877 users</div>
+<div class="line">Val: 1,748 users</div>
+<div class="line">881 items / 100.00% cold</div>
+<div class="line">Test: 1,864 users</div>
+<div class="line">1,762 items / 100.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">Not supported</div>
+<div class="line">No interaction timestamps</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">Not supported</div>
+<div class="line">No interaction timestamps</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">Union: 17,617 items</div>
+<div class="line">≥1 image: 17,173 (97.48%)</div>
+<div class="line">≥10 words: 19 (0.11%)</div>
+<div class="line">Precomputed features:</div>
+<div class="line">text/minilm: 12,124 (68.82%), 384d</div>
+<div class="line">text/mpnet: 12,124 (68.82%), 768d</div>
+<div class="line">image/resnet152: 2,314 (13.14%), 1,000d</div>
+<div class="line">image/vgg: 2,314 (13.14%), 4,096d</div>
+<div class="line">image/vit_cls: 2,314 (13.14%), 768d</div>
+<div class="line">image/vit_avg: 2,314 (13.14%), 768d</div>
+<div class="line">audio/vggish: 2,364 (13.42%), 128d</div>
+<div class="line">audio/whisper: 2,364 (13.42%), 512d</div>
+<div class="line">Text: interaction-derived tags</div>
+<div class="line">Media: pooled by artist ID</div>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="using-item-embeddings">
+<span id="dataset-item-embeddings"></span><h2>Using item embeddings<a class="headerlink" href="#using-item-embeddings" title="Link to this heading"></a></h2>
+<p>SWAP JSON features are opt-in, checksum-verified imports; they do not change
+the interaction split. Other datasets use user-computed vectors in the same
+checkpoint format. See <a class="reference internal" href="examples.html#item-embedding-recipes"><span class="std std-ref">Using item embeddings</span></a> for import, storage, and
+missing-feature handling; original dataset restrictions still apply.</p>
+<table class="docutils align-default" id="id12">
+<caption><span class="caption-text">Precomputed feature names</span><a class="headerlink" href="#id12" title="Link to this table"></a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Modality</p></th>
+<th class="head"><p>Feature names</p></th>
+<th class="head"><p>Datasets</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Text</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">text/minilm</span></code>, <code class="docutils literal notranslate"><span class="pre">text/mpnet</span></code></p></td>
+<td><p>ML-1M, DBbook, Last.fm-2K</p></td>
+</tr>
+<tr class="row-odd"><td><p>Image</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">image/resnet152</span></code>, <code class="docutils literal notranslate"><span class="pre">image/vgg</span></code>, <code class="docutils literal notranslate"><span class="pre">image/vit_cls</span></code>, <code class="docutils literal notranslate"><span class="pre">image/vit_avg</span></code></p></td>
+<td><p>ML-1M, DBbook, Last.fm-2K</p></td>
+</tr>
+<tr class="row-even"><td><p>Audio</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">audio/vggish</span></code>, <code class="docutils literal notranslate"><span class="pre">audio/whisper</span></code></p></td>
+<td><p>ML-1M, Last.fm-2K</p></td>
+</tr>
+<tr class="row-odd"><td><p>Video</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">video/i3d</span></code>, <code class="docutils literal notranslate"><span class="pre">video/r2p1d</span></code></p></td>
+<td><p>ML-1M</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="examples.html" class="btn btn-neutral float-left" title="Examples" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="bring-your-own-dataset.html" class="btn btn-neutral float-right" title="Bringing Your Own Dataset" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -6,21 +6,21 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Examples &mdash; Compresso Recsys 0.3.3 documentation</title>
+  <title>Examples &mdash; Compresso Recsys 0.3.4 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=94d292f4"></script>
+      <script src="_static/documentation_options.js?v=01c71025"></script>
       <script src="_static/doctools.js?v=fd6eb6e6"></script>
       <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Bringing Your Own Dataset" href="bring-your-own-dataset.html" />
+    <link rel="next" title="Datasets" href="datasets.html" />
     <link rel="prev" title="Quickstart" href="quickstart.html" /> 
 </head>
 
@@ -78,6 +78,27 @@
 <li class="toctree-l2"><a class="reference internal" href="#train-teaser-with-gradient-descent">Train TEASER with Gradient Descent</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#serve-new-teaser-candidates">Serve New TEASER Candidates</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#train-and-evaluate-elsa">Train and Evaluate ELSA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#using-item-embeddings">Using item embeddings</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#precomputed-features">Precomputed features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#user-computed-features">User-computed features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#reading-and-evaluating-features">Reading and evaluating features</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="datasets.html">Datasets</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#reading-the-default-tables">Reading the default tables</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#movielens-1m">MovieLens 1M</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#movielens-20m">MovieLens 20M</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#goodbooks-10k">Goodbooks-10k</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#amazon-reviews-2023">Amazon Reviews 2023</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#steam">Steam</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#netflix-prize">Netflix Prize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#msd-taste-profile">MSD Taste Profile</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#gowalla">Gowalla</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#dbbook">DBbook</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#last-fm-2k">Last.fm-2K</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#using-item-embeddings">Using item embeddings</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="bring-your-own-dataset.html">Bringing Your Own Dataset</a><ul>
@@ -175,11 +196,31 @@
 <li class="toctree-l2"><a class="reference internal" href="citing.html#elsa-with-sampled-output-candidates">ELSA with sampled output candidates</a></li>
 <li class="toctree-l2"><a class="reference internal" href="citing.html#compressed-elsa">Compressed ELSA</a></li>
 <li class="toctree-l2"><a class="reference internal" href="citing.html#sasrec">SASRec</a></li>
-<li class="toctree-l2"><a class="reference internal" href="citing.html#evaluation-protocol">Evaluation Protocol</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#simplernn">SimpleRNN</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#simplegpt-and-simplebidirectionaltransformer">SimpleGPT and SimpleBidirectionalTransformer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#content-popularity-and-random-baselines">Content, Popularity, and Random Baselines</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#datasets">Datasets</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="citing.html#movielens-1m-and-20m">MovieLens 1M and 20M</a></li>
+<li class="toctree-l3"><a class="reference internal" href="citing.html#goodbooks-10k">Goodbooks-10k</a></li>
+<li class="toctree-l3"><a class="reference internal" href="citing.html#amazon-reviews-2023">Amazon Reviews 2023</a></li>
+<li class="toctree-l3"><a class="reference internal" href="citing.html#steam">Steam</a></li>
+<li class="toctree-l3"><a class="reference internal" href="citing.html#netflix-prize">Netflix Prize</a></li>
+<li class="toctree-l3"><a class="reference internal" href="citing.html#msd-taste-profile">MSD / Taste Profile</a></li>
+<li class="toctree-l3"><a class="reference internal" href="citing.html#gowalla">Gowalla</a></li>
+<li class="toctree-l3"><a class="reference internal" href="citing.html#additional-movie-and-book-descriptions">Additional Movie and Book Descriptions</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#evaluation-protocol">Evaluation Protocol</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="citing.html#dataset-preprocessing">Dataset preprocessing</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="citing.html#statistical-comparison">Statistical Comparison</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#swap-multimodal-ml-1m-dbbook-and-last-fm-2k">SWAP multimodal ML-1M, DBbook, and Last.fm-2K</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="cli-reference.html">Checkpoint CLI Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="cli-reference.html#temporary-movielens-download-workaround">Temporary MovieLens download workaround</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cli-reference.html#steam">Steam</a></li>
 <li class="toctree-l2"><a class="reference internal" href="cli-reference.html#amazon-reviews-2023">Amazon Reviews 2023</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="cli-reference.html#leave-last-out-checkpoint">Leave-Last-Out Checkpoint</a></li>
 <li class="toctree-l3"><a class="reference internal" href="cli-reference.html#temporal-checkpoint">Temporal Checkpoint</a></li>
@@ -221,8 +262,26 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="api/datasets.html">Datasets API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/datasets.html">Datasets API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/datasets.html#compresso_recsys.datasets.DBbook"><code class="docutils literal notranslate"><span class="pre">DBbook</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/datasets.html#compresso_recsys.datasets.DBbook.timestamp_precision"><code class="docutils literal notranslate"><span class="pre">DBbook.timestamp_precision</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/datasets.html#compresso_recsys.datasets.DBbook.get_official_split"><code class="docutils literal notranslate"><span class="pre">DBbook.get_official_split()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/datasets.html#compresso_recsys.datasets.LastFM2K"><code class="docutils literal notranslate"><span class="pre">LastFM2K</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/datasets.html#compresso_recsys.datasets.LastFM2K.timestamp_precision"><code class="docutils literal notranslate"><span class="pre">LastFM2K.timestamp_precision</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="api/checkpoint.html">Checkpoint API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/checkpoint.html#item-embeddings">Item embeddings</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/checkpoint.html#compresso_recsys.embeddings.save_item_embeddings"><code class="docutils literal notranslate"><span class="pre">save_item_embeddings()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/checkpoint.html#compresso_recsys.embeddings.load_item_embeddings"><code class="docutils literal notranslate"><span class="pre">load_item_embeddings()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/checkpoint.html#compresso_recsys.embeddings.list_item_embeddings"><code class="docutils literal notranslate"><span class="pre">list_item_embeddings()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/checkpoint.html#compresso_recsys.multimodal.enrich_multimodal_checkpoint"><code class="docutils literal notranslate"><span class="pre">enrich_multimodal_checkpoint()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="api/checkpoint.html#checkpoint-contexts">Checkpoint Contexts</a></li>
 <li class="toctree-l3"><a class="reference internal" href="api/checkpoint.html#manifest-and-json-helpers">Manifest and JSON Helpers</a></li>
 <li class="toctree-l3"><a class="reference internal" href="api/checkpoint.html#split-and-cluster-stages">Split and Cluster Stages</a><ul>
@@ -863,6 +922,113 @@ without retraining:</p>
 <p>To allow previously interacted items in a diagnostic ranking, pass
 <code class="docutils literal notranslate"><span class="pre">exclude_seen=False</span></code> to either method.</p>
 </section>
+<section id="using-item-embeddings">
+<span id="item-embedding-recipes"></span><h2>Using item embeddings<a class="headerlink" href="#using-item-embeddings" title="Link to this heading"></a></h2>
+<p>The checkpoint feature format is the same for any dataset and modality.
+Each named feature space has its own float32 matrix, item IDs, availability mask,
+and manifest entry under <code class="docutils literal notranslate"><span class="pre">item_embeddings</span></code>. Storing features does not make
+collaborative-only models multimodal; a model must explicitly consume them.</p>
+<section id="precomputed-features">
+<h3>Precomputed features<a class="headerlink" href="#precomputed-features" title="Link to this heading"></a></h3>
+<p>See <a class="reference internal" href="datasets.html#dataset-item-embeddings"><span class="std std-ref">Using item embeddings</span></a> for the available feature names. For example,
+add plot/poster features while building an ML1M checkpoint, then enrich it
+without changing its split:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">compresso_recsys</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cr</span>
+
+<span class="n">checkpoint</span> <span class="o">=</span> <span class="n">cr</span><span class="o">.</span><span class="n">build_recsys_checkpoint</span><span class="p">(</span>
+    <span class="n">dataset</span><span class="o">=</span><span class="s2">"ml1m"</span><span class="p">,</span>
+    <span class="n">checkpoint_path</span><span class="o">=</span><span class="s2">"artifacts/ml1m/features.zip"</span><span class="p">,</span>
+    <span class="n">min_entity_text_words</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+    <span class="n">multimodal_features</span><span class="o">=</span><span class="p">[</span><span class="s2">"text/minilm"</span><span class="p">,</span> <span class="s2">"image/resnet152"</span><span class="p">],</span>
+<span class="p">)</span>
+
+<span class="c1"># Add more precomputed features without changing the existing split.</span>
+<span class="n">cr</span><span class="o">.</span><span class="n">enrich_multimodal_checkpoint</span><span class="p">(</span>
+    <span class="n">checkpoint</span><span class="p">,</span> <span class="n">dataset</span><span class="o">=</span><span class="s2">"ml1m"</span><span class="p">,</span> <span class="n">features</span><span class="o">=</span><span class="p">[</span><span class="s2">"audio/vggish"</span><span class="p">,</span> <span class="s2">"video/i3d"</span><span class="p">]</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Features are opt-in: ordinary builds do not download embedding archives. Selecting
+a subset still downloads the full dataset JSON archive once (approximately
+264 MB ML-1M, 348 MB DBbook, 624 MB Last.fm). They are cached under
+<code class="docutils literal notranslate"><span class="pre">data/multimodal</span></code> and checked against the release’s published checksums.
+Raw media and encoders are not needed for this import.</p>
+<p><code class="docutils literal notranslate"><span class="pre">enrich_multimodal_checkpoint</span></code> also accepts <code class="docutils literal notranslate"><span class="pre">archive_path</span></code> for a local JSON
+ZIP with the upstream filenames. Local imports record a SHA-256 but are marked
+unverified. Imports reject duplicate IDs, inconsistent dimensions, nonfinite
+vectors, unsupported feature names, and zero catalog overlap. Checkpoint updates
+are atomic: a failed import does not replace the original ZIP. Downloaded pickle
+files are never executed. Cite <a class="reference internal" href="citing.html#cite-swap-multimodal"><span class="std std-ref">SWAP multimodal ML-1M, DBbook, and Last.fm-2K</span></a> when using these features.</p>
+</section>
+<section id="user-computed-features">
+<h3>User-computed features<a class="headerlink" href="#user-computed-features" title="Link to this heading"></a></h3>
+<p>For Amazon, retain image URLs while building the checkpoint:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">compresso_recsys</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cr</span>
+
+<span class="n">amazon_checkpoint</span> <span class="o">=</span> <span class="n">cr</span><span class="o">.</span><span class="n">build_recsys_checkpoint</span><span class="p">(</span>
+    <span class="n">dataset</span><span class="o">=</span><span class="s2">"amazon2023"</span><span class="p">,</span>
+    <span class="n">amazon_category</span><span class="o">=</span><span class="s2">"Toys_and_Games"</span><span class="p">,</span>
+    <span class="n">include_image_urls</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">min_entity_text_words</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+    <span class="n">checkpoint_path</span><span class="o">=</span><span class="s2">"artifacts/amazon2023/toys.zip"</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="k">with</span> <span class="n">cr</span><span class="o">.</span><span class="n">read_checkpoint</span><span class="p">(</span><span class="n">amazon_checkpoint</span><span class="p">)</span> <span class="k">as</span> <span class="n">root</span><span class="p">:</span>
+    <span class="n">metadata</span> <span class="o">=</span> <span class="n">cr</span><span class="o">.</span><span class="n">load_recsys_split</span><span class="p">(</span><span class="n">root</span><span class="p">)[</span><span class="s2">"entity_metadata"</span><span class="p">]</span>
+    <span class="c1"># Feed entity_text and the image URLs to your own text/image pipeline.</span>
+</pre></div>
+</div>
+<p>Do not pass <code class="docutils literal notranslate"><span class="pre">multimodal_features</span></code> for Amazon: that option imports only SWAP
+features. The generic embedding API below works with every dataset.</p>
+<p>For Amazon or any other dataset, run your chosen encoders outside the builder.
+Keep a mapping from original item IDs to vectors for every feature space. Store
+the available vectors; the loader can fill missing catalog items with a presence
+mask. This helper accepts the output of your own text or image pipeline:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">compresso_recsys</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cr</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">attach_computed_features</span><span class="p">(</span><span class="n">checkpoint_path</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">vectors_by_item_id</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">encoder</span><span class="p">):</span>
+    <span class="n">ids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">vectors_by_item_id</span><span class="p">))</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span>
+    <span class="n">vectors</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">vectors_by_item_id</span><span class="o">.</span><span class="n">values</span><span class="p">()),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">cr</span><span class="o">.</span><span class="n">update_checkpoint</span><span class="p">(</span><span class="n">checkpoint_path</span><span class="p">)</span> <span class="k">as</span> <span class="n">root</span><span class="p">:</span>
+        <span class="n">cr</span><span class="o">.</span><span class="n">save_item_embeddings</span><span class="p">(</span>
+            <span class="n">root</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">item_ids</span><span class="o">=</span><span class="n">ids</span><span class="p">,</span> <span class="n">embeddings</span><span class="o">=</span><span class="n">vectors</span><span class="p">,</span>
+            <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">"source"</span><span class="p">:</span> <span class="s2">"user-computed"</span><span class="p">,</span> <span class="s2">"encoder"</span><span class="p">:</span> <span class="n">encoder</span><span class="p">},</span>
+        <span class="p">)</span>
+</pre></div>
+</div>
+<p>Use names such as <code class="docutils literal notranslate"><span class="pre">text/my_encoder</span></code> and <code class="docutils literal notranslate"><span class="pre">image/my_encoder</span></code>. Record encoder
+versions, normalization, and data provenance in <code class="docutils literal notranslate"><span class="pre">metadata</span></code> for reproducibility.
+This generic API does not fetch media or run encoders. Source usage terms still
+apply to downloaded metadata and derived features.</p>
+</section>
+<section id="reading-and-evaluating-features">
+<h3>Reading and evaluating features<a class="headerlink" href="#reading-and-evaluating-features" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">cr</span><span class="o">.</span><span class="n">read_checkpoint</span><span class="p">(</span><span class="n">checkpoint</span><span class="p">)</span> <span class="k">as</span> <span class="n">root</span><span class="p">:</span>
+    <span class="n">split</span> <span class="o">=</span> <span class="n">cr</span><span class="o">.</span><span class="n">load_recsys_split</span><span class="p">(</span><span class="n">root</span><span class="p">)</span>
+    <span class="n">spaces</span> <span class="o">=</span> <span class="n">cr</span><span class="o">.</span><span class="n">list_item_embeddings</span><span class="p">(</span><span class="n">root</span><span class="p">)</span>
+    <span class="n">features</span> <span class="o">=</span> <span class="n">cr</span><span class="o">.</span><span class="n">load_item_embeddings</span><span class="p">(</span>
+        <span class="n">root</span><span class="p">,</span> <span class="s2">"text/minilm"</span><span class="p">,</span> <span class="n">item_ids</span><span class="o">=</span><span class="n">split</span><span class="p">[</span><span class="s2">"train_item_ids"</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="n">matrix</span> <span class="o">=</span> <span class="n">features</span><span class="p">[</span><span class="s2">"embeddings"</span><span class="p">]</span>
+    <span class="n">available</span> <span class="o">=</span> <span class="n">features</span><span class="p">[</span><span class="s2">"available"</span><span class="p">]</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">item_ids</span></code> reorders rows by ID, not assumed positions. Without it, the loader
+returns stored order. Unknown IDs produce zero rows with <code class="docutils literal notranslate"><span class="pre">available=False</span></code>;
+a valid zero vector is not automatically missing. Choose an explicit policy for
+missing features before training/evaluation. Loading an absent feature name raises
+<code class="docutils literal notranslate"><span class="pre">KeyError</span></code>. Old checkpoints need no migration; listing their spaces returns
+an empty mapping. See <a class="reference internal" href="api/checkpoint.html"><span class="doc">Checkpoint API</span></a> for the complete API.</p>
+<p>Precomputed provenance includes encoder filenames, archive hashes, normalization,
+and pooling. Coverage can differ from published headline counts: inspect each
+manifest entry’s <code class="docutils literal notranslate"><span class="pre">available_items</span></code> for the actual checkpoint. The SWAP MMRec
+benchmark filters to all modalities and remaps IDs; these adapters preserve
+original IDs and incomplete coverage, so defaults do not reproduce that benchmark.</p>
+<p>Fit learned normalization, dimensionality reduction, and fusion on training data
+only when evaluating cold items. An item split alone does not prove that metadata
+was historically available or independent of held-out interactions.</p>
+</section>
+</section>
 </section>
 
 
@@ -870,7 +1036,7 @@ without retraining:</p>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="quickstart.html" class="btn btn-neutral float-left" title="Quickstart" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="bring-your-own-dataset.html" class="btn btn-neutral float-right" title="Bringing Your Own Dataset" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="datasets.html" class="btn btn-neutral float-right" title="Datasets" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

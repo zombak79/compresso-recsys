@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Core API &mdash; Compresso Recsys 0.3.3 documentation</title>
+  <title>Core API &mdash; Compresso Recsys 0.3.4 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
 
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=94d292f4"></script>
+      <script src="../_static/documentation_options.js?v=01c71025"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -78,6 +78,27 @@
 <li class="toctree-l2"><a class="reference internal" href="../examples.html#train-teaser-with-gradient-descent">Train TEASER with Gradient Descent</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../examples.html#serve-new-teaser-candidates">Serve New TEASER Candidates</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../examples.html#train-and-evaluate-elsa">Train and Evaluate ELSA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples.html#using-item-embeddings">Using item embeddings</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../examples.html#precomputed-features">Precomputed features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples.html#user-computed-features">User-computed features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples.html#reading-and-evaluating-features">Reading and evaluating features</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../datasets.html">Datasets</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../datasets.html#reading-the-default-tables">Reading the default tables</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../datasets.html#movielens-1m">MovieLens 1M</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../datasets.html#movielens-20m">MovieLens 20M</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../datasets.html#goodbooks-10k">Goodbooks-10k</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../datasets.html#amazon-reviews-2023">Amazon Reviews 2023</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../datasets.html#steam">Steam</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../datasets.html#netflix-prize">Netflix Prize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../datasets.html#msd-taste-profile">MSD Taste Profile</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../datasets.html#gowalla">Gowalla</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../datasets.html#dbbook">DBbook</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../datasets.html#last-fm-2k">Last.fm-2K</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../datasets.html#using-item-embeddings">Using item embeddings</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../bring-your-own-dataset.html">Bringing Your Own Dataset</a><ul>
@@ -175,11 +196,31 @@
 <li class="toctree-l2"><a class="reference internal" href="../citing.html#elsa-with-sampled-output-candidates">ELSA with sampled output candidates</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../citing.html#compressed-elsa">Compressed ELSA</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../citing.html#sasrec">SASRec</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../citing.html#evaluation-protocol">Evaluation Protocol</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../citing.html#simplernn">SimpleRNN</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../citing.html#simplegpt-and-simplebidirectionaltransformer">SimpleGPT and SimpleBidirectionalTransformer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../citing.html#content-popularity-and-random-baselines">Content, Popularity, and Random Baselines</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../citing.html#datasets">Datasets</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../citing.html#movielens-1m-and-20m">MovieLens 1M and 20M</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../citing.html#goodbooks-10k">Goodbooks-10k</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../citing.html#amazon-reviews-2023">Amazon Reviews 2023</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../citing.html#steam">Steam</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../citing.html#netflix-prize">Netflix Prize</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../citing.html#msd-taste-profile">MSD / Taste Profile</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../citing.html#gowalla">Gowalla</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../citing.html#additional-movie-and-book-descriptions">Additional Movie and Book Descriptions</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../citing.html#evaluation-protocol">Evaluation Protocol</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../citing.html#dataset-preprocessing">Dataset preprocessing</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../citing.html#statistical-comparison">Statistical Comparison</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../citing.html#swap-multimodal-ml-1m-dbbook-and-last-fm-2k">SWAP multimodal ML-1M, DBbook, and Last.fm-2K</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../cli-reference.html">Checkpoint CLI Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../cli-reference.html#temporary-movielens-download-workaround">Temporary MovieLens download workaround</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../cli-reference.html#steam">Steam</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../cli-reference.html#amazon-reviews-2023">Amazon Reviews 2023</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../cli-reference.html#leave-last-out-checkpoint">Leave-Last-Out Checkpoint</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../cli-reference.html#temporal-checkpoint">Temporal Checkpoint</a></li>
@@ -221,8 +262,26 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="datasets.html">Datasets API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html">Datasets API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="datasets.html#compresso_recsys.datasets.DBbook"><code class="docutils literal notranslate"><span class="pre">DBbook</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="datasets.html#compresso_recsys.datasets.DBbook.timestamp_precision"><code class="docutils literal notranslate"><span class="pre">DBbook.timestamp_precision</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="datasets.html#compresso_recsys.datasets.DBbook.get_official_split"><code class="docutils literal notranslate"><span class="pre">DBbook.get_official_split()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="datasets.html#compresso_recsys.datasets.LastFM2K"><code class="docutils literal notranslate"><span class="pre">LastFM2K</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="datasets.html#compresso_recsys.datasets.LastFM2K.timestamp_precision"><code class="docutils literal notranslate"><span class="pre">LastFM2K.timestamp_precision</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="checkpoint.html">Checkpoint API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="checkpoint.html#item-embeddings">Item embeddings</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="checkpoint.html#compresso_recsys.embeddings.save_item_embeddings"><code class="docutils literal notranslate"><span class="pre">save_item_embeddings()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="checkpoint.html#compresso_recsys.embeddings.load_item_embeddings"><code class="docutils literal notranslate"><span class="pre">load_item_embeddings()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="checkpoint.html#compresso_recsys.embeddings.list_item_embeddings"><code class="docutils literal notranslate"><span class="pre">list_item_embeddings()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="checkpoint.html#compresso_recsys.multimodal.enrich_multimodal_checkpoint"><code class="docutils literal notranslate"><span class="pre">enrich_multimodal_checkpoint()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="checkpoint.html#checkpoint-contexts">Checkpoint Contexts</a></li>
 <li class="toctree-l3"><a class="reference internal" href="checkpoint.html#manifest-and-json-helpers">Manifest and JSON Helpers</a></li>
 <li class="toctree-l3"><a class="reference internal" href="checkpoint.html#split-and-cluster-stages">Split and Cluster Stages</a><ul>
@@ -509,7 +568,7 @@
 
 <dl class="py class">
 <dt class="sig sig-object py" id="compresso_recsys.AmazonReviews2023">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">compresso_recsys.</span></span><span class="sig-name descname"><span class="pre">AmazonReviews2023</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'data'</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">category</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Toys_and_Games'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata_text_fields</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('title',</span> <span class="pre">'features',</span> <span class="pre">'description',</span> <span class="pre">'categories')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_entity_text_words</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_image_urls</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_progress</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/datasets/amazon2023.html#AmazonReviews2023"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.AmazonReviews2023" title="Link to this definition"></a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">compresso_recsys.</span></span><span class="sig-name descname"><span class="pre">AmazonReviews2023</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'data'</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">category</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Toys_and_Games'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata_text_fields</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_entity_text_words</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_image_urls</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_progress</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/datasets/amazon2023.html#AmazonReviews2023"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.AmazonReviews2023" title="Link to this definition"></a></dt>
 <dd><p>Amazon Reviews 2023 category dataset loaded from McAuley’s files.</p>
 <p>The recommender pipeline only needs compact rating-only interactions plus
 item metadata. Reviews are intentionally not downloaded.</p>
@@ -518,7 +577,7 @@ item metadata. Reviews are intentionally not downloaded.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>data_dir</strong> (<em>str</em>)</p></li>
 <li><p><strong>category</strong> (<em>str</em>)</p></li>
-<li><p><strong>metadata_text_fields</strong> (<em>Iterable</em><em>[</em><em>str</em><em>]</em>)</p></li>
+<li><p><strong>metadata_text_fields</strong> (<em>Iterable</em><em>[</em><em>str</em><em>] </em><em>| </em><em>None</em>)</p></li>
 <li><p><strong>min_entity_text_words</strong> (<em>int</em>)</p></li>
 <li><p><strong>include_image_urls</strong> (<em>bool</em>)</p></li>
 <li><p><strong>show_progress</strong> (<em>bool</em>)</p></li>
@@ -564,8 +623,10 @@ scripts, so we read direct Hugging Face/McAuley data files instead.</p>
 <h2>Checkpoint Helpers<a class="headerlink" href="#checkpoint-helpers" title="Link to this heading"></a></h2>
 <dl class="py function">
 <dt class="sig sig-object py" id="compresso_recsys.build_recsys_checkpoint">
-<span class="sig-prename descclassname"><span class="pre">compresso_recsys.</span></span><span class="sig-name descname"><span class="pre">build_recsys_checkpoint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'data'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">checkpoint_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_users</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_users</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_user_support</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">item_min_support</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_value_to_keep</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">set_all_values_to</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_draws</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_holdout_frac</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">split_mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'user_split'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_items</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_items</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">item_val_frac</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">item_test_frac</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">temporal_test_frac</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">temporal_period_hours</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">8136</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_source_items</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_target_items</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">amazon_category</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Toys_and_Games'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata_text_fields</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_entity_text_words</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">30</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_image_urls</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotation_source</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'genres'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotation_min_count</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_progress</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/builder.html#build_recsys_checkpoint"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.build_recsys_checkpoint" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">compresso_recsys.</span></span><span class="sig-name descname"><span class="pre">build_recsys_checkpoint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'data'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">checkpoint_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_users</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_users</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_user_support</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">item_min_support</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_value_to_keep</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">set_all_values_to</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_draws</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_holdout_frac</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">split_mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'user_split'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_items</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_items</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">item_val_frac</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">item_test_frac</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">temporal_test_frac</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">temporal_period_hours</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_source_items</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_target_items</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">amazon_category</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Toys_and_Games'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata_text_fields</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_entity_text_words</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_image_urls</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotation_source</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'genres'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annotation_min_count</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_progress</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">multimodal_features</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/builder.html#build_recsys_checkpoint"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.build_recsys_checkpoint" title="Link to this definition"></a></dt>
 <dd><p>Build a recommender-system split checkpoint and return its path.</p>
+<p><code class="docutils literal notranslate"><span class="pre">temporal_period_hours=None</span></code> uses 720 hours for Gowalla and 8136 for
+other datasets. An explicit positive period overrides that default.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Path</span></code></span></p>
@@ -590,16 +651,17 @@ scripts, so we read direct Hugging Face/McAuley data files instead.</p>
 <li><p><strong>item_val_frac</strong> (<em>float</em>)</p></li>
 <li><p><strong>item_test_frac</strong> (<em>float</em>)</p></li>
 <li><p><strong>temporal_test_frac</strong> (<em>float</em><em> | </em><em>None</em>)</p></li>
-<li><p><strong>temporal_period_hours</strong> (<em>float</em>)</p></li>
+<li><p><strong>temporal_period_hours</strong> (<em>float</em><em> | </em><em>None</em>)</p></li>
 <li><p><strong>min_source_items</strong> (<em>int</em>)</p></li>
 <li><p><strong>min_target_items</strong> (<em>int</em>)</p></li>
 <li><p><strong>amazon_category</strong> (<em>str</em>)</p></li>
 <li><p><strong>metadata_text_fields</strong> (<em>str</em><em> | </em><em>list</em><em>[</em><em>str</em><em>] </em><em>| </em><em>tuple</em><em>[</em><em>str</em><em>, </em><em>...</em><em>] </em><em>| </em><em>None</em>)</p></li>
-<li><p><strong>min_entity_text_words</strong> (<em>int</em>)</p></li>
+<li><p><strong>min_entity_text_words</strong> (<em>int</em><em> | </em><em>None</em>)</p></li>
 <li><p><strong>include_image_urls</strong> (<em>bool</em>)</p></li>
 <li><p><strong>annotation_source</strong> (<em>str</em>)</p></li>
 <li><p><strong>annotation_min_count</strong> (<em>int</em>)</p></li>
 <li><p><strong>show_progress</strong> (<em>bool</em>)</p></li>
+<li><p><strong>multimodal_features</strong> (<em>str</em><em> | </em><em>list</em><em>[</em><em>str</em><em>] </em><em>| </em><em>None</em>)</p></li>
 </ul>
 </dd>
 </dl>

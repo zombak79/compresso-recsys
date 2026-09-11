@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>compresso_recsys.models.simple_rnn &mdash; Compresso Recsys 0.3.3 documentation</title>
+  <title>compresso_recsys.models.simple_rnn &mdash; Compresso Recsys 0.3.4 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
 
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=94d292f4"></script>
+      <script src="../../../_static/documentation_options.js?v=01c71025"></script>
       <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -75,6 +75,27 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../examples.html#train-teaser-with-gradient-descent">Train TEASER with Gradient Descent</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../examples.html#serve-new-teaser-candidates">Serve New TEASER Candidates</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../examples.html#train-and-evaluate-elsa">Train and Evaluate ELSA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples.html#using-item-embeddings">Using item embeddings</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../examples.html#precomputed-features">Precomputed features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../examples.html#user-computed-features">User-computed features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../examples.html#reading-and-evaluating-features">Reading and evaluating features</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../datasets.html">Datasets</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../datasets.html#reading-the-default-tables">Reading the default tables</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../datasets.html#movielens-1m">MovieLens 1M</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../datasets.html#movielens-20m">MovieLens 20M</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../datasets.html#goodbooks-10k">Goodbooks-10k</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../datasets.html#amazon-reviews-2023">Amazon Reviews 2023</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../datasets.html#steam">Steam</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../datasets.html#netflix-prize">Netflix Prize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../datasets.html#msd-taste-profile">MSD Taste Profile</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../datasets.html#gowalla">Gowalla</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../datasets.html#dbbook">DBbook</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../datasets.html#last-fm-2k">Last.fm-2K</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../datasets.html#using-item-embeddings">Using item embeddings</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../bring-your-own-dataset.html">Bringing Your Own Dataset</a><ul>
@@ -172,11 +193,31 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../citing.html#elsa-with-sampled-output-candidates">ELSA with sampled output candidates</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../citing.html#compressed-elsa">Compressed ELSA</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../citing.html#sasrec">SASRec</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../citing.html#evaluation-protocol">Evaluation Protocol</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../citing.html#simplernn">SimpleRNN</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../citing.html#simplegpt-and-simplebidirectionaltransformer">SimpleGPT and SimpleBidirectionalTransformer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../citing.html#content-popularity-and-random-baselines">Content, Popularity, and Random Baselines</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../citing.html#datasets">Datasets</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../citing.html#movielens-1m-and-20m">MovieLens 1M and 20M</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../citing.html#goodbooks-10k">Goodbooks-10k</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../citing.html#amazon-reviews-2023">Amazon Reviews 2023</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../citing.html#steam">Steam</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../citing.html#netflix-prize">Netflix Prize</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../citing.html#msd-taste-profile">MSD / Taste Profile</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../citing.html#gowalla">Gowalla</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../citing.html#additional-movie-and-book-descriptions">Additional Movie and Book Descriptions</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../citing.html#evaluation-protocol">Evaluation Protocol</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../citing.html#dataset-preprocessing">Dataset preprocessing</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../../citing.html#statistical-comparison">Statistical Comparison</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../citing.html#swap-multimodal-ml-1m-dbbook-and-last-fm-2k">SWAP multimodal ML-1M, DBbook, and Last.fm-2K</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../cli-reference.html">Checkpoint CLI Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../cli-reference.html#temporary-movielens-download-workaround">Temporary MovieLens download workaround</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../cli-reference.html#steam">Steam</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../cli-reference.html#amazon-reviews-2023">Amazon Reviews 2023</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../cli-reference.html#leave-last-out-checkpoint">Leave-Last-Out Checkpoint</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../cli-reference.html#temporal-checkpoint">Temporal Checkpoint</a></li>
@@ -218,8 +259,26 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../../api/datasets.html">Datasets API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/datasets.html">Datasets API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/datasets.html#compresso_recsys.datasets.DBbook"><code class="docutils literal notranslate"><span class="pre">DBbook</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/datasets.html#compresso_recsys.datasets.DBbook.timestamp_precision"><code class="docutils literal notranslate"><span class="pre">DBbook.timestamp_precision</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/datasets.html#compresso_recsys.datasets.DBbook.get_official_split"><code class="docutils literal notranslate"><span class="pre">DBbook.get_official_split()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/datasets.html#compresso_recsys.datasets.LastFM2K"><code class="docutils literal notranslate"><span class="pre">LastFM2K</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/datasets.html#compresso_recsys.datasets.LastFM2K.timestamp_precision"><code class="docutils literal notranslate"><span class="pre">LastFM2K.timestamp_precision</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/checkpoint.html">Checkpoint API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/checkpoint.html#item-embeddings">Item embeddings</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/checkpoint.html#compresso_recsys.embeddings.save_item_embeddings"><code class="docutils literal notranslate"><span class="pre">save_item_embeddings()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/checkpoint.html#compresso_recsys.embeddings.load_item_embeddings"><code class="docutils literal notranslate"><span class="pre">load_item_embeddings()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/checkpoint.html#compresso_recsys.embeddings.list_item_embeddings"><code class="docutils literal notranslate"><span class="pre">list_item_embeddings()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/checkpoint.html#compresso_recsys.multimodal.enrich_multimodal_checkpoint"><code class="docutils literal notranslate"><span class="pre">enrich_multimodal_checkpoint()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../../../api/checkpoint.html#checkpoint-contexts">Checkpoint Contexts</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../api/checkpoint.html#manifest-and-json-helpers">Manifest and JSON Helpers</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../api/checkpoint.html#split-and-cluster-stages">Split and Cluster Stages</a><ul>

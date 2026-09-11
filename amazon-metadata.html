@@ -1,0 +1,2676 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Amazon text and image coverage &mdash; Compresso Recsys 0.3.4 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=01c71025"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Compresso Recsys
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#install-from-pypi">Install from PyPI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#optional-extras">Optional Extras</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#local-development">Local Development</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#install-from-github">Install from GitHub</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#build-the-documentation-locally">Build the Documentation Locally</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="getting-started.html">Getting Started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="getting-started.html#basic-python-usage">Basic Python Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started.html#checkpoint-workflow">Checkpoint Workflow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started.html#what-goes-into-a-checkpoint">What Goes Into a Checkpoint</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started.html#split-modes">Split Modes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started.html#retrieval-metrics">Retrieval Metrics</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#choose-a-split-mode">Choose a Split Mode</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#dataset-loader">Dataset Loader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#building-checkpoints">Building Checkpoints</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#checkpoint-read-write">Checkpoint Read/Write</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#evaluate-embeddings-from-python">Evaluate Embeddings From Python</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#evaluate-model-predictions">Evaluate Model Predictions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#train-teaser-for-cold-items">Train TEASER for Cold Items</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#train-teaser-with-gradient-descent">Train TEASER with Gradient Descent</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#serve-new-teaser-candidates">Serve New TEASER Candidates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#train-and-evaluate-elsa">Train and Evaluate ELSA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#using-item-embeddings">Using item embeddings</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="examples.html#precomputed-features">Precomputed features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples.html#user-computed-features">User-computed features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples.html#reading-and-evaluating-features">Reading and evaluating features</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="datasets.html">Datasets</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#reading-the-default-tables">Reading the default tables</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#movielens-1m">MovieLens 1M</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#movielens-20m">MovieLens 20M</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#goodbooks-10k">Goodbooks-10k</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#amazon-reviews-2023">Amazon Reviews 2023</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#steam">Steam</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#netflix-prize">Netflix Prize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#msd-taste-profile">MSD Taste Profile</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#gowalla">Gowalla</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#dbbook">DBbook</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#last-fm-2k">Last.fm-2K</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#using-item-embeddings">Using item embeddings</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="bring-your-own-dataset.html">Bringing Your Own Dataset</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="bring-your-own-dataset.html#What-a-dataset-has-to-produce">What a dataset has to produce</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bring-your-own-dataset.html#The-dataset">The dataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bring-your-own-dataset.html#The-dataset-class">The dataset class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bring-your-own-dataset.html#Two-defaults-that-will-empty-your-dataset">Two defaults that will empty your dataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bring-your-own-dataset.html#What-is-in-it">What is in it</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bring-your-own-dataset.html#Does-it-work?">Does it work?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bring-your-own-dataset.html#Cold-items,-for-free">Cold items, for free</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bring-your-own-dataset.html#What-timestamps-would-have-added">What timestamps would have added</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bring-your-own-dataset.html#You-do-not-need-a-dataset-class-at-all">You do not need a dataset class at all</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="implementing-a-recommender.html">Implementing a Recommender</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="implementing-a-recommender.html#What-the-base-class-owns">What the base class owns</a></li>
+<li class="toctree-l2"><a class="reference internal" href="implementing-a-recommender.html#Data">Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="implementing-a-recommender.html#Configuration">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="implementing-a-recommender.html#The-complete-model">The complete model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="implementing-a-recommender.html#Low-level-prediction">Low-level prediction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="implementing-a-recommender.html#Stable-ID-recommendation">Stable-ID recommendation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="implementing-a-recommender.html#Standalone-persistence">Standalone persistence</a></li>
+<li class="toctree-l2"><a class="reference internal" href="implementing-a-recommender.html#Persistence-inside-a-data-checkpoint">Persistence inside a data checkpoint</a></li>
+<li class="toctree-l2"><a class="reference internal" href="implementing-a-recommender.html#Evaluation">Evaluation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="implementing-a-recommender.html#Executable-contract-checks">Executable contract checks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="implementing-a-recommender.html#Extending-the-pattern">Extending the pattern</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="reproducing-sasrec-results-on-ml1m.html">Reproducing SASRec Results on ML1M</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="reproducing-sasrec-results-on-ml1m.html#Configuration-and-run-modes">Configuration and run modes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reproducing-sasrec-results-on-ml1m.html#Build-the-MovieLens-1M-checkpoint">Build the MovieLens 1M checkpoint</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reproducing-sasrec-results-on-ml1m.html#Inspect-the-split">Inspect the split</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reproducing-sasrec-results-on-ml1m.html#Train-SASRec">Train SASRec</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reproducing-sasrec-results-on-ml1m.html#Score-the-catalog">Score the catalog</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reproducing-sasrec-results-on-ml1m.html#Published-protocol:-100-sampled-negatives-at-10">Published protocol: 100 sampled negatives at 10</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reproducing-sasrec-results-on-ml1m.html#Package-protocol:-full-catalog-at-20">Package protocol: full catalog at 20</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reproducing-sasrec-results-on-ml1m.html#Check-the-epoch-budget-on-validation-data">Check the epoch budget on validation data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reproducing-sasrec-results-on-ml1m.html#Save-the-trained-model">Save the trained model</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="statistical-comparison.html">Comparing Models Statistically</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="statistical-comparison.html#why-the-aggregates-are-not-enough">Why the aggregates are not enough</a></li>
+<li class="toctree-l2"><a class="reference internal" href="statistical-comparison.html#do-the-comparison">Do the comparison</a></li>
+<li class="toctree-l2"><a class="reference internal" href="statistical-comparison.html#a-complete-worked-example">A complete worked example</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#build-the-split">Build the split</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#train-both-models">Train both models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#evaluate-both-on-identical-users">Evaluate both on identical users</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#compare">Compare</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#reading-it">Reading it</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="statistical-comparison.html#reading-the-output">Reading the output</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#the-effect">The effect</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#how-precisely-you-know-it">How precisely you know it</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#how-often-the-two-models-tied">How often the two models tied</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#whether-it-could-be-chance">Whether it could be chance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#the-verdict">The verdict</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="statistical-comparison.html#five-traps">Five traps</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#p-values-have-a-floor">p-values have a floor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#ties-are-not-missing-data">Ties are not missing data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#the-interval-and-the-p-value-can-disagree">The interval and the p-value can disagree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#confidence-level-also-moves-the-significance-bar"><code class="docutils literal notranslate"><span class="pre">confidence_level</span></code> also moves the significance bar</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#one-trained-model-is-not-the-method">One trained model is not the method</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="statistical-comparison.html#choosing-the-settings">Choosing the settings</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#n-resamples"><code class="docutils literal notranslate"><span class="pre">n_resamples</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#test-method"><code class="docutils literal notranslate"><span class="pre">test_method</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#test-method-why-not-a-t-test"><code class="docutils literal notranslate"><span class="pre">test_method</span></code>: why not a t-test?</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#alternative"><code class="docutils literal notranslate"><span class="pre">alternative</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#correction"><code class="docutils literal notranslate"><span class="pre">correction</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="statistical-comparison.html#when-one-user-owns-several-rows">When one user owns several rows</a></li>
+<li class="toctree-l2"><a class="reference internal" href="statistical-comparison.html#what-the-methods-do-formally">What the methods do, formally</a></li>
+<li class="toctree-l2"><a class="reference internal" href="statistical-comparison.html#reporting-the-result">Reporting the result</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#methods">Methods</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#results">Results</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#checklist">Checklist</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="statistical-comparison.html#references">References</a></li>
+<li class="toctree-l2"><a class="reference internal" href="statistical-comparison.html#see-also">See also</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="citing.html">Citing Compresso Recsys</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#compresso">Compresso</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#ease">EASE</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#neighborhood-models">Neighborhood Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#mult-vae-mult-dae-and-autorec">Mult-VAE, Mult-DAE, and AutoRec</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#teaser">TEASER</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#elsa">ELSA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#elsa-with-sampled-output-candidates">ELSA with sampled output candidates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#compressed-elsa">Compressed ELSA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#sasrec">SASRec</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#simplernn">SimpleRNN</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#simplegpt-and-simplebidirectionaltransformer">SimpleGPT and SimpleBidirectionalTransformer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#content-popularity-and-random-baselines">Content, Popularity, and Random Baselines</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#datasets">Datasets</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="citing.html#movielens-1m-and-20m">MovieLens 1M and 20M</a></li>
+<li class="toctree-l3"><a class="reference internal" href="citing.html#goodbooks-10k">Goodbooks-10k</a></li>
+<li class="toctree-l3"><a class="reference internal" href="citing.html#amazon-reviews-2023">Amazon Reviews 2023</a></li>
+<li class="toctree-l3"><a class="reference internal" href="citing.html#steam">Steam</a></li>
+<li class="toctree-l3"><a class="reference internal" href="citing.html#netflix-prize">Netflix Prize</a></li>
+<li class="toctree-l3"><a class="reference internal" href="citing.html#msd-taste-profile">MSD / Taste Profile</a></li>
+<li class="toctree-l3"><a class="reference internal" href="citing.html#gowalla">Gowalla</a></li>
+<li class="toctree-l3"><a class="reference internal" href="citing.html#additional-movie-and-book-descriptions">Additional Movie and Book Descriptions</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#evaluation-protocol">Evaluation Protocol</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="citing.html#dataset-preprocessing">Dataset preprocessing</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#statistical-comparison">Statistical Comparison</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#swap-multimodal-ml-1m-dbbook-and-last-fm-2k">SWAP multimodal ML-1M, DBbook, and Last.fm-2K</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="cli-reference.html">Checkpoint CLI Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="cli-reference.html#temporary-movielens-download-workaround">Temporary MovieLens download workaround</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cli-reference.html#steam">Steam</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cli-reference.html#amazon-reviews-2023">Amazon Reviews 2023</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cli-reference.html#leave-last-out-checkpoint">Leave-Last-Out Checkpoint</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cli-reference.html#temporal-checkpoint">Temporal Checkpoint</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cli-reference.html#checkpoint-split-schema">Checkpoint Split Schema</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cli-reference.html#builder-parameters">Builder Parameters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cli-reference.html#supported-amazon-reviews-2023-datasets">Supported Amazon Reviews 2023 Datasets</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="api/index.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/compresso_recsys.html">Core API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/compresso_recsys.html#datasets">Datasets</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.SplitBundle"><code class="docutils literal notranslate"><span class="pre">SplitBundle</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.RecSysDataset"><code class="docutils literal notranslate"><span class="pre">RecSysDataset</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.Goodbooks"><code class="docutils literal notranslate"><span class="pre">Goodbooks</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.MovieLens1M"><code class="docutils literal notranslate"><span class="pre">MovieLens1M</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.MovieLens20M"><code class="docutils literal notranslate"><span class="pre">MovieLens20M</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.AmazonReviews2023"><code class="docutils literal notranslate"><span class="pre">AmazonReviews2023</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/compresso_recsys.html#checkpoint-helpers">Checkpoint Helpers</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.build_recsys_checkpoint"><code class="docutils literal notranslate"><span class="pre">build_recsys_checkpoint()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.update_checkpoint"><code class="docutils literal notranslate"><span class="pre">update_checkpoint()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.read_checkpoint"><code class="docutils literal notranslate"><span class="pre">read_checkpoint()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.load_manifest"><code class="docutils literal notranslate"><span class="pre">load_manifest()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.save_manifest"><code class="docutils literal notranslate"><span class="pre">save_manifest()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.update_stage_manifest"><code class="docutils literal notranslate"><span class="pre">update_stage_manifest()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.save_json"><code class="docutils literal notranslate"><span class="pre">save_json()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.load_json"><code class="docutils literal notranslate"><span class="pre">load_json()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.save_recsys_split"><code class="docutils literal notranslate"><span class="pre">save_recsys_split()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.load_recsys_split"><code class="docutils literal notranslate"><span class="pre">load_recsys_split()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.save_cluster_graph_stage"><code class="docutils literal notranslate"><span class="pre">save_cluster_graph_stage()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.load_cluster_graph_stage"><code class="docutils literal notranslate"><span class="pre">load_cluster_graph_stage()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api/datasets.html">Datasets API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/datasets.html#compresso_recsys.datasets.DBbook"><code class="docutils literal notranslate"><span class="pre">DBbook</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/datasets.html#compresso_recsys.datasets.DBbook.timestamp_precision"><code class="docutils literal notranslate"><span class="pre">DBbook.timestamp_precision</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/datasets.html#compresso_recsys.datasets.DBbook.get_official_split"><code class="docutils literal notranslate"><span class="pre">DBbook.get_official_split()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/datasets.html#compresso_recsys.datasets.LastFM2K"><code class="docutils literal notranslate"><span class="pre">LastFM2K</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/datasets.html#compresso_recsys.datasets.LastFM2K.timestamp_precision"><code class="docutils literal notranslate"><span class="pre">LastFM2K.timestamp_precision</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api/checkpoint.html">Checkpoint API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/checkpoint.html#item-embeddings">Item embeddings</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/checkpoint.html#compresso_recsys.embeddings.save_item_embeddings"><code class="docutils literal notranslate"><span class="pre">save_item_embeddings()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/checkpoint.html#compresso_recsys.embeddings.load_item_embeddings"><code class="docutils literal notranslate"><span class="pre">load_item_embeddings()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/checkpoint.html#compresso_recsys.embeddings.list_item_embeddings"><code class="docutils literal notranslate"><span class="pre">list_item_embeddings()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/checkpoint.html#compresso_recsys.multimodal.enrich_multimodal_checkpoint"><code class="docutils literal notranslate"><span class="pre">enrich_multimodal_checkpoint()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/checkpoint.html#checkpoint-contexts">Checkpoint Contexts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/checkpoint.html#manifest-and-json-helpers">Manifest and JSON Helpers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/checkpoint.html#split-and-cluster-stages">Split and Cluster Stages</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/checkpoint.html#item-partitions">Item partitions</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api/persistence.html">Fitted Model Persistence</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/persistence.html#embedding-models-in-data-checkpoints">Embedding Models in Data Checkpoints</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/persistence.html#stable-item-ids">Stable Item IDs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/persistence.html#optimizer-state">Optimizer State</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/persistence.html#checkpoint-format">Checkpoint Format</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/persistence.html#compresso_recsys.ModelCheckpointWriter"><code class="docutils literal notranslate"><span class="pre">ModelCheckpointWriter</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/persistence.html#compresso_recsys.ModelCheckpointReader"><code class="docutils literal notranslate"><span class="pre">ModelCheckpointReader</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/persistence.html#extending-persistence">Extending Persistence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/persistence.html#warm-catalog-adapters">Warm Catalog Adapters</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api/sequences.html">Sequences API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/sequences.html#interaction-histories">Interaction Histories</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/sequences.html#compresso_recsys.ItemSequences"><code class="docutils literal notranslate"><span class="pre">ItemSequences</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/sequences.html#compresso_recsys.save_item_sequences"><code class="docutils literal notranslate"><span class="pre">save_item_sequences()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/sequences.html#compresso_recsys.load_item_sequences"><code class="docutils literal notranslate"><span class="pre">load_item_sequences()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/sequences.html#which-split-modes-produce-them">Which Split Modes Produce Them</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api/models.html">Models API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#recommender-contract">Recommender Contract</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.Recommender"><code class="docutils literal notranslate"><span class="pre">Recommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.ColdStartRecommender"><code class="docutils literal notranslate"><span class="pre">ColdStartRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.ItemVocabulary"><code class="docutils literal notranslate"><span class="pre">ItemVocabulary</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.SequentialRecommender"><code class="docutils literal notranslate"><span class="pre">SequentialRecommender</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#production-recommendations">Production Recommendations</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.IdentifiedRecommender"><code class="docutils literal notranslate"><span class="pre">IdentifiedRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.Recommendations"><code class="docutils literal notranslate"><span class="pre">Recommendations</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#training-and-prediction-progress">Training and Prediction Progress</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#fitted-model-persistence">Fitted Model Persistence</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.PersistableRecommender"><code class="docutils literal notranslate"><span class="pre">PersistableRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.BasePersistableRecommender"><code class="docutils literal notranslate"><span class="pre">BasePersistableRecommender</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#implementing-new-models">Implementing New Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.BaseIdentifiedRecommender"><code class="docutils literal notranslate"><span class="pre">BaseIdentifiedRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.BaseCollaborativeRecommender"><code class="docutils literal notranslate"><span class="pre">BaseCollaborativeRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.BaseColdStartRecommender"><code class="docutils literal notranslate"><span class="pre">BaseColdStartRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.BaseSequentialRecommender"><code class="docutils literal notranslate"><span class="pre">BaseSequentialRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#the-owned-candidate-catalog">The Owned Candidate Catalog</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#training-interaction-batches">Training Interaction Batches</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#transductive-models-in-expanding-catalogs">Transductive Models in Expanding Catalogs</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#when-to-reach-for-it-outside-temporal">When to Reach for It Outside <code class="docutils literal notranslate"><span class="pre">temporal</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#collaborative-filtering-models">Collaborative Filtering Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#baselines">Baselines</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#neighborhood-models">Neighborhood Models</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#multinomial-autoencoders">Multinomial Autoencoders</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#ease">EASE</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#elsa">ELSA</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#cold-start-models">Cold-Start Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#contentrecommender">ContentRecommender</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#teaser">TEASER</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#teasergd">TEASERGD</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#sequential-models">Sequential Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#tokenizing-histories">Tokenizing Histories</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#simplernn">SimpleRNN</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#simplegpt">SimpleGPT</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#sasrec">SASRec</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#simplebidirectionaltransformer">SimpleBidirectionalTransformer</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api/retrieval.html">Retrieval API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/retrieval.html#holdout-builders">Holdout Builders</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/retrieval.html#compresso_recsys.retrieval.build_eval_holdout"><code class="docutils literal notranslate"><span class="pre">build_eval_holdout()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/retrieval.html#compresso_recsys.retrieval.build_item_cold_holdout"><code class="docutils literal notranslate"><span class="pre">build_item_cold_holdout()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/retrieval.html#compresso_recsys.retrieval.build_leave_last_out_holdout"><code class="docutils literal notranslate"><span class="pre">build_leave_last_out_holdout()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/retrieval.html#compresso_recsys.retrieval.build_temporal_holdout"><code class="docutils literal notranslate"><span class="pre">build_temporal_holdout()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/retrieval.html#embedding-evaluation">Embedding Evaluation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/retrieval.html#compresso_recsys.retrieval.evaluate_item_embeddings"><code class="docutils literal notranslate"><span class="pre">evaluate_item_embeddings()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/retrieval.html#compresso_recsys.retrieval.evaluate_item_embeddings_with_holdout"><code class="docutils literal notranslate"><span class="pre">evaluate_item_embeddings_with_holdout()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api/evaluation.html">Ranking Evaluation API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/evaluation.html#predictions-and-targets">Predictions and Targets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/evaluation.html#evaluation-results">Evaluation Results</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/evaluation.html#compresso_recsys.evaluation.EvaluationResult"><code class="docutils literal notranslate"><span class="pre">EvaluationResult</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/evaluation.html#custom-metrics">Custom Metrics</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/evaluation.html#compresso_recsys.evaluation.evaluate_recommender"><code class="docutils literal notranslate"><span class="pre">evaluate_recommender()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/evaluation.html#compresso_recsys.evaluation.evaluate_ranked_predictions"><code class="docutils literal notranslate"><span class="pre">evaluate_ranked_predictions()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/evaluation.html#compresso_recsys.evaluation.RankingEvaluator"><code class="docutils literal notranslate"><span class="pre">RankingEvaluator</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/evaluation.html#metrics">Metrics</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/evaluation.html#default-metrics">Default Metrics</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/evaluation.html#optional-metrics">Optional Metrics</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api/statistics.html">Statistics API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/statistics.html#comparison-functions">Comparison Functions</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/statistics.html#compresso_recsys.stats.compare_models"><code class="docutils literal notranslate"><span class="pre">compare_models()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/statistics.html#compresso_recsys.stats.compare_pair"><code class="docutils literal notranslate"><span class="pre">compare_pair()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/statistics.html#results">Results</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/statistics.html#compresso_recsys.stats.PairwiseComparison"><code class="docutils literal notranslate"><span class="pre">PairwiseComparison</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/statistics.html#compresso_recsys.stats.ComparisonReport"><code class="docutils literal notranslate"><span class="pre">ComparisonReport</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/statistics.html#parameter-values">Parameter Values</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Compresso Recsys</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Amazon text and image coverage</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/amazon-metadata.rst" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="amazon-text-and-image-coverage">
+<h1>Amazon text and image coverage<a class="headerlink" href="#amazon-text-and-image-coverage" title="Link to this heading"></a></h1>
+<p>This audit analyzes cached item metadata for all 33 named Amazon subsets and
+their four verified split profiles. Its curated text recipes are now installed
+as per-subset preprocessing defaults for all four split strategies. The change
+does not download images, create embeddings, or evaluate recommendation quality.
+All <strong>33 subsets / 132 profiles</strong> completed the audit on 9 September 2026.
+The <a class="reference download internal" download="" href="_downloads/252d51625302ef465a363ad88bc78839/amazon-metadata-coverage.json"><code class="xref download docutils literal notranslate"><span class="pre">machine-readable</span> <span class="pre">coverage</span> <span class="pre">archive</span></code></a>
+contains the full counts, word-length quantiles, thresholds 1/5/10/20/30/50/100,
+code fingerprints and source-cache file identities. Metadata cache sizes and
+modification times match the original sealed-input manifests; retained catalogs
+were rebuilt against the same checksum-verified inputs and frozen split code.</p>
+<section id="what-the-parameters-actually-do">
+<h2>What the parameters actually do<a class="headerlink" href="#what-the-parameters-actually-do" title="Link to this heading"></a></h2>
+<p>Amazon defaults to the category-specific <code class="docutils literal notranslate"><span class="pre">metadata_text_fields</span></code> listed under
+<a class="reference internal" href="#amazon-installed-text-recipes"><span class="std std-ref">How to assemble text</span></a> and <strong>min_entity_text_words=0</strong>. The latter disables text-length
+filtering; an item can have no description or even empty combined text and still
+be included, provided its metadata record exists and it survives support pruning.</p>
+<p><code class="docutils literal notranslate"><span class="pre">metadata_text_fields</span></code> selects top-level fields and nested dictionary paths
+such as <code class="docutils literal notranslate"><span class="pre">details.Brand</span></code> in the requested order. Keys are case-sensitive;
+missing or empty values are skipped. Adjacent nested selections share a single
+<code class="docutils literal notranslate"><span class="pre">Details:</span></code> label. JSON-encoded details and Parquet text arrays are supported.
+An explicit field list replaces the category default; it is not appended to it.
+Nonempty fields are joined into <code class="docutils literal notranslate"><span class="pre">entity_text</span></code> with field labels and blank lines.
+A positive <code class="docutils literal notranslate"><span class="pre">min_entity_text_words</span></code> counts whitespace-separated words in that
+<strong>combined string, including labels</strong>. It is not a description-presence test,
+an encoder-token limit, or a semantic-quality measure. For example, a title and
+categories can pass the threshold while <code class="docutils literal notranslate"><span class="pre">description</span></code> is completely absent.</p>
+<p>Metadata filtering happens before support filtering and splitting. Removing
+short-text items removes their interactions, potentially causing additional
+users and items to fail support thresholds. The audit’s threshold-loss figures
+are <strong>direct losses on the existing fixed catalogs/matrices</strong>, not the sizes of
+newly pruned or re-split checkpoints. For temporal, re-filtering can also change
+timestamp endpoints and windows; it is not safe to reuse the old measured sizes.</p>
+</section>
+<section id="coverage-definitions">
+<h2>Coverage definitions<a class="headerlink" href="#coverage-definitions" title="Link to this heading"></a></h2>
+<p>The category summary uses the union of retained item IDs across the four split
+profiles, including the preprocessed catalogs for non-temporal profiles. It is
+not the full raw Amazon catalog and does not weight popular items more heavily.
+The split-level appendix separately measures the final catalog, observed training
+items, validation targets and test targets. Training-pair loss is weighted by
+unique nonzero user-item pairs in the original training matrix.</p>
+<p><code class="docutils literal notranslate"><span class="pre">Text</span></code> means nonempty combined installed-default text after normalizing array containers;
+<code class="docutils literal notranslate"><span class="pre">description</span></code> and <code class="docutils literal notranslate"><span class="pre">features</span></code> mean nonempty content in those individual fields.
+These are availability checks, not guarantees that the text is informative.
+<code class="docutils literal notranslate"><span class="pre">Images</span></code> means at least one recorded HTTP(S) <strong>product-metadata image URL</strong>.
+URLs were not fetched: reachability, actual image contents, resolution, duplicates
+and encoder success are unverified. Review text and customer-uploaded images are
+not used. The upstream <a class="reference external" href="https://amazon-reviews-2023.github.io/#data-fields">field definitions</a> distinguish product metadata
+from review content.</p>
+</section>
+<section id="measured-coverage-by-subset">
+<h2>Measured coverage by subset<a class="headerlink" href="#measured-coverage-by-subset" title="Link to this heading"></a></h2>
+<p>The coverage and loss columns below use the <strong>installed curated recipes</strong>, as
+measured in the original audit’s <code class="docutils literal notranslate"><span class="pre">curated</span></code> result. The historical four-field
+baseline is retained in the comparison tables and raw archive. Image URLs reflect
+normalized source contents, not the adapter’s current Parquet limitation.
+The union counts may exceed a single split’s size cap because the split catalogs
+overlap only partially; no individual profile’s size limits have changed.</p>
+<table class="docutils align-default" id="id1">
+<caption><span class="caption-text">Installed-default metadata coverage and direct text-filter loss</span><a class="headerlink" href="#id1" title="Link to this table"></a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Subset</p></th>
+<th class="head"><p>Union items</p></th>
+<th class="head"><p>Text</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Features</p></th>
+<th class="head"><p>Image URLs</p></th>
+<th class="head"><p>Below 10 words</p></th>
+<th class="head"><p>Below 30 words</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>All_Beauty</p></td>
+<td><p>18,755</p></td>
+<td><p>100.00%</p></td>
+<td><p>15.71%</p></td>
+<td><p>18.36%</p></td>
+<td><p>100.00%</p></td>
+<td><p>1.21%</p></td>
+<td><p>40.47%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Amazon_Fashion</p></td>
+<td><p>13,201</p></td>
+<td><p>100.00%</p></td>
+<td><p>10.86%</p></td>
+<td><p>61.76%</p></td>
+<td><p>100.00%</p></td>
+<td><p>0.82%</p></td>
+<td><p>72.44%</p></td>
+</tr>
+<tr class="row-even"><td><p>Appliances</p></td>
+<td><p>22,334</p></td>
+<td><p>100.00%</p></td>
+<td><p>57.35%</p></td>
+<td><p>90.32%</p></td>
+<td><p>100.00%</p></td>
+<td><p>0.05%</p></td>
+<td><p>3.56%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Arts_Crafts_and_Sewing</p></td>
+<td><p>19,690</p></td>
+<td><p>100.00%</p></td>
+<td><p>55.59%</p></td>
+<td><p>94.95%</p></td>
+<td><p>99.95%</p></td>
+<td><p>0.01%</p></td>
+<td><p>0.69%</p></td>
+</tr>
+<tr class="row-even"><td><p>Automotive</p></td>
+<td><p>20,809</p></td>
+<td><p>100.00%</p></td>
+<td><p>62.91%</p></td>
+<td><p>97.54%</p></td>
+<td><p>&gt;99.99%</p></td>
+<td><p>&lt;0.01%</p></td>
+<td><p>0.45%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Baby_Products</p></td>
+<td><p>20,108</p></td>
+<td><p>100.00%</p></td>
+<td><p>57.30%</p></td>
+<td><p>94.86%</p></td>
+<td><p>99.99%</p></td>
+<td><p>0.02%</p></td>
+<td><p>1.36%</p></td>
+</tr>
+<tr class="row-even"><td><p>Beauty_and_Personal_Care</p></td>
+<td><p>19,153</p></td>
+<td><p>100.00%</p></td>
+<td><p>49.47%</p></td>
+<td><p>90.95%</p></td>
+<td><p>100.00%</p></td>
+<td><p>0.00%</p></td>
+<td><p>0.72%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Books</p></td>
+<td><p>127,961</p></td>
+<td><p>100.00%</p></td>
+<td><p>77.61%</p></td>
+<td><p>98.76%</p></td>
+<td><p>88.66%</p></td>
+<td><p>0.04%</p></td>
+<td><p>0.39%</p></td>
+</tr>
+<tr class="row-even"><td><p>CDs_and_Vinyl</p></td>
+<td><p>23,072</p></td>
+<td><p>100.00%</p></td>
+<td><p>90.69%</p></td>
+<td><p>0.59%</p></td>
+<td><p>99.92%</p></td>
+<td><p>0.00%</p></td>
+<td><p>8.43%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Cell_Phones_and_Accessories</p></td>
+<td><p>23,458</p></td>
+<td><p>100.00%</p></td>
+<td><p>34.99%</p></td>
+<td><p>91.99%</p></td>
+<td><p>100.00%</p></td>
+<td><p>0.02%</p></td>
+<td><p>0.74%</p></td>
+</tr>
+<tr class="row-even"><td><p>Clothing_Shoes_and_Jewelry</p></td>
+<td><p>24,842</p></td>
+<td><p>100.00%</p></td>
+<td><p>38.57%</p></td>
+<td><p>99.56%</p></td>
+<td><p>99.99%</p></td>
+<td><p>0.00%</p></td>
+<td><p>0.14%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Digital_Music</p></td>
+<td><p>18,995</p></td>
+<td><p>100.00%</p></td>
+<td><p>42.30%</p></td>
+<td><p>0.09%</p></td>
+<td><p>100.00%</p></td>
+<td><p>10.73%</p></td>
+<td><p>63.81%</p></td>
+</tr>
+<tr class="row-even"><td><p>Electronics</p></td>
+<td><p>99,261</p></td>
+<td><p>100.00%</p></td>
+<td><p>55.74%</p></td>
+<td><p>92.28%</p></td>
+<td><p>&gt;99.99%</p></td>
+<td><p>0.02%</p></td>
+<td><p>1.16%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Gift_Cards</p></td>
+<td><p>749</p></td>
+<td><p>100.00%</p></td>
+<td><p>77.57%</p></td>
+<td><p>91.72%</p></td>
+<td><p>100.00%</p></td>
+<td><p>0.13%</p></td>
+<td><p>3.74%</p></td>
+</tr>
+<tr class="row-even"><td><p>Grocery_and_Gourmet_Food</p></td>
+<td><p>21,273</p></td>
+<td><p>100.00%</p></td>
+<td><p>70.13%</p></td>
+<td><p>94.01%</p></td>
+<td><p>99.95%</p></td>
+<td><p>0.03%</p></td>
+<td><p>1.30%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Handmade_Products</p></td>
+<td><p>23,704</p></td>
+<td><p>100.00%</p></td>
+<td><p>81.05%</p></td>
+<td><p>56.46%</p></td>
+<td><p>100.00%</p></td>
+<td><p>&lt;0.01%</p></td>
+<td><p>2.13%</p></td>
+</tr>
+<tr class="row-even"><td><p>Health_and_Household</p></td>
+<td><p>23,856</p></td>
+<td><p>100.00%</p></td>
+<td><p>53.95%</p></td>
+<td><p>96.78%</p></td>
+<td><p>100.00%</p></td>
+<td><p>0.00%</p></td>
+<td><p>0.16%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Health_and_Personal_Care</p></td>
+<td><p>17,288</p></td>
+<td><p>100.00%</p></td>
+<td><p>28.08%</p></td>
+<td><p>28.31%</p></td>
+<td><p>100.00%</p></td>
+<td><p>2.54%</p></td>
+<td><p>45.14%</p></td>
+</tr>
+<tr class="row-even"><td><p>Home_and_Kitchen</p></td>
+<td><p>18,990</p></td>
+<td><p>100.00%</p></td>
+<td><p>60.65%</p></td>
+<td><p>98.35%</p></td>
+<td><p>100.00%</p></td>
+<td><p>0.00%</p></td>
+<td><p>0.18%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Industrial_and_Scientific</p></td>
+<td><p>22,281</p></td>
+<td><p>100.00%</p></td>
+<td><p>54.32%</p></td>
+<td><p>93.18%</p></td>
+<td><p>100.00%</p></td>
+<td><p>0.01%</p></td>
+<td><p>0.86%</p></td>
+</tr>
+<tr class="row-even"><td><p>Kindle_Store</p></td>
+<td><p>23,549</p></td>
+<td><p>100.00%</p></td>
+<td><p>68.42%</p></td>
+<td><p>99.96%</p></td>
+<td><p>89.32%</p></td>
+<td><p>0.00%</p></td>
+<td><p>&lt;0.01%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Magazine_Subscriptions</p></td>
+<td><p>2,003</p></td>
+<td><p>100.00%</p></td>
+<td><p>42.69%</p></td>
+<td><p>0.00%</p></td>
+<td><p>100.00%</p></td>
+<td><p>6.64%</p></td>
+<td><p>57.96%</p></td>
+</tr>
+<tr class="row-even"><td><p>Movies_and_TV</p></td>
+<td><p>24,791</p></td>
+<td><p>100.00%</p></td>
+<td><p>51.55%</p></td>
+<td><p>6.03%</p></td>
+<td><p>100.00%</p></td>
+<td><p>0.63%</p></td>
+<td><p>33.02%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Musical_Instruments</p></td>
+<td><p>20,065</p></td>
+<td><p>100.00%</p></td>
+<td><p>67.55%</p></td>
+<td><p>95.38%</p></td>
+<td><p>99.98%</p></td>
+<td><p>0.04%</p></td>
+<td><p>1.49%</p></td>
+</tr>
+<tr class="row-even"><td><p>Office_Products</p></td>
+<td><p>22,096</p></td>
+<td><p>100.00%</p></td>
+<td><p>56.08%</p></td>
+<td><p>96.37%</p></td>
+<td><p>99.70%</p></td>
+<td><p>&lt;0.01%</p></td>
+<td><p>0.33%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Patio_Lawn_and_Garden</p></td>
+<td><p>17,357</p></td>
+<td><p>100.00%</p></td>
+<td><p>57.25%</p></td>
+<td><p>96.79%</p></td>
+<td><p>99.97%</p></td>
+<td><p>0.00%</p></td>
+<td><p>0.14%</p></td>
+</tr>
+<tr class="row-even"><td><p>Pet_Supplies</p></td>
+<td><p>22,828</p></td>
+<td><p>100.00%</p></td>
+<td><p>59.58%</p></td>
+<td><p>96.82%</p></td>
+<td><p>99.98%</p></td>
+<td><p>0.01%</p></td>
+<td><p>0.49%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Software</p></td>
+<td><p>18,322</p></td>
+<td><p>100.00%</p></td>
+<td><p>98.49%</p></td>
+<td><p>99.25%</p></td>
+<td><p>&gt;99.99%</p></td>
+<td><p>0.02%</p></td>
+<td><p>0.88%</p></td>
+</tr>
+<tr class="row-even"><td><p>Sports_and_Outdoors</p></td>
+<td><p>25,641</p></td>
+<td><p>100.00%</p></td>
+<td><p>50.72%</p></td>
+<td><p>97.30%</p></td>
+<td><p>100.00%</p></td>
+<td><p>0.02%</p></td>
+<td><p>0.40%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Subscription_Boxes</p></td>
+<td><p>327</p></td>
+<td><p>99.69%</p></td>
+<td><p>0.00%</p></td>
+<td><p>96.33%</p></td>
+<td><p>100.00%</p></td>
+<td><p>0.31%</p></td>
+<td><p>7.03%</p></td>
+</tr>
+<tr class="row-even"><td><p>Tools_and_Home_Improvement</p></td>
+<td><p>19,936</p></td>
+<td><p>100.00%</p></td>
+<td><p>62.86%</p></td>
+<td><p>97.73%</p></td>
+<td><p>&gt;99.99%</p></td>
+<td><p>0.00%</p></td>
+<td><p>0.21%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Toys_and_Games</p></td>
+<td><p>23,646</p></td>
+<td><p>100.00%</p></td>
+<td><p>67.03%</p></td>
+<td><p>98.88%</p></td>
+<td><p>&gt;99.99%</p></td>
+<td><p>&lt;0.01%</p></td>
+<td><p>0.18%</p></td>
+</tr>
+<tr class="row-even"><td><p>Video_Games</p></td>
+<td><p>23,083</p></td>
+<td><p>100.00%</p></td>
+<td><p>69.08%</p></td>
+<td><p>89.16%</p></td>
+<td><p>&gt;99.99%</p></td>
+<td><p>0.11%</p></td>
+<td><p>2.80%</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="source-coverage-versus-current-loader-behavior">
+<h2>Source coverage versus current loader behavior<a class="headerlink" href="#source-coverage-versus-current-loader-behavior" title="Link to this heading"></a></h2>
+<p>The cached Hugging Face Parquet categories encode image records as a dictionary
+of array columns. The current adapter expects a list of dictionaries with scalar
+URL strings, so it fails to expose these URLs through <code class="docutils literal notranslate"><span class="pre">include_image_urls=True</span></code>.
+This is a loader limitation, not absent images. Parquet text-list cells also arrive
+as NumPy arrays. <strong>Text-array handling is now fixed</strong>: the formatter joins their
+contents and skips empty arrays, just as it does for JSON lists. It previously
+stringified arrays, including brackets and empty <code class="docutils literal notranslate"><span class="pre">[]</span></code> values.</p>
+<p>The table below preserves the audit’s <strong>pre-change</strong> word counts and normalized
+four-field comparison. The installed defaults additionally include curated
+attributes; their results appear in the other tables. The image-loader issues
+remain unresolved and need correction before image embedding builds. Positive
+text thresholds require a fresh split verification; the default remains zero.</p>
+<p>Prime Video records inside <strong>Movies and TV</strong> add a second format: their image
+keys use width names such as <code class="docutils literal notranslate"><span class="pre">720w</span></code> and <code class="docutils literal notranslate"><span class="pre">1920w</span></code>, which the current extractor
+also ignores. Source coverage in this report includes all recorded HTTP(S) image
+variants, including those widths; the preliminary 47.63% estimate based only on
+<code class="docutils literal notranslate"><span class="pre">hi_res/large/thumb</span></code> was incomplete and is superseded by this corrected audit.</p>
+<table class="docutils align-default" id="id2">
+<caption><span class="caption-text">Historical four-field baseline: source versus pre-change adapter</span><a class="headerlink" href="#id2" title="Link to this table"></a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Subset</p></th>
+<th class="head"><p>Source image URLs</p></th>
+<th class="head"><p>Adapter image URLs</p></th>
+<th class="head"><p>Text affected by old array formatting</p></th>
+<th class="head"><p>Below 30: old native</p></th>
+<th class="head"><p>Below 30: normalized four fields</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>All_Beauty</p></td>
+<td><p>100.00%</p></td>
+<td><p>100.00%</p></td>
+<td><p>0.00%</p></td>
+<td><p>66.64%</p></td>
+<td><p>66.64%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Amazon_Fashion</p></td>
+<td><p>100.00%</p></td>
+<td><p>100.00%</p></td>
+<td><p>0.00%</p></td>
+<td><p>76.58%</p></td>
+<td><p>76.58%</p></td>
+</tr>
+<tr class="row-even"><td><p>Appliances</p></td>
+<td><p>100.00%</p></td>
+<td><p>100.00%</p></td>
+<td><p>0.00%</p></td>
+<td><p>5.40%</p></td>
+<td><p>5.40%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Arts_Crafts_and_Sewing</p></td>
+<td><p>99.95%</p></td>
+<td><p>0.00%</p></td>
+<td><p>100.00%</p></td>
+<td><p>1.14%</p></td>
+<td><p>1.38%</p></td>
+</tr>
+<tr class="row-even"><td><p>Automotive</p></td>
+<td><p>&gt;99.99%</p></td>
+<td><p>&gt;99.99%</p></td>
+<td><p>0.00%</p></td>
+<td><p>1.12%</p></td>
+<td><p>1.12%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Baby_Products</p></td>
+<td><p>99.99%</p></td>
+<td><p>99.99%</p></td>
+<td><p>0.00%</p></td>
+<td><p>2.47%</p></td>
+<td><p>2.47%</p></td>
+</tr>
+<tr class="row-even"><td><p>Beauty_and_Personal_Care</p></td>
+<td><p>100.00%</p></td>
+<td><p>100.00%</p></td>
+<td><p>0.00%</p></td>
+<td><p>3.24%</p></td>
+<td><p>3.24%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Books</p></td>
+<td><p>88.66%</p></td>
+<td><p>88.66%</p></td>
+<td><p>0.00%</p></td>
+<td><p>1.37%</p></td>
+<td><p>1.37%</p></td>
+</tr>
+<tr class="row-even"><td><p>CDs_and_Vinyl</p></td>
+<td><p>99.92%</p></td>
+<td><p>99.92%</p></td>
+<td><p>0.00%</p></td>
+<td><p>18.64%</p></td>
+<td><p>18.64%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Cell_Phones_and_Accessories</p></td>
+<td><p>100.00%</p></td>
+<td><p>0.00%</p></td>
+<td><p>100.00%</p></td>
+<td><p>1.51%</p></td>
+<td><p>2.27%</p></td>
+</tr>
+<tr class="row-even"><td><p>Clothing_Shoes_and_Jewelry</p></td>
+<td><p>99.99%</p></td>
+<td><p>99.99%</p></td>
+<td><p>0.00%</p></td>
+<td><p>0.40%</p></td>
+<td><p>0.40%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Digital_Music</p></td>
+<td><p>100.00%</p></td>
+<td><p>100.00%</p></td>
+<td><p>0.00%</p></td>
+<td><p>72.51%</p></td>
+<td><p>72.51%</p></td>
+</tr>
+<tr class="row-even"><td><p>Electronics</p></td>
+<td><p>&gt;99.99%</p></td>
+<td><p>0.00%</p></td>
+<td><p>100.00%</p></td>
+<td><p>2.06%</p></td>
+<td><p>2.34%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Gift_Cards</p></td>
+<td><p>100.00%</p></td>
+<td><p>0.00%</p></td>
+<td><p>100.00%</p></td>
+<td><p>4.67%</p></td>
+<td><p>4.67%</p></td>
+</tr>
+<tr class="row-even"><td><p>Grocery_and_Gourmet_Food</p></td>
+<td><p>99.95%</p></td>
+<td><p>99.95%</p></td>
+<td><p>0.00%</p></td>
+<td><p>2.92%</p></td>
+<td><p>2.92%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Handmade_Products</p></td>
+<td><p>100.00%</p></td>
+<td><p>0.00%</p></td>
+<td><p>100.00%</p></td>
+<td><p>2.89%</p></td>
+<td><p>3.09%</p></td>
+</tr>
+<tr class="row-even"><td><p>Health_and_Household</p></td>
+<td><p>100.00%</p></td>
+<td><p>100.00%</p></td>
+<td><p>0.00%</p></td>
+<td><p>0.73%</p></td>
+<td><p>0.73%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Health_and_Personal_Care</p></td>
+<td><p>100.00%</p></td>
+<td><p>100.00%</p></td>
+<td><p>0.00%</p></td>
+<td><p>60.02%</p></td>
+<td><p>60.02%</p></td>
+</tr>
+<tr class="row-even"><td><p>Home_and_Kitchen</p></td>
+<td><p>100.00%</p></td>
+<td><p>100.00%</p></td>
+<td><p>0.00%</p></td>
+<td><p>0.39%</p></td>
+<td><p>0.39%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Industrial_and_Scientific</p></td>
+<td><p>100.00%</p></td>
+<td><p>0.00%</p></td>
+<td><p>100.00%</p></td>
+<td><p>1.48%</p></td>
+<td><p>1.69%</p></td>
+</tr>
+<tr class="row-even"><td><p>Kindle_Store</p></td>
+<td><p>89.32%</p></td>
+<td><p>89.32%</p></td>
+<td><p>0.00%</p></td>
+<td><p>0.06%</p></td>
+<td><p>0.06%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Magazine_Subscriptions</p></td>
+<td><p>100.00%</p></td>
+<td><p>100.00%</p></td>
+<td><p>0.00%</p></td>
+<td><p>60.11%</p></td>
+<td><p>60.11%</p></td>
+</tr>
+<tr class="row-even"><td><p>Movies_and_TV</p></td>
+<td><p>100.00%</p></td>
+<td><p>47.63%</p></td>
+<td><p>0.00%</p></td>
+<td><p>50.09%</p></td>
+<td><p>50.09%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Musical_Instruments</p></td>
+<td><p>99.98%</p></td>
+<td><p>0.00%</p></td>
+<td><p>100.00%</p></td>
+<td><p>1.90%</p></td>
+<td><p>2.10%</p></td>
+</tr>
+<tr class="row-even"><td><p>Office_Products</p></td>
+<td><p>99.70%</p></td>
+<td><p>99.70%</p></td>
+<td><p>0.00%</p></td>
+<td><p>0.81%</p></td>
+<td><p>0.81%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Patio_Lawn_and_Garden</p></td>
+<td><p>99.97%</p></td>
+<td><p>99.97%</p></td>
+<td><p>0.00%</p></td>
+<td><p>0.55%</p></td>
+<td><p>0.55%</p></td>
+</tr>
+<tr class="row-even"><td><p>Pet_Supplies</p></td>
+<td><p>99.98%</p></td>
+<td><p>99.98%</p></td>
+<td><p>0.00%</p></td>
+<td><p>1.00%</p></td>
+<td><p>1.00%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Software</p></td>
+<td><p>&gt;99.99%</p></td>
+<td><p>&gt;99.99%</p></td>
+<td><p>0.00%</p></td>
+<td><p>1.20%</p></td>
+<td><p>1.20%</p></td>
+</tr>
+<tr class="row-even"><td><p>Sports_and_Outdoors</p></td>
+<td><p>100.00%</p></td>
+<td><p>100.00%</p></td>
+<td><p>0.00%</p></td>
+<td><p>1.01%</p></td>
+<td><p>1.01%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Subscription_Boxes</p></td>
+<td><p>100.00%</p></td>
+<td><p>100.00%</p></td>
+<td><p>0.00%</p></td>
+<td><p>7.03%</p></td>
+<td><p>7.03%</p></td>
+</tr>
+<tr class="row-even"><td><p>Tools_and_Home_Improvement</p></td>
+<td><p>&gt;99.99%</p></td>
+<td><p>&gt;99.99%</p></td>
+<td><p>0.00%</p></td>
+<td><p>0.57%</p></td>
+<td><p>0.57%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Toys_and_Games</p></td>
+<td><p>&gt;99.99%</p></td>
+<td><p>0.00%</p></td>
+<td><p>100.00%</p></td>
+<td><p>0.35%</p></td>
+<td><p>0.38%</p></td>
+</tr>
+<tr class="row-even"><td><p>Video_Games</p></td>
+<td><p>&gt;99.99%</p></td>
+<td><p>&gt;99.99%</p></td>
+<td><p>0.00%</p></td>
+<td><p>4.06%</p></td>
+<td><p>4.06%</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="how-to-assemble-text">
+<span id="amazon-installed-text-recipes"></span><h2>How to assemble text<a class="headerlink" href="#how-to-assemble-text" title="Link to this heading"></a></h2>
+<p>Keep the title as the compact identity anchor. Add features and descriptions when
+present; they often complement each other rather than supplying interchangeable
+coverage. Categories add taxonomy when present, but cannot compensate for missing
+product-specific content. A store name can help identify brand, artist or author,
+but must be inspected: it is not universally equivalent to any of those fields.</p>
+<p>The subset recipes below are installed defaults, selected for semantic content
+and coverage, not validated for recommendation quality. Missing optional fields
+are skipped.
+The order prioritizes store/creator context for media, then whichever prose field
+has wider coverage; absent fields are omitted. All other nonempty optional prose
+is kept. <code class="docutils literal notranslate"><span class="pre">store</span></code> needs category-specific cleanup: inspected Books entries include
+author names and format labels, while other domains use brands or storefronts.
+Inspected Books <code class="docutils literal notranslate"><span class="pre">features</span></code> include substantial synopses, so they must not be
+discarded merely because the field name suggests short specification bullets.
+There is no reason to change a split’s support parameters merely to change field
+ordering while <code class="docutils literal notranslate"><span class="pre">min_entity_text_words=0</span></code>.</p>
+<p>Movies and TV particularly needs curated nested attributes: many Prime Video
+records have no title, features, description or category list, but do have
+<code class="docutils literal notranslate"><span class="pre">details.Directors</span></code>, <code class="docutils literal notranslate"><span class="pre">details.Starring</span></code>, audio languages and subtitles.
+These provide a meaningful attribute fallback, not a recovered title or synopsis.
+Just reordering the four existing fields cannot recover absent content.
+Across the retained Movies and TV union, the original four-field text was nonempty
+for only <strong>53.65%</strong> of items; the installed curated recipe reaches <strong>100%</strong>. Corrected
+source image-URL coverage is also <strong>100%</strong>, while the current adapter exposes only
+47.63%. Books and Kindle Store have genuine source-URL gaps: their coverage is
+88.66% and 89.32%, respectively. None of these URLs has been fetched in this audit.</p>
+<table class="docutils align-default" id="id3">
+<caption><span class="caption-text">Installed per-subset metadata_text_fields (both columns, in order)</span><a class="headerlink" href="#id3" title="Link to this table"></a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Subset</p></th>
+<th class="head"><p>Top-level fields</p></th>
+<th class="head"><p>Included nested detail fields</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>All_Beauty</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">title,features,description,store</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">details.Brand</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Item</span> <span class="pre">Form</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Skin</span> <span class="pre">Type</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Hair</span> <span class="pre">Type</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Product</span> <span class="pre">Benefits</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Amazon_Fashion</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">title,features,description,store</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">details.Department</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Brand</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Material</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Color</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Style</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Appliances</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">title,features,description,categories,store</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">details.Brand</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Compatible</span> <span class="pre">Devices</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Capacity</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Voltage</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Material</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Arts_Crafts_and_Sewing</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">title,features,description,categories,store</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">details.Brand</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Material</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Color</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Size</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Paint</span> <span class="pre">Type</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Automotive</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">title,features,description,categories,store</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">details.Brand</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Vehicle</span> <span class="pre">Service</span> <span class="pre">Type</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Auto</span> <span class="pre">Part</span> <span class="pre">Position</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Material</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Baby_Products</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">title,features,description,categories,store</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">details.Brand</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Age</span> <span class="pre">Range</span> <span class="pre">(Description)</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Material</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Style</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Beauty_and_Personal_Care</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">title,features,description,categories,store</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">details.Brand</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Item</span> <span class="pre">Form</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Skin</span> <span class="pre">Type</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Scent</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Product</span> <span class="pre">Benefits</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Books</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">title,store,features,description,categories</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">details.Publisher</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Language</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Paperback</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Hardcover</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>CDs_and_Vinyl</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">title,store,description,features,categories</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">details.Label</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Language</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Media</span> <span class="pre">Format</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Run</span> <span class="pre">time</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Cell_Phones_and_Accessories</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">title,features,description,categories,store</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">details.Brand</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Compatible</span> <span class="pre">Devices</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Compatible</span> <span class="pre">Phone</span> <span class="pre">Models</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Material</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Clothing_Shoes_and_Jewelry</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">title,features,description,categories,store</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">details.Department</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Brand</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Material</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Color</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Style</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Digital_Music</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">title,store,description,features,categories</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">details.Label</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Genres</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Language</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Run</span> <span class="pre">time</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Electronics</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">title,features,description,categories,store</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">details.Brand</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Compatible</span> <span class="pre">Devices</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Connectivity</span> <span class="pre">Technology</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Screen</span> <span class="pre">Size</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Memory</span> <span class="pre">Storage</span> <span class="pre">Capacity</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Gift_Cards</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">title,features,description,categories,store</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">details.Brand</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Manufacturer</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Grocery_and_Gourmet_Food</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">title,features,description,categories,store</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">details.Brand</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Flavor</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Item</span> <span class="pre">Form</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Specialty</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Allergen</span> <span class="pre">Information</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Handmade_Products</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">title,description,features,categories,store</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">details.Material</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Color</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Size</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Department</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Health_and_Household</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">title,features,description,categories,store</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">details.Brand</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Item</span> <span class="pre">Form</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Active</span> <span class="pre">Ingredients</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Material</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Scent</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Health_and_Personal_Care</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">title,features,description,store</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">details.Brand</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Item</span> <span class="pre">Form</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Active</span> <span class="pre">Ingredients</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Skin</span> <span class="pre">Type</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Home_and_Kitchen</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">title,features,description,categories,store</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">details.Brand</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Material</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Color</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Style</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Size</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Industrial_and_Scientific</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">title,features,description,categories,store</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">details.Brand</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Material</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Size</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Compatible</span> <span class="pre">Devices</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Kindle_Store</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">title,store,features,description,categories</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">details.Publisher</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Language</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Print</span> <span class="pre">length</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Author</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Magazine_Subscriptions</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">title,store,description,categories</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">details.Publisher</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Language</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Print</span> <span class="pre">length</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Movies_and_TV</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">title,store,description,features,categories</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">details.Director</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Directors</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Actors</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Starring</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Media</span> <span class="pre">Format</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Language</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Audio</span> <span class="pre">languages</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Subtitles</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Run</span> <span class="pre">time</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Musical_Instruments</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">title,features,description,categories,store</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">details.Brand</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Instrument</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Material</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Compatible</span> <span class="pre">Devices</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Office_Products</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">title,features,description,categories,store</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">details.Brand</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Material</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Color</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Sheet</span> <span class="pre">Size</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Ink</span> <span class="pre">Color</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Patio_Lawn_and_Garden</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">title,features,description,categories,store</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">details.Brand</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Material</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Power</span> <span class="pre">Source</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Color</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Pet_Supplies</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">title,features,description,categories,store</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">details.Brand</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Target</span> <span class="pre">Species</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Breed</span> <span class="pre">Recommendation</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Flavor</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Material</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Software</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">title,store,features,description,categories</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">details.Platform</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Operating</span> <span class="pre">System</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Manufacturer</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Language</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Sports_and_Outdoors</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">title,features,description,categories,store</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">details.Brand</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Sport</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Material</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Size</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Age</span> <span class="pre">Range</span> <span class="pre">(Description)</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Subscription_Boxes</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">title,features,store</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">details.Brand</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Manufacturer</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Material</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Tools_and_Home_Improvement</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">title,features,description,categories,store</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">details.Brand</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Material</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Power</span> <span class="pre">Source</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Voltage</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Toys_and_Games</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">title,features,description,categories,store</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">details.Brand</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Age</span> <span class="pre">Range</span> <span class="pre">(Description)</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Material</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Theme</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Educational</span> <span class="pre">Objective</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Video_Games</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">title,store,features,description,categories</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">details.Platform</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Rated</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Manufacturer</span></code>; <code class="docutils literal notranslate"><span class="pre">details.Language</span></code></p></td>
+</tr>
+</tbody>
+</table>
+<p>Do not concatenate all <code class="docutils literal notranslate"><span class="pre">details</span></code> indiscriminately. The measured dictionaries
+include useful category-specific attributes, but also identifiers, packaging,
+dates and, in many subsets, <strong>Best Sellers Rank</strong>. Exclude popularity aggregates
+(<code class="docutils literal notranslate"><span class="pre">average_rating</span></code>, <code class="docutils literal notranslate"><span class="pre">rating_number</span></code> and ranks), IDs such as ASIN/ISBN/UPC,
+purchase/co-purchase links, and irrelevant shipping boilerplate from semantic
+text. Snapshot popularity can reveal post-split information and confound a
+content-only or temporal experiment. Even ordinary descriptions are crawl-time
+snapshots, not historically versioned metadata.</p>
+<p>The recipe table lists the <strong>full installed selection</strong>, not only frequently
+observed keys. Both columns form one ordered <code class="docutils literal notranslate"><span class="pre">metadata_text_fields</span></code> tuple.
+The same category recipe applies to <code class="docutils literal notranslate"><span class="pre">user_split</span></code>, <code class="docutils literal notranslate"><span class="pre">item_split</span></code>,
+<code class="docutils literal notranslate"><span class="pre">leave_last_out</span></code> and <code class="docutils literal notranslate"><span class="pre">temporal</span></code>; it does not modify their support thresholds,
+holdout sizes or rating policy. Unknown/unprofiled categories fall back to
+<code class="docutils literal notranslate"><span class="pre">title,features,description,categories</span></code>. Existing checkpoints are not rewritten;
+rebuild one to obtain the enriched <code class="docutils literal notranslate"><span class="pre">entity_text</span></code>. The resolved field list is
+recorded in the new checkpoint’s data-stage manifest.</p>
+<p>To replace the default explicitly, for example:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cr</span><span class="o">.</span><span class="n">build_recsys_checkpoint</span><span class="p">(</span>
+    <span class="n">dataset</span><span class="o">=</span><span class="s2">"amazon2023"</span><span class="p">,</span>
+    <span class="n">amazon_category</span><span class="o">=</span><span class="s2">"Movies_and_TV"</span><span class="p">,</span>
+    <span class="n">metadata_text_fields</span><span class="o">=</span><span class="p">[</span><span class="s2">"title"</span><span class="p">,</span> <span class="s2">"description"</span><span class="p">,</span> <span class="s2">"details.Directors"</span><span class="p">,</span> <span class="s2">"details.Starring"</span><span class="p">],</span>
+    <span class="n">min_entity_text_words</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>An explicit top-level <code class="docutils literal notranslate"><span class="pre">details</span></code> still includes the entire dictionary. That is
+not the default: it can raise word counts with identifiers or popularity data.
+Further whitespace/HTML cleanup, deduplication and encoder truncation remain
+embedding-pipeline recommendations, not part of these measured word counts.</p>
+<p>The next table compares the original four-field baseline with the <strong>installed
+curated recipe</strong>: normalized text containers, available prose/taxonomy fields,
+<code class="docutils literal notranslate"><span class="pre">store</span></code> where observed, and the category’s allowlisted details. It uses the
+original audit’s curated counts; regression tests check equivalent word counts
+for all 33 recipes. Field order alone does not change these counts. More nonempty
+or longer text does not itself prove better recommendation quality.</p>
+<table class="docutils align-default" id="id4">
+<caption><span class="caption-text">Measured effect of the installed curated defaults</span><a class="headerlink" href="#id4" title="Link to this table"></a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Subset</p></th>
+<th class="head"><p>Original four-field text coverage</p></th>
+<th class="head"><p>Installed text coverage</p></th>
+<th class="head"><p>Installed items below 30</p></th>
+<th class="head"><p>Original train-pair loss at 30: range over splits</p></th>
+<th class="head"><p>Installed train-pair loss at 30: range over splits</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>All_Beauty</p></td>
+<td><p>&gt;99.99%</p></td>
+<td><p>100.00%</p></td>
+<td><p>40.47%</p></td>
+<td><p>56.21%–63.96%</p></td>
+<td><p>33.50%–35.27%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Amazon_Fashion</p></td>
+<td><p>&gt;99.99%</p></td>
+<td><p>100.00%</p></td>
+<td><p>72.44%</p></td>
+<td><p>66.35%–75.36%</p></td>
+<td><p>60.25%–70.13%</p></td>
+</tr>
+<tr class="row-even"><td><p>Appliances</p></td>
+<td><p>100.00%</p></td>
+<td><p>100.00%</p></td>
+<td><p>3.56%</p></td>
+<td><p>1.93%–2.29%</p></td>
+<td><p>1.27%–1.50%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Arts_Crafts_and_Sewing</p></td>
+<td><p>100.00%</p></td>
+<td><p>100.00%</p></td>
+<td><p>0.69%</p></td>
+<td><p>0.71%–0.98%</p></td>
+<td><p>0.42%–0.57%</p></td>
+</tr>
+<tr class="row-even"><td><p>Automotive</p></td>
+<td><p>100.00%</p></td>
+<td><p>100.00%</p></td>
+<td><p>0.45%</p></td>
+<td><p>0.68%–0.79%</p></td>
+<td><p>0.27%–0.32%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Baby_Products</p></td>
+<td><p>100.00%</p></td>
+<td><p>100.00%</p></td>
+<td><p>1.36%</p></td>
+<td><p>0.87%–1.31%</p></td>
+<td><p>0.40%–0.67%</p></td>
+</tr>
+<tr class="row-even"><td><p>Beauty_and_Personal_Care</p></td>
+<td><p>100.00%</p></td>
+<td><p>100.00%</p></td>
+<td><p>0.72%</p></td>
+<td><p>2.55%–3.01%</p></td>
+<td><p>0.61%–0.72%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Books</p></td>
+<td><p>100.00%</p></td>
+<td><p>100.00%</p></td>
+<td><p>0.39%</p></td>
+<td><p>0.54%–0.64%</p></td>
+<td><p>0.14%–0.18%</p></td>
+</tr>
+<tr class="row-even"><td><p>CDs_and_Vinyl</p></td>
+<td><p>100.00%</p></td>
+<td><p>100.00%</p></td>
+<td><p>8.43%</p></td>
+<td><p>13.63%–15.02%</p></td>
+<td><p>6.42%–6.61%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Cell_Phones_and_Accessories</p></td>
+<td><p>100.00%</p></td>
+<td><p>100.00%</p></td>
+<td><p>0.74%</p></td>
+<td><p>0.78%–1.21%</p></td>
+<td><p>0.34%–0.58%</p></td>
+</tr>
+<tr class="row-even"><td><p>Clothing_Shoes_and_Jewelry</p></td>
+<td><p>100.00%</p></td>
+<td><p>100.00%</p></td>
+<td><p>0.14%</p></td>
+<td><p>0.40%–0.45%</p></td>
+<td><p>0.07%–0.10%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Digital_Music</p></td>
+<td><p>&gt;99.99%</p></td>
+<td><p>100.00%</p></td>
+<td><p>63.81%</p></td>
+<td><p>45.40%–72.12%</p></td>
+<td><p>36.12%–62.42%</p></td>
+</tr>
+<tr class="row-even"><td><p>Electronics</p></td>
+<td><p>100.00%</p></td>
+<td><p>100.00%</p></td>
+<td><p>1.16%</p></td>
+<td><p>0.97%–1.27%</p></td>
+<td><p>0.61%–0.76%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Gift_Cards</p></td>
+<td><p>100.00%</p></td>
+<td><p>100.00%</p></td>
+<td><p>3.74%</p></td>
+<td><p>0.97%–1.19%</p></td>
+<td><p>0.74%–0.88%</p></td>
+</tr>
+<tr class="row-even"><td><p>Grocery_and_Gourmet_Food</p></td>
+<td><p>100.00%</p></td>
+<td><p>100.00%</p></td>
+<td><p>1.30%</p></td>
+<td><p>2.06%–2.16%</p></td>
+<td><p>0.87%–0.95%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Handmade_Products</p></td>
+<td><p>100.00%</p></td>
+<td><p>100.00%</p></td>
+<td><p>2.13%</p></td>
+<td><p>1.39%–2.56%</p></td>
+<td><p>0.94%–1.81%</p></td>
+</tr>
+<tr class="row-even"><td><p>Health_and_Household</p></td>
+<td><p>100.00%</p></td>
+<td><p>100.00%</p></td>
+<td><p>0.16%</p></td>
+<td><p>0.54%–0.65%</p></td>
+<td><p>0.13%–0.15%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Health_and_Personal_Care</p></td>
+<td><p>99.98%</p></td>
+<td><p>100.00%</p></td>
+<td><p>45.14%</p></td>
+<td><p>48.57%–53.01%</p></td>
+<td><p>30.43%–34.11%</p></td>
+</tr>
+<tr class="row-even"><td><p>Home_and_Kitchen</p></td>
+<td><p>100.00%</p></td>
+<td><p>100.00%</p></td>
+<td><p>0.18%</p></td>
+<td><p>0.16%–0.24%</p></td>
+<td><p>0.07%–0.11%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Industrial_and_Scientific</p></td>
+<td><p>100.00%</p></td>
+<td><p>100.00%</p></td>
+<td><p>0.86%</p></td>
+<td><p>0.73%–0.96%</p></td>
+<td><p>0.36%–0.50%</p></td>
+</tr>
+<tr class="row-even"><td><p>Kindle_Store</p></td>
+<td><p>100.00%</p></td>
+<td><p>100.00%</p></td>
+<td><p>&lt;0.01%</p></td>
+<td><p>0.07%–0.09%</p></td>
+<td><p>0.02%–0.02%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Magazine_Subscriptions</p></td>
+<td><p>100.00%</p></td>
+<td><p>100.00%</p></td>
+<td><p>57.96%</p></td>
+<td><p>59.52%–63.15%</p></td>
+<td><p>59.04%–62.26%</p></td>
+</tr>
+<tr class="row-even"><td><p>Movies_and_TV</p></td>
+<td><p>53.65%</p></td>
+<td><p>100.00%</p></td>
+<td><p>33.02%</p></td>
+<td><p>51.54%–62.21%</p></td>
+<td><p>26.62%–36.33%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Musical_Instruments</p></td>
+<td><p>100.00%</p></td>
+<td><p>100.00%</p></td>
+<td><p>1.49%</p></td>
+<td><p>0.88%–1.10%</p></td>
+<td><p>0.62%–0.78%</p></td>
+</tr>
+<tr class="row-even"><td><p>Office_Products</p></td>
+<td><p>100.00%</p></td>
+<td><p>100.00%</p></td>
+<td><p>0.33%</p></td>
+<td><p>0.37%–0.47%</p></td>
+<td><p>0.21%–0.26%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Patio_Lawn_and_Garden</p></td>
+<td><p>100.00%</p></td>
+<td><p>100.00%</p></td>
+<td><p>0.14%</p></td>
+<td><p>0.43%–0.54%</p></td>
+<td><p>0.12%–0.14%</p></td>
+</tr>
+<tr class="row-even"><td><p>Pet_Supplies</p></td>
+<td><p>&gt;99.99%</p></td>
+<td><p>100.00%</p></td>
+<td><p>0.49%</p></td>
+<td><p>0.41%–0.56%</p></td>
+<td><p>0.15%–0.22%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Software</p></td>
+<td><p>100.00%</p></td>
+<td><p>100.00%</p></td>
+<td><p>0.88%</p></td>
+<td><p>0.47%–0.80%</p></td>
+<td><p>0.39%–0.71%</p></td>
+</tr>
+<tr class="row-even"><td><p>Sports_and_Outdoors</p></td>
+<td><p>100.00%</p></td>
+<td><p>100.00%</p></td>
+<td><p>0.40%</p></td>
+<td><p>0.52%–0.71%</p></td>
+<td><p>0.20%–0.30%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Subscription_Boxes</p></td>
+<td><p>99.69%</p></td>
+<td><p>99.69%</p></td>
+<td><p>7.03%</p></td>
+<td><p>4.51%–8.82%</p></td>
+<td><p>4.51%–8.82%</p></td>
+</tr>
+<tr class="row-even"><td><p>Tools_and_Home_Improvement</p></td>
+<td><p>100.00%</p></td>
+<td><p>100.00%</p></td>
+<td><p>0.21%</p></td>
+<td><p>0.32%–0.41%</p></td>
+<td><p>0.11%–0.15%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Toys_and_Games</p></td>
+<td><p>100.00%</p></td>
+<td><p>100.00%</p></td>
+<td><p>0.18%</p></td>
+<td><p>0.17%–0.20%</p></td>
+<td><p>0.05%–0.10%</p></td>
+</tr>
+<tr class="row-even"><td><p>Video_Games</p></td>
+<td><p>100.00%</p></td>
+<td><p>100.00%</p></td>
+<td><p>2.80%</p></td>
+<td><p>2.18%–2.28%</p></td>
+<td><p>1.63%–1.72%</p></td>
+</tr>
+</tbody>
+</table>
+<p>For limited encoder context, preserve title and selected category-specific
+attributes, then allocate a budget to features and description. Use the actual
+encoder tokenizer to set that budget; whitespace word counts are not token counts.
+Record field order, normalization, selected attribute keys, encoder and truncation
+policy alongside embeddings so experiments remain reproducible.</p>
+</section>
+<section id="recommendation">
+<h2>Recommendation<a class="headerlink" href="#recommendation" title="Link to this heading"></a></h2>
+<p>Keep <strong>min_entity_text_words=0</strong> for the common collaborative/multimodal benchmark.
+Preserve the verified interactions and splits, then record text/image availability
+masks with embeddings. Evaluate content-only methods on explicitly defined
+available-feature cohorts and report excluded coverage, or use a documented
+fallback. Do not silently drop users or items only for one competing method.</p>
+<p>If a text-only benchmark genuinely requires a minimum length, choose it per
+subset from the measured loss curves, rebuild support pruning and every split,
+and recheck eligible validation/test users. A threshold of 1 tests for some
+combined text; neither 1 nor 30 guarantees a useful description. Real descriptions
+should be checked directly when that is the scientific requirement.</p>
+</section>
+<section id="detailed-split-measurements">
+<h2>Detailed split measurements<a class="headerlink" href="#detailed-split-measurements" title="Link to this heading"></a></h2>
+<p>Text coverage and direct threshold losses below use the installed curated
+recipes. With the default threshold of zero, no interactions are removed for
+text length; the user/item counts and verified split profiles are unchanged.</p>
+<table class="docutils align-default" id="id5">
+<caption><span class="caption-text">Per-split installed-default coverage and direct training-pair loss</span><a class="headerlink" href="#id5" title="Link to this table"></a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Subset</p></th>
+<th class="head"><p>Split</p></th>
+<th class="head"><p>Catalog: items / text / image</p></th>
+<th class="head"><p>Train: items / text / image</p></th>
+<th class="head"><p>Validation targets: items / text / image</p></th>
+<th class="head"><p>Test targets: items / text / image</p></th>
+<th class="head"><p>Train pairs lost below 1 / 10 / 30 words</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>All_Beauty</p></td>
+<td><p>user_split</p></td>
+<td><p>11,834 / 100.00% / 100.00%</p></td>
+<td><p>11,834 / 100.00% / 100.00%</p></td>
+<td><p>1,826 / 100.00% / 100.00%</p></td>
+<td><p>1,854 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 1.01% / 34.73%</p></td>
+</tr>
+<tr class="row-odd"><td><p>All_Beauty</p></td>
+<td><p>item_split</p></td>
+<td><p>12,105 / 100.00% / 100.00%</p></td>
+<td><p>10,288 / 100.00% / 100.00%</p></td>
+<td><p>602 / 100.00% / 100.00%</p></td>
+<td><p>1,203 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 1.01% / 35.27%</p></td>
+</tr>
+<tr class="row-even"><td><p>All_Beauty</p></td>
+<td><p>leave_last_out</p></td>
+<td><p>10,266 / 100.00% / 100.00%</p></td>
+<td><p>7,242 / 100.00% / 100.00%</p></td>
+<td><p>2,503 / 100.00% / 100.00%</p></td>
+<td><p>2,487 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.99% / 34.46%</p></td>
+</tr>
+<tr class="row-odd"><td><p>All_Beauty</p></td>
+<td><p>temporal</p></td>
+<td><p>10,734 / 100.00% / 100.00%</p></td>
+<td><p>7,173 / 100.00% / 100.00%</p></td>
+<td><p>1,657 / 100.00% / 100.00%</p></td>
+<td><p>618 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.94% / 33.50%</p></td>
+</tr>
+<tr class="row-even"><td><p>Amazon_Fashion</p></td>
+<td><p>user_split</p></td>
+<td><p>10,206 / 100.00% / 100.00%</p></td>
+<td><p>10,206 / 100.00% / 100.00%</p></td>
+<td><p>2,779 / 100.00% / 100.00%</p></td>
+<td><p>2,692 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.76% / 64.26%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Amazon_Fashion</p></td>
+<td><p>item_split</p></td>
+<td><p>10,217 / 100.00% / 100.00%</p></td>
+<td><p>8,684 / 100.00% / 100.00%</p></td>
+<td><p>511 / 100.00% / 100.00%</p></td>
+<td><p>1,022 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.73% / 64.24%</p></td>
+</tr>
+<tr class="row-even"><td><p>Amazon_Fashion</p></td>
+<td><p>leave_last_out</p></td>
+<td><p>4,098 / 100.00% / 100.00%</p></td>
+<td><p>3,788 / 100.00% / 100.00%</p></td>
+<td><p>1,292 / 100.00% / 100.00%</p></td>
+<td><p>1,190 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.91% / 70.13%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Amazon_Fashion</p></td>
+<td><p>temporal</p></td>
+<td><p>4,080 / 100.00% / 100.00%</p></td>
+<td><p>2,933 / 100.00% / 100.00%</p></td>
+<td><p>673 / 100.00% / 100.00%</p></td>
+<td><p>467 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.90% / 60.25%</p></td>
+</tr>
+<tr class="row-even"><td><p>Appliances</p></td>
+<td><p>user_split</p></td>
+<td><p>19,078 / 100.00% / 100.00%</p></td>
+<td><p>19,078 / 100.00% / 100.00%</p></td>
+<td><p>3,391 / 100.00% / 100.00%</p></td>
+<td><p>3,277 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / &lt;0.01% / 1.46%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Appliances</p></td>
+<td><p>item_split</p></td>
+<td><p>19,327 / 100.00% / 100.00%</p></td>
+<td><p>16,427 / 100.00% / 100.00%</p></td>
+<td><p>967 / 100.00% / 100.00%</p></td>
+<td><p>1,933 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / &lt;0.01% / 1.49%</p></td>
+</tr>
+<tr class="row-even"><td><p>Appliances</p></td>
+<td><p>leave_last_out</p></td>
+<td><p>10,896 / 100.00% / 100.00%</p></td>
+<td><p>9,603 / 100.00% / 100.00%</p></td>
+<td><p>6,274 / 100.00% / 100.00%</p></td>
+<td><p>6,215 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / &lt;0.01% / 1.50%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Appliances</p></td>
+<td><p>temporal</p></td>
+<td><p>16,820 / 100.00% / 100.00%</p></td>
+<td><p>10,232 / 100.00% / 100.00%</p></td>
+<td><p>8,307 / 100.00% / 100.00%</p></td>
+<td><p>7,199 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.01% / 1.27%</p></td>
+</tr>
+<tr class="row-even"><td><p>Arts_Crafts_and_Sewing</p></td>
+<td><p>user_split</p></td>
+<td><p>18,043 / 100.00% / 99.95%</p></td>
+<td><p>18,043 / 100.00% / 99.95%</p></td>
+<td><p>6,506 / 100.00% / 99.97%</p></td>
+<td><p>6,613 / 100.00% / 99.95%</p></td>
+<td><p>0.00% / &lt;0.01% / 0.53%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Arts_Crafts_and_Sewing</p></td>
+<td><p>item_split</p></td>
+<td><p>18,043 / 100.00% / 99.95%</p></td>
+<td><p>15,335 / 100.00% / 99.94%</p></td>
+<td><p>903 / 100.00% / 100.00%</p></td>
+<td><p>1,805 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.01% / 0.49%</p></td>
+</tr>
+<tr class="row-even"><td><p>Arts_Crafts_and_Sewing</p></td>
+<td><p>leave_last_out</p></td>
+<td><p>18,043 / 100.00% / 99.95%</p></td>
+<td><p>18,043 / 100.00% / 99.95%</p></td>
+<td><p>16,863 / 100.00% / 99.95%</p></td>
+<td><p>16,459 / 100.00% / 99.97%</p></td>
+<td><p>0.00% / &lt;0.01% / 0.57%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Arts_Crafts_and_Sewing</p></td>
+<td><p>temporal</p></td>
+<td><p>12,713 / 100.00% / 99.97%</p></td>
+<td><p>8,849 / 100.00% / 99.97%</p></td>
+<td><p>9,307 / 100.00% / 99.97%</p></td>
+<td><p>9,221 / 100.00% / 99.98%</p></td>
+<td><p>0.00% / &lt;0.01% / 0.42%</p></td>
+</tr>
+<tr class="row-even"><td><p>Automotive</p></td>
+<td><p>user_split</p></td>
+<td><p>16,079 / 100.00% / &gt;99.99%</p></td>
+<td><p>16,079 / 100.00% / &gt;99.99%</p></td>
+<td><p>7,492 / 100.00% / 99.99%</p></td>
+<td><p>7,574 / 100.00% / 99.99%</p></td>
+<td><p>0.00% / &lt;0.01% / 0.30%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Automotive</p></td>
+<td><p>item_split</p></td>
+<td><p>16,079 / 100.00% / &gt;99.99%</p></td>
+<td><p>13,667 / 100.00% / &gt;99.99%</p></td>
+<td><p>804 / 100.00% / 100.00%</p></td>
+<td><p>1,608 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / &lt;0.01% / 0.28%</p></td>
+</tr>
+<tr class="row-even"><td><p>Automotive</p></td>
+<td><p>leave_last_out</p></td>
+<td><p>16,079 / 100.00% / &gt;99.99%</p></td>
+<td><p>16,079 / 100.00% / &gt;99.99%</p></td>
+<td><p>15,101 / 100.00% / &gt;99.99%</p></td>
+<td><p>14,639 / 100.00% / &gt;99.99%</p></td>
+<td><p>0.00% / &lt;0.01% / 0.32%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Automotive</p></td>
+<td><p>temporal</p></td>
+<td><p>19,182 / 100.00% / &gt;99.99%</p></td>
+<td><p>13,869 / 100.00% / &gt;99.99%</p></td>
+<td><p>15,181 / 100.00% / &gt;99.99%</p></td>
+<td><p>12,891 / 100.00% / &gt;99.99%</p></td>
+<td><p>0.00% / &lt;0.01% / 0.27%</p></td>
+</tr>
+<tr class="row-even"><td><p>Baby_Products</p></td>
+<td><p>user_split</p></td>
+<td><p>17,987 / 100.00% / 99.98%</p></td>
+<td><p>17,987 / 100.00% / 99.98%</p></td>
+<td><p>6,029 / 100.00% / 99.98%</p></td>
+<td><p>6,056 / 100.00% / 99.98%</p></td>
+<td><p>0.00% / 0.01% / 0.65%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Baby_Products</p></td>
+<td><p>item_split</p></td>
+<td><p>17,987 / 100.00% / 99.98%</p></td>
+<td><p>15,288 / 100.00% / 99.99%</p></td>
+<td><p>900 / 100.00% / 100.00%</p></td>
+<td><p>1,799 / 100.00% / 99.94%</p></td>
+<td><p>0.00% / &lt;0.01% / 0.57%</p></td>
+</tr>
+<tr class="row-even"><td><p>Baby_Products</p></td>
+<td><p>leave_last_out</p></td>
+<td><p>17,987 / 100.00% / 99.98%</p></td>
+<td><p>17,983 / 100.00% / 99.98%</p></td>
+<td><p>14,115 / 100.00% / 99.99%</p></td>
+<td><p>13,560 / 100.00% / 99.98%</p></td>
+<td><p>0.00% / 0.01% / 0.67%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Baby_Products</p></td>
+<td><p>temporal</p></td>
+<td><p>13,365 / 100.00% / 99.98%</p></td>
+<td><p>9,096 / 100.00% / 99.97%</p></td>
+<td><p>7,822 / 100.00% / 99.97%</p></td>
+<td><p>8,198 / 100.00% / 99.98%</p></td>
+<td><p>0.00% / &lt;0.01% / 0.40%</p></td>
+</tr>
+<tr class="row-even"><td><p>Beauty_and_Personal_Care</p></td>
+<td><p>user_split</p></td>
+<td><p>16,817 / 100.00% / 100.00%</p></td>
+<td><p>16,817 / 100.00% / 100.00%</p></td>
+<td><p>7,981 / 100.00% / 100.00%</p></td>
+<td><p>8,008 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.00% / 0.69%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Beauty_and_Personal_Care</p></td>
+<td><p>item_split</p></td>
+<td><p>16,817 / 100.00% / 100.00%</p></td>
+<td><p>14,294 / 100.00% / 100.00%</p></td>
+<td><p>841 / 100.00% / 100.00%</p></td>
+<td><p>1,682 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.00% / 0.63%</p></td>
+</tr>
+<tr class="row-even"><td><p>Beauty_and_Personal_Care</p></td>
+<td><p>leave_last_out</p></td>
+<td><p>16,817 / 100.00% / 100.00%</p></td>
+<td><p>16,817 / 100.00% / 100.00%</p></td>
+<td><p>15,180 / 100.00% / 100.00%</p></td>
+<td><p>14,750 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.00% / 0.72%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Beauty_and_Personal_Care</p></td>
+<td><p>temporal</p></td>
+<td><p>14,656 / 100.00% / 100.00%</p></td>
+<td><p>8,247 / 100.00% / 100.00%</p></td>
+<td><p>9,685 / 100.00% / 100.00%</p></td>
+<td><p>11,789 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.00% / 0.61%</p></td>
+</tr>
+<tr class="row-even"><td><p>Books</p></td>
+<td><p>user_split</p></td>
+<td><p>94,864 / 100.00% / 89.17%</p></td>
+<td><p>94,864 / 100.00% / 89.17%</p></td>
+<td><p>31,567 / 100.00% / 89.06%</p></td>
+<td><p>32,453 / 100.00% / 89.01%</p></td>
+<td><p>0.00% / 0.01% / 0.16%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Books</p></td>
+<td><p>item_split</p></td>
+<td><p>94,864 / 100.00% / 89.17%</p></td>
+<td><p>80,633 / 100.00% / 89.14%</p></td>
+<td><p>4,744 / 100.00% / 88.47%</p></td>
+<td><p>9,487 / 100.00% / 89.73%</p></td>
+<td><p>0.00% / 0.01% / 0.16%</p></td>
+</tr>
+<tr class="row-even"><td><p>Books</p></td>
+<td><p>leave_last_out</p></td>
+<td><p>94,864 / 100.00% / 89.17%</p></td>
+<td><p>94,829 / 100.00% / 89.17%</p></td>
+<td><p>80,327 / 100.00% / 89.17%</p></td>
+<td><p>76,778 / 100.00% / 89.13%</p></td>
+<td><p>0.00% / 0.01% / 0.14%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Books</p></td>
+<td><p>temporal</p></td>
+<td><p>96,465 / 100.00% / 88.36%</p></td>
+<td><p>75,631 / 100.00% / 88.73%</p></td>
+<td><p>37,923 / 100.00% / 88.00%</p></td>
+<td><p>26,194 / 100.00% / 87.40%</p></td>
+<td><p>0.00% / 0.02% / 0.18%</p></td>
+</tr>
+<tr class="row-even"><td><p>CDs_and_Vinyl</p></td>
+<td><p>user_split</p></td>
+<td><p>18,586 / 100.00% / 99.90%</p></td>
+<td><p>18,586 / 100.00% / 99.90%</p></td>
+<td><p>8,295 / 100.00% / 99.89%</p></td>
+<td><p>8,493 / 100.00% / 99.89%</p></td>
+<td><p>0.00% / 0.00% / 6.42%</p></td>
+</tr>
+<tr class="row-odd"><td><p>CDs_and_Vinyl</p></td>
+<td><p>item_split</p></td>
+<td><p>18,586 / 100.00% / 99.90%</p></td>
+<td><p>15,797 / 100.00% / 99.91%</p></td>
+<td><p>930 / 100.00% / 99.68%</p></td>
+<td><p>1,859 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.00% / 6.44%</p></td>
+</tr>
+<tr class="row-even"><td><p>CDs_and_Vinyl</p></td>
+<td><p>leave_last_out</p></td>
+<td><p>18,586 / 100.00% / 99.90%</p></td>
+<td><p>18,584 / 100.00% / 99.90%</p></td>
+<td><p>16,271 / 100.00% / 99.90%</p></td>
+<td><p>16,039 / 100.00% / 99.89%</p></td>
+<td><p>0.00% / 0.00% / 6.44%</p></td>
+</tr>
+<tr class="row-odd"><td><p>CDs_and_Vinyl</p></td>
+<td><p>temporal</p></td>
+<td><p>13,650 / 100.00% / 99.88%</p></td>
+<td><p>11,048 / 100.00% / 99.86%</p></td>
+<td><p>6,986 / 100.00% / 99.86%</p></td>
+<td><p>4,566 / 100.00% / 99.82%</p></td>
+<td><p>0.00% / 0.00% / 6.61%</p></td>
+</tr>
+<tr class="row-even"><td><p>Cell_Phones_and_Accessories</p></td>
+<td><p>user_split</p></td>
+<td><p>19,322 / 100.00% / 100.00%</p></td>
+<td><p>19,322 / 100.00% / 100.00%</p></td>
+<td><p>6,692 / 100.00% / 100.00%</p></td>
+<td><p>6,736 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.01% / 0.50%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Cell_Phones_and_Accessories</p></td>
+<td><p>item_split</p></td>
+<td><p>19,322 / 100.00% / 100.00%</p></td>
+<td><p>16,422 / 100.00% / 100.00%</p></td>
+<td><p>967 / 100.00% / 100.00%</p></td>
+<td><p>1,933 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.01% / 0.51%</p></td>
+</tr>
+<tr class="row-even"><td><p>Cell_Phones_and_Accessories</p></td>
+<td><p>leave_last_out</p></td>
+<td><p>19,322 / 100.00% / 100.00%</p></td>
+<td><p>19,315 / 100.00% / 100.00%</p></td>
+<td><p>16,504 / 100.00% / 100.00%</p></td>
+<td><p>15,069 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.01% / 0.58%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Cell_Phones_and_Accessories</p></td>
+<td><p>temporal</p></td>
+<td><p>19,096 / 100.00% / 100.00%</p></td>
+<td><p>10,107 / 100.00% / 100.00%</p></td>
+<td><p>7,932 / 100.00% / 100.00%</p></td>
+<td><p>10,338 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.00% / 0.34%</p></td>
+</tr>
+<tr class="row-even"><td><p>Clothing_Shoes_and_Jewelry</p></td>
+<td><p>user_split</p></td>
+<td><p>14,289 / 100.00% / 99.98%</p></td>
+<td><p>14,289 / 100.00% / 99.98%</p></td>
+<td><p>8,145 / 100.00% / 100.00%</p></td>
+<td><p>8,166 / 100.00% / 99.98%</p></td>
+<td><p>0.00% / 0.00% / 0.08%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Clothing_Shoes_and_Jewelry</p></td>
+<td><p>item_split</p></td>
+<td><p>14,289 / 100.00% / 99.98%</p></td>
+<td><p>12,145 / 100.00% / 99.98%</p></td>
+<td><p>715 / 100.00% / 100.00%</p></td>
+<td><p>1,429 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.00% / 0.07%</p></td>
+</tr>
+<tr class="row-even"><td><p>Clothing_Shoes_and_Jewelry</p></td>
+<td><p>leave_last_out</p></td>
+<td><p>14,289 / 100.00% / 99.98%</p></td>
+<td><p>14,289 / 100.00% / 99.98%</p></td>
+<td><p>13,220 / 100.00% / 99.98%</p></td>
+<td><p>12,877 / 100.00% / 99.98%</p></td>
+<td><p>0.00% / 0.00% / 0.09%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Clothing_Shoes_and_Jewelry</p></td>
+<td><p>temporal</p></td>
+<td><p>24,824 / 100.00% / 99.99%</p></td>
+<td><p>10,351 / 100.00% / 99.97%</p></td>
+<td><p>20,663 / 100.00% / &gt;99.99%</p></td>
+<td><p>19,421 / 100.00% / &gt;99.99%</p></td>
+<td><p>0.00% / 0.00% / 0.10%</p></td>
+</tr>
+<tr class="row-even"><td><p>Digital_Music</p></td>
+<td><p>user_split</p></td>
+<td><p>2,341 / 100.00% / 100.00%</p></td>
+<td><p>2,341 / 100.00% / 100.00%</p></td>
+<td><p>252 / 100.00% / 100.00%</p></td>
+<td><p>240 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 3.52% / 36.12%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Digital_Music</p></td>
+<td><p>item_split</p></td>
+<td><p>2,389 / 100.00% / 100.00%</p></td>
+<td><p>2,030 / 100.00% / 100.00%</p></td>
+<td><p>119 / 100.00% / 100.00%</p></td>
+<td><p>236 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 3.58% / 36.70%</p></td>
+</tr>
+<tr class="row-even"><td><p>Digital_Music</p></td>
+<td><p>leave_last_out</p></td>
+<td><p>16,240 / 100.00% / 100.00%</p></td>
+<td><p>12,553 / 100.00% / 100.00%</p></td>
+<td><p>2,184 / 100.00% / 100.00%</p></td>
+<td><p>2,177 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 10.79% / 62.42%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Digital_Music</p></td>
+<td><p>temporal</p></td>
+<td><p>8,154 / 100.00% / 100.00%</p></td>
+<td><p>4,145 / 100.00% / 100.00%</p></td>
+<td><p>1,121 / 100.00% / 100.00%</p></td>
+<td><p>735 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 8.47% / 61.69%</p></td>
+</tr>
+<tr class="row-even"><td><p>Electronics</p></td>
+<td><p>user_split</p></td>
+<td><p>92,180 / 100.00% / &gt;99.99%</p></td>
+<td><p>92,180 / 100.00% / &gt;99.99%</p></td>
+<td><p>31,288 / 100.00% / &gt;99.99%</p></td>
+<td><p>31,489 / 100.00% / &gt;99.99%</p></td>
+<td><p>0.00% / 0.06% / 0.71%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Electronics</p></td>
+<td><p>item_split</p></td>
+<td><p>92,180 / 100.00% / &gt;99.99%</p></td>
+<td><p>78,353 / 100.00% / &gt;99.99%</p></td>
+<td><p>4,609 / 100.00% / 100.00%</p></td>
+<td><p>9,218 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.06% / 0.74%</p></td>
+</tr>
+<tr class="row-even"><td><p>Electronics</p></td>
+<td><p>leave_last_out</p></td>
+<td><p>92,180 / 100.00% / &gt;99.99%</p></td>
+<td><p>92,177 / 100.00% / &gt;99.99%</p></td>
+<td><p>72,119 / 100.00% / &gt;99.99%</p></td>
+<td><p>66,509 / 100.00% / &gt;99.99%</p></td>
+<td><p>0.00% / 0.06% / 0.76%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Electronics</p></td>
+<td><p>temporal</p></td>
+<td><p>78,239 / 100.00% / &gt;99.99%</p></td>
+<td><p>58,356 / 100.00% / &gt;99.99%</p></td>
+<td><p>39,800 / 100.00% / &gt;99.99%</p></td>
+<td><p>40,647 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.06% / 0.61%</p></td>
+</tr>
+<tr class="row-even"><td><p>Gift_Cards</p></td>
+<td><p>user_split</p></td>
+<td><p>717 / 100.00% / 100.00%</p></td>
+<td><p>717 / 100.00% / 100.00%</p></td>
+<td><p>230 / 100.00% / 100.00%</p></td>
+<td><p>240 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / &lt;0.01% / 0.74%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Gift_Cards</p></td>
+<td><p>item_split</p></td>
+<td><p>575 / 100.00% / 100.00%</p></td>
+<td><p>488 / 100.00% / 100.00%</p></td>
+<td><p>29 / 100.00% / 100.00%</p></td>
+<td><p>58 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / &lt;0.01% / 0.80%</p></td>
+</tr>
+<tr class="row-even"><td><p>Gift_Cards</p></td>
+<td><p>leave_last_out</p></td>
+<td><p>503 / 100.00% / 100.00%</p></td>
+<td><p>439 / 100.00% / 100.00%</p></td>
+<td><p>253 / 100.00% / 100.00%</p></td>
+<td><p>244 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.00% / 0.88%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Gift_Cards</p></td>
+<td><p>temporal</p></td>
+<td><p>421 / 100.00% / 100.00%</p></td>
+<td><p>278 / 100.00% / 100.00%</p></td>
+<td><p>123 / 100.00% / 100.00%</p></td>
+<td><p>120 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.00% / 0.88%</p></td>
+</tr>
+<tr class="row-even"><td><p>Grocery_and_Gourmet_Food</p></td>
+<td><p>user_split</p></td>
+<td><p>16,735 / 100.00% / 99.94%</p></td>
+<td><p>16,735 / 100.00% / 99.94%</p></td>
+<td><p>7,768 / 100.00% / 99.96%</p></td>
+<td><p>7,813 / 100.00% / 99.95%</p></td>
+<td><p>0.00% / 0.01% / 0.90%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Grocery_and_Gourmet_Food</p></td>
+<td><p>item_split</p></td>
+<td><p>16,735 / 100.00% / 99.94%</p></td>
+<td><p>14,224 / 100.00% / 99.94%</p></td>
+<td><p>837 / 100.00% / 100.00%</p></td>
+<td><p>1,674 / 100.00% / 99.94%</p></td>
+<td><p>0.00% / &lt;0.01% / 0.87%</p></td>
+</tr>
+<tr class="row-even"><td><p>Grocery_and_Gourmet_Food</p></td>
+<td><p>leave_last_out</p></td>
+<td><p>16,735 / 100.00% / 99.94%</p></td>
+<td><p>16,735 / 100.00% / 99.94%</p></td>
+<td><p>15,347 / 100.00% / 99.93%</p></td>
+<td><p>14,851 / 100.00% / 99.94%</p></td>
+<td><p>0.00% / 0.01% / 0.92%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Grocery_and_Gourmet_Food</p></td>
+<td><p>temporal</p></td>
+<td><p>19,238 / 100.00% / 99.96%</p></td>
+<td><p>12,329 / 100.00% / 99.97%</p></td>
+<td><p>14,478 / 100.00% / 99.97%</p></td>
+<td><p>13,429 / 100.00% / 99.94%</p></td>
+<td><p>0.00% / 0.02% / 0.95%</p></td>
+</tr>
+<tr class="row-even"><td><p>Handmade_Products</p></td>
+<td><p>user_split</p></td>
+<td><p>11,613 / 100.00% / 100.00%</p></td>
+<td><p>11,613 / 100.00% / 100.00%</p></td>
+<td><p>1,725 / 100.00% / 100.00%</p></td>
+<td><p>1,788 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.00% / 0.95%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Handmade_Products</p></td>
+<td><p>item_split</p></td>
+<td><p>11,878 / 100.00% / 100.00%</p></td>
+<td><p>10,096 / 100.00% / 100.00%</p></td>
+<td><p>587 / 100.00% / 100.00%</p></td>
+<td><p>1,180 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.00% / 0.94%</p></td>
+</tr>
+<tr class="row-even"><td><p>Handmade_Products</p></td>
+<td><p>leave_last_out</p></td>
+<td><p>14,723 / 100.00% / 100.00%</p></td>
+<td><p>9,726 / 100.00% / 100.00%</p></td>
+<td><p>3,350 / 100.00% / 100.00%</p></td>
+<td><p>3,347 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.00% / 1.81%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Handmade_Products</p></td>
+<td><p>temporal</p></td>
+<td><p>11,710 / 100.00% / 100.00%</p></td>
+<td><p>5,138 / 100.00% / 100.00%</p></td>
+<td><p>2,029 / 100.00% / 100.00%</p></td>
+<td><p>1,708 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.00% / 1.77%</p></td>
+</tr>
+<tr class="row-even"><td><p>Health_and_Household</p></td>
+<td><p>user_split</p></td>
+<td><p>19,922 / 100.00% / 100.00%</p></td>
+<td><p>19,922 / 100.00% / 100.00%</p></td>
+<td><p>9,180 / 100.00% / 100.00%</p></td>
+<td><p>8,986 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.00% / 0.13%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Health_and_Household</p></td>
+<td><p>item_split</p></td>
+<td><p>19,922 / 100.00% / 100.00%</p></td>
+<td><p>16,932 / 100.00% / 100.00%</p></td>
+<td><p>997 / 100.00% / 100.00%</p></td>
+<td><p>1,993 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.00% / 0.15%</p></td>
+</tr>
+<tr class="row-even"><td><p>Health_and_Household</p></td>
+<td><p>leave_last_out</p></td>
+<td><p>19,922 / 100.00% / 100.00%</p></td>
+<td><p>19,922 / 100.00% / 100.00%</p></td>
+<td><p>16,439 / 100.00% / 100.00%</p></td>
+<td><p>15,703 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.00% / 0.13%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Health_and_Household</p></td>
+<td><p>temporal</p></td>
+<td><p>19,907 / 100.00% / 100.00%</p></td>
+<td><p>12,277 / 100.00% / 100.00%</p></td>
+<td><p>13,166 / 100.00% / 100.00%</p></td>
+<td><p>14,545 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.00% / 0.14%</p></td>
+</tr>
+<tr class="row-even"><td><p>Health_and_Personal_Care</p></td>
+<td><p>user_split</p></td>
+<td><p>15,041 / 100.00% / 100.00%</p></td>
+<td><p>15,041 / 100.00% / 100.00%</p></td>
+<td><p>940 / 100.00% / 100.00%</p></td>
+<td><p>877 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 1.65% / 34.11%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Health_and_Personal_Care</p></td>
+<td><p>item_split</p></td>
+<td><p>17,288 / 100.00% / 100.00%</p></td>
+<td><p>14,694 / 100.00% / 100.00%</p></td>
+<td><p>784 / 100.00% / 100.00%</p></td>
+<td><p>1,585 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 1.58% / 34.09%</p></td>
+</tr>
+<tr class="row-even"><td><p>Health_and_Personal_Care</p></td>
+<td><p>leave_last_out</p></td>
+<td><p>3,448 / 100.00% / 100.00%</p></td>
+<td><p>2,697 / 100.00% / 100.00%</p></td>
+<td><p>911 / 100.00% / 100.00%</p></td>
+<td><p>857 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.99% / 30.43%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Health_and_Personal_Care</p></td>
+<td><p>temporal</p></td>
+<td><p>7,604 / 100.00% / 100.00%</p></td>
+<td><p>4,625 / 100.00% / 100.00%</p></td>
+<td><p>1,603 / 100.00% / 100.00%</p></td>
+<td><p>762 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 1.16% / 32.96%</p></td>
+</tr>
+<tr class="row-even"><td><p>Home_and_Kitchen</p></td>
+<td><p>user_split</p></td>
+<td><p>17,431 / 100.00% / 100.00%</p></td>
+<td><p>17,431 / 100.00% / 100.00%</p></td>
+<td><p>9,721 / 100.00% / 100.00%</p></td>
+<td><p>9,750 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.00% / 0.10%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Home_and_Kitchen</p></td>
+<td><p>item_split</p></td>
+<td><p>17,431 / 100.00% / 100.00%</p></td>
+<td><p>14,815 / 100.00% / 100.00%</p></td>
+<td><p>872 / 100.00% / 100.00%</p></td>
+<td><p>1,744 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.00% / 0.10%</p></td>
+</tr>
+<tr class="row-even"><td><p>Home_and_Kitchen</p></td>
+<td><p>leave_last_out</p></td>
+<td><p>17,431 / 100.00% / 100.00%</p></td>
+<td><p>17,431 / 100.00% / 100.00%</p></td>
+<td><p>15,181 / 100.00% / 100.00%</p></td>
+<td><p>14,374 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.00% / 0.11%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Home_and_Kitchen</p></td>
+<td><p>temporal</p></td>
+<td><p>14,879 / 100.00% / 100.00%</p></td>
+<td><p>11,240 / 100.00% / 100.00%</p></td>
+<td><p>11,264 / 100.00% / 100.00%</p></td>
+<td><p>10,726 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.00% / 0.07%</p></td>
+</tr>
+<tr class="row-even"><td><p>Industrial_and_Scientific</p></td>
+<td><p>user_split</p></td>
+<td><p>19,251 / 100.00% / 100.00%</p></td>
+<td><p>19,251 / 100.00% / 100.00%</p></td>
+<td><p>5,348 / 100.00% / 100.00%</p></td>
+<td><p>5,350 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / &lt;0.01% / 0.45%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Industrial_and_Scientific</p></td>
+<td><p>item_split</p></td>
+<td><p>19,251 / 100.00% / 100.00%</p></td>
+<td><p>16,362 / 100.00% / 100.00%</p></td>
+<td><p>963 / 100.00% / 100.00%</p></td>
+<td><p>1,926 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.01% / 0.46%</p></td>
+</tr>
+<tr class="row-even"><td><p>Industrial_and_Scientific</p></td>
+<td><p>leave_last_out</p></td>
+<td><p>19,251 / 100.00% / 100.00%</p></td>
+<td><p>19,229 / 100.00% / 100.00%</p></td>
+<td><p>16,742 / 100.00% / 100.00%</p></td>
+<td><p>16,000 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.01% / 0.50%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Industrial_and_Scientific</p></td>
+<td><p>temporal</p></td>
+<td><p>17,690 / 100.00% / 100.00%</p></td>
+<td><p>10,270 / 100.00% / 100.00%</p></td>
+<td><p>10,279 / 100.00% / 100.00%</p></td>
+<td><p>10,034 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.01% / 0.36%</p></td>
+</tr>
+<tr class="row-even"><td><p>Kindle_Store</p></td>
+<td><p>user_split</p></td>
+<td><p>17,800 / 100.00% / 89.30%</p></td>
+<td><p>17,800 / 100.00% / 89.30%</p></td>
+<td><p>13,209 / 100.00% / 89.36%</p></td>
+<td><p>13,406 / 100.00% / 89.39%</p></td>
+<td><p>0.00% / 0.00% / 0.02%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Kindle_Store</p></td>
+<td><p>item_split</p></td>
+<td><p>17,800 / 100.00% / 89.30%</p></td>
+<td><p>15,130 / 100.00% / 89.25%</p></td>
+<td><p>890 / 100.00% / 90.67%</p></td>
+<td><p>1,780 / 100.00% / 89.10%</p></td>
+<td><p>0.00% / 0.00% / 0.02%</p></td>
+</tr>
+<tr class="row-even"><td><p>Kindle_Store</p></td>
+<td><p>leave_last_out</p></td>
+<td><p>17,800 / 100.00% / 89.30%</p></td>
+<td><p>17,800 / 100.00% / 89.30%</p></td>
+<td><p>15,961 / 100.00% / 89.34%</p></td>
+<td><p>15,154 / 100.00% / 89.34%</p></td>
+<td><p>0.00% / 0.00% / 0.02%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Kindle_Store</p></td>
+<td><p>temporal</p></td>
+<td><p>19,957 / 100.00% / 89.28%</p></td>
+<td><p>16,217 / 100.00% / 89.28%</p></td>
+<td><p>15,954 / 100.00% / 89.31%</p></td>
+<td><p>14,155 / 100.00% / 89.21%</p></td>
+<td><p>0.00% / 0.00% / 0.02%</p></td>
+</tr>
+<tr class="row-even"><td><p>Magazine_Subscriptions</p></td>
+<td><p>user_split</p></td>
+<td><p>1,708 / 100.00% / 100.00%</p></td>
+<td><p>1,708 / 100.00% / 100.00%</p></td>
+<td><p>472 / 100.00% / 100.00%</p></td>
+<td><p>463 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 4.54% / 61.56%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Magazine_Subscriptions</p></td>
+<td><p>item_split</p></td>
+<td><p>1,241 / 100.00% / 100.00%</p></td>
+<td><p>1,053 / 100.00% / 100.00%</p></td>
+<td><p>63 / 100.00% / 100.00%</p></td>
+<td><p>124 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 5.08% / 61.97%</p></td>
+</tr>
+<tr class="row-even"><td><p>Magazine_Subscriptions</p></td>
+<td><p>leave_last_out</p></td>
+<td><p>1,110 / 100.00% / 100.00%</p></td>
+<td><p>918 / 100.00% / 100.00%</p></td>
+<td><p>353 / 100.00% / 100.00%</p></td>
+<td><p>381 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 4.57% / 62.26%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Magazine_Subscriptions</p></td>
+<td><p>temporal</p></td>
+<td><p>522 / 100.00% / 100.00%</p></td>
+<td><p>329 / 100.00% / 100.00%</p></td>
+<td><p>117 / 100.00% / 100.00%</p></td>
+<td><p>66 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 4.34% / 59.04%</p></td>
+</tr>
+<tr class="row-even"><td><p>Movies_and_TV</p></td>
+<td><p>user_split</p></td>
+<td><p>18,324 / 100.00% / 100.00%</p></td>
+<td><p>18,324 / 100.00% / 100.00%</p></td>
+<td><p>10,254 / 100.00% / 100.00%</p></td>
+<td><p>10,070 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.44% / 26.86%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Movies_and_TV</p></td>
+<td><p>item_split</p></td>
+<td><p>18,324 / 100.00% / 100.00%</p></td>
+<td><p>15,574 / 100.00% / 100.00%</p></td>
+<td><p>917 / 100.00% / 100.00%</p></td>
+<td><p>1,833 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.34% / 26.72%</p></td>
+</tr>
+<tr class="row-even"><td><p>Movies_and_TV</p></td>
+<td><p>leave_last_out</p></td>
+<td><p>18,324 / 100.00% / 100.00%</p></td>
+<td><p>18,324 / 100.00% / 100.00%</p></td>
+<td><p>16,454 / 100.00% / 100.00%</p></td>
+<td><p>15,927 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.45% / 26.62%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Movies_and_TV</p></td>
+<td><p>temporal</p></td>
+<td><p>17,522 / 100.00% / 100.00%</p></td>
+<td><p>14,804 / 100.00% / 100.00%</p></td>
+<td><p>10,612 / 100.00% / 100.00%</p></td>
+<td><p>6,941 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.52% / 36.33%</p></td>
+</tr>
+<tr class="row-even"><td><p>Musical_Instruments</p></td>
+<td><p>user_split</p></td>
+<td><p>16,766 / 100.00% / 99.98%</p></td>
+<td><p>16,766 / 100.00% / 99.98%</p></td>
+<td><p>5,933 / 100.00% / 99.97%</p></td>
+<td><p>5,863 / 100.00% / 99.98%</p></td>
+<td><p>0.00% / 0.02% / 0.73%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Musical_Instruments</p></td>
+<td><p>item_split</p></td>
+<td><p>16,766 / 100.00% / 99.98%</p></td>
+<td><p>14,250 / 100.00% / 99.97%</p></td>
+<td><p>839 / 100.00% / 100.00%</p></td>
+<td><p>1,677 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.02% / 0.71%</p></td>
+</tr>
+<tr class="row-even"><td><p>Musical_Instruments</p></td>
+<td><p>leave_last_out</p></td>
+<td><p>16,766 / 100.00% / 99.98%</p></td>
+<td><p>16,760 / 100.00% / 99.98%</p></td>
+<td><p>12,985 / 100.00% / 99.97%</p></td>
+<td><p>12,681 / 100.00% / 99.98%</p></td>
+<td><p>0.00% / 0.02% / 0.78%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Musical_Instruments</p></td>
+<td><p>temporal</p></td>
+<td><p>15,914 / 100.00% / 99.98%</p></td>
+<td><p>11,545 / 100.00% / &gt;99.99%</p></td>
+<td><p>10,123 / 100.00% / &gt;99.99%</p></td>
+<td><p>9,093 / 100.00% / 99.98%</p></td>
+<td><p>0.00% / 0.01% / 0.62%</p></td>
+</tr>
+<tr class="row-even"><td><p>Office_Products</p></td>
+<td><p>user_split</p></td>
+<td><p>12,740 / 100.00% / 99.69%</p></td>
+<td><p>12,740 / 100.00% / 99.69%</p></td>
+<td><p>5,177 / 100.00% / 99.77%</p></td>
+<td><p>5,178 / 100.00% / 99.69%</p></td>
+<td><p>0.00% / 0.00% / 0.21%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Office_Products</p></td>
+<td><p>item_split</p></td>
+<td><p>12,740 / 100.00% / 99.69%</p></td>
+<td><p>10,829 / 100.00% / 99.70%</p></td>
+<td><p>637 / 100.00% / 99.69%</p></td>
+<td><p>1,274 / 100.00% / 99.69%</p></td>
+<td><p>0.00% / 0.00% / 0.23%</p></td>
+</tr>
+<tr class="row-even"><td><p>Office_Products</p></td>
+<td><p>leave_last_out</p></td>
+<td><p>12,740 / 100.00% / 99.69%</p></td>
+<td><p>12,738 / 100.00% / 99.69%</p></td>
+<td><p>12,194 / 100.00% / 99.69%</p></td>
+<td><p>11,905 / 100.00% / 99.69%</p></td>
+<td><p>0.00% / 0.00% / 0.21%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Office_Products</p></td>
+<td><p>temporal</p></td>
+<td><p>19,965 / 100.00% / 99.70%</p></td>
+<td><p>12,805 / 100.00% / 99.67%</p></td>
+<td><p>11,142 / 100.00% / 99.69%</p></td>
+<td><p>12,535 / 100.00% / 99.73%</p></td>
+<td><p>0.00% / &lt;0.01% / 0.26%</p></td>
+</tr>
+<tr class="row-even"><td><p>Patio_Lawn_and_Garden</p></td>
+<td><p>user_split</p></td>
+<td><p>14,019 / 100.00% / 99.96%</p></td>
+<td><p>14,019 / 100.00% / 99.96%</p></td>
+<td><p>6,556 / 100.00% / 99.95%</p></td>
+<td><p>6,539 / 100.00% / 99.94%</p></td>
+<td><p>0.00% / 0.00% / 0.13%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Patio_Lawn_and_Garden</p></td>
+<td><p>item_split</p></td>
+<td><p>14,019 / 100.00% / 99.96%</p></td>
+<td><p>11,916 / 100.00% / 99.96%</p></td>
+<td><p>701 / 100.00% / 100.00%</p></td>
+<td><p>1,402 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.00% / 0.14%</p></td>
+</tr>
+<tr class="row-even"><td><p>Patio_Lawn_and_Garden</p></td>
+<td><p>leave_last_out</p></td>
+<td><p>14,019 / 100.00% / 99.96%</p></td>
+<td><p>14,019 / 100.00% / 99.96%</p></td>
+<td><p>13,333 / 100.00% / 99.96%</p></td>
+<td><p>12,826 / 100.00% / 99.96%</p></td>
+<td><p>0.00% / 0.00% / 0.14%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Patio_Lawn_and_Garden</p></td>
+<td><p>temporal</p></td>
+<td><p>14,329 / 100.00% / 99.97%</p></td>
+<td><p>8,247 / 100.00% / 99.95%</p></td>
+<td><p>10,667 / 100.00% / 99.95%</p></td>
+<td><p>9,718 / 100.00% / 99.95%</p></td>
+<td><p>0.00% / 0.00% / 0.12%</p></td>
+</tr>
+<tr class="row-even"><td><p>Pet_Supplies</p></td>
+<td><p>user_split</p></td>
+<td><p>19,880 / 100.00% / 99.98%</p></td>
+<td><p>19,880 / 100.00% / 99.98%</p></td>
+<td><p>8,436 / 100.00% / 99.98%</p></td>
+<td><p>8,533 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / &lt;0.01% / 0.21%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Pet_Supplies</p></td>
+<td><p>item_split</p></td>
+<td><p>19,880 / 100.00% / 99.98%</p></td>
+<td><p>16,898 / 100.00% / 99.98%</p></td>
+<td><p>994 / 100.00% / 100.00%</p></td>
+<td><p>1,988 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / &lt;0.01% / 0.21%</p></td>
+</tr>
+<tr class="row-even"><td><p>Pet_Supplies</p></td>
+<td><p>leave_last_out</p></td>
+<td><p>19,880 / 100.00% / 99.98%</p></td>
+<td><p>19,880 / 100.00% / 99.98%</p></td>
+<td><p>16,106 / 100.00% / 99.98%</p></td>
+<td><p>15,361 / 100.00% / 99.98%</p></td>
+<td><p>0.00% / &lt;0.01% / 0.22%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Pet_Supplies</p></td>
+<td><p>temporal</p></td>
+<td><p>18,400 / 100.00% / 99.98%</p></td>
+<td><p>13,065 / 100.00% / 99.98%</p></td>
+<td><p>11,921 / 100.00% / 99.97%</p></td>
+<td><p>12,385 / 100.00% / 99.98%</p></td>
+<td><p>0.00% / &lt;0.01% / 0.15%</p></td>
+</tr>
+<tr class="row-even"><td><p>Software</p></td>
+<td><p>user_split</p></td>
+<td><p>13,664 / 100.00% / 100.00%</p></td>
+<td><p>13,664 / 100.00% / 100.00%</p></td>
+<td><p>4,254 / 100.00% / 100.00%</p></td>
+<td><p>4,129 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.00% / 0.43%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Software</p></td>
+<td><p>item_split</p></td>
+<td><p>13,664 / 100.00% / 100.00%</p></td>
+<td><p>11,613 / 100.00% / 100.00%</p></td>
+<td><p>684 / 100.00% / 100.00%</p></td>
+<td><p>1,367 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.00% / 0.39%</p></td>
+</tr>
+<tr class="row-even"><td><p>Software</p></td>
+<td><p>leave_last_out</p></td>
+<td><p>13,664 / 100.00% / 100.00%</p></td>
+<td><p>13,639 / 100.00% / 100.00%</p></td>
+<td><p>9,800 / 100.00% / 100.00%</p></td>
+<td><p>9,400 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.00% / 0.42%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Software</p></td>
+<td><p>temporal</p></td>
+<td><p>14,548 / 100.00% / &gt;99.99%</p></td>
+<td><p>11,639 / 100.00% / 100.00%</p></td>
+<td><p>5,902 / 100.00% / 100.00%</p></td>
+<td><p>3,762 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / &lt;0.01% / 0.71%</p></td>
+</tr>
+<tr class="row-even"><td><p>Sports_and_Outdoors</p></td>
+<td><p>user_split</p></td>
+<td><p>19,023 / 100.00% / 100.00%</p></td>
+<td><p>19,023 / 100.00% / 100.00%</p></td>
+<td><p>7,398 / 100.00% / 100.00%</p></td>
+<td><p>7,431 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.01% / 0.27%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Sports_and_Outdoors</p></td>
+<td><p>item_split</p></td>
+<td><p>19,023 / 100.00% / 100.00%</p></td>
+<td><p>16,168 / 100.00% / 100.00%</p></td>
+<td><p>952 / 100.00% / 100.00%</p></td>
+<td><p>1,903 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.01% / 0.29%</p></td>
+</tr>
+<tr class="row-even"><td><p>Sports_and_Outdoors</p></td>
+<td><p>leave_last_out</p></td>
+<td><p>19,023 / 100.00% / 100.00%</p></td>
+<td><p>19,023 / 100.00% / 100.00%</p></td>
+<td><p>17,601 / 100.00% / 100.00%</p></td>
+<td><p>16,816 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.01% / 0.30%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Sports_and_Outdoors</p></td>
+<td><p>temporal</p></td>
+<td><p>18,592 / 100.00% / 100.00%</p></td>
+<td><p>11,498 / 100.00% / 100.00%</p></td>
+<td><p>10,372 / 100.00% / 100.00%</p></td>
+<td><p>11,653 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.00% / 0.20%</p></td>
+</tr>
+<tr class="row-even"><td><p>Subscription_Boxes</p></td>
+<td><p>user_split</p></td>
+<td><p>291 / 99.66% / 100.00%</p></td>
+<td><p>291 / 99.66% / 100.00%</p></td>
+<td><p>28 / 100.00% / 100.00%</p></td>
+<td><p>36 / 97.22% / 100.00%</p></td>
+<td><p>0.19% / 0.19% / 6.12%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Subscription_Boxes</p></td>
+<td><p>item_split</p></td>
+<td><p>327 / 99.69% / 100.00%</p></td>
+<td><p>277 / 99.64% / 100.00%</p></td>
+<td><p>16 / 100.00% / 100.00%</p></td>
+<td><p>31 / 100.00% / 100.00%</p></td>
+<td><p>0.29% / 0.29% / 7.76%</p></td>
+</tr>
+<tr class="row-even"><td><p>Subscription_Boxes</p></td>
+<td><p>leave_last_out</p></td>
+<td><p>86 / 100.00% / 100.00%</p></td>
+<td><p>52 / 100.00% / 100.00%</p></td>
+<td><p>23 / 100.00% / 100.00%</p></td>
+<td><p>21 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.00% / 8.82%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Subscription_Boxes</p></td>
+<td><p>temporal</p></td>
+<td><p>191 / 100.00% / 100.00%</p></td>
+<td><p>86 / 100.00% / 100.00%</p></td>
+<td><p>62 / 100.00% / 100.00%</p></td>
+<td><p>34 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.00% / 4.51%</p></td>
+</tr>
+<tr class="row-even"><td><p>Tools_and_Home_Improvement</p></td>
+<td><p>user_split</p></td>
+<td><p>17,307 / 100.00% / &gt;99.99%</p></td>
+<td><p>17,307 / 100.00% / &gt;99.99%</p></td>
+<td><p>8,377 / 100.00% / 100.00%</p></td>
+<td><p>8,199 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.00% / 0.14%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Tools_and_Home_Improvement</p></td>
+<td><p>item_split</p></td>
+<td><p>17,307 / 100.00% / &gt;99.99%</p></td>
+<td><p>14,710 / 100.00% / &gt;99.99%</p></td>
+<td><p>866 / 100.00% / 100.00%</p></td>
+<td><p>1,731 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.00% / 0.11%</p></td>
+</tr>
+<tr class="row-even"><td><p>Tools_and_Home_Improvement</p></td>
+<td><p>leave_last_out</p></td>
+<td><p>17,307 / 100.00% / &gt;99.99%</p></td>
+<td><p>17,307 / 100.00% / &gt;99.99%</p></td>
+<td><p>15,754 / 100.00% / 100.00%</p></td>
+<td><p>15,151 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.00% / 0.15%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Tools_and_Home_Improvement</p></td>
+<td><p>temporal</p></td>
+<td><p>15,514 / 100.00% / 100.00%</p></td>
+<td><p>11,124 / 100.00% / 100.00%</p></td>
+<td><p>11,518 / 100.00% / 100.00%</p></td>
+<td><p>11,481 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.00% / 0.11%</p></td>
+</tr>
+<tr class="row-even"><td><p>Toys_and_Games</p></td>
+<td><p>user_split</p></td>
+<td><p>15,609 / 100.00% / &gt;99.99%</p></td>
+<td><p>15,609 / 100.00% / &gt;99.99%</p></td>
+<td><p>7,090 / 100.00% / 99.99%</p></td>
+<td><p>7,031 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.00% / 0.09%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Toys_and_Games</p></td>
+<td><p>item_split</p></td>
+<td><p>15,609 / 100.00% / &gt;99.99%</p></td>
+<td><p>13,267 / 100.00% / &gt;99.99%</p></td>
+<td><p>781 / 100.00% / 100.00%</p></td>
+<td><p>1,561 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.00% / 0.10%</p></td>
+</tr>
+<tr class="row-even"><td><p>Toys_and_Games</p></td>
+<td><p>leave_last_out</p></td>
+<td><p>15,609 / 100.00% / &gt;99.99%</p></td>
+<td><p>15,608 / 100.00% / &gt;99.99%</p></td>
+<td><p>14,818 / 100.00% / &gt;99.99%</p></td>
+<td><p>14,342 / 100.00% / &gt;99.99%</p></td>
+<td><p>0.00% / 0.00% / 0.10%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Toys_and_Games</p></td>
+<td><p>temporal</p></td>
+<td><p>17,369 / 100.00% / 99.99%</p></td>
+<td><p>10,382 / 100.00% / &gt;99.99%</p></td>
+<td><p>8,553 / 100.00% / 99.98%</p></td>
+<td><p>11,428 / 100.00% / &gt;99.99%</p></td>
+<td><p>0.00% / 0.00% / 0.05%</p></td>
+</tr>
+<tr class="row-even"><td><p>Video_Games</p></td>
+<td><p>user_split</p></td>
+<td><p>19,227 / 100.00% / &gt;99.99%</p></td>
+<td><p>19,227 / 100.00% / &gt;99.99%</p></td>
+<td><p>5,574 / 100.00% / 100.00%</p></td>
+<td><p>5,551 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.07% / 1.63%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Video_Games</p></td>
+<td><p>item_split</p></td>
+<td><p>19,227 / 100.00% / &gt;99.99%</p></td>
+<td><p>16,342 / 100.00% / &gt;99.99%</p></td>
+<td><p>962 / 100.00% / 100.00%</p></td>
+<td><p>1,923 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.08% / 1.72%</p></td>
+</tr>
+<tr class="row-even"><td><p>Video_Games</p></td>
+<td><p>leave_last_out</p></td>
+<td><p>19,227 / 100.00% / &gt;99.99%</p></td>
+<td><p>19,202 / 100.00% / &gt;99.99%</p></td>
+<td><p>15,526 / 100.00% / &gt;99.99%</p></td>
+<td><p>15,042 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.07% / 1.68%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Video_Games</p></td>
+<td><p>temporal</p></td>
+<td><p>16,463 / 100.00% / &gt;99.99%</p></td>
+<td><p>11,338 / 100.00% / &gt;99.99%</p></td>
+<td><p>7,650 / 100.00% / 99.99%</p></td>
+<td><p>7,253 / 100.00% / 100.00%</p></td>
+<td><p>0.00% / 0.08% / 1.64%</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="reproducing-the-audit">
+<h2>Reproducing the audit<a class="headerlink" href="#reproducing-the-audit" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">examples/validation/amazon_metadata_audit.py</span> <span class="pre">catalogs</span></code> rebuilds the selected
+split payloads from sealed prepared inputs using the original frozen
+profiler/builder and checks their measured counts. It saves retained item IDs and
+training item frequencies, not reusable checkpoints. Its <code class="docutils literal notranslate"><span class="pre">scan</span></code> mode streams
+the cached metadata in bounded memory, deduplicates retained item IDs using the
+adapter’s first-record policy, and measures exactly those catalogs. It does not
+download missing sources; a missing retained metadata record fails the audit.
+Use separate output directories and keep the frozen audit source unchanged.
+The published archive retains the original pre-change formatter fingerprints.
+New scans also fingerprint the live adapter and base formatter, preventing a
+resume from silently combining results produced by different implementations.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

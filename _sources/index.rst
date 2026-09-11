@@ -22,9 +22,11 @@ is imported as ``compresso_recsys``.
    :caption: User Guide
 
    examples
+   datasets
    bring-your-own-dataset
    implementing-a-recommender
    reproducing-sasrec-results-on-ml1m
+   
    statistical-comparison
    citing
    cli-reference

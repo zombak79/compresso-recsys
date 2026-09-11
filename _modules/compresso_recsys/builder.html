@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>compresso_recsys.builder &mdash; Compresso Recsys 0.3.3 documentation</title>
+  <title>compresso_recsys.builder &mdash; Compresso Recsys 0.3.4 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
 
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=94d292f4"></script>
+      <script src="../../_static/documentation_options.js?v=01c71025"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -75,6 +75,27 @@
 <li class="toctree-l2"><a class="reference internal" href="../../examples.html#train-teaser-with-gradient-descent">Train TEASER with Gradient Descent</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples.html#serve-new-teaser-candidates">Serve New TEASER Candidates</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples.html#train-and-evaluate-elsa">Train and Evaluate ELSA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../examples.html#using-item-embeddings">Using item embeddings</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../examples.html#precomputed-features">Precomputed features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples.html#user-computed-features">User-computed features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples.html#reading-and-evaluating-features">Reading and evaluating features</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../datasets.html">Datasets</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../datasets.html#reading-the-default-tables">Reading the default tables</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../datasets.html#movielens-1m">MovieLens 1M</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../datasets.html#movielens-20m">MovieLens 20M</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../datasets.html#goodbooks-10k">Goodbooks-10k</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../datasets.html#amazon-reviews-2023">Amazon Reviews 2023</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../datasets.html#steam">Steam</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../datasets.html#netflix-prize">Netflix Prize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../datasets.html#msd-taste-profile">MSD Taste Profile</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../datasets.html#gowalla">Gowalla</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../datasets.html#dbbook">DBbook</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../datasets.html#last-fm-2k">Last.fm-2K</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../datasets.html#using-item-embeddings">Using item embeddings</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../bring-your-own-dataset.html">Bringing Your Own Dataset</a><ul>
@@ -172,11 +193,31 @@
 <li class="toctree-l2"><a class="reference internal" href="../../citing.html#elsa-with-sampled-output-candidates">ELSA with sampled output candidates</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../citing.html#compressed-elsa">Compressed ELSA</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../citing.html#sasrec">SASRec</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../citing.html#evaluation-protocol">Evaluation Protocol</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../citing.html#simplernn">SimpleRNN</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../citing.html#simplegpt-and-simplebidirectionaltransformer">SimpleGPT and SimpleBidirectionalTransformer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../citing.html#content-popularity-and-random-baselines">Content, Popularity, and Random Baselines</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../citing.html#datasets">Datasets</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../citing.html#movielens-1m-and-20m">MovieLens 1M and 20M</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../citing.html#goodbooks-10k">Goodbooks-10k</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../citing.html#amazon-reviews-2023">Amazon Reviews 2023</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../citing.html#steam">Steam</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../citing.html#netflix-prize">Netflix Prize</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../citing.html#msd-taste-profile">MSD / Taste Profile</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../citing.html#gowalla">Gowalla</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../citing.html#additional-movie-and-book-descriptions">Additional Movie and Book Descriptions</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../citing.html#evaluation-protocol">Evaluation Protocol</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../citing.html#dataset-preprocessing">Dataset preprocessing</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../citing.html#statistical-comparison">Statistical Comparison</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../citing.html#swap-multimodal-ml-1m-dbbook-and-last-fm-2k">SWAP multimodal ML-1M, DBbook, and Last.fm-2K</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../cli-reference.html">Checkpoint CLI Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../cli-reference.html#temporary-movielens-download-workaround">Temporary MovieLens download workaround</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../cli-reference.html#steam">Steam</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../cli-reference.html#amazon-reviews-2023">Amazon Reviews 2023</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../cli-reference.html#leave-last-out-checkpoint">Leave-Last-Out Checkpoint</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../cli-reference.html#temporal-checkpoint">Temporal Checkpoint</a></li>
@@ -218,8 +259,26 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../api/datasets.html">Datasets API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/datasets.html">Datasets API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/datasets.html#compresso_recsys.datasets.DBbook"><code class="docutils literal notranslate"><span class="pre">DBbook</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/datasets.html#compresso_recsys.datasets.DBbook.timestamp_precision"><code class="docutils literal notranslate"><span class="pre">DBbook.timestamp_precision</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/datasets.html#compresso_recsys.datasets.DBbook.get_official_split"><code class="docutils literal notranslate"><span class="pre">DBbook.get_official_split()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/datasets.html#compresso_recsys.datasets.LastFM2K"><code class="docutils literal notranslate"><span class="pre">LastFM2K</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/datasets.html#compresso_recsys.datasets.LastFM2K.timestamp_precision"><code class="docutils literal notranslate"><span class="pre">LastFM2K.timestamp_precision</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/checkpoint.html">Checkpoint API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/checkpoint.html#item-embeddings">Item embeddings</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/checkpoint.html#compresso_recsys.embeddings.save_item_embeddings"><code class="docutils literal notranslate"><span class="pre">save_item_embeddings()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/checkpoint.html#compresso_recsys.embeddings.load_item_embeddings"><code class="docutils literal notranslate"><span class="pre">load_item_embeddings()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/checkpoint.html#compresso_recsys.embeddings.list_item_embeddings"><code class="docutils literal notranslate"><span class="pre">list_item_embeddings()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/checkpoint.html#compresso_recsys.multimodal.enrich_multimodal_checkpoint"><code class="docutils literal notranslate"><span class="pre">enrich_multimodal_checkpoint()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/checkpoint.html#checkpoint-contexts">Checkpoint Contexts</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/checkpoint.html#manifest-and-json-helpers">Manifest and JSON Helpers</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/checkpoint.html#split-and-cluster-stages">Split and Cluster Stages</a><ul>
@@ -403,6 +462,9 @@
     <span class="n">update_checkpoint</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.datasets</span><span class="w"> </span><span class="kn">import</span> <span class="n">AmazonReviews2023</span><span class="p">,</span> <span class="n">Goodbooks</span><span class="p">,</span> <span class="n">MovieLens1M</span><span class="p">,</span> <span class="n">MovieLens20M</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.datasets</span><span class="w"> </span><span class="kn">import</span> <span class="n">Steam</span><span class="p">,</span> <span class="n">NetflixPrize</span><span class="p">,</span> <span class="n">TasteProfile</span><span class="p">,</span> <span class="n">Gowalla</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.datasets</span><span class="w"> </span><span class="kn">import</span> <span class="n">DBbook</span><span class="p">,</span> <span class="n">LastFM2K</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.datasets._public</span><span class="w"> </span><span class="kn">import</span> <span class="n">PublicDataset</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.sequences</span><span class="w"> </span><span class="kn">import</span> <span class="n">ItemSequences</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.retrieval</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">LEAVE_LAST_OUT_MIN_HISTORY</span><span class="p">,</span>
@@ -426,11 +488,31 @@
     <span class="n">test_users</span><span class="p">:</span> <span class="nb">int</span>
     <span class="n">min_user_support</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span>
     <span class="n">item_min_support</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span>
-    <span class="n">min_value_to_keep</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">4.0</span>
+    <span class="n">min_value_to_keep</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="mf">4.0</span>
     <span class="n">set_all_values_to</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span>
+    <span class="n">min_entity_text_words</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">30</span>
+    <span class="n">temporal_period_hours</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">DEFAULT_TEMPORAL_PERIOD_HOURS</span>
 
 
 <span class="n">DATASETS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"dbbook"</span><span class="p">:</span> <span class="n">DatasetSpec</span><span class="p">(</span><span class="n">DBbook</span><span class="p">,</span> <span class="s2">"artifacts/dbbook/recsys_checkpoint.zip"</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span>
+                          <span class="n">val_users</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span> <span class="n">test_users</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">min_value_to_keep</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+                          <span class="n">min_entity_text_words</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
+    <span class="s2">"lfm2k"</span><span class="p">:</span> <span class="n">DatasetSpec</span><span class="p">(</span><span class="n">LastFM2K</span><span class="p">,</span> <span class="s2">"artifacts/lfm2k/recsys_checkpoint.zip"</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span>
+                         <span class="n">val_users</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">test_users</span><span class="o">=</span><span class="mi">400</span><span class="p">,</span> <span class="n">min_value_to_keep</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                         <span class="n">min_entity_text_words</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
+    <span class="s2">"steam"</span><span class="p">:</span> <span class="n">DatasetSpec</span><span class="p">(</span><span class="n">Steam</span><span class="p">,</span> <span class="s2">"artifacts/steam/recsys_checkpoint.zip"</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span>
+                         <span class="n">val_users</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span> <span class="n">test_users</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span> <span class="n">min_value_to_keep</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                         <span class="n">min_entity_text_words</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
+    <span class="s2">"netflix"</span><span class="p">:</span> <span class="n">DatasetSpec</span><span class="p">(</span><span class="n">NetflixPrize</span><span class="p">,</span> <span class="s2">"artifacts/netflix/recsys_checkpoint.zip"</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">98765</span><span class="p">,</span>
+                           <span class="n">val_users</span><span class="o">=</span><span class="mi">40000</span><span class="p">,</span> <span class="n">test_users</span><span class="o">=</span><span class="mi">40000</span><span class="p">,</span> <span class="n">min_entity_text_words</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
+    <span class="s2">"taste-profile"</span><span class="p">:</span> <span class="n">DatasetSpec</span><span class="p">(</span><span class="n">TasteProfile</span><span class="p">,</span> <span class="s2">"artifacts/taste-profile/recsys_checkpoint.zip"</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">98765</span><span class="p">,</span>
+                                 <span class="n">val_users</span><span class="o">=</span><span class="mi">50000</span><span class="p">,</span> <span class="n">test_users</span><span class="o">=</span><span class="mi">50000</span><span class="p">,</span> <span class="n">min_user_support</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+                                 <span class="n">item_min_support</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">min_value_to_keep</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">min_entity_text_words</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
+    <span class="s2">"gowalla"</span><span class="p">:</span> <span class="n">DatasetSpec</span><span class="p">(</span><span class="n">Gowalla</span><span class="p">,</span> <span class="s2">"artifacts/gowalla/recsys_checkpoint.zip"</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span>
+                           <span class="n">val_users</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span> <span class="n">test_users</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span> <span class="n">min_user_support</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+                           <span class="n">item_min_support</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">min_value_to_keep</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">min_entity_text_words</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                           <span class="n">temporal_period_hours</span><span class="o">=</span><span class="mi">720</span><span class="p">),</span>
     <span class="s2">"goodbooks"</span><span class="p">:</span> <span class="n">DatasetSpec</span><span class="p">(</span><span class="n">Goodbooks</span><span class="p">,</span> <span class="s2">"artifacts/goodbooks/recsys_checkpoint.zip"</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">val_users</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">test_users</span><span class="o">=</span><span class="mi">2500</span><span class="p">),</span>
     <span class="s2">"ml1m"</span><span class="p">:</span> <span class="n">DatasetSpec</span><span class="p">(</span><span class="n">MovieLens1M</span><span class="p">,</span> <span class="s2">"artifacts/ml1m/recsys_checkpoint.zip"</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span> <span class="n">val_users</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span> <span class="n">test_users</span><span class="o">=</span><span class="mi">1000</span><span class="p">),</span>
     <span class="s2">"ml20m"</span><span class="p">:</span> <span class="n">DatasetSpec</span><span class="p">(</span><span class="n">MovieLens20M</span><span class="p">,</span> <span class="s2">"artifacts/ml20m/recsys_checkpoint.zip"</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span> <span class="n">val_users</span><span class="o">=</span><span class="mi">2500</span><span class="p">,</span> <span class="n">test_users</span><span class="o">=</span><span class="mi">5000</span><span class="p">),</span>
@@ -438,14 +520,24 @@
         <span class="n">AmazonReviews2023</span><span class="p">,</span>
         <span class="s2">"artifacts/amazon2023/</span><span class="si">{amazon_category}</span><span class="s2">/recsys_checkpoint.zip"</span><span class="p">,</span>
         <span class="n">seed</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span>
-        <span class="n">val_users</span><span class="o">=</span><span class="mi">2500</span><span class="p">,</span>
-        <span class="n">test_users</span><span class="o">=</span><span class="mi">5000</span><span class="p">,</span>
-        <span class="n">min_user_support</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
-        <span class="n">item_min_support</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
-        <span class="n">min_value_to_keep</span><span class="o">=</span><span class="mf">4.0</span><span class="p">,</span>
+        <span class="c1"># Some category graphs are too sparse for a 20-core.</span>
+        <span class="c1"># Keep useful user histories without recursively deleting rare items.</span>
+        <span class="n">val_users</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+        <span class="n">test_users</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span>
+        <span class="n">min_user_support</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+        <span class="n">item_min_support</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">min_value_to_keep</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">set_all_values_to</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">min_entity_text_words</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
     <span class="p">),</span>
 <span class="p">}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_temporal_period_hours</span><span class="p">(</span><span class="n">dataset</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+    <span class="n">value</span> <span class="o">=</span> <span class="n">DATASETS</span><span class="p">[</span><span class="n">dataset</span><span class="p">]</span><span class="o">.</span><span class="n">temporal_period_hours</span> <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">value</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="ow">or</span> <span class="n">value</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"temporal_period_hours must be finite and &gt; 0"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_metadata_text_fields_arg</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
@@ -509,13 +601,15 @@
     <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--item_min_support"</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--min_value_to_keep"</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--set_all_values_to"</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--eval_draws"</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--eval_draws"</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--multimodal_features"</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                   <span class="n">help</span><span class="o">=</span><span class="s2">"Optional comma-separated SWAP features, e.g. text/minilm,image/resnet152"</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--eval_holdout_frac"</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mf">0.2</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">"--split_mode"</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="s2">"user_split"</span><span class="p">,</span>
-        <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s2">"user_split"</span><span class="p">,</span> <span class="s2">"item_split"</span><span class="p">,</span> <span class="s2">"leave_last_out"</span><span class="p">,</span> <span class="s2">"temporal"</span><span class="p">],</span>
+        <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s2">"user_split"</span><span class="p">,</span> <span class="s2">"item_split"</span><span class="p">,</span> <span class="s2">"leave_last_out"</span><span class="p">,</span> <span class="s2">"temporal"</span><span class="p">,</span> <span class="s2">"official"</span><span class="p">],</span>
     <span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--val_items"</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">"Number of cold validation items for item_split."</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--test_items"</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">"Number of cold test items for item_split."</span><span class="p">)</span>
@@ -525,8 +619,9 @@
     <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">"--temporal_period_hours"</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="n">DEFAULT_TEMPORAL_PERIOD_HOURS</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">"Width in hours of each train/validation/test temporal target window."</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Width in hours of each train/validation/test temporal target window "</span>
+             <span class="s2">"(default: 720 for Gowalla, 8136 otherwise)."</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--min_source_items"</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--min_target_items"</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
@@ -540,13 +635,13 @@
         <span class="s2">"--metadata_text_fields"</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">"Comma-separated metadata fields joined into entity_text for text-aware datasets."</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Comma-separated metadata fields joined into entity_text; Amazon defaults vary by category and support paths such as details.Brand."</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">"--min_entity_text_words"</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">"Drop items whose constructed entity_text has fewer words. Mostly useful for Amazon 2023."</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Minimum item text words. Defaults to 30 for existing datasets, 0 for Steam/Netflix/Taste Profile/Gowalla."</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">"--include_image_urls"</span><span class="p">,</span>
@@ -582,7 +677,7 @@
     <span class="n">item_min_support</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">min_value_to_keep</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">set_all_values_to</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">eval_draws</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
+    <span class="n">eval_draws</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
     <span class="n">eval_holdout_frac</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.2</span><span class="p">,</span>
     <span class="n">split_mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"user_split"</span><span class="p">,</span>
     <span class="n">val_items</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -590,16 +685,17 @@
     <span class="n">item_val_frac</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.05</span><span class="p">,</span>
     <span class="n">item_test_frac</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.10</span><span class="p">,</span>
     <span class="n">temporal_test_frac</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">temporal_period_hours</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">DEFAULT_TEMPORAL_PERIOD_HOURS</span><span class="p">,</span>
+    <span class="n">temporal_period_hours</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">min_source_items</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
     <span class="n">min_target_items</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
     <span class="n">amazon_category</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"Toys_and_Games"</span><span class="p">,</span>
     <span class="n">metadata_text_fields</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">min_entity_text_words</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">30</span><span class="p">,</span>
+    <span class="n">min_entity_text_words</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">include_image_urls</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">annotation_source</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"genres"</span><span class="p">,</span>
     <span class="n">annotation_min_count</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
     <span class="n">show_progress</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">multimodal_features</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">:</span>
     <span class="k">if</span> <span class="n">dataset</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">DATASETS</span><span class="p">:</span>
         <span class="n">choices</span> <span class="o">=</span> <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">DATASETS</span><span class="p">))</span>
@@ -611,16 +707,11 @@
             <span class="sa">f</span><span class="s2">"eval_holdout_frac must be strictly between 0 and 1, "</span>
             <span class="sa">f</span><span class="s2">"got </span><span class="si">{</span><span class="n">eval_holdout_frac</span><span class="si">!r}</span><span class="s2">"</span>
         <span class="p">)</span>
-    <span class="k">if</span> <span class="n">split_mode</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">"user_split"</span><span class="p">,</span> <span class="s2">"item_split"</span><span class="p">,</span> <span class="s2">"leave_last_out"</span><span class="p">,</span> <span class="s2">"temporal"</span><span class="p">}:</span>
+    <span class="k">if</span> <span class="n">split_mode</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">"user_split"</span><span class="p">,</span> <span class="s2">"item_split"</span><span class="p">,</span> <span class="s2">"leave_last_out"</span><span class="p">,</span> <span class="s2">"temporal"</span><span class="p">,</span> <span class="s2">"official"</span><span class="p">}:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Unsupported split_mode: </span><span class="si">{</span><span class="n">split_mode</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">annotation_source</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">"genres"</span><span class="p">,</span> <span class="s2">"ml20m_tags"</span><span class="p">,</span> <span class="s2">"goodbooks_tags"</span><span class="p">,</span> <span class="s2">"none"</span><span class="p">}:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Unsupported annotation_source: </span><span class="si">{</span><span class="n">annotation_source</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
-    <span class="k">if</span> <span class="p">(</span>
-        <span class="nb">isinstance</span><span class="p">(</span><span class="n">temporal_period_hours</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span>
-        <span class="ow">or</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">temporal_period_hours</span><span class="p">)</span>
-        <span class="ow">or</span> <span class="n">temporal_period_hours</span> <span class="o">&lt;=</span> <span class="mi">0</span>
-    <span class="p">):</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"temporal_period_hours must be finite and &gt; 0"</span><span class="p">)</span>
+    <span class="n">temporal_period_hours</span> <span class="o">=</span> <span class="n">_temporal_period_hours</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">temporal_period_hours</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">temporal_test_frac</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
             <span class="s2">"temporal_test_frac is deprecated and ignored; use "</span>
@@ -629,6 +720,7 @@
             <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
         <span class="p">)</span>
     <span class="k">return</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">(</span>
+        <span class="n">multimodal_features</span><span class="o">=</span><span class="n">multimodal_features</span><span class="p">,</span>
         <span class="n">dataset</span><span class="o">=</span><span class="n">dataset</span><span class="p">,</span>
         <span class="n">data_dir</span><span class="o">=</span><span class="n">data_dir</span><span class="p">,</span>
         <span class="n">checkpoint_path</span><span class="o">=</span><span class="n">checkpoint_path</span><span class="p">,</span>
@@ -662,9 +754,28 @@
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_resolve_args</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
     <span class="n">spec</span> <span class="o">=</span> <span class="n">DATASETS</span><span class="p">[</span><span class="n">args</span><span class="o">.</span><span class="n">dataset</span><span class="p">]</span>
+    <span class="n">args</span><span class="o">.</span><span class="n">temporal_period_hours</span> <span class="o">=</span> <span class="n">_temporal_period_hours</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">dataset</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">temporal_period_hours</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">split_mode</span> <span class="o">==</span> <span class="s2">"official"</span> <span class="ow">and</span> <span class="n">args</span><span class="o">.</span><span class="n">dataset</span> <span class="o">!=</span> <span class="s2">"dbbook"</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"official split is supported only for dbbook"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">"multimodal_features"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.multimodal</span><span class="w"> </span><span class="kn">import</span> <span class="n">_selection</span>
+        <span class="n">_selection</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">dataset</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">multimodal_features</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">dataset</span> <span class="o">==</span> <span class="s2">"amazon2023"</span><span class="p">:</span>
+        <span class="n">args</span><span class="o">.</span><span class="n">amazon_category</span> <span class="o">=</span> <span class="n">AmazonReviews2023</span><span class="o">.</span><span class="n">normalize_category</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">amazon_category</span><span class="p">)</span>
     <span class="n">args</span><span class="o">.</span><span class="n">checkpoint_path</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">checkpoint_path</span> <span class="ow">or</span> <span class="n">spec</span><span class="o">.</span><span class="n">checkpoint_path</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
         <span class="n">amazon_category</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">amazon_category</span><span class="p">,</span>
     <span class="p">)</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">dataset</span> <span class="o">==</span> <span class="s2">"amazon2023"</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.datasets._amazon_defaults</span><span class="w"> </span><span class="kn">import</span> <span class="n">AMAZON_SPLIT_DEFAULTS</span>
+
+        <span class="n">profile</span> <span class="o">=</span> <span class="n">AMAZON_SPLIT_DEFAULTS</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">amazon_category</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">split_mode</span><span class="p">,</span> <span class="p">{})</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">profile</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="nb">setattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">metadata_text_fields</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">args</span><span class="o">.</span><span class="n">metadata_text_fields</span> <span class="o">=</span> <span class="s2">","</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">AmazonReviews2023</span><span class="o">.</span><span class="n">text_fields_for_category</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">amazon_category</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">args</span><span class="o">.</span><span class="n">metadata_text_fields</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">","</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"--metadata_text_fields must contain at least one field"</span><span class="p">)</span>
     <span class="n">args</span><span class="o">.</span><span class="n">seed</span> <span class="o">=</span> <span class="n">spec</span><span class="o">.</span><span class="n">seed</span> <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">seed</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">args</span><span class="o">.</span><span class="n">seed</span>
     <span class="n">args</span><span class="o">.</span><span class="n">val_users</span> <span class="o">=</span> <span class="n">spec</span><span class="o">.</span><span class="n">val_users</span> <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">val_users</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">args</span><span class="o">.</span><span class="n">val_users</span>
     <span class="n">args</span><span class="o">.</span><span class="n">test_users</span> <span class="o">=</span> <span class="n">spec</span><span class="o">.</span><span class="n">test_users</span> <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">test_users</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">args</span><span class="o">.</span><span class="n">test_users</span>
@@ -672,6 +783,9 @@
     <span class="n">args</span><span class="o">.</span><span class="n">item_min_support</span> <span class="o">=</span> <span class="n">spec</span><span class="o">.</span><span class="n">item_min_support</span> <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">item_min_support</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">args</span><span class="o">.</span><span class="n">item_min_support</span>
     <span class="n">args</span><span class="o">.</span><span class="n">min_value_to_keep</span> <span class="o">=</span> <span class="n">spec</span><span class="o">.</span><span class="n">min_value_to_keep</span> <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">min_value_to_keep</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">args</span><span class="o">.</span><span class="n">min_value_to_keep</span>
     <span class="n">args</span><span class="o">.</span><span class="n">set_all_values_to</span> <span class="o">=</span> <span class="n">spec</span><span class="o">.</span><span class="n">set_all_values_to</span> <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">set_all_values_to</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">args</span><span class="o">.</span><span class="n">set_all_values_to</span>
+    <span class="n">args</span><span class="o">.</span><span class="n">min_entity_text_words</span> <span class="o">=</span> <span class="n">spec</span><span class="o">.</span><span class="n">min_entity_text_words</span> <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">min_entity_text_words</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">args</span><span class="o">.</span><span class="n">min_entity_text_words</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">split_mode</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">"leave_last_out"</span><span class="p">,</span> <span class="s2">"temporal"</span><span class="p">}</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="s2">"has_timestamps"</span><span class="p">,</span> <span class="kc">True</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">dataset</span><span class="si">}</span><span class="s2"> has no interaction timestamps; use user_split or item_split"</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">args</span><span class="p">,</span> <span class="n">spec</span>
 
 
@@ -682,8 +796,12 @@
         <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">metadata_text_fields</span>
         <span class="k">else</span> <span class="nb">list</span><span class="p">(</span><span class="n">default_fields</span><span class="p">)</span>
     <span class="p">)</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">fields</span><span class="p">:</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">fields</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">PublicDataset</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"--metadata_text_fields must contain at least one field"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">PublicDataset</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">spec</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">data_dir</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">data_dir</span><span class="p">,</span> <span class="n">metadata_text_fields</span><span class="o">=</span><span class="n">fields</span><span class="p">,</span>
+                        <span class="n">min_entity_text_words</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">min_entity_text_words</span><span class="p">,</span>
+                        <span class="n">show_progress</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">"show_progress"</span><span class="p">,</span> <span class="kc">True</span><span class="p">))</span>
     <span class="k">if</span> <span class="n">spec</span><span class="o">.</span><span class="n">cls</span> <span class="ow">is</span> <span class="n">AmazonReviews2023</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">AmazonReviews2023</span><span class="p">(</span>
             <span class="n">data_dir</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">data_dir</span><span class="p">,</span>
@@ -714,7 +832,7 @@
 
     <span class="k">for</span> <span class="n">row</span><span class="p">,</span> <span class="n">item_id</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">item_ids</span><span class="o">.</span><span class="n">tolist</span><span class="p">()):</span>
         <span class="n">raw</span> <span class="o">=</span> <span class="n">item_to_genres</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">item_id</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">raw</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">raw</span> <span class="o">==</span> <span class="s2">"nan"</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">raw</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">pd</span><span class="o">.</span><span class="n">isna</span><span class="p">(</span><span class="n">raw</span><span class="p">)</span> <span class="ow">or</span> <span class="n">raw</span> <span class="o">==</span> <span class="s2">"nan"</span><span class="p">:</span>
             <span class="k">continue</span>
         <span class="k">for</span> <span class="n">tag</span> <span class="ow">in</span> <span class="n">raw</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"|"</span><span class="p">):</span>
             <span class="n">tag</span> <span class="o">=</span> <span class="n">tag</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
@@ -890,6 +1008,74 @@
     <span class="n">test_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">perm</span><span class="p">[</span><span class="n">n_val</span> <span class="p">:</span> <span class="n">n_val</span> <span class="o">+</span> <span class="n">n_test</span><span class="p">])</span>
     <span class="n">train_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">perm</span><span class="p">[</span><span class="n">n_val</span> <span class="o">+</span> <span class="n">n_test</span> <span class="p">:])</span>
     <span class="k">return</span> <span class="n">train_idx</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">),</span> <span class="n">val_idx</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">),</span> <span class="n">test_idx</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_build_official_split</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">ds</span><span class="p">,</span> <span class="n">proc_df</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""DBbook's supplied test boundary, with validation carved from train only."""</span>
+    <span class="n">train</span> <span class="o">=</span> <span class="n">proc_df</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">([</span><span class="s2">"user_id"</span><span class="p">,</span> <span class="s2">"item_id"</span><span class="p">])</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">original_train</span><span class="p">,</span> <span class="n">users</span><span class="p">,</span> <span class="n">item_ids</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">to_sparse_matrix</span><span class="p">(</span><span class="n">train</span><span class="p">)</span>
+    <span class="n">users</span><span class="p">,</span> <span class="n">item_ids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">users</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">item_ids</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span>
+    <span class="n">validation</span> <span class="o">=</span> <span class="n">build_eval_holdout</span><span class="p">(</span>
+        <span class="n">train_item_ids</span><span class="o">=</span><span class="n">item_ids</span><span class="p">,</span> <span class="n">eval_interactions</span><span class="o">=</span><span class="n">train</span><span class="p">,</span>
+        <span class="n">min_user_support</span><span class="o">=</span><span class="nb">max</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">min_source_items</span> <span class="o">+</span> <span class="n">args</span><span class="o">.</span><span class="n">min_target_items</span><span class="p">),</span>
+        <span class="n">random_state</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">seed</span><span class="p">,</span> <span class="n">eval_draws</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">eval_holdout_frac</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">eval_holdout_frac</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">eligible</span> <span class="o">=</span> <span class="p">[</span><span class="n">row</span> <span class="k">for</span> <span class="n">row</span><span class="p">,</span> <span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span>
+        <span class="n">validation</span><span class="p">[</span><span class="s2">"source_indices"</span><span class="p">],</span> <span class="n">validation</span><span class="p">[</span><span class="s2">"target_indices"</span><span class="p">]</span>
+    <span class="p">))</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">source</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">args</span><span class="o">.</span><span class="n">min_source_items</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">target</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">args</span><span class="o">.</span><span class="n">min_target_items</span><span class="p">]</span>
+    <span class="n">validation</span><span class="p">[</span><span class="s2">"source_indices"</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">validation</span><span class="p">[</span><span class="s2">"source_indices"</span><span class="p">][</span><span class="n">row</span><span class="p">]</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">eligible</span><span class="p">]</span>
+    <span class="n">validation</span><span class="p">[</span><span class="s2">"target_indices"</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">validation</span><span class="p">[</span><span class="s2">"target_indices"</span><span class="p">][</span><span class="n">row</span><span class="p">]</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">eligible</span><span class="p">]</span>
+    <span class="n">validation</span><span class="p">[</span><span class="s2">"user_ids"</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">validation</span><span class="p">[</span><span class="s2">"user_ids"</span><span class="p">])[</span><span class="n">eligible</span><span class="p">]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">len</span><span class="p">(</span><span class="n">validation</span><span class="p">[</span><span class="s2">"user_ids"</span><span class="p">]):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Official split has no eligible validation users"</span><span class="p">)</span>
+    <span class="c1"># The model must not see validation targets in its training matrix.</span>
+    <span class="n">x_train</span> <span class="o">=</span> <span class="n">original_train</span><span class="o">.</span><span class="n">tolil</span><span class="p">()</span>
+    <span class="n">user_rows</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="n">row</span> <span class="k">for</span> <span class="n">row</span><span class="p">,</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">users</span><span class="p">)}</span>
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">targets</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">validation</span><span class="p">[</span><span class="s2">"user_ids"</span><span class="p">],</span> <span class="n">validation</span><span class="p">[</span><span class="s2">"target_indices"</span><span class="p">]):</span>
+        <span class="n">x_train</span><span class="p">[</span><span class="n">user_rows</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">key</span><span class="p">)],</span> <span class="n">targets</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">x_train</span> <span class="o">=</span> <span class="n">x_train</span><span class="o">.</span><span class="n">tocsr</span><span class="p">()</span>
+    <span class="n">x_train</span><span class="o">.</span><span class="n">eliminate_zeros</span><span class="p">()</span>
+    <span class="n">test</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">get_official_split</span><span class="p">()[</span><span class="s2">"test"</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">min_value_to_keep</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">test</span> <span class="o">=</span> <span class="n">test</span><span class="p">[</span><span class="n">test</span><span class="o">.</span><span class="n">value</span> <span class="o">&gt;=</span> <span class="n">args</span><span class="o">.</span><span class="n">min_value_to_keep</span><span class="p">]</span>
+    <span class="n">test</span> <span class="o">=</span> <span class="n">test</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">([</span><span class="s2">"user_id"</span><span class="p">,</span> <span class="s2">"item_id"</span><span class="p">])</span>
+    <span class="n">before</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">test</span><span class="p">)</span>
+    <span class="n">test</span> <span class="o">=</span> <span class="n">test</span><span class="p">[</span><span class="n">test</span><span class="o">.</span><span class="n">user_id</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">users</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">test</span><span class="o">.</span><span class="n">item_id</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">item_ids</span><span class="p">)]</span>
+    <span class="n">excluded</span> <span class="o">=</span> <span class="n">before</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">test</span><span class="p">)</span>
+    <span class="n">item_rows</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="n">row</span> <span class="k">for</span> <span class="n">row</span><span class="p">,</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">item_ids</span><span class="p">)}</span>
+    <span class="n">test_users</span><span class="p">,</span> <span class="n">source_indices</span><span class="p">,</span> <span class="n">target_indices</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">test</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">"user_id"</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="n">source</span> <span class="o">=</span> <span class="n">original_train</span><span class="p">[</span><span class="n">user_rows</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">key</span><span class="p">)]]</span><span class="o">.</span><span class="n">indices</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">item_rows</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">item</span><span class="p">)]</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">group</span><span class="o">.</span><span class="n">item_id</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">intersect1d</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span><span class="o">.</span><span class="n">size</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Official DBbook train/test contain overlapping user-item pairs"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">source</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">args</span><span class="o">.</span><span class="n">min_source_items</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">target</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">args</span><span class="o">.</span><span class="n">min_target_items</span><span class="p">:</span>
+            <span class="n">excluded</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
+            <span class="k">continue</span>
+        <span class="n">test_users</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">key</span><span class="p">))</span>
+        <span class="n">source_indices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>
+        <span class="n">target_indices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">test_users</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Official split has no eligible test users"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s2">"item_ids"</span><span class="p">:</span> <span class="n">item_ids</span><span class="p">,</span> <span class="s2">"x_train"</span><span class="p">:</span> <span class="n">x_train</span><span class="p">,</span>
+        <span class="s2">"train_source_matrix"</span><span class="p">:</span> <span class="n">x_train</span><span class="p">,</span> <span class="s2">"train_target_matrix"</span><span class="p">:</span> <span class="n">x_train</span><span class="p">,</span>
+        <span class="s2">"train_user_ids"</span><span class="p">:</span> <span class="n">users</span><span class="p">,</span>
+        <span class="s2">"val_user_ids"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">validation</span><span class="p">[</span><span class="s2">"user_ids"</span><span class="p">])</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">),</span>
+        <span class="s2">"test_user_ids"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">test_users</span><span class="p">),</span>
+        <span class="s2">"val_holdout"</span><span class="p">:</span> <span class="n">validation</span><span class="p">,</span>
+        <span class="s2">"test_holdout"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"source_indices"</span><span class="p">:</span> <span class="n">source_indices</span><span class="p">,</span> <span class="s2">"target_indices"</span><span class="p">:</span> <span class="n">target_indices</span><span class="p">,</span>
+                         <span class="s2">"user_ids"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">test_users</span><span class="p">)},</span>
+        <span class="s2">"extra_metadata"</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">"has_user_partitions"</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">"has_item_partitions"</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="s2">"is_temporal"</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">"is_future_blind"</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="s2">"official_test_excluded_interactions"</span><span class="p">:</span> <span class="n">excluded</span><span class="p">,</span>
+            <span class="s2">"effective_eval_draws"</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+            <span class="s2">"leakage_note"</span><span class="p">:</span> <span class="s2">"Supplied DBbook test boundary. Validation withheld from train. "</span>
+                            <span class="s2">"Test histories use full supplied train; model is not refit. "</span>
+                            <span class="s2">"Test users/items outside the training vocabulary are excluded."</span><span class="p">,</span>
+        <span class="p">},</span>
+    <span class="p">}</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_build_user_split</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">ds</span><span class="p">,</span> <span class="n">proc_df</span><span class="p">):</span>
@@ -1337,7 +1523,9 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_timestamps_in_seconds</span><span class="p">(</span><span class="n">values</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-    <span class="n">timestamps</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">errors</span><span class="o">=</span><span class="s2">"coerce"</span><span class="p">)</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+    <span class="c1"># Parquet-backed/Pandas copy-on-write arrays may be read-only. Unit</span>
+    <span class="c1"># conversion must also never mutate the caller's original timestamps.</span>
+    <span class="n">timestamps</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">errors</span><span class="o">=</span><span class="s2">"coerce"</span><span class="p">)</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">finite</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">timestamps</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">bool</span><span class="p">(</span><span class="n">finite</span><span class="o">.</span><span class="n">any</span><span class="p">()):</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"temporal split requires non-empty timestamp values"</span><span class="p">)</span>
@@ -1649,6 +1837,8 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_build_split_payload</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">ds</span><span class="p">,</span> <span class="n">proc_df</span><span class="p">,</span> <span class="n">progress</span><span class="p">:</span> <span class="n">_CheckpointProgress</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">split_mode</span> <span class="o">==</span> <span class="s2">"official"</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">_build_official_split</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">ds</span><span class="p">,</span> <span class="n">proc_df</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">split_mode</span> <span class="o">==</span> <span class="s2">"user_split"</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">_build_user_split</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">ds</span><span class="p">,</span> <span class="n">proc_df</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">split_mode</span> <span class="o">==</span> <span class="s2">"item_split"</span><span class="p">:</span>
@@ -1669,16 +1859,25 @@
         <span class="n">progress</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="s2">"Loading interactions"</span><span class="p">)</span>
         <span class="n">ds</span> <span class="o">=</span> <span class="n">_make_dataset</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">spec</span><span class="p">)</span>
         <span class="n">raw_df</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">get_interactions</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">raw_df</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">dataset</span><span class="si">}</span><span class="s2"> has no interactions after metadata filtering"</span><span class="p">)</span>
+        <span class="c1"># Collapse repeated pairs only for CF splits. Ordered protocols retain</span>
+        <span class="c1"># every check-in/review event, including repeat visits on different days.</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">PublicDataset</span><span class="p">)</span> <span class="ow">and</span> <span class="n">args</span><span class="o">.</span><span class="n">split_mode</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">"user_split"</span><span class="p">,</span> <span class="s2">"item_split"</span><span class="p">}:</span>
+            <span class="n">raw_df</span> <span class="o">=</span> <span class="n">raw_df</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">([</span><span class="s2">"user_id"</span><span class="p">,</span> <span class="s2">"item_id"</span><span class="p">],</span> <span class="n">keep</span><span class="o">=</span><span class="s2">"first"</span><span class="p">)</span>
 
         <span class="n">progress</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="s2">"Preprocessing interactions"</span><span class="p">)</span>
         <span class="n">temporal</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">split_mode</span> <span class="o">==</span> <span class="s2">"temporal"</span>
+        <span class="n">preprocessing_df</span> <span class="o">=</span> <span class="n">raw_df</span><span class="p">[</span><span class="n">raw_df</span><span class="o">.</span><span class="n">source_split</span> <span class="o">==</span> <span class="s2">"train"</span><span class="p">]</span> <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">split_mode</span> <span class="o">==</span> <span class="s2">"official"</span> <span class="k">else</span> <span class="n">raw_df</span>
         <span class="n">proc_df</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">preprocess_interactions_for_recsys</span><span class="p">(</span>
-            <span class="n">raw_df</span><span class="p">,</span>
+            <span class="n">preprocessing_df</span><span class="p">,</span>
             <span class="n">min_value_to_keep</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">min_value_to_keep</span><span class="p">,</span>
             <span class="n">user_min_support</span><span class="o">=</span><span class="mi">1</span> <span class="k">if</span> <span class="n">temporal</span> <span class="k">else</span> <span class="n">args</span><span class="o">.</span><span class="n">min_user_support</span><span class="p">,</span>
             <span class="n">item_min_support</span><span class="o">=</span><span class="mi">1</span> <span class="k">if</span> <span class="n">temporal</span> <span class="k">else</span> <span class="n">args</span><span class="o">.</span><span class="n">item_min_support</span><span class="p">,</span>
             <span class="n">set_all_values_to</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">set_all_values_to</span><span class="p">,</span>
         <span class="p">)</span>
+        <span class="k">if</span> <span class="n">proc_df</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">dataset</span><span class="si">}</span><span class="s2"> has no interactions after preprocessing; lower support/text thresholds"</span><span class="p">)</span>
 
         <span class="n">progress</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Building </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">split_mode</span><span class="si">}</span><span class="s2"> split"</span><span class="p">)</span>
         <span class="n">split_payload</span> <span class="o">=</span> <span class="n">_build_split_payload</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">ds</span><span class="p">,</span> <span class="n">proc_df</span><span class="p">,</span> <span class="n">progress</span><span class="o">=</span><span class="n">progress</span><span class="p">)</span>
@@ -1734,6 +1933,8 @@
                 <span class="n">entity_metadata</span><span class="o">=</span><span class="n">entity_metadata</span><span class="p">,</span>
                 <span class="n">metadata</span><span class="o">=</span><span class="p">{</span>
                     <span class="s2">"dataset"</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">dataset</span><span class="p">,</span>
+                    <span class="s2">"source_page"</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="s2">"source_page"</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+                    <span class="s2">"timestamp_precision"</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="s2">"timestamp_precision"</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
                     <span class="s2">"seed"</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">seed</span><span class="p">,</span>
                     <span class="s2">"val_users"</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">val_users</span><span class="p">,</span>
                     <span class="s2">"test_users"</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">test_users</span><span class="p">,</span>
@@ -1807,6 +2008,12 @@
                     <span class="p">},</span>
                 <span class="p">},</span>
             <span class="p">)</span>
+            <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">"multimodal_features"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.multimodal</span><span class="w"> </span><span class="kn">import</span> <span class="n">import_multimodal_embeddings</span>
+                <span class="n">import_multimodal_embeddings</span><span class="p">(</span>
+                    <span class="n">root</span><span class="p">,</span> <span class="n">dataset</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">dataset</span><span class="p">,</span> <span class="n">features</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">multimodal_features</span><span class="p">,</span>
+                    <span class="n">data_dir</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">data_dir</span><span class="p">,</span> <span class="n">show_progress</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">"show_progress"</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span>
+                <span class="p">)</span>
     <span class="k">return</span> <span class="n">Path</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">checkpoint_path</span><span class="p">)</span>
 
 
@@ -1824,7 +2031,7 @@
     <span class="n">item_min_support</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">min_value_to_keep</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">set_all_values_to</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">eval_draws</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
+    <span class="n">eval_draws</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
     <span class="n">eval_holdout_frac</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.2</span><span class="p">,</span>
     <span class="n">split_mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"user_split"</span><span class="p">,</span>
     <span class="n">val_items</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1832,19 +2039,25 @@
     <span class="n">item_val_frac</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.05</span><span class="p">,</span>
     <span class="n">item_test_frac</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.10</span><span class="p">,</span>
     <span class="n">temporal_test_frac</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">temporal_period_hours</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">DEFAULT_TEMPORAL_PERIOD_HOURS</span><span class="p">,</span>
+    <span class="n">temporal_period_hours</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">min_source_items</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
     <span class="n">min_target_items</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
     <span class="n">amazon_category</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"Toys_and_Games"</span><span class="p">,</span>
     <span class="n">metadata_text_fields</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">min_entity_text_words</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">30</span><span class="p">,</span>
+    <span class="n">min_entity_text_words</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">include_image_urls</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">annotation_source</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"genres"</span><span class="p">,</span>
     <span class="n">annotation_min_count</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
     <span class="n">show_progress</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">multimodal_features</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Build a recommender-system split checkpoint and return its path."""</span>
+<span class="w">    </span><span class="sd">"""Build a recommender-system split checkpoint and return its path.</span>
+
+<span class="sd">    ``temporal_period_hours=None`` uses 720 hours for Gowalla and 8136 for</span>
+<span class="sd">    other datasets. An explicit positive period overrides that default.</span>
+<span class="sd">    """</span>
     <span class="n">args</span> <span class="o">=</span> <span class="n">_build_args</span><span class="p">(</span>
+        <span class="n">multimodal_features</span><span class="o">=</span><span class="n">multimodal_features</span><span class="p">,</span>
         <span class="n">dataset</span><span class="o">=</span><span class="n">dataset</span><span class="p">,</span>
         <span class="n">data_dir</span><span class="o">=</span><span class="n">data_dir</span><span class="p">,</span>
         <span class="n">checkpoint_path</span><span class="o">=</span><span class="n">checkpoint_path</span><span class="p">,</span>

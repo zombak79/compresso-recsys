@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>compresso_recsys.datasets.amazon2023 &mdash; Compresso Recsys 0.3.3 documentation</title>
+  <title>compresso_recsys.datasets.amazon2023 &mdash; Compresso Recsys 0.3.4 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
 
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=94d292f4"></script>
+      <script src="../../../_static/documentation_options.js?v=01c71025"></script>
       <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -75,6 +75,27 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../examples.html#train-teaser-with-gradient-descent">Train TEASER with Gradient Descent</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../examples.html#serve-new-teaser-candidates">Serve New TEASER Candidates</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../examples.html#train-and-evaluate-elsa">Train and Evaluate ELSA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../examples.html#using-item-embeddings">Using item embeddings</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../examples.html#precomputed-features">Precomputed features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../examples.html#user-computed-features">User-computed features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../examples.html#reading-and-evaluating-features">Reading and evaluating features</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../datasets.html">Datasets</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../datasets.html#reading-the-default-tables">Reading the default tables</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../datasets.html#movielens-1m">MovieLens 1M</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../datasets.html#movielens-20m">MovieLens 20M</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../datasets.html#goodbooks-10k">Goodbooks-10k</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../datasets.html#amazon-reviews-2023">Amazon Reviews 2023</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../datasets.html#steam">Steam</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../datasets.html#netflix-prize">Netflix Prize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../datasets.html#msd-taste-profile">MSD Taste Profile</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../datasets.html#gowalla">Gowalla</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../datasets.html#dbbook">DBbook</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../datasets.html#last-fm-2k">Last.fm-2K</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../datasets.html#using-item-embeddings">Using item embeddings</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../bring-your-own-dataset.html">Bringing Your Own Dataset</a><ul>
@@ -172,11 +193,31 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../citing.html#elsa-with-sampled-output-candidates">ELSA with sampled output candidates</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../citing.html#compressed-elsa">Compressed ELSA</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../citing.html#sasrec">SASRec</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../citing.html#evaluation-protocol">Evaluation Protocol</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../citing.html#simplernn">SimpleRNN</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../citing.html#simplegpt-and-simplebidirectionaltransformer">SimpleGPT and SimpleBidirectionalTransformer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../citing.html#content-popularity-and-random-baselines">Content, Popularity, and Random Baselines</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../citing.html#datasets">Datasets</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../citing.html#movielens-1m-and-20m">MovieLens 1M and 20M</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../citing.html#goodbooks-10k">Goodbooks-10k</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../citing.html#amazon-reviews-2023">Amazon Reviews 2023</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../citing.html#steam">Steam</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../citing.html#netflix-prize">Netflix Prize</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../citing.html#msd-taste-profile">MSD / Taste Profile</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../citing.html#gowalla">Gowalla</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../citing.html#additional-movie-and-book-descriptions">Additional Movie and Book Descriptions</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../citing.html#evaluation-protocol">Evaluation Protocol</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../citing.html#dataset-preprocessing">Dataset preprocessing</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../../citing.html#statistical-comparison">Statistical Comparison</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../citing.html#swap-multimodal-ml-1m-dbbook-and-last-fm-2k">SWAP multimodal ML-1M, DBbook, and Last.fm-2K</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../cli-reference.html">Checkpoint CLI Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../cli-reference.html#temporary-movielens-download-workaround">Temporary MovieLens download workaround</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../cli-reference.html#steam">Steam</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../cli-reference.html#amazon-reviews-2023">Amazon Reviews 2023</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../cli-reference.html#leave-last-out-checkpoint">Leave-Last-Out Checkpoint</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../cli-reference.html#temporal-checkpoint">Temporal Checkpoint</a></li>
@@ -218,8 +259,26 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../../api/datasets.html">Datasets API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../api/datasets.html">Datasets API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/datasets.html#compresso_recsys.datasets.DBbook"><code class="docutils literal notranslate"><span class="pre">DBbook</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/datasets.html#compresso_recsys.datasets.DBbook.timestamp_precision"><code class="docutils literal notranslate"><span class="pre">DBbook.timestamp_precision</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/datasets.html#compresso_recsys.datasets.DBbook.get_official_split"><code class="docutils literal notranslate"><span class="pre">DBbook.get_official_split()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/datasets.html#compresso_recsys.datasets.LastFM2K"><code class="docutils literal notranslate"><span class="pre">LastFM2K</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/datasets.html#compresso_recsys.datasets.LastFM2K.timestamp_precision"><code class="docutils literal notranslate"><span class="pre">LastFM2K.timestamp_precision</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../../api/checkpoint.html">Checkpoint API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/checkpoint.html#item-embeddings">Item embeddings</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/checkpoint.html#compresso_recsys.embeddings.save_item_embeddings"><code class="docutils literal notranslate"><span class="pre">save_item_embeddings()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/checkpoint.html#compresso_recsys.embeddings.load_item_embeddings"><code class="docutils literal notranslate"><span class="pre">load_item_embeddings()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/checkpoint.html#compresso_recsys.embeddings.list_item_embeddings"><code class="docutils literal notranslate"><span class="pre">list_item_embeddings()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/checkpoint.html#compresso_recsys.multimodal.enrich_multimodal_checkpoint"><code class="docutils literal notranslate"><span class="pre">enrich_multimodal_checkpoint()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../../../api/checkpoint.html#checkpoint-contexts">Checkpoint Contexts</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../api/checkpoint.html#manifest-and-json-helpers">Manifest and JSON Helpers</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../api/checkpoint.html#split-and-cluster-stages">Split and Cluster Stages</a><ul>
@@ -388,16 +447,19 @@
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Iterable</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">urllib.parse</span><span class="w"> </span><span class="kn">import</span> <span class="n">quote</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">urllib.error</span><span class="w"> </span><span class="kn">import</span> <span class="n">URLError</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">urllib.error</span><span class="w"> </span><span class="kn">import</span> <span class="n">HTTPError</span><span class="p">,</span> <span class="n">URLError</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">urllib.request</span><span class="w"> </span><span class="kn">import</span> <span class="n">Request</span><span class="p">,</span> <span class="n">urlopen</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">RecSysDataset</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._amazon_text_defaults</span><span class="w"> </span><span class="kn">import</span> <span class="n">AMAZON_METADATA_TEXT_FIELDS</span>
 
 
 <span class="n">DEFAULT_TEXT_FIELDS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"title"</span><span class="p">,</span> <span class="s2">"features"</span><span class="p">,</span> <span class="s2">"description"</span><span class="p">,</span> <span class="s2">"categories"</span><span class="p">)</span>
@@ -420,6 +482,7 @@
 <span class="sd">    """</span>
 
     <span class="n">name</span> <span class="o">=</span> <span class="s2">"amazon2023"</span>
+    <span class="n">default_text_fields</span> <span class="o">=</span> <span class="n">DEFAULT_TEXT_FIELDS</span>
     <span class="n">hf_name</span> <span class="o">=</span> <span class="s2">"McAuley-Lab/Amazon-Reviews-2023"</span>
     <span class="n">hf_revision</span> <span class="o">=</span> <span class="s2">"main"</span>
     <span class="n">source_base_url</span> <span class="o">=</span> <span class="s2">"https://mcauleylab.ucsd.edu/public_datasets/data/amazon_2023"</span>
@@ -429,13 +492,21 @@
         <span class="n">data_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"data"</span><span class="p">,</span>
         <span class="o">*</span><span class="p">,</span>
         <span class="n">category</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"Toys_and_Games"</span><span class="p">,</span>
-        <span class="n">metadata_text_fields</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">DEFAULT_TEXT_FIELDS</span><span class="p">,</span>
+        <span class="n">metadata_text_fields</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">min_entity_text_words</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
         <span class="n">include_image_urls</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">show_progress</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">category</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize_category</span><span class="p">(</span><span class="n">category</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">metadata_text_fields</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">metadata_text_fields</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">default_text_fields</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">text_fields_for_category</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">category</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">metadata_text_fields</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">metadata_text_fields</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">metadata_text_fields</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">","</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">metadata_text_fields</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">default_text_fields</span> <span class="k">if</span> <span class="n">metadata_text_fields</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">metadata_text_fields</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"."</span><span class="p">))</span>
+               <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata_text_fields</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"metadata_text_fields must contain nonempty field paths"</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">min_entity_text_words</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">min_entity_text_words</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">include_image_urls</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">include_image_urls</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">show_progress</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">show_progress</span><span class="p">)</span>
@@ -457,6 +528,10 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="n">key</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Amazon category cannot be empty"</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">CATEGORY_ALIASES</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="o">.</span><span class="n">lower</span><span class="p">(),</span> <span class="n">key</span><span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">text_fields_for_category</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">category</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="n">AMAZON_METADATA_TEXT_FIELDS</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">normalize_category</span><span class="p">(</span><span class="n">category</span><span class="p">),</span> <span class="n">DEFAULT_TEXT_FIELDS</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">download</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="c1"># `prepare` triggers the category-specific downloads; this method exists</span>
@@ -542,15 +617,56 @@
         <span class="k">return</span> <span class="n">urls</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">urls</span> <span class="k">else</span> <span class="s2">""</span>
 
     <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_normalize_metadata_value</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Make Parquet arrays and JSON lists produce identical text."""</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_normalize_metadata_value</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_normalize_metadata_value</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">value</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="p">[</span><span class="bp">cls</span><span class="o">.</span><span class="n">_normalize_metadata_value</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="k">for</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">value</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">value</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_metadata_value_to_text</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">separator</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">" "</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">RecSysDataset</span><span class="o">.</span><span class="n">_metadata_value_to_text</span><span class="p">(</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">_normalize_metadata_value</span><span class="p">(</span><span class="n">value</span><span class="p">),</span> <span class="n">separator</span><span class="o">=</span><span class="n">separator</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">build_entity_text</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">row</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">,</span> <span class="n">fields</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-        <span class="n">parts</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># Group adjacent nested selections under one label, matching the audited</span>
+        <span class="c1"># curated recipe without importing unselected details (ranks, IDs, etc.).</span>
+        <span class="n">blocks</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">roots</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">fields</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">field</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">row</span><span class="p">:</span>
+            <span class="n">root</span><span class="p">,</span> <span class="o">*</span><span class="n">path</span> <span class="o">=</span> <span class="n">field</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"."</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">root</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">row</span><span class="p">:</span>
                 <span class="k">continue</span>
-            <span class="n">value</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_parse_details</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="n">field</span><span class="p">])</span> <span class="k">if</span> <span class="n">field</span> <span class="o">==</span> <span class="s2">"details"</span> <span class="k">else</span> <span class="n">row</span><span class="p">[</span><span class="n">field</span><span class="p">]</span>
-            <span class="n">text</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_metadata_value_to_text</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">separator</span><span class="o">=</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span> <span class="k">if</span> <span class="n">field</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">"features"</span><span class="p">,</span> <span class="s2">"description"</span><span class="p">}</span> <span class="k">else</span> <span class="s2">" &gt; "</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">root</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">roots</span><span class="p">:</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_parse_details</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="n">root</span><span class="p">])</span> <span class="k">if</span> <span class="n">root</span> <span class="o">==</span> <span class="s2">"details"</span> <span class="k">else</span> <span class="n">row</span><span class="p">[</span><span class="n">root</span><span class="p">]</span>
+                <span class="n">roots</span><span class="p">[</span><span class="n">root</span><span class="p">]</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_normalize_metadata_value</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="n">roots</span><span class="p">[</span><span class="n">root</span><span class="p">]</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span><span class="p">:</span>
+                <span class="n">blocks</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">root</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="kc">False</span><span class="p">))</span>
+                <span class="k">continue</span>
+            <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">path</span><span class="p">:</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">blocks</span> <span class="ow">or</span> <span class="n">blocks</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">root</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">blocks</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="mi">2</span><span class="p">]:</span>
+                <span class="n">blocks</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">root</span><span class="p">,</span> <span class="p">{},</span> <span class="kc">True</span><span class="p">))</span>
+            <span class="n">selected</span> <span class="o">=</span> <span class="n">blocks</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">path</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">selected</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">),</span> <span class="nb">dict</span><span class="p">):</span>
+                    <span class="n">selected</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+                <span class="n">selected</span> <span class="o">=</span> <span class="n">selected</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+            <span class="n">selected</span><span class="p">[</span><span class="n">path</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="n">parts</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">root</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">blocks</span><span class="p">:</span>
+            <span class="n">text</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_metadata_value_to_text</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">separator</span><span class="o">=</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span> <span class="k">if</span> <span class="n">root</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">"features"</span><span class="p">,</span> <span class="s2">"description"</span><span class="p">}</span> <span class="k">else</span> <span class="s2">" &gt; "</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">text</span><span class="p">:</span>
-                <span class="n">label</span> <span class="o">=</span> <span class="n">field</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">"_"</span><span class="p">,</span> <span class="s2">" "</span><span class="p">)</span><span class="o">.</span><span class="n">title</span><span class="p">()</span>
+                <span class="n">label</span> <span class="o">=</span> <span class="n">root</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">"_"</span><span class="p">,</span> <span class="s2">" "</span><span class="p">)</span><span class="o">.</span><span class="n">title</span><span class="p">()</span>
                 <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">text</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
         <span class="k">return</span> <span class="s2">"</span><span class="se">\n\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
 
@@ -624,17 +740,21 @@
         <span class="k">if</span> <span class="n">config</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata_config</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">split</span> <span class="o">!=</span> <span class="s2">"full"</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Amazon metadata config </span><span class="si">{</span><span class="n">config</span><span class="si">!r}</span><span class="s2"> only supports split='full'"</span><span class="p">)</span>
-            <span class="n">files</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_hf_files_for_path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata_config</span><span class="p">),</span>
-                <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">entry</span><span class="p">:</span> <span class="n">entry</span><span class="p">[</span><span class="s2">"path"</span><span class="p">],</span>
-            <span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">files</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_hf_files_for_path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata_config</span><span class="p">),</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">entry</span><span class="p">:</span> <span class="n">entry</span><span class="p">[</span><span class="s2">"path"</span><span class="p">])</span>
+            <span class="k">except</span> <span class="n">HTTPError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">exc</span><span class="o">.</span><span class="n">code</span> <span class="o">!=</span> <span class="mi">404</span><span class="p">:</span>
+                    <span class="k">raise</span>
+                <span class="n">files</span> <span class="o">=</span> <span class="p">[]</span>
             <span class="n">sources</span> <span class="o">=</span> <span class="p">[</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_hf_source</span><span class="p">(</span><span class="n">entry</span><span class="p">[</span><span class="s2">"path"</span><span class="p">],</span> <span class="n">kind</span><span class="o">=</span><span class="s2">"parquet"</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">entry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"size"</span><span class="p">))</span>
                 <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">files</span>
                 <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">entry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"path"</span><span class="p">,</span> <span class="s2">""</span><span class="p">))</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">".parquet"</span><span class="p">)</span>
             <span class="p">]</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">sources</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"No Hugging Face parquet files found for </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata_config</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+                <span class="c1"># Only nine categories have exported Parquet directories. The</span>
+                <span class="c1"># official repository also hosts raw JSONL for every category.</span>
+                <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_hf_source</span><span class="p">(</span><span class="sa">f</span><span class="s2">"raw/meta_categories/meta_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">category</span><span class="si">}</span><span class="s2">.jsonl"</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s2">"jsonl"</span><span class="p">)]</span>
             <span class="k">return</span> <span class="n">sources</span>
 
         <span class="k">if</span> <span class="n">config</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">interactions_config</span><span class="p">:</span>
@@ -650,7 +770,31 @@
 
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Unsupported Amazon Reviews 2023 config: </span><span class="si">{</span><span class="n">config</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
 
+    <span class="k">def</span><span class="w"> </span><span class="nf">_cached_metadata_sources</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+        <span class="n">mirror</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mirror_source_for_config</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata_config</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">all</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">root</span> <span class="o">/</span> <span class="n">source</span><span class="p">[</span><span class="s2">"local_path"</span><span class="p">])</span><span class="o">.</span><span class="n">is_file</span><span class="p">()</span> <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">mirror</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">mirror</span>
+        <span class="n">raw</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hf_source</span><span class="p">(</span><span class="sa">f</span><span class="s2">"raw/meta_categories/meta_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">category</span><span class="si">}</span><span class="s2">.jsonl"</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s2">"jsonl"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">root</span> <span class="o">/</span> <span class="n">raw</span><span class="p">[</span><span class="s2">"local_path"</span><span class="p">])</span><span class="o">.</span><span class="n">is_file</span><span class="p">():</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">raw</span><span class="p">]</span>
+        <span class="n">folder</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">root</span> <span class="o">/</span> <span class="s2">"huggingface"</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata_config</span>
+        <span class="n">paths</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">folder</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">"full-*-of-*.parquet"</span><span class="p">))</span>
+        <span class="n">matches</span> <span class="o">=</span> <span class="p">[</span><span class="n">re</span><span class="o">.</span><span class="n">fullmatch</span><span class="p">(</span><span class="sa">r</span><span class="s2">"full-(\d+)-of-(\d+)\.parquet"</span><span class="p">,</span> <span class="n">path</span><span class="o">.</span><span class="n">name</span><span class="p">)</span> <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">paths</span><span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">matches</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">matches</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">[]</span>
+        <span class="n">total</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">matches</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">paths</span><span class="p">)</span> <span class="o">!=</span> <span class="n">total</span> <span class="ow">or</span> <span class="nb">any</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span> <span class="o">!=</span> <span class="n">total</span> <span class="k">for</span> <span class="n">match</span> <span class="ow">in</span> <span class="n">matches</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="p">{</span><span class="nb">int</span><span class="p">(</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span> <span class="k">for</span> <span class="n">match</span> <span class="ow">in</span> <span class="n">matches</span><span class="p">}</span> <span class="o">!=</span> <span class="nb">set</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">total</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="p">[]</span>
+        <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_hf_source</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="o">.</span><span class="n">relative_to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">root</span> <span class="o">/</span> <span class="s2">"huggingface"</span><span class="p">)),</span> <span class="n">kind</span><span class="o">=</span><span class="s2">"parquet"</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">paths</span><span class="p">]</span>
+
     <span class="k">def</span><span class="w"> </span><span class="nf">_source_groups_for_config</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">split</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"full"</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]]:</span>
+        <span class="k">if</span> <span class="n">config</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata_config</span> <span class="ow">and</span> <span class="n">split</span> <span class="o">==</span> <span class="s2">"full"</span><span class="p">:</span>
+            <span class="n">cached</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cached_metadata_sources</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">cached</span><span class="p">:</span>
+                <span class="k">return</span> <span class="p">[</span><span class="n">cached</span><span class="p">]</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="k">return</span> <span class="p">[</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_hf_source_for_config</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">split</span><span class="o">=</span><span class="n">split</span><span class="p">),</span>

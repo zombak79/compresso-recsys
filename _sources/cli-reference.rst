@@ -13,6 +13,38 @@ Basic usage:
      --checkpoint_path artifacts/ml1m/exp001.zip \
      --annotation_source genres
 
+.. _grouplens-tls-workaround:
+
+Temporary MovieLens download workaround
+------------------------------------------
+
+Since September 11, 2026, ML1M/ML20M archive downloads try verified HTTPS first,
+then warn and retry without certificate verification **only on certificate
+expiry**. The retry cannot follow redirects; beeFormer metadata and other
+downloads keep normal verification. Encryption remains, but the retry does
+not authenticate the server. Verification resumes automatically when the
+certificate is renewed. A removal TODO lives in ``datasets/_grouplens.py``.
+
+Steam
+-----
+
+Steam checkpoints include game metadata and genre annotations. Review dates
+support LLO and temporal splits; an item split holds out games for cold-start
+evaluation. See :doc:`datasets` for source details and :ref:`cite-datasets`
+for citations.
+
+.. code-block:: bash
+
+   compresso-recsys-build-checkpoint \
+     --dataset steam \
+     --split_mode item_split \
+     --min_entity_text_words 1 \
+     --checkpoint_path artifacts/steam/cold.zip
+
+Use ``--split_mode leave_last_out`` for sequential evaluation, or
+``--split_mode temporal --temporal_period_hours 720`` for 30-day target windows.
+The first download includes approximately 1.2 GB of reviews plus game metadata.
+
 Amazon Reviews 2023
 -------------------
 
@@ -60,7 +92,6 @@ user's test target.
      --min_entity_text_words 30 \
      --min_user_support 20 \
      --item_min_support 20 \
-     --min_value_to_keep 4.0 \
      --set_all_values_to 1.0 \
      --min_source_items 1 \
      --min_target_items 1 \
@@ -70,8 +101,9 @@ Temporal Checkpoint
 ~~~~~~~~~~~~~~~~~~~
 
 ``temporal`` uses three equal target windows ending at the latest interaction.
-The default period is 339 days, following the scale of the official Amazon
-Reviews 2023 absolute-timestamp validation interval. Each split ranks a mixed
+The default period is 30 days (720 hours) for Gowalla and 339 days (8,136 hours)
+otherwise, following the scale of the official Amazon Reviews 2023
+absolute-timestamp validation interval. Each split ranks a mixed
 catalog of previously available warm items and newly supported cold items.
 
 For period ``w`` and latest timestamp ``T``, the target windows are
@@ -91,7 +123,6 @@ window.
      --min_entity_text_words 30 \
      --min_user_support 20 \
      --item_min_support 20 \
-     --min_value_to_keep 4.0 \
      --set_all_values_to 1.0 \
      --min_source_items 1 \
      --min_target_items 1 \
@@ -200,7 +231,8 @@ Full ``compresso-recsys-build-checkpoint`` parameter table:
    * - ``--dataset``
      - required
      - Dataset to build. Choices: ``goodbooks``, ``ml1m``, ``ml20m``,
-       ``amazon2023``.
+       ``amazon2023``, ``steam``, ``netflix``, ``taste-profile``, ``gowalla``,
+       ``dbbook``, ``lfm2k``.
    * - ``--data_dir``
      - ``data``
      - Directory where raw/downloaded dataset files are stored.
@@ -231,7 +263,7 @@ Full ``compresso-recsys-build-checkpoint`` parameter table:
      - If set, binarize all remaining interaction values to this value. Usually
        ``1.0``.
    * - ``--eval_draws``
-     - ``5``
+     - ``1``
      - How many independent fold-in/scored splits to draw per held-out user in
        ``user_split``, stacked one row per draw. More draws sharpen each user's
        score without adding independent users; ``1`` gives one row per user.
@@ -242,7 +274,7 @@ Full ``compresso-recsys-build-checkpoint`` parameter table:
    * - ``--split_mode``
      - ``user_split``
      - Split protocol. Choices: ``user_split``, ``item_split``,
-       ``leave_last_out``, ``temporal``.
+       ``leave_last_out``, ``temporal``, or DBbook-only ``official``.
    * - ``--val_items``
      - ``None``
      - Exact number of cold validation items for ``item_split``. Overrides
@@ -258,8 +290,9 @@ Full ``compresso-recsys-build-checkpoint`` parameter table:
      - ``0.10``
      - Fraction of items held out as cold test items for ``item_split``.
    * - ``--temporal_period_hours``
-     - ``8136``
-     - Width of each temporal target window in hours. ``8136`` is 339 days.
+     - Dataset-specific
+     - Width of each temporal target window: ``720`` hours for Gowalla,
+       ``8136`` (339 days) otherwise.
    * - ``--min_source_items``
      - ``1``
      - Minimum number of source/profile items an eval user must have. For
@@ -273,13 +306,19 @@ Full ``compresso-recsys-build-checkpoint`` parameter table:
      - Amazon Reviews 2023 category. Supports official names and aliases like
        ``toys``, ``electronics``, ``clothing``.
    * - ``--metadata_text_fields``
-     - ``title,features,description,categories``
-     - Metadata columns joined into canonical ``entity_text``. Mostly important
-       for Amazon/SBERT.
+     - dataset-specific
+     - Metadata columns joined into canonical ``entity_text``. Steam uses
+       title, genres, tags, developer, and publisher by default.
+       Amazon uses :ref:`per-subset defaults <amazon-installed-text-recipes>`
+       including selected detail attributes. Supports case-sensitive nested
+       paths such as ``details.Brand``; missing values are skipped. An explicit
+       list replaces the default. Selecting raw ``details`` includes all keys,
+       which may contain identifiers and popularity data.
    * - ``--min_entity_text_words``
-     - ``30``
+     - dataset-specific
      - Drop items whose constructed ``entity_text`` is shorter than this many
-       words. Mostly useful for Amazon.
+       words. Defaults to ``30`` for MovieLens/Goodbooks and ``0`` for
+       Amazon/Steam/Netflix/Taste Profile/Gowalla/DBbook/Last.fm.
    * - ``--include_image_urls``
      - ``False``
      - For Amazon, include ``image_url`` and ``image_urls`` columns in
@@ -330,12 +369,61 @@ Dataset-specific defaults:
    * - ``amazon2023``
      - ``artifacts/amazon2023/{amazon_category}/recsys_checkpoint.zip``
      - ``42``
-     - ``2500``
-     - ``5000``
-     - ``20``
-     - ``20``
+     - ``100``
+     - ``200``
+     - ``5``
+     - ``1``
 
-All datasets currently default to:
+   * - ``steam``
+     - ``artifacts/steam/recsys_checkpoint.zip``
+     - ``42``
+     - ``10000``
+     - ``10000``
+     - ``5``
+     - ``1``
+   * - ``netflix``
+     - ``artifacts/netflix/recsys_checkpoint.zip``
+     - ``98765``
+     - ``40000``
+     - ``40000``
+     - ``5``
+     - ``1``
+   * - ``taste-profile``
+     - ``artifacts/taste-profile/recsys_checkpoint.zip``
+     - ``98765``
+     - ``50000``
+     - ``50000``
+     - ``20``
+     - ``200``
+   * - ``gowalla``
+     - ``artifacts/gowalla/recsys_checkpoint.zip``
+     - ``42``
+     - ``10000``
+     - ``10000``
+     - ``10``
+     - ``10``
+
+   * - ``dbbook``
+     - ``artifacts/dbbook/recsys_checkpoint.zip``
+     - ``42``
+     - ``500``
+     - ``1000``
+     - ``5``
+     - ``1``
+   * - ``lfm2k``
+     - ``artifacts/lfm2k/recsys_checkpoint.zip``
+     - ``42``
+     - ``200``
+     - ``400``
+     - ``5``
+     - ``1``
+
+Amazon defaults also set ``min_entity_text_words=0``. Its interaction
+category graphs may have no surviving 20-core, so 5/1 support and smaller user
+holdouts are intentional. Explicit support, holdout, and text-length arguments
+still take precedence; the defaults do not adapt silently to each run's results.
+
+Feedback defaults:
 
 .. list-table::
    :header-rows: 1
@@ -343,9 +431,14 @@ All datasets currently default to:
    * - Parameter
      - Default
    * - ``min_value_to_keep``
-     - ``4.0``
+     - ``4.0`` for MovieLens, Goodbooks, and Netflix; no rating threshold for
+       Amazon, Steam, Taste Profile, Gowalla, or Last.fm; ``1.0`` for DBbook
    * - ``set_all_values_to``
      - ``1.0``
+
+Amazon treats every valid 1–5-star rating as an interaction and binarizes it to
+1 by default; it does not weight interactions by their star rating. An explicit
+``--min_value_to_keep`` still enables rating filtering when requested.
 
 Supported Amazon Reviews 2023 Datasets
 --------------------------------------
@@ -456,3 +549,9 @@ Supported Amazon Reviews 2023 Datasets
    * - ``Video_Games``
      - none
      - yes
+.. note::
+
+   ``--dataset dbbook`` and ``--dataset lfm2k`` support optional pretrained
+   features via ``--multimodal_features text/minilm,image/resnet152``.
+   ML-1M supports the same enrichment. ``--split_mode official`` is available
+   for DBbook only. See :doc:`datasets` for defaults and restrictions.

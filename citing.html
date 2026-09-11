@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Citing Compresso Recsys &mdash; Compresso Recsys 0.3.3 documentation</title>
+  <title>Citing Compresso Recsys &mdash; Compresso Recsys 0.3.4 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=94d292f4"></script>
+      <script src="_static/documentation_options.js?v=01c71025"></script>
       <script src="_static/doctools.js?v=fd6eb6e6"></script>
       <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -78,6 +78,27 @@
 <li class="toctree-l2"><a class="reference internal" href="examples.html#train-teaser-with-gradient-descent">Train TEASER with Gradient Descent</a></li>
 <li class="toctree-l2"><a class="reference internal" href="examples.html#serve-new-teaser-candidates">Serve New TEASER Candidates</a></li>
 <li class="toctree-l2"><a class="reference internal" href="examples.html#train-and-evaluate-elsa">Train and Evaluate ELSA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#using-item-embeddings">Using item embeddings</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="examples.html#precomputed-features">Precomputed features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples.html#user-computed-features">User-computed features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples.html#reading-and-evaluating-features">Reading and evaluating features</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="datasets.html">Datasets</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#reading-the-default-tables">Reading the default tables</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#movielens-1m">MovieLens 1M</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#movielens-20m">MovieLens 20M</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#goodbooks-10k">Goodbooks-10k</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#amazon-reviews-2023">Amazon Reviews 2023</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#steam">Steam</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#netflix-prize">Netflix Prize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#msd-taste-profile">MSD Taste Profile</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#gowalla">Gowalla</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#dbbook">DBbook</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#last-fm-2k">Last.fm-2K</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#using-item-embeddings">Using item embeddings</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="bring-your-own-dataset.html">Bringing Your Own Dataset</a><ul>
@@ -175,11 +196,31 @@
 <li class="toctree-l2"><a class="reference internal" href="#elsa-with-sampled-output-candidates">ELSA with sampled output candidates</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#compressed-elsa">Compressed ELSA</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#sasrec">SASRec</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#evaluation-protocol">Evaluation Protocol</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#simplernn">SimpleRNN</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#simplegpt-and-simplebidirectionaltransformer">SimpleGPT and SimpleBidirectionalTransformer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#content-popularity-and-random-baselines">Content, Popularity, and Random Baselines</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#datasets">Datasets</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#movielens-1m-and-20m">MovieLens 1M and 20M</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#goodbooks-10k">Goodbooks-10k</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#amazon-reviews-2023">Amazon Reviews 2023</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#steam">Steam</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#netflix-prize">Netflix Prize</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#msd-taste-profile">MSD / Taste Profile</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gowalla">Gowalla</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#additional-movie-and-book-descriptions">Additional Movie and Book Descriptions</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#evaluation-protocol">Evaluation Protocol</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#dataset-preprocessing">Dataset preprocessing</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="#statistical-comparison">Statistical Comparison</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#swap-multimodal-ml-1m-dbbook-and-last-fm-2k">SWAP multimodal ML-1M, DBbook, and Last.fm-2K</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="cli-reference.html">Checkpoint CLI Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="cli-reference.html#temporary-movielens-download-workaround">Temporary MovieLens download workaround</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cli-reference.html#steam">Steam</a></li>
 <li class="toctree-l2"><a class="reference internal" href="cli-reference.html#amazon-reviews-2023">Amazon Reviews 2023</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="cli-reference.html#leave-last-out-checkpoint">Leave-Last-Out Checkpoint</a></li>
 <li class="toctree-l3"><a class="reference internal" href="cli-reference.html#temporal-checkpoint">Temporal Checkpoint</a></li>
@@ -221,8 +262,26 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="api/datasets.html">Datasets API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/datasets.html">Datasets API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/datasets.html#compresso_recsys.datasets.DBbook"><code class="docutils literal notranslate"><span class="pre">DBbook</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/datasets.html#compresso_recsys.datasets.DBbook.timestamp_precision"><code class="docutils literal notranslate"><span class="pre">DBbook.timestamp_precision</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/datasets.html#compresso_recsys.datasets.DBbook.get_official_split"><code class="docutils literal notranslate"><span class="pre">DBbook.get_official_split()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/datasets.html#compresso_recsys.datasets.LastFM2K"><code class="docutils literal notranslate"><span class="pre">LastFM2K</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/datasets.html#compresso_recsys.datasets.LastFM2K.timestamp_precision"><code class="docutils literal notranslate"><span class="pre">LastFM2K.timestamp_precision</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="api/checkpoint.html">Checkpoint API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/checkpoint.html#item-embeddings">Item embeddings</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/checkpoint.html#compresso_recsys.embeddings.save_item_embeddings"><code class="docutils literal notranslate"><span class="pre">save_item_embeddings()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/checkpoint.html#compresso_recsys.embeddings.load_item_embeddings"><code class="docutils literal notranslate"><span class="pre">load_item_embeddings()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/checkpoint.html#compresso_recsys.embeddings.list_item_embeddings"><code class="docutils literal notranslate"><span class="pre">list_item_embeddings()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/checkpoint.html#compresso_recsys.multimodal.enrich_multimodal_checkpoint"><code class="docutils literal notranslate"><span class="pre">enrich_multimodal_checkpoint()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="api/checkpoint.html#checkpoint-contexts">Checkpoint Contexts</a></li>
 <li class="toctree-l3"><a class="reference internal" href="api/checkpoint.html#manifest-and-json-helpers">Manifest and JSON Helpers</a></li>
 <li class="toctree-l3"><a class="reference internal" href="api/checkpoint.html#split-and-cluster-stages">Split and Cluster Stages</a><ul>
@@ -388,10 +447,48 @@
              
   <section id="citing-compresso-recsys">
 <h1>Citing Compresso Recsys<a class="headerlink" href="#citing-compresso-recsys" title="Link to this heading"></a></h1>
-<p>If you use the recommender models in academic work, please consider citing the
-papers that introduced the corresponding methods.</p>
+<p>If you use Compresso Recsys in academic work, cite the methods, datasets, and
+additional metadata sources used in your experiment. Dataset citations and
+preprocessing-method citations serve different purposes; include both when
+applicable. See <a class="reference internal" href="datasets.html"><span class="doc">Datasets</span></a> for the actual sources and loader defaults.</p>
+<nav class="contents local" id="on-this-page">
+<p class="topic-title">On this page</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="#compresso" id="id1">Compresso</a></p></li>
+<li><p><a class="reference internal" href="#ease" id="id2">EASE</a></p></li>
+<li><p><a class="reference internal" href="#neighborhood-models" id="id3">Neighborhood Models</a></p></li>
+<li><p><a class="reference internal" href="#mult-vae-mult-dae-and-autorec" id="id4">Mult-VAE, Mult-DAE, and AutoRec</a></p></li>
+<li><p><a class="reference internal" href="#teaser" id="id5">TEASER</a></p></li>
+<li><p><a class="reference internal" href="#elsa" id="id6">ELSA</a></p></li>
+<li><p><a class="reference internal" href="#elsa-with-sampled-output-candidates" id="id7">ELSA with sampled output candidates</a></p></li>
+<li><p><a class="reference internal" href="#compressed-elsa" id="id8">Compressed ELSA</a></p></li>
+<li><p><a class="reference internal" href="#sasrec" id="id9">SASRec</a></p></li>
+<li><p><a class="reference internal" href="#simplernn" id="id10">SimpleRNN</a></p></li>
+<li><p><a class="reference internal" href="#simplegpt-and-simplebidirectionaltransformer" id="id11">SimpleGPT and SimpleBidirectionalTransformer</a></p></li>
+<li><p><a class="reference internal" href="#content-popularity-and-random-baselines" id="id12">Content, Popularity, and Random Baselines</a></p></li>
+<li><p><a class="reference internal" href="#datasets" id="id13">Datasets</a></p>
+<ul>
+<li><p><a class="reference internal" href="#movielens-1m-and-20m" id="id14">MovieLens 1M and 20M</a></p></li>
+<li><p><a class="reference internal" href="#goodbooks-10k" id="id15">Goodbooks-10k</a></p></li>
+<li><p><a class="reference internal" href="#amazon-reviews-2023" id="id16">Amazon Reviews 2023</a></p></li>
+<li><p><a class="reference internal" href="#steam" id="id17">Steam</a></p></li>
+<li><p><a class="reference internal" href="#netflix-prize" id="id18">Netflix Prize</a></p></li>
+<li><p><a class="reference internal" href="#msd-taste-profile" id="id19">MSD / Taste Profile</a></p></li>
+<li><p><a class="reference internal" href="#gowalla" id="id20">Gowalla</a></p></li>
+<li><p><a class="reference internal" href="#additional-movie-and-book-descriptions" id="id21">Additional Movie and Book Descriptions</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#evaluation-protocol" id="id22">Evaluation Protocol</a></p>
+<ul>
+<li><p><a class="reference internal" href="#dataset-preprocessing" id="id23">Dataset preprocessing</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#statistical-comparison" id="id24">Statistical Comparison</a></p></li>
+<li><p><a class="reference internal" href="#swap-multimodal-ml-1m-dbbook-and-last-fm-2k" id="id25">SWAP multimodal ML-1M, DBbook, and Last.fm-2K</a></p></li>
+</ul>
+</nav>
 <section id="compresso">
-<h2>Compresso<a class="headerlink" href="#compresso" title="Link to this heading"></a></h2>
+<h2><a class="toc-backref" href="#id1" role="doc-backlink">Compresso</a><a class="headerlink" href="#compresso" title="Link to this heading"></a></h2>
 <p>If your work uses the Compresso sparse-representation framework, cite the
 project:</p>
 <div class="highlight-bibtex notranslate"><div class="highlight"><pre><span></span><span class="nc">@misc</span><span class="p">{</span><span class="nl">compresso</span><span class="p">,</span>
@@ -404,7 +501,7 @@ project:</p>
 </div>
 </section>
 <section id="ease">
-<h2>EASE<a class="headerlink" href="#ease" title="Link to this heading"></a></h2>
+<h2><a class="toc-backref" href="#id2" role="doc-backlink">EASE</a><a class="headerlink" href="#ease" title="Link to this heading"></a></h2>
 <p>For <a class="reference internal" href="api/models.html#compresso_recsys.models.EASE" title="compresso_recsys.models.EASE"><code class="xref py py-class docutils literal notranslate"><span class="pre">compresso_recsys.models.EASE</span></code></a>, cite the original EASE paper:</p>
 <div class="highlight-bibtex notranslate"><div class="highlight"><pre><span></span><span class="nc">@inproceedings</span><span class="p">{</span><span class="nl">steck2019embarrassingly</span><span class="p">,</span>
 <span class="w">  </span><span class="na">title</span><span class="p">=</span><span class="s">{Embarrassingly shallow autoencoders for sparse data}</span><span class="p">,</span>
@@ -417,7 +514,7 @@ project:</p>
 </div>
 </section>
 <section id="neighborhood-models">
-<h2>Neighborhood Models<a class="headerlink" href="#neighborhood-models" title="Link to this heading"></a></h2>
+<h2><a class="toc-backref" href="#id3" role="doc-backlink">Neighborhood Models</a><a class="headerlink" href="#neighborhood-models" title="Link to this heading"></a></h2>
 <p>For <a class="reference internal" href="api/models.html#compresso_recsys.models.UserKNNRecommender" title="compresso_recsys.models.UserKNNRecommender"><code class="xref py py-class docutils literal notranslate"><span class="pre">compresso_recsys.models.UserKNNRecommender</span></code></a>, cite the GroupLens
 user-based collaborative-filtering paper:</p>
 <div class="highlight-bibtex notranslate"><div class="highlight"><pre><span></span><span class="nc">@inproceedings</span><span class="p">{</span><span class="nl">resnick1994grouplens</span><span class="p">,</span>
@@ -447,7 +544,7 @@ item-based collaborative-filtering paper:</p>
 </div>
 </section>
 <section id="mult-vae-mult-dae-and-autorec">
-<h2>Mult-VAE, Mult-DAE, and AutoRec<a class="headerlink" href="#mult-vae-mult-dae-and-autorec" title="Link to this heading"></a></h2>
+<h2><a class="toc-backref" href="#id4" role="doc-backlink">Mult-VAE, Mult-DAE, and AutoRec</a><a class="headerlink" href="#mult-vae-mult-dae-and-autorec" title="Link to this heading"></a></h2>
 <p>For <a class="reference internal" href="api/models.html#compresso_recsys.models.MultDAETrainer" title="compresso_recsys.models.MultDAETrainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">compresso_recsys.models.MultDAETrainer</span></code></a> or
 <a class="reference internal" href="api/models.html#compresso_recsys.models.MultVAETrainer" title="compresso_recsys.models.MultVAETrainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">compresso_recsys.models.MultVAETrainer</span></code></a>, cite the paper that introduced
 both models:</p>
@@ -477,7 +574,7 @@ preceded Mult-DAE:</p>
 </div>
 </section>
 <section id="teaser">
-<h2>TEASER<a class="headerlink" href="#teaser" title="Link to this heading"></a></h2>
+<h2><a class="toc-backref" href="#id5" role="doc-backlink">TEASER</a><a class="headerlink" href="#teaser" title="Link to this heading"></a></h2>
 <p>For <a class="reference internal" href="api/models.html#compresso_recsys.models.TEASER" title="compresso_recsys.models.TEASER"><code class="xref py py-class docutils literal notranslate"><span class="pre">compresso_recsys.models.TEASER</span></code></a> or
 <a class="reference internal" href="api/models.html#compresso_recsys.models.TEASERGDTrainer" title="compresso_recsys.models.TEASERGDTrainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">compresso_recsys.models.TEASERGDTrainer</span></code></a>, cite the original TEASER
 paper:</p>
@@ -493,7 +590,7 @@ paper:</p>
 </div>
 </section>
 <section id="elsa">
-<h2>ELSA<a class="headerlink" href="#elsa" title="Link to this heading"></a></h2>
+<h2><a class="toc-backref" href="#id6" role="doc-backlink">ELSA</a><a class="headerlink" href="#elsa" title="Link to this heading"></a></h2>
 <p>For standard <a class="reference internal" href="api/models.html#compresso_recsys.models.ELSA" title="compresso_recsys.models.ELSA"><code class="xref py py-class docutils literal notranslate"><span class="pre">compresso_recsys.models.ELSA</span></code></a> training, cite the original
 ELSA paper:</p>
 <div class="highlight-bibtex notranslate"><div class="highlight"><pre><span></span><span class="nc">@inproceedings</span><span class="p">{</span><span class="nl">vanvcura2022scalable</span><span class="p">,</span>
@@ -507,7 +604,7 @@ ELSA paper:</p>
 </div>
 </section>
 <section id="elsa-with-sampled-output-candidates">
-<h2>ELSA with sampled output candidates<a class="headerlink" href="#elsa-with-sampled-output-candidates" title="Link to this heading"></a></h2>
+<h2><a class="toc-backref" href="#id7" role="doc-backlink">ELSA with sampled output candidates</a><a class="headerlink" href="#elsa-with-sampled-output-candidates" title="Link to this heading"></a></h2>
 <p>If your work uses <code class="docutils literal notranslate"><span class="pre">ELSAConfig.max_output</span></code> to train against sampled output
 candidates at scale, also consider citing the large-scale ELSA evaluation:</p>
 <div class="highlight-bibtex notranslate"><div class="highlight"><pre><span></span><span class="nc">@article</span><span class="p">{</span><span class="nl">10.1145/3748335</span><span class="p">,</span>
@@ -524,7 +621,7 @@ candidates at scale, also consider citing the large-scale ELSA evaluation:</p>
 </div>
 </section>
 <section id="compressed-elsa">
-<h2>Compressed ELSA<a class="headerlink" href="#compressed-elsa" title="Link to this heading"></a></h2>
+<h2><a class="toc-backref" href="#id8" role="doc-backlink">Compressed ELSA</a><a class="headerlink" href="#compressed-elsa" title="Link to this heading"></a></h2>
 <p>If your work uses <a class="reference internal" href="api/models.html#compresso_recsys.models.CompressedELSA" title="compresso_recsys.models.CompressedELSA"><code class="xref py py-class docutils literal notranslate"><span class="pre">compresso_recsys.models.CompressedELSA</span></code></a>, cite the
 sparse-representation paper. The original ELSA citation above may also be
 appropriate when ELSA itself is central to the work.</p>
@@ -539,7 +636,7 @@ appropriate when ELSA itself is central to the work.</p>
 </div>
 </section>
 <section id="sasrec">
-<h2>SASRec<a class="headerlink" href="#sasrec" title="Link to this heading"></a></h2>
+<span id="cite-sasrec"></span><h2><a class="toc-backref" href="#id9" role="doc-backlink">SASRec</a><a class="headerlink" href="#sasrec" title="Link to this heading"></a></h2>
 <p>For <a class="reference internal" href="api/models.html#compresso_recsys.models.SASRecTrainer" title="compresso_recsys.models.SASRecTrainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">compresso_recsys.models.SASRecTrainer</span></code></a>, cite the original SASRec
 paper. Its sequential objective, tied item scoring, and published MovieLens
 hyperparameters are SASRec-derived. The transformer block uses a modernized
@@ -556,19 +653,262 @@ rather than exact implementation parity:</p>
 </pre></div>
 </div>
 </section>
+<section id="simplernn">
+<h2><a class="toc-backref" href="#id10" role="doc-backlink">SimpleRNN</a><a class="headerlink" href="#simplernn" title="Link to this heading"></a></h2>
+<p>For <a class="reference internal" href="api/models.html#compresso_recsys.models.SimpleRNNTrainer" title="compresso_recsys.models.SimpleRNNTrainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">compresso_recsys.models.SimpleRNNTrainer</span></code></a>, GRU4Rec is the relevant
+recurrent recommendation reference. Compresso’s model supports GRU or LSTM
+encoders and uses full-catalog next-item cross-entropy on user histories;
+it does not reproduce GRU4Rec’s session-parallel batching or original ranking
+losses. Cite this paper as methodological background and describe the actual
+configuration used:</p>
+<div class="highlight-bibtex notranslate"><div class="highlight"><pre><span></span><span class="nc">@inproceedings</span><span class="p">{</span><span class="nl">hidasi2016session</span><span class="p">,</span>
+<span class="w">  </span><span class="na">title</span><span class="p">=</span><span class="s">{Session-based Recommendations with Recurrent Neural Networks}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">author</span><span class="p">=</span><span class="s">{Hidasi, Balazs and Karatzoglou, Alexandros and Baltrunas, Linas and Tikk, Domonkos}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">booktitle</span><span class="p">=</span><span class="s">{International Conference on Learning Representations}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">year</span><span class="p">=</span><span class="s">{2016}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">url</span><span class="p">=</span><span class="s">{https://arxiv.org/abs/1511.06939}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="simplegpt-and-simplebidirectionaltransformer">
+<h2><a class="toc-backref" href="#id11" role="doc-backlink">SimpleGPT and SimpleBidirectionalTransformer</a><a class="headerlink" href="#simplegpt-and-simplebidirectionaltransformer" title="Link to this heading"></a></h2>
+<p><a class="reference internal" href="api/models.html#compresso_recsys.models.SimpleGPTTrainer" title="compresso_recsys.models.SimpleGPTTrainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">compresso_recsys.models.SimpleGPTTrainer</span></code></a> uses a causal Transformer
+with a learned prefix and tied item embeddings by default. Its implementation
+follows the nanoGPT architecture, adapted to item sequences.
+<a class="reference internal" href="api/models.html#compresso_recsys.models.SimpleBidirectionalTransformerTrainer" title="compresso_recsys.models.SimpleBidirectionalTransformerTrainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">compresso_recsys.models.SimpleBidirectionalTransformerTrainer</span></code></a> reuses
+those building blocks with bidirectional attention and a pooled <code class="docutils literal notranslate"><span class="pre">CLS</span></code> state
+to predict an unordered target set. Cite the Transformer foundation, and
+attribute nanoGPT when discussing the implementation:</p>
+<div class="highlight-bibtex notranslate"><div class="highlight"><pre><span></span><span class="nc">@inproceedings</span><span class="p">{</span><span class="nl">vaswani2017attention</span><span class="p">,</span>
+<span class="w">  </span><span class="na">title</span><span class="p">=</span><span class="s">{Attention Is All You Need}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">author</span><span class="p">=</span><span class="s">{Vaswani, Ashish and Shazeer, Noam and Parmar, Niki and Uszkoreit, Jakob</span>
+<span class="s">          and Jones, Llion and Gomez, Aidan N. and Kaiser, Lukasz and Polosukhin, Illia}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">booktitle</span><span class="p">=</span><span class="s">{Advances in Neural Information Processing Systems}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">volume</span><span class="p">=</span><span class="s">{30}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">year</span><span class="p">=</span><span class="s">{2017}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">url</span><span class="p">=</span><span class="s">{https://arxiv.org/abs/1706.03762}</span>
+<span class="p">}</span>
+
+<span class="nc">@misc</span><span class="p">{</span><span class="nl">karpathy_nanogpt</span><span class="p">,</span>
+<span class="w">  </span><span class="na">author</span><span class="p">=</span><span class="s">{Karpathy, Andrej}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">title</span><span class="p">=</span><span class="s">{{nanoGPT}}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">howpublished</span><span class="p">=</span><span class="s">{GitHub repository}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">url</span><span class="p">=</span><span class="s">{https://github.com/karpathy/nanoGPT}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">note</span><span class="p">=</span><span class="s">{Record the revision used in your experiment}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>These are Compresso baseline implementations, not separate published methods.
+In particular, the bidirectional model is not an implementation of BERT4Rec’s
+masked-item objective. Its set-valued multinomial loss is related to the
+Mult-VAE/Mult-DAE formulation above; cite that work when the loss is relevant.</p>
+</section>
+<section id="content-popularity-and-random-baselines">
+<h2><a class="toc-backref" href="#id12" role="doc-backlink">Content, Popularity, and Random Baselines</a><a class="headerlink" href="#content-popularity-and-random-baselines" title="Link to this heading"></a></h2>
+<p><a class="reference internal" href="api/models.html#compresso_recsys.models.ContentRecommender" title="compresso_recsys.models.ContentRecommender"><code class="xref py py-class docutils literal notranslate"><span class="pre">compresso_recsys.models.ContentRecommender</span></code></a> uses item features and
+similarity scoring; cite the feature/embedding model actually used to create
+those features. <a class="reference internal" href="api/models.html#compresso_recsys.models.PopularityBaseline" title="compresso_recsys.models.PopularityBaseline"><code class="xref py py-class docutils literal notranslate"><span class="pre">compresso_recsys.models.PopularityBaseline</span></code></a> and
+<a class="reference internal" href="api/models.html#compresso_recsys.models.RandomBaseline" title="compresso_recsys.models.RandomBaseline"><code class="xref py py-class docutils literal notranslate"><span class="pre">compresso_recsys.models.RandomBaseline</span></code></a> are elementary baselines with
+no single originating paper attributed by this package. Report their settings
+and the Compresso Recsys version or commit. Catalog adapters and model base
+classes are infrastructure, not additional recommendation methods.</p>
+</section>
+<section id="datasets">
+<span id="cite-datasets"></span><h2><a class="toc-backref" href="#id13" role="doc-backlink">Datasets</a><a class="headerlink" href="#datasets" title="Link to this heading"></a></h2>
+<section id="movielens-1m-and-20m">
+<h3><a class="toc-backref" href="#id14" role="doc-backlink">MovieLens 1M and 20M</a><a class="headerlink" href="#movielens-1m-and-20m" title="Link to this heading"></a></h3>
+<p>For <code class="xref py py-class docutils literal notranslate"><span class="pre">compresso_recsys.datasets.MovieLens1M</span></code> and
+<code class="xref py py-class docutils literal notranslate"><span class="pre">compresso_recsys.datasets.MovieLens20M</span></code>, cite the dataset history paper
+and state the exact variant. GroupLens usage terms remain applicable.</p>
+<div class="highlight-bibtex notranslate"><div class="highlight"><pre><span></span><span class="nc">@article</span><span class="p">{</span><span class="nl">harper2015movielens</span><span class="p">,</span>
+<span class="w">  </span><span class="na">title</span><span class="p">=</span><span class="s">{The MovieLens Datasets: History and Context}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">author</span><span class="p">=</span><span class="s">{Harper, F. Maxwell and Konstan, Joseph A.}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">journal</span><span class="p">=</span><span class="s">{ACM Transactions on Interactive Intelligent Systems}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">volume</span><span class="p">=</span><span class="s">{5}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">number</span><span class="p">=</span><span class="s">{4}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">year</span><span class="p">=</span><span class="s">{2015}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">doi</span><span class="p">=</span><span class="s">{10.1145/2827872}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">url</span><span class="p">=</span><span class="s">{https://doi.org/10.1145/2827872}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="goodbooks-10k">
+<h3><a class="toc-backref" href="#id15" role="doc-backlink">Goodbooks-10k</a><a class="headerlink" href="#goodbooks-10k" title="Link to this heading"></a></h3>
+<p>For <code class="xref py py-class docutils literal notranslate"><span class="pre">compresso_recsys.datasets.Goodbooks</span></code>, credit the
+<a class="reference external" href="https://github.com/zygmuntz/goodbooks-10k/releases/tag/v1.0">Goodbooks-10k release</a>.
+The upstream repository supplies the dataset rather than a designated research
+paper; use a dataset/software citation and retain its attribution and usage
+terms. Goodbooks-10k is distinct from McAuley Lab’s Goodreads datasets.</p>
+<div class="highlight-bibtex notranslate"><div class="highlight"><pre><span></span><span class="nc">@misc</span><span class="p">{</span><span class="nl">zygmuntz2017goodbooks</span><span class="p">,</span>
+<span class="w">  </span><span class="na">author</span><span class="p">=</span><span class="s">{{zygmuntz}}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">title</span><span class="p">=</span><span class="s">{{Goodbooks-10k}: Ten Thousand Books, Six Million Ratings}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">year</span><span class="p">=</span><span class="s">{2017}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">howpublished</span><span class="p">=</span><span class="s">{Dataset, release v1.0}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">url</span><span class="p">=</span><span class="s">{https://github.com/zygmuntz/goodbooks-10k}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="amazon-reviews-2023">
+<h3><a class="toc-backref" href="#id16" role="doc-backlink">Amazon Reviews 2023</a><a class="headerlink" href="#amazon-reviews-2023" title="Link to this heading"></a></h3>
+<p>For <code class="xref py py-class docutils literal notranslate"><span class="pre">compresso_recsys.datasets.AmazonReviews2023</span></code>, use the citation
+recommended by the <a class="reference external" href="https://amazon-reviews-2023.github.io/">official dataset page</a>.
+Report the category, source revision, and filtering; citations for older Amazon
+releases do not identify this collection.</p>
+<div class="highlight-bibtex notranslate"><div class="highlight"><pre><span></span><span class="nc">@article</span><span class="p">{</span><span class="nl">hou2024bridging</span><span class="p">,</span>
+<span class="w">  </span><span class="na">title</span><span class="p">=</span><span class="s">{Bridging Language and Items for Retrieval and Recommendation}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">author</span><span class="p">=</span><span class="s">{Hou, Yupeng and Li, Jiacheng and He, Zhankui and Yan, An and</span>
+<span class="s">          Chen, Xiusi and McAuley, Julian}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">journal</span><span class="p">=</span><span class="s">{arXiv preprint arXiv:2403.03952}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">year</span><span class="p">=</span><span class="s">{2024}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">url</span><span class="p">=</span><span class="s">{https://arxiv.org/abs/2403.03952}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="steam">
+<h3><a class="toc-backref" href="#id17" role="doc-backlink">Steam</a><a class="headerlink" href="#steam" title="Link to this heading"></a></h3>
+<p>For <code class="xref py py-class docutils literal notranslate"><span class="pre">compresso_recsys.datasets.Steam</span></code>, the
+<a class="reference external" href="https://cseweb.ucsd.edu/~jmcauley/datasets.html#steam_data">upstream Steam page</a>
+lists SASRec (<a class="reference internal" href="#cite-sasrec"><span class="std std-ref">SASRec</span></a>) and the two references below. Report that the
+adapter uses <code class="docutils literal notranslate"><span class="pre">steam_reviews.json.gz</span></code> and <code class="docutils literal notranslate"><span class="pre">steam_games.json.gz</span></code>: it does
+not load bundle interactions or the BERT4Rec remapped sequence release.</p>
+<div class="highlight-bibtex notranslate"><div class="highlight"><pre><span></span><span class="nc">@inproceedings</span><span class="p">{</span><span class="nl">wan2018monotonic</span><span class="p">,</span>
+<span class="w">  </span><span class="na">title</span><span class="p">=</span><span class="s">{Item Recommendation on Monotonic Behavior Chains}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">author</span><span class="p">=</span><span class="s">{Wan, Mengting and McAuley, Julian}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">booktitle</span><span class="p">=</span><span class="s">{Proceedings of the 12th ACM Conference on Recommender Systems}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">year</span><span class="p">=</span><span class="s">{2018}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">url</span><span class="p">=</span><span class="s">{https://cseweb.ucsd.edu/~jmcauley/pdfs/recsys18b.pdf}</span>
+<span class="p">}</span>
+
+<span class="nc">@inproceedings</span><span class="p">{</span><span class="nl">pathak2017steam</span><span class="p">,</span>
+<span class="w">  </span><span class="na">title</span><span class="p">=</span><span class="s">{Generating and Personalizing Bundle Recommendations on Steam}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">author</span><span class="p">=</span><span class="s">{Pathak, Apurva and Gupta, Kshitiz and McAuley, Julian}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">booktitle</span><span class="p">=</span><span class="s">{Proceedings of the 40th International ACM SIGIR Conference on</span>
+<span class="s">             Research and Development in Information Retrieval}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">year</span><span class="p">=</span><span class="s">{2017}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">url</span><span class="p">=</span><span class="s">{https://cseweb.ucsd.edu/~jmcauley/pdfs/sigir17.pdf}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="netflix-prize">
+<h3><a class="toc-backref" href="#id18" role="doc-backlink">Netflix Prize</a><a class="headerlink" href="#netflix-prize" title="Link to this heading"></a></h3>
+<p>For <code class="xref py py-class docutils literal notranslate"><span class="pre">compresso_recsys.datasets.NetflixPrize</span></code>, cite the original dataset
+description. Internet Archive is the adapter’s download location, not the
+dataset’s creator. Original Netflix terms remain applicable.</p>
+<div class="highlight-bibtex notranslate"><div class="highlight"><pre><span></span><span class="nc">@inproceedings</span><span class="p">{</span><span class="nl">bennett2007netflix</span><span class="p">,</span>
+<span class="w">  </span><span class="na">title</span><span class="p">=</span><span class="s">{The Netflix Prize}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">author</span><span class="p">=</span><span class="s">{Bennett, James and Lanning, Stan}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">booktitle</span><span class="p">=</span><span class="s">{Proceedings of KDD Cup and Workshop 2007}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">year</span><span class="p">=</span><span class="s">{2007}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">url</span><span class="p">=</span><span class="s">{https://www.cs.uic.edu/~liub/KDD-cup-2007/proceedings/The-Netflix-Prize-Bennett.pdf}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="msd-taste-profile">
+<h3><a class="toc-backref" href="#id19" role="doc-backlink">MSD / Taste Profile</a><a class="headerlink" href="#msd-taste-profile" title="Link to this heading"></a></h3>
+<p>For <code class="xref py py-class docutils literal notranslate"><span class="pre">compresso_recsys.datasets.TasteProfile</span></code>, cite the Million Song
+Dataset paper and explicitly identify the <strong>Taste Profile subset contributed
+by The Echo Nest</strong>, using <code class="docutils literal notranslate"><span class="pre">train_triplets.txt</span></code>. The adapter loads user-song
+play counts, not the full MSD audio features or song metadata.
+See the <a class="reference external" href="http://millionsongdataset.com/">MSD source</a> for attribution.</p>
+<div class="highlight-bibtex notranslate"><div class="highlight"><pre><span></span><span class="nc">@inproceedings</span><span class="p">{</span><span class="nl">bertinmahieux2011million</span><span class="p">,</span>
+<span class="w">  </span><span class="na">title</span><span class="p">=</span><span class="s">{The Million Song Dataset}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">author</span><span class="p">=</span><span class="s">{Bertin-Mahieux, Thierry and Ellis, Daniel P. W. and Whitman, Brian</span>
+<span class="s">          and Lamere, Paul}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">booktitle</span><span class="p">=</span><span class="s">{Proceedings of the 12th International Society for Music</span>
+<span class="s">             Information Retrieval Conference}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">year</span><span class="p">=</span><span class="s">{2011}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">url</span><span class="p">=</span><span class="s">{https://ismir2011.ismir.net/papers/OS6-1.pdf}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="gowalla">
+<h3><a class="toc-backref" href="#id20" role="doc-backlink">Gowalla</a><a class="headerlink" href="#gowalla" title="Link to this heading"></a></h3>
+<p>For <code class="xref py py-class docutils literal notranslate"><span class="pre">compresso_recsys.datasets.Gowalla</span></code>, cite the paper requested by
+<a class="reference external" href="https://snap.stanford.edu/data/loc-gowalla.html">SNAP</a>. State that the adapter
+uses raw check-ins; the social graph is not downloaded.</p>
+<div class="highlight-bibtex notranslate"><div class="highlight"><pre><span></span><span class="nc">@inproceedings</span><span class="p">{</span><span class="nl">cho2011friendship</span><span class="p">,</span>
+<span class="w">  </span><span class="na">title</span><span class="p">=</span><span class="s">{Friendship and Mobility: User Movement in Location-Based Social Networks}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">author</span><span class="p">=</span><span class="s">{Cho, Eunjo and Myers, Seth A. and Leskovec, Jure}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">booktitle</span><span class="p">=</span><span class="s">{Proceedings of the 17th ACM SIGKDD International Conference on</span>
+<span class="s">             Knowledge Discovery and Data Mining}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">year</span><span class="p">=</span><span class="s">{2011}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">url</span><span class="p">=</span><span class="s">{https://snap.stanford.edu/data/loc-gowalla.html}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="additional-movie-and-book-descriptions">
+<h3><a class="toc-backref" href="#id21" role="doc-backlink">Additional Movie and Book Descriptions</a><a class="headerlink" href="#additional-movie-and-book-descriptions" title="Link to this heading"></a></h3>
+<p>The MovieLens and Goodbooks adapters also load generated descriptions from
+beeFormer. If those descriptions contribute to your experiment’s item features,
+cite beeFormer in addition to the original dataset:</p>
+<div class="highlight-bibtex notranslate"><div class="highlight"><pre><span></span><span class="nc">@inproceedings</span><span class="p">{</span><span class="nl">vancura2024beeformer</span><span class="p">,</span>
+<span class="w">  </span><span class="na">title</span><span class="p">=</span><span class="s">{beeFormer: Bridging the Gap Between Semantic and Interaction Similarity</span>
+<span class="s">         in Recommender Systems}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">author</span><span class="p">=</span><span class="s">{Van{\v{c}}ura, Vojt{\v{e}}ch and Kord{\'\i}k, Pavel and Straka, Milan}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">booktitle</span><span class="p">=</span><span class="s">{Proceedings of the 18th ACM Conference on Recommender Systems}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">pages</span><span class="p">=</span><span class="s">{1102--1107}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">year</span><span class="p">=</span><span class="s">{2024}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">doi</span><span class="p">=</span><span class="s">{10.1145/3640457.3691707}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">url</span><span class="p">=</span><span class="s">{https://github.com/recombee/beeformer}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+</section>
 <section id="evaluation-protocol">
-<h2>Evaluation Protocol<a class="headerlink" href="#evaluation-protocol" title="Link to this heading"></a></h2>
+<h2><a class="toc-backref" href="#id22" role="doc-backlink">Evaluation Protocol</a><a class="headerlink" href="#evaluation-protocol" title="Link to this heading"></a></h2>
 <p>Held-out users are evaluated under strong generalization: each user’s history is
 split into a fold-in part the model sees and a held-out part it is scored
 against. <code class="docutils literal notranslate"><span class="pre">eval_holdout_frac</span></code> defaults to 0.2, matching the 80/20 split
 described by Liang et al. If you report numbers from <code class="docutils literal notranslate"><span class="pre">user_split</span></code>, cite the
 Mult-VAE/Mult-DAE paper above.</p>
-<p>Stacking several independent draws per user — <code class="docutils literal notranslate"><span class="pre">eval_draws</span></code>, defaulting to 5 —
-follows the ELSA line of work; cite the ELSA papers above when reporting under
-that protocol.</p>
+<p>The default <code class="docutils literal notranslate"><span class="pre">eval_draws=1</span></code> produces one source/target split per held-out user.
+Opting into five independent draws per user with <code class="docutils literal notranslate"><span class="pre">eval_draws=5</span></code> follows the
+ELSA line of work; cite the ELSA papers above when reporting under that protocol.</p>
+<section id="dataset-preprocessing">
+<h3><a class="toc-backref" href="#id23" role="doc-backlink">Dataset preprocessing</a><a class="headerlink" href="#dataset-preprocessing" title="Link to this heading"></a></h3>
+<p>Netflix and Taste Profile support/feedback defaults follow the Mult-VAE paper
+above. Steam’s every-review-as-feedback convention follows BERT4Rec, while
+Gowalla’s 10-interaction CF support defaults follow NGCF:</p>
+<div class="highlight-bibtex notranslate"><div class="highlight"><pre><span></span><span class="nc">@inproceedings</span><span class="p">{</span><span class="nl">sun2019bert4rec</span><span class="p">,</span>
+<span class="w">  </span><span class="na">title</span><span class="p">=</span><span class="s">{{BERT4Rec}: Sequential Recommendation with Bidirectional Encoder</span>
+<span class="s">         Representations from Transformer}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">author</span><span class="p">=</span><span class="s">{Sun, Fei and Liu, Jun and Wu, Jian and Pei, Changhua and Lin, Xiao</span>
+<span class="s">          and Ou, Wenwu and Jiang, Peng}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">booktitle</span><span class="p">=</span><span class="s">{Proceedings of the 28th ACM International Conference on</span>
+<span class="s">             Information and Knowledge Management}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">year</span><span class="p">=</span><span class="s">{2019}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">doi</span><span class="p">=</span><span class="s">{10.1145/3357384.3357895}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">url</span><span class="p">=</span><span class="s">{https://arxiv.org/abs/1904.06690}</span>
+<span class="p">}</span>
+
+<span class="nc">@inproceedings</span><span class="p">{</span><span class="nl">wang2019ngcf</span><span class="p">,</span>
+<span class="w">  </span><span class="na">title</span><span class="p">=</span><span class="s">{Neural Graph Collaborative Filtering}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">author</span><span class="p">=</span><span class="s">{Wang, Xiang and He, Xiangnan and Wang, Meng and Feng, Fuli and Chua, Tat-Seng}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">booktitle</span><span class="p">=</span><span class="s">{Proceedings of the 42nd International ACM SIGIR Conference on</span>
+<span class="s">             Research and Development in Information Retrieval}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">year</span><span class="p">=</span><span class="s">{2019}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">url</span><span class="p">=</span><span class="s">{https://arxiv.org/abs/1905.08108}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>These citations explain the defaults, not exact reproduction of published
+results. Report the actual <code class="docutils literal notranslate"><span class="pre">split_mode</span></code>, support thresholds, seed, and metric
+definitions. Compresso’s LLO uses three stage targets; temporal splits use
+global time windows; neither is the original BERT4Rec sampled-ranking protocol.
+The raw Gowalla adapter does not use NGCF/LightGCN’s published train/test files.</p>
+</section>
 </section>
 <section id="statistical-comparison">
-<h2>Statistical Comparison<a class="headerlink" href="#statistical-comparison" title="Link to this heading"></a></h2>
+<h2><a class="toc-backref" href="#id24" role="doc-backlink">Statistical Comparison</a><a class="headerlink" href="#statistical-comparison" title="Link to this heading"></a></h2>
 <p>If you report significance from <code class="xref py py-mod docutils literal notranslate"><span class="pre">compresso_recsys.stats</span></code>, cite the methods
 it implements. See <a class="reference internal" href="statistical-comparison.html"><span class="doc">Comparing Models Statistically</span></a> for what each one contributes
 and a ready-to-adapt methods paragraph.</p>
@@ -636,6 +976,51 @@ so that <code class="docutils literal notranslate"><span class="pre">alpha</span
 <span class="w">  </span><span class="na">publisher</span><span class="p">=</span><span class="s">{Cambridge University Press}</span><span class="p">,</span>
 <span class="w">  </span><span class="na">year</span><span class="p">=</span><span class="s">{1997}</span><span class="p">,</span>
 <span class="w">  </span><span class="na">doi</span><span class="p">=</span><span class="s">{10.1017/CBO9780511802843}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="swap-multimodal-ml-1m-dbbook-and-last-fm-2k">
+<span id="cite-swap-multimodal"></span><h2><a class="toc-backref" href="#id25" role="doc-backlink">SWAP multimodal ML-1M, DBbook, and Last.fm-2K</a><a class="headerlink" href="#swap-multimodal-ml-1m-dbbook-and-last-fm-2k" title="Link to this heading"></a></h2>
+<p>For pretrained features, cite the resource paper and the versioned dataset.
+Continue citing MovieLens for ML-1M. For DBbook, this adapter uses the reconstructed
+interaction release described by SWAP, not a claim of retrieving the original
+ESWC challenge service.</p>
+<p>Paper: <a class="reference external" href="https://doi.org/10.1145/3705328.3748162">See the Movie, Hear the Song, Read the Book</a>.
+Data: <a class="reference external" href="https://zenodo.org/records/15403972">Zenodo record 15403972</a>.
+Processing: <a class="reference external" href="https://github.com/swapUniba/multimodal_ml1m_dbbook_lfm2k">authors’ repository</a>.</p>
+<div class="highlight-bibtex notranslate"><div class="highlight"><pre><span></span><span class="nc">@inproceedings</span><span class="p">{</span><span class="nl">spillo2025multimodal</span><span class="p">,</span>
+<span class="w">  </span><span class="na">author</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">{Spillo, Giuseppe and Musacchio, Elio and Musto, Cataldo and</span>
+<span class="s">            de Gemmis, Marco and Lops, Pasquale and Semeraro, Giovanni}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">title</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">{See the Movie, Hear the Song, Read the Book: Extending</span>
+<span class="s">           MovieLens-1M, Last.fm-2K, and DBbook with Multimodal Data}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">booktitle</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">{Proceedings of the Nineteenth ACM Conference on Recommender Systems}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">year</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">{2025}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">doi</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">{10.1145/3705328.3748162}</span>
+<span class="p">}</span>
+
+<span class="nc">@misc</span><span class="p">{</span><span class="nl">spillo2025multimodaldata</span><span class="p">,</span>
+<span class="w">  </span><span class="na">author</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">{Spillo, Giuseppe and Musacchio, Elio and Musto, Cataldo and</span>
+<span class="s">            de Gemmis, Marco and Lops, Pasquale and Semeraro, Giovanni}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">title</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">{See the Movie, Hear the Song, Read the Book: Extending</span>
+<span class="s">           MovieLens-1M, Last.fm 2K, and DBBook with multimodal Data}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">year</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">{2025}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">publisher</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">{Zenodo}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">doi</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">{10.5281/zenodo.15403972}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>For Last.fm, the original README requests attribution to <a class="reference external" href="https://www.last.fm/">Last.fm</a> and suggests the HetRec workshop citation below.
+See <a class="reference external" href="https://grouplens.org/datasets/hetrec-2011/">GroupLens HetRec 2011</a>
+and the supplied README for usage terms; availability in a public archive does
+not waive the original dataset restrictions.</p>
+<div class="highlight-bibtex notranslate"><div class="highlight"><pre><span></span><span class="nc">@inproceedings</span><span class="p">{</span><span class="nl">cantador2011hetrec</span><span class="p">,</span>
+<span class="w">  </span><span class="na">author</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">{Cantador, Iv{\'a}n and Brusilovsky, Peter and Kuflik, Tsvi}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">title</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">{2nd Workshop on Information Heterogeneity and Fusion in</span>
+<span class="s">           Recommender Systems (HetRec 2011)}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">booktitle</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">{Proceedings of the 5th ACM Conference on Recommender Systems}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">year</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">{2011}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">publisher</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">{ACM}</span>
 <span class="p">}</span>
 </pre></div>
 </div>

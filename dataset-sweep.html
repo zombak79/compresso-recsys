@@ -1,0 +1,862 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dataset statistics and baseline sweep &mdash; Compresso Recsys 0.3.4 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=01c71025"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Compresso Recsys
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#install-from-pypi">Install from PyPI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#optional-extras">Optional Extras</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#local-development">Local Development</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#install-from-github">Install from GitHub</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#build-the-documentation-locally">Build the Documentation Locally</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="getting-started.html">Getting Started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="getting-started.html#basic-python-usage">Basic Python Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started.html#checkpoint-workflow">Checkpoint Workflow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started.html#what-goes-into-a-checkpoint">What Goes Into a Checkpoint</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started.html#split-modes">Split Modes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started.html#retrieval-metrics">Retrieval Metrics</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#choose-a-split-mode">Choose a Split Mode</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#dataset-loader">Dataset Loader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#building-checkpoints">Building Checkpoints</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#checkpoint-read-write">Checkpoint Read/Write</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#evaluate-embeddings-from-python">Evaluate Embeddings From Python</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#evaluate-model-predictions">Evaluate Model Predictions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#train-teaser-for-cold-items">Train TEASER for Cold Items</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#train-teaser-with-gradient-descent">Train TEASER with Gradient Descent</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#serve-new-teaser-candidates">Serve New TEASER Candidates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#train-and-evaluate-elsa">Train and Evaluate ELSA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#using-item-embeddings">Using item embeddings</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="examples.html#precomputed-features">Precomputed features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples.html#user-computed-features">User-computed features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples.html#reading-and-evaluating-features">Reading and evaluating features</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="datasets.html">Datasets</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#reading-the-default-tables">Reading the default tables</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#movielens-1m">MovieLens 1M</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#movielens-20m">MovieLens 20M</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#goodbooks-10k">Goodbooks-10k</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#amazon-reviews-2023">Amazon Reviews 2023</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#steam">Steam</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#netflix-prize">Netflix Prize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#msd-taste-profile">MSD Taste Profile</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#gowalla">Gowalla</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#dbbook">DBbook</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#last-fm-2k">Last.fm-2K</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#using-item-embeddings">Using item embeddings</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="bring-your-own-dataset.html">Bringing Your Own Dataset</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="bring-your-own-dataset.html#What-a-dataset-has-to-produce">What a dataset has to produce</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bring-your-own-dataset.html#The-dataset">The dataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bring-your-own-dataset.html#The-dataset-class">The dataset class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bring-your-own-dataset.html#Two-defaults-that-will-empty-your-dataset">Two defaults that will empty your dataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bring-your-own-dataset.html#What-is-in-it">What is in it</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bring-your-own-dataset.html#Does-it-work?">Does it work?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bring-your-own-dataset.html#Cold-items,-for-free">Cold items, for free</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bring-your-own-dataset.html#What-timestamps-would-have-added">What timestamps would have added</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bring-your-own-dataset.html#You-do-not-need-a-dataset-class-at-all">You do not need a dataset class at all</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="implementing-a-recommender.html">Implementing a Recommender</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="implementing-a-recommender.html#What-the-base-class-owns">What the base class owns</a></li>
+<li class="toctree-l2"><a class="reference internal" href="implementing-a-recommender.html#Data">Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="implementing-a-recommender.html#Configuration">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="implementing-a-recommender.html#The-complete-model">The complete model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="implementing-a-recommender.html#Low-level-prediction">Low-level prediction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="implementing-a-recommender.html#Stable-ID-recommendation">Stable-ID recommendation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="implementing-a-recommender.html#Standalone-persistence">Standalone persistence</a></li>
+<li class="toctree-l2"><a class="reference internal" href="implementing-a-recommender.html#Persistence-inside-a-data-checkpoint">Persistence inside a data checkpoint</a></li>
+<li class="toctree-l2"><a class="reference internal" href="implementing-a-recommender.html#Evaluation">Evaluation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="implementing-a-recommender.html#Executable-contract-checks">Executable contract checks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="implementing-a-recommender.html#Extending-the-pattern">Extending the pattern</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="reproducing-sasrec-results-on-ml1m.html">Reproducing SASRec Results on ML1M</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="reproducing-sasrec-results-on-ml1m.html#Configuration-and-run-modes">Configuration and run modes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reproducing-sasrec-results-on-ml1m.html#Build-the-MovieLens-1M-checkpoint">Build the MovieLens 1M checkpoint</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reproducing-sasrec-results-on-ml1m.html#Inspect-the-split">Inspect the split</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reproducing-sasrec-results-on-ml1m.html#Train-SASRec">Train SASRec</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reproducing-sasrec-results-on-ml1m.html#Score-the-catalog">Score the catalog</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reproducing-sasrec-results-on-ml1m.html#Published-protocol:-100-sampled-negatives-at-10">Published protocol: 100 sampled negatives at 10</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reproducing-sasrec-results-on-ml1m.html#Package-protocol:-full-catalog-at-20">Package protocol: full catalog at 20</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reproducing-sasrec-results-on-ml1m.html#Check-the-epoch-budget-on-validation-data">Check the epoch budget on validation data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reproducing-sasrec-results-on-ml1m.html#Save-the-trained-model">Save the trained model</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="statistical-comparison.html">Comparing Models Statistically</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="statistical-comparison.html#why-the-aggregates-are-not-enough">Why the aggregates are not enough</a></li>
+<li class="toctree-l2"><a class="reference internal" href="statistical-comparison.html#do-the-comparison">Do the comparison</a></li>
+<li class="toctree-l2"><a class="reference internal" href="statistical-comparison.html#a-complete-worked-example">A complete worked example</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#build-the-split">Build the split</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#train-both-models">Train both models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#evaluate-both-on-identical-users">Evaluate both on identical users</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#compare">Compare</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#reading-it">Reading it</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="statistical-comparison.html#reading-the-output">Reading the output</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#the-effect">The effect</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#how-precisely-you-know-it">How precisely you know it</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#how-often-the-two-models-tied">How often the two models tied</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#whether-it-could-be-chance">Whether it could be chance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#the-verdict">The verdict</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="statistical-comparison.html#five-traps">Five traps</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#p-values-have-a-floor">p-values have a floor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#ties-are-not-missing-data">Ties are not missing data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#the-interval-and-the-p-value-can-disagree">The interval and the p-value can disagree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#confidence-level-also-moves-the-significance-bar"><code class="docutils literal notranslate"><span class="pre">confidence_level</span></code> also moves the significance bar</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#one-trained-model-is-not-the-method">One trained model is not the method</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="statistical-comparison.html#choosing-the-settings">Choosing the settings</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#n-resamples"><code class="docutils literal notranslate"><span class="pre">n_resamples</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#test-method"><code class="docutils literal notranslate"><span class="pre">test_method</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#test-method-why-not-a-t-test"><code class="docutils literal notranslate"><span class="pre">test_method</span></code>: why not a t-test?</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#alternative"><code class="docutils literal notranslate"><span class="pre">alternative</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#correction"><code class="docutils literal notranslate"><span class="pre">correction</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="statistical-comparison.html#when-one-user-owns-several-rows">When one user owns several rows</a></li>
+<li class="toctree-l2"><a class="reference internal" href="statistical-comparison.html#what-the-methods-do-formally">What the methods do, formally</a></li>
+<li class="toctree-l2"><a class="reference internal" href="statistical-comparison.html#reporting-the-result">Reporting the result</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#methods">Methods</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#results">Results</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#checklist">Checklist</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="statistical-comparison.html#references">References</a></li>
+<li class="toctree-l2"><a class="reference internal" href="statistical-comparison.html#see-also">See also</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="citing.html">Citing Compresso Recsys</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#compresso">Compresso</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#ease">EASE</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#neighborhood-models">Neighborhood Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#mult-vae-mult-dae-and-autorec">Mult-VAE, Mult-DAE, and AutoRec</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#teaser">TEASER</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#elsa">ELSA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#elsa-with-sampled-output-candidates">ELSA with sampled output candidates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#compressed-elsa">Compressed ELSA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#sasrec">SASRec</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#simplernn">SimpleRNN</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#simplegpt-and-simplebidirectionaltransformer">SimpleGPT and SimpleBidirectionalTransformer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#content-popularity-and-random-baselines">Content, Popularity, and Random Baselines</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#datasets">Datasets</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="citing.html#movielens-1m-and-20m">MovieLens 1M and 20M</a></li>
+<li class="toctree-l3"><a class="reference internal" href="citing.html#goodbooks-10k">Goodbooks-10k</a></li>
+<li class="toctree-l3"><a class="reference internal" href="citing.html#amazon-reviews-2023">Amazon Reviews 2023</a></li>
+<li class="toctree-l3"><a class="reference internal" href="citing.html#steam">Steam</a></li>
+<li class="toctree-l3"><a class="reference internal" href="citing.html#netflix-prize">Netflix Prize</a></li>
+<li class="toctree-l3"><a class="reference internal" href="citing.html#msd-taste-profile">MSD / Taste Profile</a></li>
+<li class="toctree-l3"><a class="reference internal" href="citing.html#gowalla">Gowalla</a></li>
+<li class="toctree-l3"><a class="reference internal" href="citing.html#additional-movie-and-book-descriptions">Additional Movie and Book Descriptions</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#evaluation-protocol">Evaluation Protocol</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="citing.html#dataset-preprocessing">Dataset preprocessing</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#statistical-comparison">Statistical Comparison</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#swap-multimodal-ml-1m-dbbook-and-last-fm-2k">SWAP multimodal ML-1M, DBbook, and Last.fm-2K</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="cli-reference.html">Checkpoint CLI Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="cli-reference.html#temporary-movielens-download-workaround">Temporary MovieLens download workaround</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cli-reference.html#steam">Steam</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cli-reference.html#amazon-reviews-2023">Amazon Reviews 2023</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cli-reference.html#leave-last-out-checkpoint">Leave-Last-Out Checkpoint</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cli-reference.html#temporal-checkpoint">Temporal Checkpoint</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cli-reference.html#checkpoint-split-schema">Checkpoint Split Schema</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cli-reference.html#builder-parameters">Builder Parameters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cli-reference.html#supported-amazon-reviews-2023-datasets">Supported Amazon Reviews 2023 Datasets</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="api/index.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/compresso_recsys.html">Core API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/compresso_recsys.html#datasets">Datasets</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.SplitBundle"><code class="docutils literal notranslate"><span class="pre">SplitBundle</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.RecSysDataset"><code class="docutils literal notranslate"><span class="pre">RecSysDataset</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.Goodbooks"><code class="docutils literal notranslate"><span class="pre">Goodbooks</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.MovieLens1M"><code class="docutils literal notranslate"><span class="pre">MovieLens1M</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.MovieLens20M"><code class="docutils literal notranslate"><span class="pre">MovieLens20M</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.AmazonReviews2023"><code class="docutils literal notranslate"><span class="pre">AmazonReviews2023</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/compresso_recsys.html#checkpoint-helpers">Checkpoint Helpers</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.build_recsys_checkpoint"><code class="docutils literal notranslate"><span class="pre">build_recsys_checkpoint()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.update_checkpoint"><code class="docutils literal notranslate"><span class="pre">update_checkpoint()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.read_checkpoint"><code class="docutils literal notranslate"><span class="pre">read_checkpoint()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.load_manifest"><code class="docutils literal notranslate"><span class="pre">load_manifest()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.save_manifest"><code class="docutils literal notranslate"><span class="pre">save_manifest()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.update_stage_manifest"><code class="docutils literal notranslate"><span class="pre">update_stage_manifest()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.save_json"><code class="docutils literal notranslate"><span class="pre">save_json()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.load_json"><code class="docutils literal notranslate"><span class="pre">load_json()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.save_recsys_split"><code class="docutils literal notranslate"><span class="pre">save_recsys_split()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.load_recsys_split"><code class="docutils literal notranslate"><span class="pre">load_recsys_split()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.save_cluster_graph_stage"><code class="docutils literal notranslate"><span class="pre">save_cluster_graph_stage()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.load_cluster_graph_stage"><code class="docutils literal notranslate"><span class="pre">load_cluster_graph_stage()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api/datasets.html">Datasets API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/datasets.html#compresso_recsys.datasets.DBbook"><code class="docutils literal notranslate"><span class="pre">DBbook</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/datasets.html#compresso_recsys.datasets.DBbook.timestamp_precision"><code class="docutils literal notranslate"><span class="pre">DBbook.timestamp_precision</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/datasets.html#compresso_recsys.datasets.DBbook.get_official_split"><code class="docutils literal notranslate"><span class="pre">DBbook.get_official_split()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/datasets.html#compresso_recsys.datasets.LastFM2K"><code class="docutils literal notranslate"><span class="pre">LastFM2K</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/datasets.html#compresso_recsys.datasets.LastFM2K.timestamp_precision"><code class="docutils literal notranslate"><span class="pre">LastFM2K.timestamp_precision</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api/checkpoint.html">Checkpoint API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/checkpoint.html#item-embeddings">Item embeddings</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/checkpoint.html#compresso_recsys.embeddings.save_item_embeddings"><code class="docutils literal notranslate"><span class="pre">save_item_embeddings()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/checkpoint.html#compresso_recsys.embeddings.load_item_embeddings"><code class="docutils literal notranslate"><span class="pre">load_item_embeddings()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/checkpoint.html#compresso_recsys.embeddings.list_item_embeddings"><code class="docutils literal notranslate"><span class="pre">list_item_embeddings()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/checkpoint.html#compresso_recsys.multimodal.enrich_multimodal_checkpoint"><code class="docutils literal notranslate"><span class="pre">enrich_multimodal_checkpoint()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/checkpoint.html#checkpoint-contexts">Checkpoint Contexts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/checkpoint.html#manifest-and-json-helpers">Manifest and JSON Helpers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/checkpoint.html#split-and-cluster-stages">Split and Cluster Stages</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/checkpoint.html#item-partitions">Item partitions</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api/persistence.html">Fitted Model Persistence</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/persistence.html#embedding-models-in-data-checkpoints">Embedding Models in Data Checkpoints</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/persistence.html#stable-item-ids">Stable Item IDs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/persistence.html#optimizer-state">Optimizer State</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/persistence.html#checkpoint-format">Checkpoint Format</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/persistence.html#compresso_recsys.ModelCheckpointWriter"><code class="docutils literal notranslate"><span class="pre">ModelCheckpointWriter</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/persistence.html#compresso_recsys.ModelCheckpointReader"><code class="docutils literal notranslate"><span class="pre">ModelCheckpointReader</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/persistence.html#extending-persistence">Extending Persistence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/persistence.html#warm-catalog-adapters">Warm Catalog Adapters</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api/sequences.html">Sequences API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/sequences.html#interaction-histories">Interaction Histories</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/sequences.html#compresso_recsys.ItemSequences"><code class="docutils literal notranslate"><span class="pre">ItemSequences</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/sequences.html#compresso_recsys.save_item_sequences"><code class="docutils literal notranslate"><span class="pre">save_item_sequences()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/sequences.html#compresso_recsys.load_item_sequences"><code class="docutils literal notranslate"><span class="pre">load_item_sequences()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/sequences.html#which-split-modes-produce-them">Which Split Modes Produce Them</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api/models.html">Models API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#recommender-contract">Recommender Contract</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.Recommender"><code class="docutils literal notranslate"><span class="pre">Recommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.ColdStartRecommender"><code class="docutils literal notranslate"><span class="pre">ColdStartRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.ItemVocabulary"><code class="docutils literal notranslate"><span class="pre">ItemVocabulary</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.SequentialRecommender"><code class="docutils literal notranslate"><span class="pre">SequentialRecommender</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#production-recommendations">Production Recommendations</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.IdentifiedRecommender"><code class="docutils literal notranslate"><span class="pre">IdentifiedRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.Recommendations"><code class="docutils literal notranslate"><span class="pre">Recommendations</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#training-and-prediction-progress">Training and Prediction Progress</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#fitted-model-persistence">Fitted Model Persistence</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.PersistableRecommender"><code class="docutils literal notranslate"><span class="pre">PersistableRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.BasePersistableRecommender"><code class="docutils literal notranslate"><span class="pre">BasePersistableRecommender</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#implementing-new-models">Implementing New Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.BaseIdentifiedRecommender"><code class="docutils literal notranslate"><span class="pre">BaseIdentifiedRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.BaseCollaborativeRecommender"><code class="docutils literal notranslate"><span class="pre">BaseCollaborativeRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.BaseColdStartRecommender"><code class="docutils literal notranslate"><span class="pre">BaseColdStartRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.BaseSequentialRecommender"><code class="docutils literal notranslate"><span class="pre">BaseSequentialRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#the-owned-candidate-catalog">The Owned Candidate Catalog</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#training-interaction-batches">Training Interaction Batches</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#transductive-models-in-expanding-catalogs">Transductive Models in Expanding Catalogs</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#when-to-reach-for-it-outside-temporal">When to Reach for It Outside <code class="docutils literal notranslate"><span class="pre">temporal</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#collaborative-filtering-models">Collaborative Filtering Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#baselines">Baselines</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#neighborhood-models">Neighborhood Models</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#multinomial-autoencoders">Multinomial Autoencoders</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#ease">EASE</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#elsa">ELSA</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#cold-start-models">Cold-Start Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#contentrecommender">ContentRecommender</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#teaser">TEASER</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#teasergd">TEASERGD</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#sequential-models">Sequential Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#tokenizing-histories">Tokenizing Histories</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#simplernn">SimpleRNN</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#simplegpt">SimpleGPT</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#sasrec">SASRec</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#simplebidirectionaltransformer">SimpleBidirectionalTransformer</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api/retrieval.html">Retrieval API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/retrieval.html#holdout-builders">Holdout Builders</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/retrieval.html#compresso_recsys.retrieval.build_eval_holdout"><code class="docutils literal notranslate"><span class="pre">build_eval_holdout()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/retrieval.html#compresso_recsys.retrieval.build_item_cold_holdout"><code class="docutils literal notranslate"><span class="pre">build_item_cold_holdout()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/retrieval.html#compresso_recsys.retrieval.build_leave_last_out_holdout"><code class="docutils literal notranslate"><span class="pre">build_leave_last_out_holdout()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/retrieval.html#compresso_recsys.retrieval.build_temporal_holdout"><code class="docutils literal notranslate"><span class="pre">build_temporal_holdout()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/retrieval.html#embedding-evaluation">Embedding Evaluation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/retrieval.html#compresso_recsys.retrieval.evaluate_item_embeddings"><code class="docutils literal notranslate"><span class="pre">evaluate_item_embeddings()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/retrieval.html#compresso_recsys.retrieval.evaluate_item_embeddings_with_holdout"><code class="docutils literal notranslate"><span class="pre">evaluate_item_embeddings_with_holdout()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api/evaluation.html">Ranking Evaluation API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/evaluation.html#predictions-and-targets">Predictions and Targets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/evaluation.html#evaluation-results">Evaluation Results</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/evaluation.html#compresso_recsys.evaluation.EvaluationResult"><code class="docutils literal notranslate"><span class="pre">EvaluationResult</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/evaluation.html#custom-metrics">Custom Metrics</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/evaluation.html#compresso_recsys.evaluation.evaluate_recommender"><code class="docutils literal notranslate"><span class="pre">evaluate_recommender()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/evaluation.html#compresso_recsys.evaluation.evaluate_ranked_predictions"><code class="docutils literal notranslate"><span class="pre">evaluate_ranked_predictions()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/evaluation.html#compresso_recsys.evaluation.RankingEvaluator"><code class="docutils literal notranslate"><span class="pre">RankingEvaluator</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/evaluation.html#metrics">Metrics</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/evaluation.html#default-metrics">Default Metrics</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/evaluation.html#optional-metrics">Optional Metrics</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api/statistics.html">Statistics API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/statistics.html#comparison-functions">Comparison Functions</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/statistics.html#compresso_recsys.stats.compare_models"><code class="docutils literal notranslate"><span class="pre">compare_models()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/statistics.html#compresso_recsys.stats.compare_pair"><code class="docutils literal notranslate"><span class="pre">compare_pair()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/statistics.html#results">Results</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/statistics.html#compresso_recsys.stats.PairwiseComparison"><code class="docutils literal notranslate"><span class="pre">PairwiseComparison</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/statistics.html#compresso_recsys.stats.ComparisonReport"><code class="docutils literal notranslate"><span class="pre">ComparisonReport</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/statistics.html#parameter-values">Parameter Values</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Compresso Recsys</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Dataset statistics and baseline sweep</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/dataset-sweep.rst" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="dataset-statistics-and-baseline-sweep">
+<h1>Dataset statistics and baseline sweep<a class="headerlink" href="#dataset-statistics-and-baseline-sweep" title="Link to this heading"></a></h1>
+<p>Download <a class="reference download internal" download="" href="_downloads/7b0c2f8635e5b7d5efebb4438b6f1f8f/dataset_sweep.py"><code class="xref download docutils literal notranslate"><span class="pre">dataset_sweep.py</span></code></a>
+or run it from the repository root after installing the package. The first pass
+defaults to <strong>statistics plus popularity</strong>, without KNN or embedding downloads.
+It covers every registered dataset and split mode; unsupported combinations are
+recorded explicitly. Amazon runs <strong>per category</strong>, with <code class="docutils literal notranslate"><span class="pre">Toys_and_Games</span></code> as the
+only default. Selected categories are never combined into a full-Amazon dataset.</p>
+<section id="parallel-server-run">
+<h2>Parallel server run<a class="headerlink" href="#parallel-server-run" title="Link to this heading"></a></h2>
+<p>On a 64-core server, this command requests ten dataset processes with six
+numerical-library threads each. Choose fewer workers if RAM is limited:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nohup<span class="w"> </span>python<span class="w"> </span>-u<span class="w"> </span>examples/validation/dataset_sweep.py<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--workers<span class="w"> </span><span class="m">10</span><span class="w"> </span>--threads-per-worker<span class="w"> </span><span class="m">6</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--output<span class="w"> </span>artifacts/dataset-sweep<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>&gt;<span class="w"> </span>dataset-sweep.log<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">&amp;</span>
+</pre></div>
+</div>
+<p>Workers own different datasets or Amazon categories and run their splits
+sequentially. With the ten current datasets and one Amazon category, at most ten
+workers run; additional selected Amazon categories create additional independent
+jobs. <code class="docutils literal notranslate"><span class="pre">--workers</span></code> caps simultaneous jobs, not the total number of jobs. This
+avoids concurrent downloads and cache writes for the same source.
+Spawned processes inherit BLAS/OpenMP thread limits;
+PyTorch and Arrow thread pools are also capped. CPU limits are not memory limits:
+large datasets can still require substantial RAM, disk space, and download time.
+KNN, if enabled, has a separate <code class="docutils literal notranslate"><span class="pre">--knn-jobs</span></code> setting (default 1).</p>
+<p>Do not run multiple sweeps against the same data/output directories concurrently.
+For manually scheduled server jobs, use disjoint dataset/category lists and
+separate output directories. This script’s built-in worker pool handles that
+coordination within one run.</p>
+</section>
+<section id="amazon-subsets">
+<h2>Amazon subsets<a class="headerlink" href="#amazon-subsets" title="Link to this heading"></a></h2>
+<p>Select one or more categories explicitly. Each has its own worker job, source
+cache, checkpoints, statistics, and popularity evaluation:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-u<span class="w"> </span>examples/validation/dataset_sweep.py<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--datasets<span class="w"> </span>amazon2023<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--amazon-categories<span class="w"> </span>Toys_and_Games<span class="w"> </span>Office_Products<span class="w"> </span>All_Beauty<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--workers<span class="w"> </span><span class="m">3</span><span class="w"> </span>--threads-per-worker<span class="w"> </span><span class="m">2</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--output<span class="w"> </span>artifacts/amazon-sweep
+</pre></div>
+</div>
+<p>Omit <code class="docutils literal notranslate"><span class="pre">--datasets</span> <span class="pre">amazon2023</span></code> to include the other datasets in the same sweep.
+The existing <code class="docutils literal notranslate"><span class="pre">--amazon-category</span> <span class="pre">Toys_and_Games</span></code> spelling still works.
+Logs and tables show labels such as <code class="docutils literal notranslate"><span class="pre">amazon2023[Toys_and_Games]</span></code>; JSON records
+include <code class="docutils literal notranslate"><span class="pre">amazon_category</span></code>. Duplicate categories (including recognized aliases)
+are rejected to prevent two workers writing the same cache. There is no implicit
+“all Amazon” expansion or cross-category concatenation. Individual categories
+can still be large; reduce <code class="docutils literal notranslate"><span class="pre">--workers</span></code> to limit simultaneous memory use.</p>
+<p>Amazon preprocessing treats all valid ratings as binary interactions, with no
+rating cutoff (<code class="docutils literal notranslate"><span class="pre">min_value_to_keep=None</span></code>, <code class="docutils literal notranslate"><span class="pre">set_all_values_to=1.0</span></code>). User/item
+support remains 5/1, with no minimum text length; user splits reserve 100
+validation users and 200 test users. Support and split-eligibility filters still
+apply, so retaining low-star ratings does not bypass those filters.
+The previous iterative 20/20 filter can delete an entire category, and its
+2,500/5,000 user holdouts do not fit smaller retained populations. These are
+starting settings for exploratory runs, not paper-reproduction settings. There
+is no automatic threshold relaxation. Tiny categories may still need smaller
+holdouts, and user-split evaluation can retain fewer users after restricting
+their histories to the training item catalog.</p>
+<p>Update the installed package as well as the script to obtain the new Amazon
+builder defaults. With an older package, the same settings can be supplied using
+<code class="docutils literal notranslate"><span class="pre">--builder-overrides</span></code>:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">"amazon2023"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"min_value_to_keep"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"min_user_support"</span><span class="p">:</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"item_min_support"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"val_users"</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"test_users"</span><span class="p">:</span><span class="w"> </span><span class="mi">200</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"min_entity_text_words"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>The zero threshold in this older-package workaround retains all valid Amazon
+ratings (1–5); passing null to an older builder would restore its old dataset
+default instead of disabling the cutoff. With the updated package, omitting the
+threshold uses no rating filter. Explicit rating-threshold overrides still work.</p>
+</section>
+<section id="useful-variants">
+<h2>Useful variants<a class="headerlink" href="#useful-variants" title="Link to this heading"></a></h2>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Start small; evaluation sampling does not limit downloads or preprocessing.</span>
+python<span class="w"> </span>examples/validation/dataset_sweep.py<span class="w"> </span>--datasets<span class="w"> </span>lfm2k<span class="w"> </span>--splits<span class="w"> </span>user_split<span class="w"> </span>item_split<span class="w"> </span>--max-eval-users<span class="w"> </span><span class="m">200</span><span class="w"> </span>--output<span class="w"> </span>artifacts/sweep-first
+
+<span class="c1"># Statistics only: the empty --baselines list disables all fitting/evaluation.</span>
+python<span class="w"> </span>examples/validation/dataset_sweep.py<span class="w"> </span>--workers<span class="w"> </span><span class="m">10</span><span class="w"> </span>--threads-per-worker<span class="w"> </span><span class="m">6</span><span class="w"> </span>--baselines<span class="w"> </span>--output<span class="w"> </span>artifacts/stats-only
+
+<span class="c1"># Resume the original run with the same settings.</span>
+python<span class="w"> </span>examples/validation/dataset_sweep.py<span class="w"> </span>--workers<span class="w"> </span><span class="m">10</span><span class="w"> </span>--threads-per-worker<span class="w"> </span><span class="m">6</span><span class="w"> </span>--output<span class="w"> </span>artifacts/dataset-sweep<span class="w"> </span>--resume
+</pre></div>
+</div>
+<p>KNN is optional. Install the <code class="docutils literal notranslate"><span class="pre">knn</span></code> extra (<code class="docutils literal notranslate"><span class="pre">scikit-learn</span></code>) and pass
+<code class="docutils literal notranslate"><span class="pre">--baselines</span> <span class="pre">popularity</span> <span class="pre">itemknn</span></code> when ready. It uses 100 item-item cosine
+neighbors by default. Exact neighbor search can be expensive; catalogs above
+30,000 items are skipped unless <code class="docutils literal notranslate"><span class="pre">--knn-max-items</span></code> is raised deliberately.
+Changing baseline settings creates a new evaluation fingerprint and recomputes
+scores. Compatible checkpoints in the same output root are reused.</p>
+</section>
+<section id="reproducing-the-documentation-default-tables">
+<span id="dataset-default-table-reproduction"></span><h2>Reproducing the documentation default tables<a class="headerlink" href="#reproducing-the-documentation-default-tables" title="Link to this heading"></a></h2>
+<p>The <a class="reference internal" href="datasets.html#dataset-default-table-guide"><span class="std std-ref">tables in each dataset subsection</span></a> use
+the <strong>installed builder defaults</strong>, not this sweep’s exploratory seed/text/window
+overrides. From the repository, the helper can measure available full caches and
+render each non-Amazon dataset’s table:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>examples/validation/dataset_default_tables.py<span class="w"> </span>measure<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--cache-root<span class="w"> </span>data<span class="w"> </span>--output<span class="w"> </span>artifacts/default-table-measurements.json
+
+<span class="c1"># Explicitly permit missing source and official feature downloads.</span>
+python<span class="w"> </span>examples/validation/dataset_default_tables.py<span class="w"> </span>measure<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--datasets<span class="w"> </span>ml1m<span class="w"> </span>dbbook<span class="w"> </span>lfm2k<span class="w"> </span>--features<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--cache-root<span class="w"> </span>data<span class="w"> </span>--download-root<span class="w"> </span>data<span class="w"> </span><span class="se">\</span>
+<span class="w"> </span>--output<span class="w"> </span>artifacts/default-feature-measurements.json
+
+python<span class="w"> </span>examples/validation/dataset_default_tables.py<span class="w"> </span>render<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>artifacts/default-table-measurements.json<span class="w"> </span>--dataset<span class="w"> </span>ml1m
+</pre></div>
+</div>
+<p>Repeat <code class="docutils literal notranslate"><span class="pre">--cache-root</span></code> to search additional cache directories. MovieLens and
+Goodbooks require their extracted interaction/metadata files and description
+cache. Supply <strong>full sources, never smoke-test samples</strong>. Missing caches are
+recorded as <code class="docutils literal notranslate"><span class="pre">not_measured</span></code>; unsupported protocols are recorded separately.
+Downloads require explicit <code class="docutils literal notranslate"><span class="pre">--download-root</span></code>; measurement is otherwise offline.
+<code class="docutils literal notranslate"><span class="pre">--features</span></code> measures every supported encoder in the official SWAP JSON archive
+against the union of measured item catalogs, including dimensions and availability
+after Last.fm artist pooling. It verifies the release MD5 and records SHA-256;
+it does not attach features to a checkpoint. No fitting or reusable checkpoint
+archives are produced, although adapters may create canonical interaction caches.
+The script uses the same split implementation as checkpoint construction and
+records code/source fingerprints, including any existing canonical input caches.
+Choose a new output path for each run; it refuses to overwrite an existing audit.
+Each completed split is saved atomically as progress, and each completed dataset
+is retained in the output. <code class="docutils literal notranslate"><span class="pre">--datasets</span></code> limits a worker to selected datasets;
+use separate output files for parallel workers. Combine disjoint, completed runs
+with <code class="docutils literal notranslate"><span class="pre">dataset_default_tables.py</span> <span class="pre">merge</span> <span class="pre">worker-a.json</span> <span class="pre">worker-b.json</span> <span class="pre">--output</span> <span class="pre">combined.json</span></code>;
+this retains each run’s provenance and rejects duplicate datasets, incomplete
+runs or parameters that differ from current installed defaults. Large datasets still
+require sufficient RAM and time to construct their splits. Rendering and
+measurement do not edit the docs or installed defaults.</p>
+<p>The published non-Amazon audit combines full-cache measurements on the local
+machine and abaddon. The archive preserves each run’s code fingerprints and
+source paths/checksums. A failed installed configuration is kept visible, rather
+than silently replaced with a sweep override. These measurements are not a claim
+that every dataset’s defaults have been size-tuned. Amazon uses the
+separate complete <a class="reference internal" href="amazon-profiling.html"><span class="doc">support</span></a> and <a class="reference internal" href="amazon-metadata.html"><span class="doc">metadata</span></a>
+audits.</p>
+</section>
+<section id="interpreting-the-documentation-tables">
+<span id="dataset-default-table-details"></span><h2>Interpreting the documentation tables<a class="headerlink" href="#interpreting-the-documentation-tables" title="Link to this heading"></a></h2>
+<p>Every dataset subsection has an installed-defaults table. <strong>Support</strong> is written
+as minimum user/item interactions (for example, <code class="docutils literal notranslate"><span class="pre">5/1</span></code>). The user/item totals
+describe the graph after preprocessing for random and LLO splits; temporal
+totals describe distinct users and catalog items across its filtered stages.
+<strong>Train</strong> reports training users separately. <strong>Val/Test</strong> report distinct
+eligible users, distinct target items, and the percentage of those target items
+absent from nonzero training interactions. They are not candidate-catalog sizes
+or percentages of interactions. A dagger (†) flags fewer than 1,000 evaluation
+users; it is a warning, not an automatic change to a dataset’s defaults.
+DBbook additionally has an <strong>Official</strong> column, whose preprocessing totals refer
+only to supplied training data. Other datasets have no supported official mode.
+For sources with repeated events (such as Steam and Gowalla), random splits
+deduplicate user/item pairs before support filtering, whereas ordered splits
+retain events. Their preprocessed user/item totals can therefore differ even
+with the same numerical support thresholds.</p>
+<p>The final column counts distinct items across the <strong>union of measured splits</strong>,
+including non-temporal preprocessed items. It shows independent counts for at
+least one image URL and at least ten words in the adapter’s constructed
+<code class="docutils literal notranslate"><span class="pre">entity_text</span></code>. URLs are not fetched or validated. <strong>Image URLs: not exposed</strong>
+does not mean images do not exist upstream; optional precomputed image embeddings
+are not counted as raw images. MovieLens 1M, DBbook and Last.fm-2K also report
+<strong>precomputed features</strong>: available items, percentage of the same union catalog,
+and vector dimension (<code class="docutils literal notranslate"><span class="pre">d</span></code>) for each encoder. These are measured from the
+checksum-verified official JSON releases with the checkpoint importer’s exact ID
+matching and validation. Missing vectors stay unavailable; valid zero vectors
+still count as available. Last.fm media IDs are pooled by artist, and its
+interaction-derived tag embeddings are identified separately from content text.
+The ten-word statistic does not change <code class="docutils literal notranslate"><span class="pre">min_entity_text_words</span></code>.</p>
+<p>The non-Amazon tables use full source caches on this machine and abaddon,
+with the installed builder defaults. Unlike the exploratory
+sweep, these use the dataset’s own seed and text-length default (30 words for
+MovieLens/Goodbooks); annotations are disabled because they do not change the
+interaction or text counts. <strong>Build failed</strong> records a real attempt with the
+installed configuration and its error, not a missing cache. <strong>Not supported</strong>
+denotes a protocol the adapter cannot supply.
+Amazon has a separate <a class="reference internal" href="amazon-profiling.html"><span class="doc">category/protocol audit</span></a>.</p>
+<p>The <a class="reference download internal" download="" href="_downloads/462446f2cb55224b6b93d2eff394a55d/dataset-default-measurements.json"><code class="xref download docutils literal notranslate"><span class="pre">non-Amazon</span> <span class="pre">measurement</span> <span class="pre">archive</span></code></a>
+records parameters, source-file checksums, code fingerprints and status for every
+dataset/split. See <a class="reference internal" href="#dataset-default-table-reproduction"><span class="std std-ref">Reproducing the documentation default tables</span></a> to regenerate the
+tables. The missing optional feature releases were downloaded for the audit;
+no preprocessing defaults were changed and no embeddings were attached to user
+checkpoints.</p>
+</section>
+<section id="dbbook-official-protocol">
+<span id="id1"></span><h2>DBbook official protocol<a class="headerlink" href="#dbbook-official-protocol" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">DBbook.get_official_split()</span></code> returns the supplied train and test DataFrames,
+including negative feedback. The combined interaction table retains
+<code class="docutils literal notranslate"><span class="pre">source_split</span></code>. Random user/item split modes create new partitions.</p>
+<p>For the supplied test boundary, use:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">compresso-recsys-build-checkpoint --dataset dbbook --split_mode official --eval_draws 1 --checkpoint_path artifacts/dbbook/official.zip</span>
+</pre></div>
+</div>
+<p>This mode filters support using training data only, withholds validation edges
+from supplied training interactions, and removes those edges from model training.
+Test histories use the full retained positive training history. The model is
+not refit automatically. Test positives outside the training user/item vocabulary
+or below evaluation support are excluded and counted in the manifest. Overlapping
+supplied train/test pairs are rejected. It always uses one validation draw;
+<code class="docutils literal notranslate"><span class="pre">val_users</span></code> and <code class="docutils literal notranslate"><span class="pre">test_users</span></code> do not control this mode. This preserves the
+test boundary, not an exact published training/evaluation recipe.</p>
+</section>
+<section id="collected-statistics">
+<h2>Collected statistics<a class="headerlink" href="#collected-statistics" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Loaded and pre-split users, items, event rows, unique user-item pairs, repeat
+event fraction, sparsity, timestamp coverage, and timestamp range in source units.</p></li>
+<li><p>User/item activity distributions: min, mean, median, p90, p99, and max.</p></li>
+<li><p>Training matrix counts, active versus catalog items, and source/target statistics
+for every stage, including unique users versus repeated evaluation rows.</p></li>
+<li><p>Separate observed-item and full-catalog sparsities, with explicit denominators.</p></li>
+<li><p>Cold-candidate counts, cold-target fraction, source/target overlap, and sequence
+event counts when available.</p></li>
+<li><p>Text/image-URL coverage, checkpoint size/hash, settings, provenance, and timings.</p></li>
+</ul>
+<p>For interaction tables, sparsity is <code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">-</span> <span class="pre">unique_pairs</span> <span class="pre">/</span> <span class="pre">(users</span> <span class="pre">*</span> <span class="pre">items)</span></code>.
+Matrix statistics distinguish:</p>
+<ul class="simple">
+<li><p><strong>Catalog columns</strong> (JSON <code class="docutils literal notranslate"><span class="pre">n_items</span></code>): the matrix width, including zero-only
+columns for held-out or otherwise unobserved items.</p></li>
+<li><p><strong>Observed items</strong> (JSON <code class="docutils literal notranslate"><span class="pre">active_items</span></code>): columns with at least one interaction
+in that particular training, source, or target matrix. An assigned split item
+with no retained interactions is not counted as observed.</p></li>
+<li><p><strong>Observed-item sparsity</strong> (JSON <code class="docutils literal notranslate"><span class="pre">observed_item_sparsity</span></code>):
+<code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">-</span> <span class="pre">nnz</span> <span class="pre">/</span> <span class="pre">(n_rows</span> <span class="pre">*</span> <span class="pre">active_items)</span></code>.</p></li>
+<li><p><strong>Catalog sparsity</strong> (JSON <code class="docutils literal notranslate"><span class="pre">catalog_sparsity</span></code>):
+<code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">-</span> <span class="pre">nnz</span> <span class="pre">/</span> <span class="pre">(n_rows</span> <span class="pre">*</span> <span class="pre">n_items)</span></code>. The existing JSON <code class="docutils literal notranslate"><span class="pre">sparsity</span></code> field retains
+this meaning for compatibility.</p></li>
+</ul>
+<p>Both matrix sparsities keep every row, including empty histories and repeated
+evaluation users; they do not substitute unique-user or active-row counts.
+Zero-sized denominators produce JSON null and a dash in the report. An all-zero
+matrix with nonzero dimensions has catalog sparsity 100%, but undefined
+observed-item sparsity. Candidate catalog counts are before per-user seen-item
+exclusion and do not imply that every candidate occurs in the targets.</p>
+<p>For example, the default seed-42 Goodbooks item split has 10,000 catalog columns,
+but 8,500 observed training items, 500 observed validation target items, and 1,000
+observed test target items. The report shows those counts separately. Its 100%
+cold target pairs are expected: every held-out target item is absent from training,
+while users can occur in both training and evaluation.</p>
+<p>Ratings and play-count sums are not interaction counts. Loaded data has already passed the adapter’s metadata
+filtering; it is not an untouched-source-file count. Defaults disable minimum
+text length, use one evaluation draw and seed 42, and otherwise use each dataset’s
+builder rating/support/held-out user defaults. No annotations or embeddings are
+downloaded by the sweep.</p>
+<p>Temporal support filtering happens per stage: its pre-split counts are not the
+final filtered total. For DBbook’s official mode, pre-split counts describe supplied
+training data only. Source histories overlap across stages and evaluation draws
+can repeat users, so never sum those matrix counts as a whole-dataset total.</p>
+<p>The sweep shares the builder’s temporal defaults: 30-day (720-hour) target windows
+for Gowalla and 339-day (8,136-hour) windows otherwise.
+<code class="docutils literal notranslate"><span class="pre">--temporal-period-hours</span></code> overrides this; a dataset-specific
+<code class="docutils literal notranslate"><span class="pre">temporal_period_hours</span></code> builder override takes precedence over that flag.
+Windows and support settings are printed in the log and saved in the
+resolved parameters; insufficient history or empty filtered windows still fail
+explicitly instead of triggering automatic changes to the evaluation protocol.</p>
+</section>
+<section id="evaluation-protocol">
+<h2>Evaluation protocol<a class="headerlink" href="#evaluation-protocol" title="Link to this heading"></a></h2>
+<p>Baselines fit the checkpoint’s binary <code class="docutils literal notranslate"><span class="pre">x_train</span></code> once. There is no tuning,
+validation/test training data, or automatic test-time refit. Metrics are Recall,
+CalibratedRecall, NDCG, and HitRate at 10 and 20; use <code class="docutils literal notranslate"><span class="pre">--cutoffs</span></code> to change them.
+Seen items are excluded by default (<code class="docutils literal notranslate"><span class="pre">--exclude-seen</span></code>). Use
+<code class="docutils literal notranslate"><span class="pre">--no-exclude-seen</span></code> for repeat-interaction prediction, such as Gowalla LLO.
+The full phase-specific candidate catalog is used.
+Item IDs are aligned across temporal vocabularies; future stages’ candidates
+are not offered in earlier stages.</p>
+<p>Popularity and collaborative KNN give cold items zero learned signal. Their
+cold-start scores can reflect ties, not a content-based cold-start capability.
+The report includes cold-target coverage to make this visible. Rows with no
+targets or fewer allowed candidates than the largest requested cutoff are excluded
+and counted, without silently changing the cutoff. Seeded <code class="docutils literal notranslate"><span class="pre">--max-eval-users</span></code>
+sampling is shared across baselines and keeps all draws of a selected user together.
+Scores from different split protocols are not directly interchangeable.</p>
+<p>The flag is recorded in JSON and the report’s <strong>Exclude seen</strong> column, including
+failed/skipped evaluations. The report also counts repeat targets and targets
+made unreachable by seen-item exclusion. Such cases produce a warning; targets
+are never silently dropped. Preprocessing, checkpoints, model defaults, and
+training data are unchanged. User/item splits should normally keep exclusion
+enabled. Scores with different settings are not directly comparable.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>examples/validation/dataset_sweep.py<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--datasets<span class="w"> </span>gowalla<span class="w"> </span>--splits<span class="w"> </span>leave_last_out<span class="w"> </span>temporal<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--no-exclude-seen<span class="w"> </span>--output<span class="w"> </span>artifacts/gowalla-repeat-evaluation
+</pre></div>
+</div>
+<p>To score an existing checkpoint, including one from an older sweep, without
+loading raw datasets or building a new split:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>examples/validation/dataset_sweep.py<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--checkpoint<span class="w"> </span>/path/to/checkpoint.zip<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--no-exclude-seen<span class="w"> </span>--output<span class="w"> </span>artifacts/repeat-evaluation
+</pre></div>
+</div>
+<p>This reads dataset/split identity and build metadata from the checkpoint and
+records its SHA-256. The original file is unchanged. Dataset/split selections,
+if supplied, must include that checkpoint; build settings are not applied.
+Both modes still fit the requested baselines for each new evaluation run; fitted
+models are not cached. A changed candidate policy also changes which users have
+enough candidates at the requested cutoff, so evaluated-row counts can differ.</p>
+</section>
+<section id="outputs-and-recovery">
+<h2>Outputs and recovery<a class="headerlink" href="#outputs-and-recovery" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">summary.md</span></code> contains readable dataset, training, evaluation-stage and
+baseline tables, with unsupported combinations and errors.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">results.jsonl</span></code> contains the full records from this invocation.</p></li>
+<li><p>Each <code class="docutils literal notranslate"><span class="pre">&lt;dataset&gt;-&lt;split&gt;-&lt;fingerprint&gt;/</span></code> contains <code class="docutils literal notranslate"><span class="pre">result.json</span></code> and a
+<code class="docutils literal notranslate"><span class="pre">checkpoint.zip</span></code> for successful builds. Amazon paths include the category:
+<code class="docutils literal notranslate"><span class="pre">amazon2023-&lt;category&gt;-&lt;split&gt;-&lt;fingerprint&gt;/</span></code>.</p></li>
+</ul>
+<p>Detailed records are saved after each combination; combined summaries update
+as dataset/category workers finish. Fingerprints include settings and code provenance.
+<code class="docutils literal notranslate"><span class="pre">--resume</span></code> skips complete runs and retries failed ones, reusing only checkpoints
+whose recorded hashes match. Completed runs are also checked: a missing/corrupt
+checkpoint (or missing recorded hash) triggers recovery and fresh evaluation.
+The previous result and any invalid archive are preserved in a <code class="docutils literal notranslate"><span class="pre">recovery-*</span></code>
+subdirectory; stale statistics and scores are discarded from the active result.
+Recovery reuses another verified compatible checkpoint if available, otherwise
+rebuilds it. If rebuilding fails, the run is reported as failed and can be retried
+with <code class="docutils literal notranslate"><span class="pre">--resume</span></code>. Without <code class="docutils literal notranslate"><span class="pre">--resume</span></code>, existing results are not overwritten.</p>
+<p>New sweeps give builds a separate fingerprint based on builder arguments and
+package source. Changing only evaluation settings (including <code class="docutils literal notranslate"><span class="pre">exclude_seen</span></code>)
+creates a new result directory but reuses a matching, checksum-verified
+checkpoint in the same output root, without reloading raw data. Archives are
+hard-linked when possible, otherwise atomically copied. Earlier results remain
+intact; the combined summary describes the current invocation. Old sweep records
+without build fingerprints are not guessed compatible: use <code class="docutils literal notranslate"><span class="pre">--checkpoint</span></code> to
+explicitly evaluate those archives.
+Do not edit the generated report files by hand if you intend to resume into the
+same directory. Keep the log and per-run JSON files if a worker is interrupted
+or runs out of memory.</p>
+<p>To correct tables from an existing sweep without downloading data, rebuilding
+checkpoints, or rerunning baselines:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>examples/validation/dataset_sweep.py<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--report-only<span class="w"> </span>--output<span class="w"> </span>artifacts/dataset-sweep
+</pre></div>
+</div>
+<p>This regenerates only <code class="docutils literal notranslate"><span class="pre">summary.md</span></code> from every record in that directory’s
+<code class="docutils literal notranslate"><span class="pre">results.jsonl</span></code>, including records produced by older script versions. It derives
+the sparsities from saved row, observed-item, catalog, and pair counts. It leaves
+JSON files, checkpoints, scores, and provenance unchanged. Legacy records without
+an explicit <code class="docutils literal notranslate"><span class="pre">exclude_seen</span></code> value display <strong>unknown (legacy)</strong>. No dataset/split
+selection or evaluation options are applied in this mode. A missing
+<code class="docutils literal notranslate"><span class="pre">results.jsonl</span></code> is an error; report-only does not start a new sweep or discover
+additional results from unfinished workers.</p>
+<p>Updating the script or package source changes the evaluation fingerprint, so
+<code class="docutils literal notranslate"><span class="pre">--resume</span></code> does not reuse results from an older code fingerprint. Unchanged
+package source and builder arguments can still reuse the data checkpoint.
+A copied script uses the
+imported package’s Git provenance when available; wheel installations without
+tracked source record a null commit without printing a Git error. Package version
+and script hash are recorded in either case.</p>
+<p>Build/model errors are recorded and other work continues; a failure produces a
+nonzero final exit code. Unsupported timestamp combinations and non-DBbook
+<code class="docutils literal notranslate"><span class="pre">official</span></code> modes are marked explicitly, without downloads. Empty temporal
+windows are failures, not a reason to silently adjust the protocol. Use
+<code class="docutils literal notranslate"><span class="pre">--temporal-period-hours</span></code> when your chosen window needs changing.</p>
+</section>
+<section id="dataset-specific-overrides">
+<h2>Dataset-specific overrides<a class="headerlink" href="#dataset-specific-overrides" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">--amazon-categories</span></code> selects independent subsets. For other dataset-specific
+builder changes, pass <code class="docutils literal notranslate"><span class="pre">--builder-overrides</span> <span class="pre">settings.json</span></code>, for example:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">"ml1m"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"val_users"</span><span class="p">:</span><span class="w"> </span><span class="mi">500</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"test_users"</span><span class="p">:</span><span class="w"> </span><span class="mi">1000</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"min_user_support"</span><span class="p">:</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"item_min_support"</span><span class="p">:</span><span class="w"> </span><span class="mi">5</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Dataset identity, Amazon category, split mode, paths, and embedding downloads
+cannot be changed through this file. Amazon overrides apply to each selected
+category. All effective settings and the checkpoint manifest are saved
+with the statistics. These are descriptive benchmarks, not claims of matching
+the paper targets in <a class="reference internal" href="dataset-validation.html"><span class="doc">Dataset and model validation matrix</span></a>.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
