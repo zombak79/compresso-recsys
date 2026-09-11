@@ -78,7 +78,8 @@ MovieLens 1M
 ------------
 
 **Loading:** ``dataset="ml1m"`` downloads GroupLens ratings and beeFormer
-descriptions; SWAP features are optional.
+descriptions; SWAP features are optional. A temporary
+:ref:`expired-certificate workaround <grouplens-tls-workaround>` applies.
 
 **Terms:** `MovieLens research-use conditions <https://grouplens.org/datasets/movielens/1m/>`_;
 commercial use requires permission. Cite the description/feature sources too.
@@ -154,7 +155,8 @@ MovieLens 20M
 -------------
 
 **Loading:** ``dataset="ml20m"`` downloads GroupLens ratings and beeFormer
-descriptions; user-tag annotations are optional.
+descriptions; user-tag annotations are optional. The same
+:ref:`expired-certificate workaround <grouplens-tls-workaround>` applies.
 
 **Terms:** `GroupLens usage conditions <https://grouplens.org/datasets/movielens/20m/>`_;
 commercial use requires permission. Cite beeFormer when using its descriptions.

@@ -14,14 +14,14 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 
-def download(url: str, path: Path, *, show_progress: bool = True) -> Path:
+def download(url: str, path: Path, *, show_progress: bool = True, opener=None) -> Path:
     """Reuse local archives; never promote an interrupted download to the cache."""
     if path.is_file():
         return path
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, temporary = tempfile.mkstemp(prefix=path.name + ".", suffix=".part", dir=path.parent)
     try:
-        with os.fdopen(fd, "wb") as out, urlopen(url, timeout=60) as response:
+        with os.fdopen(fd, "wb") as out, (opener or urlopen)(url, timeout=60) as response:
             if show_progress:
                 print(f"Downloading {url} to {path}", flush=True)
             expected = response.headers.get("Content-Length")

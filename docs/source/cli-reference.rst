@@ -13,6 +13,18 @@ Basic usage:
      --checkpoint_path artifacts/ml1m/exp001.zip \
      --annotation_source genres
 
+.. _grouplens-tls-workaround:
+
+Temporary MovieLens download workaround
+------------------------------------------
+
+Since September 11, 2026, ML1M/ML20M archive downloads try verified HTTPS first,
+then warn and retry without certificate verification **only on certificate
+expiry**. The retry cannot follow redirects; beeFormer metadata and other
+downloads keep normal verification. Encryption remains, but the retry does
+not authenticate the server. Verification resumes automatically when the
+certificate is renewed. A removal TODO lives in ``datasets/_grouplens.py``.
+
 Steam
 -----
 
