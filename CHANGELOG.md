@@ -1,4 +1,22 @@
-## [Unreleased]
+## [0.3.4] — 2026-09-11
+
+### Added
+
+- Steam, Netflix Prize, MSD Taste Profile, Gowalla, DBbook, and Last.fm-2K datasets.
+- Optional multimodal checkpoint embeddings and DBbook official splits.
+- Parallel dataset statistics and popularity/ItemKNN evaluation.
+
+### Changed
+
+- Tuned Amazon category support/text defaults; retain all ratings.
+- Default to one evaluation draw.
+- Unified dataset docs with measured tables, citations, and validation recipes.
+
+### Fixed
+
+- Sweep counts/sparsity, explicit `exclude_seen` reporting, and checkpoint reuse/recovery.
+- Gowalla's 720-hour temporal default and strict documentation builds.
+- Temporary GroupLens-only fallback for expired SSL certificates.
 
 ## [0.3.3] — 2026-09-04
 

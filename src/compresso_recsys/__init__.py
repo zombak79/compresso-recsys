@@ -15,11 +15,25 @@ from .checkpoint import (
 )
 from .builder import build_recsys_checkpoint
 from .datasets import AmazonReviews2023, Goodbooks, MovieLens1M, MovieLens20M, RecSysDataset, SplitBundle
+from .datasets import Steam, NetflixPrize, TasteProfile, Gowalla
+from .datasets import DBbook, LastFM2K
+from .embeddings import save_item_embeddings, load_item_embeddings, list_item_embeddings
+from .multimodal import enrich_multimodal_checkpoint
 from .persistence import ModelCheckpointReader, ModelCheckpointWriter
 from .sequences import ItemSequences, load_item_sequences, save_item_sequences
 
 __all__ = [
+    "DBbook",
+    "LastFM2K",
+    "save_item_embeddings",
+    "load_item_embeddings",
+    "list_item_embeddings",
+    "enrich_multimodal_checkpoint",
     "AmazonReviews2023",
+    "Steam",
+    "NetflixPrize",
+    "TasteProfile",
+    "Gowalla",
     "build_recsys_checkpoint",
     "Goodbooks",
     "ItemSequences",

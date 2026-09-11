@@ -1,6 +1,20 @@
 Checkpoint API
 ==============
 
+Item embeddings
+--------------------
+
+See :ref:`dataset-item-embeddings` for named feature spaces and missingness masks,
+whether the vectors are imported or computed by the user.
+
+.. autofunction:: compresso_recsys.embeddings.save_item_embeddings
+
+.. autofunction:: compresso_recsys.embeddings.load_item_embeddings
+
+.. autofunction:: compresso_recsys.embeddings.list_item_embeddings
+
+.. autofunction:: compresso_recsys.multimodal.enrich_multimodal_checkpoint
+
 Checkpoint Contexts
 -------------------
 

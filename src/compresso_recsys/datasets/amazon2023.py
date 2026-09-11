@@ -2,16 +2,19 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sys
 from pathlib import Path
 from typing import Any, Iterable
 from urllib.parse import quote
-from urllib.error import URLError
+from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
+import numpy as np
 import pandas as pd
 
 from .base import RecSysDataset
+from ._amazon_text_defaults import AMAZON_METADATA_TEXT_FIELDS
 
 
 DEFAULT_TEXT_FIELDS = ("title", "features", "description", "categories")
@@ -32,6 +35,7 @@ class AmazonReviews2023(RecSysDataset):
     """
 
     name = "amazon2023"
+    default_text_fields = DEFAULT_TEXT_FIELDS
     hf_name = "McAuley-Lab/Amazon-Reviews-2023"
     hf_revision = "main"
     source_base_url = "https://mcauleylab.ucsd.edu/public_datasets/data/amazon_2023"
@@ -41,13 +45,21 @@ class AmazonReviews2023(RecSysDataset):
         data_dir: str = "data",
         *,
         category: str = "Toys_and_Games",
-        metadata_text_fields: Iterable[str] = DEFAULT_TEXT_FIELDS,
+        metadata_text_fields: Iterable[str] | None = None,
         min_entity_text_words: int = 0,
         include_image_urls: bool = False,
         show_progress: bool = True,
     ) -> None:
         self.category = self.normalize_category(category)
-        self.metadata_text_fields = tuple(metadata_text_fields)
+        self.default_text_fields = self.text_fields_for_category(self.category)
+        if isinstance(metadata_text_fields, str):
+            metadata_text_fields = tuple(field.strip() for field in metadata_text_fields.split(","))
+        self.metadata_text_fields = (
+            self.default_text_fields if metadata_text_fields is None else tuple(metadata_text_fields)
+        )
+        if any(not isinstance(field, str) or not all(field.split("."))
+               for field in self.metadata_text_fields):
+            raise ValueError("metadata_text_fields must contain nonempty field paths")
         self.min_entity_text_words = int(min_entity_text_words)
         self.include_image_urls = bool(include_image_urls)
         self.show_progress = bool(show_progress)
@@ -69,6 +81,10 @@ class AmazonReviews2023(RecSysDataset):
         if not key:
             raise ValueError("Amazon category cannot be empty")
         return CATEGORY_ALIASES.get(key.lower(), key)
+
+    @classmethod
+    def text_fields_for_category(cls, category: str) -> tuple[str, ...]:
+        return AMAZON_METADATA_TEXT_FIELDS.get(cls.normalize_category(category), DEFAULT_TEXT_FIELDS)
 
     def download(self) -> None:
         # `prepare` triggers the category-specific downloads; this method exists
@@ -154,15 +170,56 @@ class AmazonReviews2023(RecSysDataset):
         return urls[0] if urls else ""
 
     @classmethod
+    def _normalize_metadata_value(cls, value: Any) -> Any:
+        """Make Parquet arrays and JSON lists produce identical text."""
+        if isinstance(value, np.ndarray):
+            return cls._normalize_metadata_value(value.tolist())
+        if isinstance(value, dict):
+            return {key: cls._normalize_metadata_value(val) for key, val in value.items()}
+        if isinstance(value, (list, tuple)):
+            return [cls._normalize_metadata_value(val) for val in value]
+        return value
+
+    @classmethod
+    def _metadata_value_to_text(cls, value: Any, *, separator: str = " ") -> str:
+        return RecSysDataset._metadata_value_to_text(
+            cls._normalize_metadata_value(value), separator=separator,
+        )
+
+    @classmethod
     def build_entity_text(cls, row: pd.Series, fields: Iterable[str]) -> str:
-        parts: list[str] = []
+        # Group adjacent nested selections under one label, matching the audited
+        # curated recipe without importing unselected details (ranks, IDs, etc.).
+        blocks: list[tuple[str, Any, bool]] = []
+        roots: dict[str, Any] = {}
         for field in fields:
-            if field not in row:
+            root, *path = field.split(".")
+            if root not in row:
                 continue
-            value = cls._parse_details(row[field]) if field == "details" else row[field]
-            text = cls._metadata_value_to_text(value, separator="\n" if field in {"features", "description"} else " > ")
+            if root not in roots:
+                value = cls._parse_details(row[root]) if root == "details" else row[root]
+                roots[root] = cls._normalize_metadata_value(value)
+            value = roots[root]
+            if not path:
+                blocks.append((root, value, False))
+                continue
+            for key in path:
+                value = value.get(key) if isinstance(value, dict) else None
+            if value is None:
+                continue
+            if not blocks or blocks[-1][0] != root or not blocks[-1][2]:
+                blocks.append((root, {}, True))
+            selected = blocks[-1][1]
+            for key in path[:-1]:
+                if not isinstance(selected.get(key), dict):
+                    selected[key] = {}
+                selected = selected[key]
+            selected[path[-1]] = value
+        parts: list[str] = []
+        for root, value, _ in blocks:
+            text = cls._metadata_value_to_text(value, separator="\n" if root in {"features", "description"} else " > ")
             if text:
-                label = field.replace("_", " ").title()
+                label = root.replace("_", " ").title()
                 parts.append(f"{label}: {text}")
         return "\n\n".join(parts).strip()
 
@@ -236,17 +293,21 @@ class AmazonReviews2023(RecSysDataset):
         if config == self.metadata_config:
             if split != "full":
                 raise ValueError(f"Amazon metadata config {config!r} only supports split='full'")
-            files = sorted(
-                self._hf_files_for_path(self.metadata_config),
-                key=lambda entry: entry["path"],
-            )
+            try:
+                files = sorted(self._hf_files_for_path(self.metadata_config), key=lambda entry: entry["path"])
+            except HTTPError as exc:
+                if exc.code != 404:
+                    raise
+                files = []
             sources = [
                 self._hf_source(entry["path"], kind="parquet", size=entry.get("size"))
                 for entry in files
                 if str(entry.get("path", "")).endswith(".parquet")
             ]
             if not sources:
-                raise FileNotFoundError(f"No Hugging Face parquet files found for {self.metadata_config!r}")
+                # Only nine categories have exported Parquet directories. The
+                # official repository also hosts raw JSONL for every category.
+                return [self._hf_source(f"raw/meta_categories/meta_{self.category}.jsonl", kind="jsonl")]
             return sources
 
         if config == self.interactions_config:
@@ -262,7 +323,31 @@ class AmazonReviews2023(RecSysDataset):
 
         raise ValueError(f"Unsupported Amazon Reviews 2023 config: {config!r}")
 
+    def _cached_metadata_sources(self) -> list[dict[str, Any]]:
+        mirror = self._mirror_source_for_config(self.metadata_config)
+        if all((self.root / source["local_path"]).is_file() for source in mirror):
+            return mirror
+        raw = self._hf_source(f"raw/meta_categories/meta_{self.category}.jsonl", kind="jsonl")
+        if (self.root / raw["local_path"]).is_file():
+            return [raw]
+        folder = self.root / "huggingface" / self.metadata_config
+        paths = sorted(folder.glob("full-*-of-*.parquet"))
+        matches = [re.fullmatch(r"full-(\d+)-of-(\d+)\.parquet", path.name) for path in paths]
+        if not matches or not all(matches):
+            return []
+        total = int(matches[0].group(2))
+        if len(paths) != total or any(int(match.group(2)) != total for match in matches):
+            return []
+        if {int(match.group(1)) for match in matches} != set(range(total)):
+            return []
+        return [self._hf_source(str(path.relative_to(self.root / "huggingface")), kind="parquet")
+                for path in paths]
+
     def _source_groups_for_config(self, config: str, *, split: str = "full") -> list[list[dict[str, Any]]]:
+        if config == self.metadata_config and split == "full":
+            cached = self._cached_metadata_sources()
+            if cached:
+                return [cached]
         try:
             return [
                 self._hf_source_for_config(config, split=split),

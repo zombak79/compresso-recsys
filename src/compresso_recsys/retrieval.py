@@ -81,7 +81,7 @@ def _sample_holdout_indices(row: csr_matrix, holdout_frac: float = 0.2):
 
 def _build_eval_draws(
     x_val: csr_matrix,
-    draws: int = 5,
+    draws: int = 1,
     holdout_frac: float = 0.2,
 ):
     """Stack ``draws`` independent source/target splits of the same users.
@@ -148,7 +148,7 @@ def _prepare_eval_from_fold_protocol(
     train_item_ids: pd.Index,
     eval_interactions: pd.DataFrame,
     min_user_support: int,
-    eval_draws: int = 5,
+    eval_draws: int = 1,
     eval_holdout_frac: float = 0.2,
 ):
     item_ids = np.array(train_item_ids.astype(str))
@@ -182,7 +182,7 @@ def build_eval_holdout(
     eval_interactions: pd.DataFrame,
     min_user_support: int = 5,
     random_state: int = 42,
-    eval_draws: int = 5,
+    eval_draws: int = 1,
     eval_holdout_frac: float = 0.2,
 ) -> dict[str, object]:
     """Build a fixed source/target holdout for strongly generalized evaluation.
@@ -191,8 +191,9 @@ def build_eval_holdout(
     and a held-out share it is scored against, following Liang et al. (2018).
     ``eval_holdout_frac`` is the scored share; their description sets it to 0.2.
 
-    ``eval_draws`` repeats that split independently, stacking one row per user
-    per draw. The ELSA line of papers uses five. More draws sharpen each user's
+    ``eval_draws`` defaults to one split per user. Increasing it repeats that
+    split independently, stacking one row per user per draw. The ELSA line of
+    papers uses five. More draws sharpen each user's
     score by averaging over which items happened to be held out; they do not add
     independent observations, so paired comparison groups the rows back together
     by user.
@@ -522,7 +523,7 @@ def evaluate_item_embeddings(
     eval_holdout_frac: float = 0.2,
     min_user_support: int = 5,
     random_state: int = 42,
-    eval_draws: int = 5,
+    eval_draws: int = 1,
     score_batch_size: int = 512,
     metrics: Sequence[RankingMetric] | None = None,
     debug: bool = False,

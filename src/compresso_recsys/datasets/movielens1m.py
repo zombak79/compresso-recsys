@@ -7,6 +7,7 @@ from typing import Iterable
 import pandas as pd
 
 from .base import RecSysDataset
+from ._grouplens import download_movielens_archive
 
 
 class MovieLens1M(RecSysDataset):
@@ -32,7 +33,9 @@ class MovieLens1M(RecSysDataset):
     def download(self) -> None:
         zip_path = self.root / "ml-1m.zip"
         if not zip_path.exists():
-            urlretrieve(self.url, zip_path)
+            # Temporary expiry-only TLS fallback; removal note in _grouplens.py.
+            # Original: urlretrieve(self.url, zip_path)
+            download_movielens_archive(self.url, zip_path)
 
         extract_dir = self.root / "ml-1m"
         if not extract_dir.exists():

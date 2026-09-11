@@ -544,3 +544,26 @@ def test_a_new_name_wins_over_a_stale_old_one(tmp_path):
     np.save(tmp_path / SPLIT_DIR / "train_item_indices.npy", np.asarray([9, 9, 9]))
 
     assert load_recsys_split(tmp_path)["warm_item_indices"].tolist() == [0, 1]
+
+
+def test_two_in_catalog_items_make_one_source_and_one_target_by_default():
+    from compresso_recsys.retrieval import build_eval_holdout
+
+    interactions = pd.DataFrame({
+        "user_id": ["eligible", "eligible", "outside", "outside"],
+        "item_id": ["a", "b", "a", "not-in-train"],
+    })
+    holdout = build_eval_holdout(
+        train_item_ids=np.array(["a", "b"]), eval_interactions=interactions,
+        min_user_support=2,
+    )
+    assert holdout["user_ids"].tolist() == ["eligible"]
+    source, target = holdout["source_indices"][0], holdout["target_indices"][0]
+    assert len(source) == len(target) == 1
+    assert set(source).isdisjoint(target)
+    assert set(source) | set(target) == {0, 1}
+    repeated = build_eval_holdout(
+        train_item_ids=np.array(["a", "b"]), eval_interactions=interactions,
+        min_user_support=2, eval_draws=5,
+    )
+    assert repeated["user_ids"].tolist() == ["eligible"] * 5

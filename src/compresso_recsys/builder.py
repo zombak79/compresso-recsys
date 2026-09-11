@@ -17,6 +17,9 @@ from compresso_recsys.checkpoint import (
     update_checkpoint,
 )
 from compresso_recsys.datasets import AmazonReviews2023, Goodbooks, MovieLens1M, MovieLens20M
+from compresso_recsys.datasets import Steam, NetflixPrize, TasteProfile, Gowalla
+from compresso_recsys.datasets import DBbook, LastFM2K
+from compresso_recsys.datasets._public import PublicDataset
 from compresso_recsys.sequences import ItemSequences
 from compresso_recsys.retrieval import (
     LEAVE_LAST_OUT_MIN_HISTORY,
@@ -40,11 +43,31 @@ class DatasetSpec:
     test_users: int
     min_user_support: int = 5
     item_min_support: int = 1
-    min_value_to_keep: float = 4.0
+    min_value_to_keep: float | None = 4.0
     set_all_values_to: float = 1.0
+    min_entity_text_words: int = 30
+    temporal_period_hours: float = DEFAULT_TEMPORAL_PERIOD_HOURS
 
 
 DATASETS = {
+    "dbbook": DatasetSpec(DBbook, "artifacts/dbbook/recsys_checkpoint.zip", seed=42,
+                          val_users=500, test_users=1000, min_value_to_keep=1.0,
+                          min_entity_text_words=0),
+    "lfm2k": DatasetSpec(LastFM2K, "artifacts/lfm2k/recsys_checkpoint.zip", seed=42,
+                         val_users=200, test_users=400, min_value_to_keep=None,
+                         min_entity_text_words=0),
+    "steam": DatasetSpec(Steam, "artifacts/steam/recsys_checkpoint.zip", seed=42,
+                         val_users=10000, test_users=10000, min_value_to_keep=None,
+                         min_entity_text_words=0),
+    "netflix": DatasetSpec(NetflixPrize, "artifacts/netflix/recsys_checkpoint.zip", seed=98765,
+                           val_users=40000, test_users=40000, min_entity_text_words=0),
+    "taste-profile": DatasetSpec(TasteProfile, "artifacts/taste-profile/recsys_checkpoint.zip", seed=98765,
+                                 val_users=50000, test_users=50000, min_user_support=20,
+                                 item_min_support=200, min_value_to_keep=None, min_entity_text_words=0),
+    "gowalla": DatasetSpec(Gowalla, "artifacts/gowalla/recsys_checkpoint.zip", seed=42,
+                           val_users=10000, test_users=10000, min_user_support=10,
+                           item_min_support=10, min_value_to_keep=None, min_entity_text_words=0,
+                           temporal_period_hours=720),
     "goodbooks": DatasetSpec(Goodbooks, "artifacts/goodbooks/recsys_checkpoint.zip", seed=0, val_users=1000, test_users=2500),
     "ml1m": DatasetSpec(MovieLens1M, "artifacts/ml1m/recsys_checkpoint.zip", seed=42, val_users=500, test_users=1000),
     "ml20m": DatasetSpec(MovieLens20M, "artifacts/ml20m/recsys_checkpoint.zip", seed=42, val_users=2500, test_users=5000),
@@ -52,14 +75,24 @@ DATASETS = {
         AmazonReviews2023,
         "artifacts/amazon2023/{amazon_category}/recsys_checkpoint.zip",
         seed=42,
-        val_users=2500,
-        test_users=5000,
-        min_user_support=20,
-        item_min_support=20,
-        min_value_to_keep=4.0,
+        # Some category graphs are too sparse for a 20-core.
+        # Keep useful user histories without recursively deleting rare items.
+        val_users=100,
+        test_users=200,
+        min_user_support=5,
+        item_min_support=1,
+        min_value_to_keep=None,
         set_all_values_to=1.0,
+        min_entity_text_words=0,
     ),
 }
+
+
+def _temporal_period_hours(dataset: str, value: float | None) -> float:
+    value = DATASETS[dataset].temporal_period_hours if value is None else value
+    if isinstance(value, bool) or not np.isfinite(value) or value <= 0:
+        raise ValueError("temporal_period_hours must be finite and > 0")
+    return float(value)
 
 
 def _metadata_text_fields_arg(value: str | list[str] | tuple[str, ...] | None) -> str | None:
@@ -123,13 +156,15 @@ def parse_args():
     p.add_argument("--item_min_support", type=int, default=None)
     p.add_argument("--min_value_to_keep", type=float, default=None)
     p.add_argument("--set_all_values_to", type=float, default=None)
-    p.add_argument("--eval_draws", type=int, default=5)
+    p.add_argument("--eval_draws", type=int, default=1)
+    p.add_argument("--multimodal_features", default=None,
+                   help="Optional comma-separated SWAP features, e.g. text/minilm,image/resnet152")
     p.add_argument("--eval_holdout_frac", type=float, default=0.2)
     p.add_argument(
         "--split_mode",
         type=str,
         default="user_split",
-        choices=["user_split", "item_split", "leave_last_out", "temporal"],
+        choices=["user_split", "item_split", "leave_last_out", "temporal", "official"],
     )
     p.add_argument("--val_items", type=int, default=None, help="Number of cold validation items for item_split.")
     p.add_argument("--test_items", type=int, default=None, help="Number of cold test items for item_split.")
@@ -139,8 +174,9 @@ def parse_args():
     p.add_argument(
         "--temporal_period_hours",
         type=float,
-        default=DEFAULT_TEMPORAL_PERIOD_HOURS,
-        help="Width in hours of each train/validation/test temporal target window.",
+        default=None,
+        help="Width in hours of each train/validation/test temporal target window "
+             "(default: 720 for Gowalla, 8136 otherwise).",
     )
     p.add_argument("--min_source_items", type=int, default=1)
     p.add_argument("--min_target_items", type=int, default=1)
@@ -154,13 +190,13 @@ def parse_args():
         "--metadata_text_fields",
         type=str,
         default=None,
-        help="Comma-separated metadata fields joined into entity_text for text-aware datasets.",
+        help="Comma-separated metadata fields joined into entity_text; Amazon defaults vary by category and support paths such as details.Brand.",
     )
     p.add_argument(
         "--min_entity_text_words",
         type=int,
-        default=30,
-        help="Drop items whose constructed entity_text has fewer words. Mostly useful for Amazon 2023.",
+        default=None,
+        help="Minimum item text words. Defaults to 30 for existing datasets, 0 for Steam/Netflix/Taste Profile/Gowalla.",
     )
     p.add_argument(
         "--include_image_urls",
@@ -196,7 +232,7 @@ def _build_args(
     item_min_support: int | None = None,
     min_value_to_keep: float | None = None,
     set_all_values_to: float | None = None,
-    eval_draws: int = 5,
+    eval_draws: int = 1,
     eval_holdout_frac: float = 0.2,
     split_mode: str = "user_split",
     val_items: int | None = None,
@@ -204,16 +240,17 @@ def _build_args(
     item_val_frac: float = 0.05,
     item_test_frac: float = 0.10,
     temporal_test_frac: float | None = None,
-    temporal_period_hours: float = DEFAULT_TEMPORAL_PERIOD_HOURS,
+    temporal_period_hours: float | None = None,
     min_source_items: int = 1,
     min_target_items: int = 1,
     amazon_category: str = "Toys_and_Games",
     metadata_text_fields: str | list[str] | tuple[str, ...] | None = None,
-    min_entity_text_words: int = 30,
+    min_entity_text_words: int | None = None,
     include_image_urls: bool = False,
     annotation_source: str = "genres",
     annotation_min_count: int = 100,
     show_progress: bool = True,
+    multimodal_features: str | list[str] | None = None,
 ) -> argparse.Namespace:
     if dataset not in DATASETS:
         choices = ", ".join(sorted(DATASETS))
@@ -225,16 +262,11 @@ def _build_args(
             f"eval_holdout_frac must be strictly between 0 and 1, "
             f"got {eval_holdout_frac!r}"
         )
-    if split_mode not in {"user_split", "item_split", "leave_last_out", "temporal"}:
+    if split_mode not in {"user_split", "item_split", "leave_last_out", "temporal", "official"}:
         raise ValueError(f"Unsupported split_mode: {split_mode!r}")
     if annotation_source not in {"genres", "ml20m_tags", "goodbooks_tags", "none"}:
         raise ValueError(f"Unsupported annotation_source: {annotation_source!r}")
-    if (
-        isinstance(temporal_period_hours, bool)
-        or not np.isfinite(temporal_period_hours)
-        or temporal_period_hours <= 0
-    ):
-        raise ValueError("temporal_period_hours must be finite and > 0")
+    temporal_period_hours = _temporal_period_hours(dataset, temporal_period_hours)
     if temporal_test_frac is not None:
         warnings.warn(
             "temporal_test_frac is deprecated and ignored; use "
@@ -243,6 +275,7 @@ def _build_args(
             stacklevel=2,
         )
     return argparse.Namespace(
+        multimodal_features=multimodal_features,
         dataset=dataset,
         data_dir=data_dir,
         checkpoint_path=checkpoint_path,
@@ -276,9 +309,28 @@ def _build_args(
 
 def _resolve_args(args):
     spec = DATASETS[args.dataset]
+    args.temporal_period_hours = _temporal_period_hours(args.dataset, args.temporal_period_hours)
+    if args.split_mode == "official" and args.dataset != "dbbook":
+        raise ValueError("official split is supported only for dbbook")
+    if getattr(args, "multimodal_features", None) is not None:
+        from compresso_recsys.multimodal import _selection
+        _selection(args.dataset, args.multimodal_features)
+    if args.dataset == "amazon2023":
+        args.amazon_category = AmazonReviews2023.normalize_category(args.amazon_category)
     args.checkpoint_path = args.checkpoint_path or spec.checkpoint_path.format(
         amazon_category=args.amazon_category,
     )
+    if args.dataset == "amazon2023":
+        from compresso_recsys.datasets._amazon_defaults import AMAZON_SPLIT_DEFAULTS
+
+        profile = AMAZON_SPLIT_DEFAULTS.get(args.amazon_category, {}).get(args.split_mode, {})
+        for name, value in profile.items():
+            if getattr(args, name) is None:
+                setattr(args, name, value)
+        if args.metadata_text_fields is None:
+            args.metadata_text_fields = ",".join(AmazonReviews2023.text_fields_for_category(args.amazon_category))
+        elif not any(field.strip() for field in args.metadata_text_fields.split(",")):
+            raise ValueError("--metadata_text_fields must contain at least one field")
     args.seed = spec.seed if args.seed is None else args.seed
     args.val_users = spec.val_users if args.val_users is None else args.val_users
     args.test_users = spec.test_users if args.test_users is None else args.test_users
@@ -286,6 +338,9 @@ def _resolve_args(args):
     args.item_min_support = spec.item_min_support if args.item_min_support is None else args.item_min_support
     args.min_value_to_keep = spec.min_value_to_keep if args.min_value_to_keep is None else args.min_value_to_keep
     args.set_all_values_to = spec.set_all_values_to if args.set_all_values_to is None else args.set_all_values_to
+    args.min_entity_text_words = spec.min_entity_text_words if args.min_entity_text_words is None else args.min_entity_text_words
+    if args.split_mode in {"leave_last_out", "temporal"} and not getattr(spec.cls, "has_timestamps", True):
+        raise ValueError(f"{args.dataset} has no interaction timestamps; use user_split or item_split")
     return args, spec
 
 
@@ -296,8 +351,12 @@ def _make_dataset(args, spec: DatasetSpec):
         if args.metadata_text_fields
         else list(default_fields)
     )
-    if not fields:
+    if not fields and not issubclass(spec.cls, PublicDataset):
         raise ValueError("--metadata_text_fields must contain at least one field")
+    if issubclass(spec.cls, PublicDataset):
+        return spec.cls(data_dir=args.data_dir, metadata_text_fields=fields,
+                        min_entity_text_words=args.min_entity_text_words,
+                        show_progress=getattr(args, "show_progress", True))
     if spec.cls is AmazonReviews2023:
         return AmazonReviews2023(
             data_dir=args.data_dir,
@@ -328,7 +387,7 @@ def _build_genre_tag_matrix(ds, item_ids: np.ndarray):
 
     for row, item_id in enumerate(item_ids.tolist()):
         raw = item_to_genres.get(item_id)
-        if raw is None or raw == "nan":
+        if raw is None or pd.isna(raw) or raw == "nan":
             continue
         for tag in raw.split("|"):
             tag = tag.strip()
@@ -504,6 +563,74 @@ def _split_item_ids_random(item_ids: np.ndarray, *, args) -> tuple[np.ndarray, n
     test_idx = np.sort(perm[n_val : n_val + n_test])
     train_idx = np.sort(perm[n_val + n_test :])
     return train_idx.astype(np.int64), val_idx.astype(np.int64), test_idx.astype(np.int64)
+
+
+def _build_official_split(args, ds, proc_df):
+    """DBbook's supplied test boundary, with validation carved from train only."""
+    train = proc_df.drop_duplicates(["user_id", "item_id"]).copy()
+    original_train, users, item_ids = ds.to_sparse_matrix(train)
+    users, item_ids = np.asarray(users).astype(str), np.asarray(item_ids).astype(str)
+    validation = build_eval_holdout(
+        train_item_ids=item_ids, eval_interactions=train,
+        min_user_support=max(2, args.min_source_items + args.min_target_items),
+        random_state=args.seed, eval_draws=1, eval_holdout_frac=args.eval_holdout_frac,
+    )
+    eligible = [row for row, (source, target) in enumerate(zip(
+        validation["source_indices"], validation["target_indices"]
+    )) if len(source) >= args.min_source_items and len(target) >= args.min_target_items]
+    validation["source_indices"] = [validation["source_indices"][row] for row in eligible]
+    validation["target_indices"] = [validation["target_indices"][row] for row in eligible]
+    validation["user_ids"] = np.asarray(validation["user_ids"])[eligible]
+    if not len(validation["user_ids"]):
+        raise ValueError("Official split has no eligible validation users")
+    # The model must not see validation targets in its training matrix.
+    x_train = original_train.tolil()
+    user_rows = {key: row for row, key in enumerate(users)}
+    for key, targets in zip(validation["user_ids"], validation["target_indices"]):
+        x_train[user_rows[str(key)], targets] = 0
+    x_train = x_train.tocsr()
+    x_train.eliminate_zeros()
+    test = ds.get_official_split()["test"]
+    if args.min_value_to_keep is not None:
+        test = test[test.value >= args.min_value_to_keep]
+    test = test.drop_duplicates(["user_id", "item_id"])
+    before = len(test)
+    test = test[test.user_id.isin(users) & test.item_id.isin(item_ids)]
+    excluded = before - len(test)
+    item_rows = {key: row for row, key in enumerate(item_ids)}
+    test_users, source_indices, target_indices = [], [], []
+    for key, group in test.groupby("user_id", sort=True):
+        source = original_train[user_rows[str(key)]].indices.astype(np.int64)
+        target = np.array([item_rows[str(item)] for item in group.item_id], dtype=np.int64)
+        if np.intersect1d(source, target).size:
+            raise ValueError("Official DBbook train/test contain overlapping user-item pairs")
+        if len(source) < args.min_source_items or len(target) < args.min_target_items:
+            excluded += len(target)
+            continue
+        test_users.append(str(key))
+        source_indices.append(source)
+        target_indices.append(target)
+    if not test_users:
+        raise ValueError("Official split has no eligible test users")
+    return {
+        "item_ids": item_ids, "x_train": x_train,
+        "train_source_matrix": x_train, "train_target_matrix": x_train,
+        "train_user_ids": users,
+        "val_user_ids": np.asarray(validation["user_ids"]).astype(str),
+        "test_user_ids": np.asarray(test_users),
+        "val_holdout": validation,
+        "test_holdout": {"source_indices": source_indices, "target_indices": target_indices,
+                         "user_ids": np.asarray(test_users)},
+        "extra_metadata": {
+            "has_user_partitions": False, "has_item_partitions": False,
+            "is_temporal": False, "is_future_blind": False,
+            "official_test_excluded_interactions": excluded,
+            "effective_eval_draws": 1,
+            "leakage_note": "Supplied DBbook test boundary. Validation withheld from train. "
+                            "Test histories use full supplied train; model is not refit. "
+                            "Test users/items outside the training vocabulary are excluded.",
+        },
+    }
 
 
 def _build_user_split(args, ds, proc_df):
@@ -951,7 +1078,9 @@ def _temporal_user_upper_bound(
 
 
 def _timestamps_in_seconds(values: pd.Series) -> np.ndarray:
-    timestamps = pd.to_numeric(values, errors="coerce").to_numpy(dtype=np.float64)
+    # Parquet-backed/Pandas copy-on-write arrays may be read-only. Unit
+    # conversion must also never mutate the caller's original timestamps.
+    timestamps = pd.to_numeric(values, errors="coerce").to_numpy(dtype=np.float64, copy=True)
     finite = np.isfinite(timestamps)
     if not bool(finite.any()):
         raise ValueError("temporal split requires non-empty timestamp values")
@@ -1263,6 +1392,8 @@ def _distinct_eval_users(holdout) -> int | None:
 
 
 def _build_split_payload(args, ds, proc_df, progress: _CheckpointProgress | None = None):
+    if args.split_mode == "official":
+        return _build_official_split(args, ds, proc_df)
     if args.split_mode == "user_split":
         return _build_user_split(args, ds, proc_df)
     if args.split_mode == "item_split":
@@ -1283,16 +1414,25 @@ def _build_recsys_checkpoint_from_args(args) -> Path:
         progress.step("Loading interactions")
         ds = _make_dataset(args, spec)
         raw_df = ds.get_interactions()
+        if raw_df.empty:
+            raise ValueError(f"{args.dataset} has no interactions after metadata filtering")
+        # Collapse repeated pairs only for CF splits. Ordered protocols retain
+        # every check-in/review event, including repeat visits on different days.
+        if isinstance(ds, PublicDataset) and args.split_mode in {"user_split", "item_split"}:
+            raw_df = raw_df.drop_duplicates(["user_id", "item_id"], keep="first")
 
         progress.step("Preprocessing interactions")
         temporal = args.split_mode == "temporal"
+        preprocessing_df = raw_df[raw_df.source_split == "train"] if args.split_mode == "official" else raw_df
         proc_df = ds.preprocess_interactions_for_recsys(
-            raw_df,
+            preprocessing_df,
             min_value_to_keep=args.min_value_to_keep,
             user_min_support=1 if temporal else args.min_user_support,
             item_min_support=1 if temporal else args.item_min_support,
             set_all_values_to=args.set_all_values_to,
         )
+        if proc_df.empty:
+            raise ValueError(f"{args.dataset} has no interactions after preprocessing; lower support/text thresholds")
 
         progress.step(f"Building {args.split_mode} split")
         split_payload = _build_split_payload(args, ds, proc_df, progress=progress)
@@ -1348,6 +1488,8 @@ def _build_recsys_checkpoint_from_args(args) -> Path:
                 entity_metadata=entity_metadata,
                 metadata={
                     "dataset": args.dataset,
+                    "source_page": getattr(ds, "source_page", None),
+                    "timestamp_precision": getattr(ds, "timestamp_precision", None),
                     "seed": args.seed,
                     "val_users": args.val_users,
                     "test_users": args.test_users,
@@ -1421,6 +1563,12 @@ def _build_recsys_checkpoint_from_args(args) -> Path:
                     },
                 },
             )
+            if getattr(args, "multimodal_features", None) is not None:
+                from compresso_recsys.multimodal import import_multimodal_embeddings
+                import_multimodal_embeddings(
+                    root, dataset=args.dataset, features=args.multimodal_features,
+                    data_dir=args.data_dir, show_progress=getattr(args, "show_progress", True),
+                )
     return Path(args.checkpoint_path)
 
 
@@ -1436,7 +1584,7 @@ def build_recsys_checkpoint(
     item_min_support: int | None = None,
     min_value_to_keep: float | None = None,
     set_all_values_to: float | None = None,
-    eval_draws: int = 5,
+    eval_draws: int = 1,
     eval_holdout_frac: float = 0.2,
     split_mode: str = "user_split",
     val_items: int | None = None,
@@ -1444,19 +1592,25 @@ def build_recsys_checkpoint(
     item_val_frac: float = 0.05,
     item_test_frac: float = 0.10,
     temporal_test_frac: float | None = None,
-    temporal_period_hours: float = DEFAULT_TEMPORAL_PERIOD_HOURS,
+    temporal_period_hours: float | None = None,
     min_source_items: int = 1,
     min_target_items: int = 1,
     amazon_category: str = "Toys_and_Games",
     metadata_text_fields: str | list[str] | tuple[str, ...] | None = None,
-    min_entity_text_words: int = 30,
+    min_entity_text_words: int | None = None,
     include_image_urls: bool = False,
     annotation_source: str = "genres",
     annotation_min_count: int = 100,
     show_progress: bool = True,
+    multimodal_features: str | list[str] | None = None,
 ) -> Path:
-    """Build a recommender-system split checkpoint and return its path."""
+    """Build a recommender-system split checkpoint and return its path.
+
+    ``temporal_period_hours=None`` uses 720 hours for Gowalla and 8136 for
+    other datasets. An explicit positive period overrides that default.
+    """
     args = _build_args(
+        multimodal_features=multimodal_features,
         dataset=dataset,
         data_dir=data_dir,
         checkpoint_path=checkpoint_path,

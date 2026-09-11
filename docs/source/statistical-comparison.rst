@@ -97,11 +97,10 @@ Build the split
 Roughly 40 seconds, most of it downloading. A user split holds out whole users,
 so both models see the same 9,975 items and are evaluated on 2,500 unseen users.
 
-``eval_draws=1`` gives each held-out user a single fold-in/scored split, so one
-row means one user, which keeps this walkthrough simple. The default of 5 splits
-each user five times and stacks the rows — a more precise protocol, and the one
-the ELSA papers use, but it gives each user several rows. See
-:ref:`stats-repeated-rows`.
+The default ``eval_draws=1`` gives each held-out user a single fold-in/scored
+split, so one row means one user. Opting into ``eval_draws=5`` splits each user
+five times and stacks the rows — a more precise protocol, and the one the ELSA
+papers use, but it gives each user several rows. See :ref:`stats-repeated-rows`.
 
 Train both models
 ~~~~~~~~~~~~~~~~~

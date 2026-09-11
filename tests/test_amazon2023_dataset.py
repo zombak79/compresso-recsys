@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import pandas as pd
+import pytest
+from urllib.error import HTTPError
 
 from compresso_recsys.datasets.amazon2023 import AmazonReviews2023
 
@@ -77,6 +79,41 @@ def test_amazon2023_resolves_official_source_files(tmp_path):
     assert ratings_source["kind"] == "csv"
     assert temporal_source["url"].endswith("/benchmark/0core/timestamp_w_his/Office_Products.valid.csv")
     assert temporal_source["kind"] == "csv"
+
+
+def test_hf_metadata_falls_back_to_official_jsonl_for_unexported_categories(tmp_path):
+    ds = AmazonReviews2023(data_dir=tmp_path, category="Amazon_Fashion")
+    def missing(path):
+        raise HTTPError("https://huggingface.co/example", 404, "Not Found", {}, None)
+    ds._hf_files_for_path = missing
+    source, = ds._hf_source_for_config(ds.metadata_config)
+    assert source["kind"] == "jsonl"
+    assert source["url"].endswith("/raw/meta_categories/meta_Amazon_Fashion.jsonl")
+
+
+def test_cached_metadata_requires_all_shards_and_avoids_network(tmp_path):
+    ds = AmazonReviews2023(data_dir=tmp_path, category="Electronics")
+    folder = ds.root / "huggingface" / ds.metadata_config
+    folder.mkdir(parents=True)
+    first = folder / "full-00000-of-00002.parquet"
+    first.touch()
+    assert ds._cached_metadata_sources() == []
+    (folder / "full-00001-of-00002.parquet.tmp").touch()
+    assert ds._cached_metadata_sources() == []
+    (folder / "full-00001-of-00002.parquet").touch()
+    ds._hf_files_for_path = lambda path: pytest.fail("Complete caches must work offline")
+    sources = ds._source_groups_for_config(ds.metadata_config)
+    assert len(sources) == 1 and len(sources[0]) == 2
+
+
+def test_cached_raw_hf_metadata_works_offline(tmp_path):
+    ds = AmazonReviews2023(data_dir=tmp_path, category="Books")
+    path = ds.root / "huggingface/raw/meta_categories/meta_Books.jsonl"
+    path.parent.mkdir(parents=True)
+    path.touch()
+    ds._hf_files_for_path = lambda path: pytest.fail("Complete caches must work offline")
+    source, = ds._source_groups_for_config(ds.metadata_config)[0]
+    assert source["kind"] == "jsonl"
 
 
 def test_amazon2023_loads_cached_huggingface_source_files(tmp_path):
