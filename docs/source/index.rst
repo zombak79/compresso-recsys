@@ -26,7 +26,7 @@ is imported as ``compresso_recsys``.
    bring-your-own-dataset
    implementing-a-recommender
    reproducing-sasrec-results-on-ml1m
-   dataset-validation
+   
    statistical-comparison
    citing
    cli-reference

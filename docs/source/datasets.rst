@@ -281,10 +281,7 @@ minimum. Text fields also vary by category. Small holdouts remain flagged (†).
 Details: :doc:`amazon-profiling`, :doc:`amazon-metadata`, and
 :download:`measured profiles <_static/amazon-default-profiles.json>`.
 
-.. toctree::
-   :hidden:
 
-   amazon-metadata
 
 .. list-table:: Installed category-specific Amazon support defaults
    :header-rows: 1
