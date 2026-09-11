@@ -1,3 +1,5 @@
+:orphan:
+
 Amazon text and image coverage
 ==============================
 
