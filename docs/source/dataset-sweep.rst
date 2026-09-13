@@ -110,8 +110,8 @@ KNN is optional. Install the ``knn`` extra (``scikit-learn``) and pass
 ``--baselines popularity itemknn`` when ready. It uses 100 item-item cosine
 neighbors by default. Exact neighbor search can be expensive; catalogs above
 30,000 items are skipped unless ``--knn-max-items`` is raised deliberately.
-Changing baseline settings creates a new run fingerprint, rather than reusing
-the old scores; it also gets a separate checkpoint build in this version.
+Changing baseline settings creates a new evaluation fingerprint and recomputes
+scores. Compatible checkpoints in the same output root are reused.
 
 .. _dataset-default-table-reproduction:
 
@@ -293,12 +293,11 @@ final filtered total. For DBbook's official mode, pre-split counts describe supp
 training data only. Source histories overlap across stages and evaluation draws
 can repeat users, so never sum those matrix counts as a whole-dataset total.
 
-The sweep uses 30-day (720-hour) temporal target windows for Gowalla and 339-day
-(8,136-hour) windows for other datasets. Three 339-day targets cannot fit Gowalla's
-roughly 626-day timeline. ``--temporal-period-hours`` explicitly overrides the
-sweep default; a dataset-specific ``temporal_period_hours`` builder override takes
-precedence over that flag. This does not change the standalone builder's temporal
-default. Windows and support settings are printed in the log and saved in the
+The sweep shares the builder's temporal defaults: 30-day (720-hour) target windows
+for Gowalla and 339-day (8,136-hour) windows otherwise.
+``--temporal-period-hours`` overrides this; a dataset-specific
+``temporal_period_hours`` builder override takes precedence over that flag.
+Windows and support settings are printed in the log and saved in the
 resolved parameters; insufficient history or empty filtered windows still fail
 explicitly instead of triggering automatic changes to the evaluation protocol.
 
@@ -308,17 +307,48 @@ Evaluation protocol
 Baselines fit the checkpoint's binary ``x_train`` once. There is no tuning,
 validation/test training data, or automatic test-time refit. Metrics are Recall,
 CalibratedRecall, NDCG, and HitRate at 10 and 20; use ``--cutoffs`` to change them.
-Seen items are excluded and the full phase-specific candidate catalog is used.
+Seen items are excluded by default (``--exclude-seen``). Use
+``--no-exclude-seen`` for repeat-interaction prediction, such as Gowalla LLO.
+The full phase-specific candidate catalog is used.
 Item IDs are aligned across temporal vocabularies; future stages' candidates
 are not offered in earlier stages.
 
 Popularity and collaborative KNN give cold items zero learned signal. Their
 cold-start scores can reflect ties, not a content-based cold-start capability.
 The report includes cold-target coverage to make this visible. Rows with no
-targets or fewer unseen candidates than the largest requested cutoff are excluded
+targets or fewer allowed candidates than the largest requested cutoff are excluded
 and counted, without silently changing the cutoff. Seeded ``--max-eval-users``
 sampling is shared across baselines and keeps all draws of a selected user together.
 Scores from different split protocols are not directly interchangeable.
+
+The flag is recorded in JSON and the report's **Exclude seen** column, including
+failed/skipped evaluations. The report also counts repeat targets and targets
+made unreachable by seen-item exclusion. Such cases produce a warning; targets
+are never silently dropped. Preprocessing, checkpoints, model defaults, and
+training data are unchanged. User/item splits should normally keep exclusion
+enabled. Scores with different settings are not directly comparable.
+
+.. code-block:: bash
+
+   python examples/validation/dataset_sweep.py \
+     --datasets gowalla --splits leave_last_out temporal \
+     --no-exclude-seen --output artifacts/gowalla-repeat-evaluation
+
+To score an existing checkpoint, including one from an older sweep, without
+loading raw datasets or building a new split:
+
+.. code-block:: bash
+
+   python examples/validation/dataset_sweep.py \
+     --checkpoint /path/to/checkpoint.zip \
+     --no-exclude-seen --output artifacts/repeat-evaluation
+
+This reads dataset/split identity and build metadata from the checkpoint and
+records its SHA-256. The original file is unchanged. Dataset/split selections,
+if supplied, must include that checkpoint; build settings are not applied.
+Both modes still fit the requested baselines for each new evaluation run; fitted
+models are not cached. A changed candidate policy also changes which users have
+enough candidates at the requested cutoff, so evaluated-row counts can differ.
 
 Outputs and recovery
 --------------------
@@ -333,7 +363,22 @@ Outputs and recovery
 Detailed records are saved after each combination; combined summaries update
 as dataset/category workers finish. Fingerprints include settings and code provenance.
 ``--resume`` skips complete runs and retries failed ones, reusing only checkpoints
-whose recorded hashes match. Without it, existing runs are not overwritten.
+whose recorded hashes match. Completed runs are also checked: a missing/corrupt
+checkpoint (or missing recorded hash) triggers recovery and fresh evaluation.
+The previous result and any invalid archive are preserved in a ``recovery-*``
+subdirectory; stale statistics and scores are discarded from the active result.
+Recovery reuses another verified compatible checkpoint if available, otherwise
+rebuilds it. If rebuilding fails, the run is reported as failed and can be retried
+with ``--resume``. Without ``--resume``, existing results are not overwritten.
+
+New sweeps give builds a separate fingerprint based on builder arguments and
+package source. Changing only evaluation settings (including ``exclude_seen``)
+creates a new result directory but reuses a matching, checksum-verified
+checkpoint in the same output root, without reloading raw data. Archives are
+hard-linked when possible, otherwise atomically copied. Earlier results remain
+intact; the combined summary describes the current invocation. Old sweep records
+without build fingerprints are not guessed compatible: use ``--checkpoint`` to
+explicitly evaluate those archives.
 Do not edit the generated report files by hand if you intend to resume into the
 same directory. Keep the log and per-run JSON files if a worker is interrupted
 or runs out of memory.
@@ -349,13 +394,16 @@ checkpoints, or rerunning baselines:
 This regenerates only ``summary.md`` from every record in that directory's
 ``results.jsonl``, including records produced by older script versions. It derives
 the sparsities from saved row, observed-item, catalog, and pair counts. It leaves
-JSON files, checkpoints, scores, and provenance unchanged. No dataset/split
+JSON files, checkpoints, scores, and provenance unchanged. Legacy records without
+an explicit ``exclude_seen`` value display **unknown (legacy)**. No dataset/split
 selection or evaluation options are applied in this mode. A missing
 ``results.jsonl`` is an error; report-only does not start a new sweep or discover
 additional results from unfinished workers.
 
-Updating the script or package source changes the fingerprint, so ``--resume``
-does not reuse results from an older code fingerprint. A copied script uses the
+Updating the script or package source changes the evaluation fingerprint, so
+``--resume`` does not reuse results from an older code fingerprint. Unchanged
+package source and builder arguments can still reuse the data checkpoint.
+A copied script uses the
 imported package's Git provenance when available; wheel installations without
 tracked source record a null commit without printing a Git error. Package version
 and script hash are recorded in either case.

@@ -196,6 +196,252 @@ def test_unsupported_modes_are_explicit(sweep):
     assert sweep.unsupported("ml1m", "leave_last_out") is None
 
 
+def test_seen_policy_is_explicit_and_preserves_default(sweep):
+    assert sweep.parse_args([]).exclude_seen is True
+    assert sweep.parse_args(["--exclude-seen"]).exclude_seen is True
+    assert sweep.parse_args(["--no-exclude-seen"]).exclude_seen is False
+    assert sweep.evaluation_parameters(sweep.parse_args([]))["exclude_seen"] is True
+
+
+@pytest.mark.parametrize("exclude_seen", [True, False])
+def test_repeat_target_policy_changes_predictions_not_the_checkpoint(sweep, exclude_seen):
+    ids = np.array([str(i) for i in range(30)])
+    train = csr_matrix(([1., 1., 1.], ([0, 0, 1], [0, 1, 0])), shape=(2, 30))
+    source = csr_matrix(([1.], ([0], [0])), shape=(1, 30))
+    split = {"item_ids": ids, "train_item_ids": ids, "x_train": train}
+    for phase in ("val", "test"):
+        split.update({f"{phase}_item_ids": ids, f"{phase}_source_matrix": source,
+                      f"{phase}_target_matrix": source.copy(), f"{phase}_eval_user_ids": np.array(["u"])})
+    args = sweep.parse_args([] if exclude_seen else ["--no-exclude-seen"])
+    if exclude_seen:
+        with pytest.warns(RuntimeWarning, match="cannot be recommended"):
+            result = sweep.evaluate_baselines(split, args)
+    else:
+        result = sweep.evaluate_baselines(split, args)
+    for phase in ("val", "test"):
+        entry = result["popularity"][phase]
+        assert entry["exclude_seen"] is exclude_seen
+        assert entry["metrics"]["recall@10"] == (0. if exclude_seen else 1.)
+        assert entry["repeat_target_pairs"] == entry["target_pairs"] == entry["rows_with_repeat_targets"] == 1
+        assert entry["repeat_target_fraction"] == 1.
+        assert entry["unreachable_target_pairs"] == int(exclude_seen)
+        assert ("warning" in entry) is exclude_seen
+        assert split[f"{phase}_target_matrix"].toarray().tolist() == source.toarray().tolist()
+
+
+def test_allow_seen_uses_full_catalog_for_cutoff_eligibility(sweep):
+    ids = np.array(["a", "b"])
+    split = {"item_ids": ids, "train_item_ids": ids, "x_train": csr_matrix([[1, 0]])}
+    for phase in ("val", "test"):
+        split.update({f"{phase}_item_ids": ids, f"{phase}_source_matrix": csr_matrix([[1, 0]]),
+                      f"{phase}_target_matrix": csr_matrix([[1, 0]]),
+                      f"{phase}_eval_user_ids": np.array(["u"])})
+    args = sweep.parse_args(["--cutoffs", "2", "--no-exclude-seen"])
+    entry = sweep.evaluate_baselines(split, args)["popularity"]["test"]
+    assert entry["status"] == "ok"
+    assert entry["excluded_rows"] == 0
+    assert entry["metrics"]["recall@2"] == 1.
+
+
+def test_summary_shows_policy_including_skipped_failed_and_legacy_results(sweep, tmp_path):
+    records = []
+    for policy, status in ((True, "ok"), (False, "skipped"), (None, "failed")):
+        entry = {"status": status}
+        if policy is not None:
+            entry["exclude_seen"] = policy
+        records.append({"dataset": "gowalla", "split": "leave_last_out", "status": "complete",
+                        "baselines": {"popularity": entry}})
+    sweep.write_summary(tmp_path, records)
+    report = (tmp_path / "summary.md").read_text()
+    assert "| Exclude seen |" in report
+    assert "| true | ok |" in report
+    assert "| false | skipped |" in report
+    assert "| unknown (legacy) | failed |" in report
+
+
+@pytest.fixture
+def tiny_dbbook_sweep(sweep, tmp_path):
+    folder = tmp_path / "data" / "dbbook"
+    folder.mkdir(parents=True)
+    with zipfile.ZipFile(folder / "dbbook_interaction_data.zip", "w") as archive:
+        archive.writestr("train.tsv", "".join(f"{u}\t{i}\t1\n" for u in range(8) for i in range(8) if i != u))
+        archive.writestr("test.tsv", "".join(f"{u}\t{u}\t1\n" for u in range(8)))
+        archive.writestr("DBbook_Items_DBpedia_mapping.tsv", "DBbook_ItemID\tname\n"
+                         + "".join(f"{i}\tBook {i}\n" for i in range(8)))
+    args = sweep.parse_args(["--datasets", "dbbook", "--splits", "user_split", "--cutoffs", "1",
+                             "--threads-per-worker", "1", "--data-dir", str(folder.parent),
+                             "--output", str(tmp_path / "out")])
+    overrides = {"dbbook": {"val_users": 1, "test_users": 1, "min_user_support": 1}}
+    return args, overrides
+
+
+def test_policy_change_reuses_verified_checkpoint_without_loading_raw_data(sweep, tiny_dbbook_sweep, monkeypatch):
+    args, overrides = tiny_dbbook_sweep
+    first, = sweep.run_dataset(args, "dbbook", overrides, {})
+    old_result = next(args.output.glob("*/result.json"))
+    old_bytes = old_result.read_bytes()
+    def no_build(*args, **kwargs):
+        pytest.fail("Changing the evaluation policy must not load/download/build data")
+    monkeypatch.setattr(sweep.builder, "_make_dataset", no_build)
+    monkeypatch.setattr(sweep.cr, "build_recsys_checkpoint", no_build)
+    args.exclude_seen = False
+    second, = sweep.run_dataset(args, "dbbook", overrides, {})
+    assert first["status"] == second["status"] == "complete"
+    assert first["signature"] != second["signature"]
+    assert first["build_signature"] == second["build_signature"]
+    assert first["checkpoint_sha256"] == second["checkpoint_sha256"]
+    assert second["checkpoint_reused_from"] == str((old_result.parent / "checkpoint.zip").resolve())
+    assert second["evaluation_parameters"]["exclude_seen"] is False
+    assert second["baselines"]["popularity"]["test"]["exclude_seen"] is False
+    assert old_result.read_bytes() == old_bytes
+    paths = list(args.output.glob("*/checkpoint.zip"))
+    assert len(paths) == 2
+    assert len({sweep.digest_file(path) for path in paths}) == 1
+
+
+def test_build_identity_ignores_evaluation_code_but_tracks_package_and_parameters(sweep):
+    args = sweep.parse_args([])
+    params = sweep.build_parameters(args, "ml1m", "user_split", {})
+    original = {"package": "1", "package_source_sha256": "package-one", "script_sha256": "one", "commit": "one"}
+    changed = {**original, "script_sha256": "two", "commit": "two"}
+    assert sweep.build_fingerprint(params, original) == sweep.build_fingerprint(params, changed)
+    assert sweep.build_fingerprint(params, original) != sweep.build_fingerprint(params, {**changed, "package_source_sha256": "package-two"})
+    assert sweep.build_fingerprint(params, original) != sweep.build_fingerprint({**params, "min_user_support": 99}, original)
+
+
+@pytest.mark.parametrize("damage", ["missing", "corrupt", "missing_hash"])
+@pytest.mark.parametrize("previous_status", ["complete", "failed"])
+def test_resume_recovers_invalid_checkpoint(sweep, tiny_dbbook_sweep, damage, previous_status, monkeypatch):
+    args, overrides = tiny_dbbook_sweep
+    first, = sweep.run_dataset(args, "dbbook", overrides, {})
+    assert first["status"] == "complete"
+    path = next(args.output.glob("*/checkpoint.zip"))
+    result_path = path.parent / "result.json"
+    previous = json.loads(result_path.read_text())
+    previous["status"] = previous_status
+    if damage == "missing":
+        path.unlink()
+    elif damage == "corrupt":
+        path.write_bytes(b"corrupt fixture")
+    else:
+        previous.pop("checkpoint_sha256")
+    sweep.atomic_json(result_path, previous)
+    original_build = sweep.cr.build_recsys_checkpoint
+    builds = []
+    def tracked_build(**kwargs):
+        builds.append(kwargs)
+        return original_build(**kwargs)
+    monkeypatch.setattr(sweep.cr, "build_recsys_checkpoint", tracked_build)
+    args.resume = True
+    resumed, = sweep.run_dataset(args, "dbbook", overrides, {})
+    assert resumed["status"] == "complete"
+    assert len(builds) == 1
+    assert resumed["checkpoint_sha256"] == sweep.digest_file(path)
+    assert resumed["baselines"]["popularity"]["test"]["status"] == "ok"
+    assert "error" not in resumed
+    recovery, = resumed["recovery_attempts"]
+    assert ("Missing checkpoint" if damage == "missing" else "checksum mismatch") in recovery["reason"]
+    backup = Path(recovery["backup_directory"])
+    assert json.loads((backup / "result.json").read_text()) == previous
+    assert (backup / "checkpoint.zip").exists() is (damage != "missing")
+    if damage == "corrupt":
+        assert (backup / "checkpoint.zip").read_bytes() == b"corrupt fixture"
+    def forbidden(*args, **kwargs):
+        pytest.fail("A valid completed run must skip building and evaluation")
+    monkeypatch.setattr(sweep.cr, "build_recsys_checkpoint", forbidden)
+    monkeypatch.setattr(sweep, "evaluate_baselines", forbidden)
+    before = result_path.read_bytes()
+    again, = sweep.run_dataset(args, "dbbook", overrides, {})
+    assert again == resumed
+    assert result_path.read_bytes() == before
+
+
+def test_failed_recovery_clears_stale_scores_and_can_resume(sweep, tiny_dbbook_sweep, monkeypatch):
+    args, overrides = tiny_dbbook_sweep
+    sweep.run_dataset(args, "dbbook", overrides, {})
+    path = next(args.output.glob("*/checkpoint.zip"))
+    path.write_bytes(b"corrupt fixture")
+    original_build = sweep.cr.build_recsys_checkpoint
+    def failed_build(**kwargs):
+        raise RuntimeError("Fixture build interrupted")
+    monkeypatch.setattr(sweep.cr, "build_recsys_checkpoint", failed_build)
+    args.resume = True
+    failed, = sweep.run_dataset(args, "dbbook", overrides, {})
+    assert failed["status"] == "failed"
+    assert "Fixture build interrupted" in failed["error"]
+    assert "stats" not in failed and "baselines" not in failed and "checkpoint_sha256" not in failed
+    monkeypatch.setattr(sweep.cr, "build_recsys_checkpoint", original_build)
+    recovered, = sweep.run_dataset(args, "dbbook", overrides, {})
+    assert recovered["status"] == "complete"
+    assert recovered["checkpoint_sha256"] == sweep.digest_file(path)
+    assert len(recovered["recovery_attempts"]) == 1
+
+
+def test_recovery_does_not_overwrite_another_hard_link(sweep, tiny_dbbook_sweep):
+    args, overrides = tiny_dbbook_sweep
+    sweep.run_dataset(args, "dbbook", overrides, {})
+    path = next(args.output.glob("*/checkpoint.zip"))
+    linked = args.output / "other-checkpoint.zip"
+    linked.hardlink_to(path)
+    path.write_bytes(b"shared corrupt fixture")
+    args.resume = True
+    recovered, = sweep.run_dataset(args, "dbbook", overrides, {})
+    assert recovered["status"] == "complete"
+    assert linked.read_bytes() == b"shared corrupt fixture"
+    assert path.read_bytes() != linked.read_bytes()
+
+
+def test_recovery_can_reuse_another_verified_checkpoint(sweep, tiny_dbbook_sweep, monkeypatch):
+    args, overrides = tiny_dbbook_sweep
+    sweep.run_dataset(args, "dbbook", overrides, {})
+    original = next(args.output.glob("*/checkpoint.zip"))
+    args.exclude_seen = False
+    sweep.run_dataset(args, "dbbook", overrides, {})
+    original.unlink()
+    def no_build(*args, **kwargs):
+        pytest.fail("A verified compatible checkpoint should avoid rebuilding")
+    monkeypatch.setattr(sweep.builder, "_make_dataset", no_build)
+    monkeypatch.setattr(sweep.cr, "build_recsys_checkpoint", no_build)
+    args.exclude_seen, args.resume = True, True
+    recovered, = sweep.run_dataset(args, "dbbook", overrides, {})
+    assert recovered["status"] == "complete"
+    assert recovered["checkpoint_sha256"] == sweep.digest_file(original)
+    assert recovered["checkpoint_reused_from"] != str(original.resolve())
+    assert recovered["baselines"]["popularity"]["test"]["exclude_seen"] is True
+
+
+def test_existing_checkpoint_mode_is_read_only_and_supports_legacy_files(sweep, tiny_dbbook_sweep, monkeypatch):
+    args, overrides = tiny_dbbook_sweep
+    sweep.run_dataset(args, "dbbook", overrides, {})
+    checkpoint = next(args.output.glob("*/checkpoint.zip"))
+    before, mtime = checkpoint.read_bytes(), checkpoint.stat().st_mtime_ns
+    def no_build(*args, **kwargs):
+        pytest.fail("Existing-checkpoint evaluation must not load raw data or build")
+    monkeypatch.setattr(sweep.builder, "_make_dataset", no_build)
+    monkeypatch.setattr(sweep.cr, "build_recsys_checkpoint", no_build)
+    output = args.output.parent / "reevaluation"
+    cli = ["--checkpoint", str(checkpoint), "--no-exclude-seen", "--cutoffs", "1", "--output", str(output)]
+    assert sweep.main(cli) == 0
+    path = next(output.glob("*/result.json"))
+    record = json.loads(path.read_text())
+    assert record["mode"] == "existing_checkpoint"
+    assert record["dataset"] == "dbbook" and record["split"] == "user_split"
+    assert "build_parameters" not in record  # Do not claim current defaults built this file.
+    assert record["evaluation_parameters"]["exclude_seen"] is False
+    assert record["checkpoint_path"] == str(checkpoint.resolve())
+    saved = path.read_bytes()
+    monkeypatch.setattr(sweep, "evaluate_baselines", no_build)
+    assert sweep.main(cli + ["--resume"]) == 0
+    assert path.read_bytes() == saved
+    assert checkpoint.read_bytes() == before and checkpoint.stat().st_mtime_ns == mtime
+
+
+@pytest.mark.parametrize("flags", [["--builder-overrides", "settings.json"], ["--report-only"]])
+def test_existing_checkpoint_rejects_incompatible_modes(sweep, flags):
+    with pytest.raises(SystemExit):
+        sweep.parse_args(["--checkpoint", "existing.zip", *flags])
+
+
 def test_two_parallel_dataset_workers_and_default_first_pass(sweep, tmp_path):
     assert sweep.parse_args([]).baselines == ["popularity"]
     result = subprocess.run([

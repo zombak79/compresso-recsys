@@ -1,3 +1,5 @@
+:orphan:
+
 .. _dataset-validation:
 
 Dataset and model validation matrix

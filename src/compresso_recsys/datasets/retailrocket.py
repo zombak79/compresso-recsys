@@ -19,6 +19,13 @@ EVENT_TYPES = ("view", "addtocart", "transaction")
 #: default when a purchase and a page view really are the same event to you.
 KEPT_EVENTS = ("view",)
 
+#: The selection the caches numbered ``version=1`` were built with. Frozen on
+#: purpose: the cache key omits the event list whenever it equals this, so
+#: comparing against :data:`KEPT_EVENTS` instead would mean that changing the
+#: default silently reused parquet files built under the old one. Never edit
+#: this to follow a new default -- a new default must fall through to a hash.
+_VERSION_1_EVENTS = ("view",)
+
 
 def _event_selection(events: Sequence[str]) -> tuple[str, ...]:
     """Normalise and check an event-type selection.
@@ -114,10 +121,11 @@ class RetailRocket(PublicDataset):
 
         The cache is keyed on the source file alone, so a different selection
         has to change the version or it would read the previous one's parquet.
-        The default selection keeps the original key, so adding this option did
-        not invalidate caches built before it existed.
+        Only :data:`_VERSION_1_EVENTS` keeps the original key, so adding this
+        option did not invalidate caches built before it existed, and changing
+        the default later still rebuilds rather than reusing them.
         """
-        if self.events == KEPT_EVENTS:
+        if self.events == _VERSION_1_EVENTS:
             return 1
         return int(hashlib.sha256(f"1|events={self.events}".encode()).hexdigest()[:8], 16)
 

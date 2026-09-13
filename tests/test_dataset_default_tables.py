@@ -55,7 +55,7 @@ def test_every_non_amazon_dataset_has_a_current_default_table(tables):
                 # window is registered per dataset now, so every published table
                 # is measured and anything else means the archive predates a
                 # default change and needs remeasuring.
-                raise AssertionError(
+                pytest.fail(
                     f"{record['dataset']}/{mode} is {entry['status']}, not measured: "
                     f"{entry.get('reason', 'no reason recorded')}"
                 )
@@ -158,6 +158,7 @@ def test_unknown_counts_and_no_image_exposure_are_not_reported_as_zero(tables):
     assert "≥1 image: 0" not in tables.render_table(records["ml1m"])
     # The temporal cell always states its window; Gowalla's is registered at 720.
     assert "Window: 720 h" in tables.render_table(records["gowalla"])
+    assert records["gowalla"]["splits"]["temporal"]["status"] == "measured"
     assert "Not supported" in tables.render_table(records["goodbooks"])
     failed = copy.deepcopy(records["ml1m"])
     failed["splits"]["temporal"] = {**failed["splits"]["temporal"], "status": "failed", "reason": "Empty stage"}

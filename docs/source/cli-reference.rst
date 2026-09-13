@@ -101,8 +101,9 @@ Temporal Checkpoint
 ~~~~~~~~~~~~~~~~~~~
 
 ``temporal`` uses three equal target windows ending at the latest interaction.
-The default period is 339 days, following the scale of the official Amazon
-Reviews 2023 absolute-timestamp validation interval. Each split ranks a mixed
+The default period is 30 days (720 hours) for Gowalla and 339 days (8,136 hours)
+otherwise, following the scale of the official Amazon Reviews 2023
+absolute-timestamp validation interval. Each split ranks a mixed
 catalog of previously available warm items and newly supported cold items.
 
 For period ``w`` and latest timestamp ``T``, the target windows are
@@ -290,7 +291,7 @@ Full ``compresso-recsys-build-checkpoint`` parameter table:
      - ``0.10``
      - Fraction of items held out as cold test items for ``item_split``.
    * - ``--temporal_period_hours``
-     - dataset-specific
+     - Dataset-specific
      - Width of each temporal target window in hours. Defaults to the value the
        dataset is registered with. The split needs three windows to fit inside
        the log, so a value above a third of the available span fails rather

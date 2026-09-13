@@ -52,12 +52,27 @@ def _timeline() -> pd.DataFrame:
 
 
 def test_temporal_period_defaults_to_official_339_day_scale():
-    # Unset means "ask the dataset", so the window materialises at resolution.
-    assert _build_args(dataset="amazon2023").temporal_period_hours is None
+    # Main resolves the registered window inside _build_args, so it is already
+    # concrete here rather than deferred to _resolve_args.
+    args = _build_args(dataset="amazon2023")
 
-    args, _ = _resolve_args(_build_args(dataset="amazon2023"))
     assert args.temporal_period_hours == DEFAULT_TEMPORAL_PERIOD_HOURS
     assert args.temporal_period_hours == 339 * 24
+
+
+def test_gowalla_temporal_default_builds_on_its_shorter_timestamp_span():
+    from compresso_recsys.builder import _resolve_args
+
+    frame = pd.DataFrame([
+        {"user_id": f"u{u}", "item_id": f"i{i}", "value": 1., "timestamp": day * 86400}
+        for u in range(12) for day in (0, 550, 580, 610, 626) for i in range(12)
+    ])
+    args, _ = _resolve_args(_build_args(dataset="gowalla", split_mode="temporal"))
+    assert args.temporal_period_hours == 720
+    split = _build_temporal_split(args, frame)
+    assert split["x_train"].nnz > 0
+    for phase in ("train", "val", "test"):
+        assert split[f"{phase}_target_matrix"].nnz > 0
 
 
 def test_temporal_fraction_is_deprecated_in_favor_of_hours():

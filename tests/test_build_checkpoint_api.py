@@ -10,6 +10,28 @@ def test_build_recsys_checkpoint_is_public_function():
     assert cr.build_recsys_checkpoint.__name__ == "build_recsys_checkpoint"
 
 
+@pytest.mark.parametrize("dataset", sorted(DATASETS))
+@pytest.mark.parametrize("period", [None, 96, 8136])
+def test_temporal_period_defaults_and_overrides_match_api_and_cli(monkeypatch, dataset, period):
+    from compresso_recsys import builder
+
+    # Read from the registry rather than an exception list: several datasets now
+    # register a window because their logs are too short for the global default,
+    # and a hard-coded list goes stale the next time one is added.
+    expected = builder.DATASETS[dataset].temporal_period_hours if period is None else period
+    options = {} if period is None else {"temporal_period_hours": period}
+    api_args = _build_args(dataset=dataset, **options)
+    assert api_args.temporal_period_hours == expected
+    monkeypatch.setattr(builder, "_build_recsys_checkpoint_from_args",
+                        lambda args: _resolve_args(args)[0].temporal_period_hours)
+    assert cr.build_recsys_checkpoint(dataset=dataset, **options) == expected
+    cli = ["build-checkpoint", "--dataset", dataset]
+    if period is not None:
+        cli += ["--temporal_period_hours", str(period)]
+    monkeypatch.setattr("sys.argv", cli)
+    assert _resolve_args(builder.parse_args())[0].temporal_period_hours == expected
+
+
 def test_eval_draws_defaults_to_one_in_api_and_cli(monkeypatch):
     import inspect
     from compresso_recsys.builder import parse_args

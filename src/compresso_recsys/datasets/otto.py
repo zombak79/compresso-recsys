@@ -22,6 +22,12 @@ EVENT_TYPES = ("clicks", "carts", "orders")
 #: that default when they are the same event to you.
 KEPT_EVENTS = ("clicks",)
 
+#: The selection the existing caches were keyed under. Frozen for the reason
+#: given in :meth:`OTTO._cache_version`: comparing against :data:`KEPT_EVENTS`
+#: would let a changed default silently reuse the old parquet. Never edit this
+#: to follow a new default.
+_LEGACY_EVENTS = ("clicks",)
+
 #: Session ids sit first on every line, so a sampled-out session can be skipped
 #: without paying for a full JSON parse. Falls back to parsing when it does not
 #: match, so a change in key order costs speed rather than correctness.
@@ -203,7 +209,7 @@ class OTTO(PublicDataset):
         asymmetry on a source that takes a Python JSON loop to re-parse.
         """
         signature = f"1|{self.session_sample}"
-        if self.events != KEPT_EVENTS:
+        if self.events != _LEGACY_EVENTS:
             signature += f"|events={self.events}"
         return int(hashlib.sha256(signature.encode()).hexdigest()[:8], 16)
 

@@ -60,9 +60,7 @@ class DatasetSpec:
     dataset_options: dict[str, Any] = field(default_factory=dict)
     #: Width of each temporal target window. The split needs three of them to
     #: fit inside the log, so a dataset whose history is shorter than three
-    #: times this cannot build a temporal split at all. Defaulting to the
-    #: global value keeps every already-measured dataset exactly where it was;
-    #: override it per dataset once the span is known.
+    #: times this cannot build a temporal split at all.
     temporal_period_hours: float = DEFAULT_TEMPORAL_PERIOD_HOURS
 
 
@@ -81,12 +79,10 @@ DATASETS = {
     "taste-profile": DatasetSpec(TasteProfile, "artifacts/taste-profile/recsys_checkpoint.zip", seed=98765,
                                  val_users=50000, test_users=50000, min_user_support=20,
                                  item_min_support=200, min_value_to_keep=None, min_entity_text_words=0),
-    # A 626-day span cannot hold three 339-day windows either. The sweep script
-    # carried this as its own constant before the spec could express it.
     "gowalla": DatasetSpec(Gowalla, "artifacts/gowalla/recsys_checkpoint.zip", seed=42,
                            val_users=10000, test_users=10000, min_user_support=10,
                            item_min_support=10, min_value_to_keep=None, min_entity_text_words=0,
-                           temporal_period_hours=30 * 24),
+                           temporal_period_hours=720),
     # 4.5 months of history, so the 339-day global window cannot fit three
     # target periods and the temporal split fails outright. Fourteen days
     # spends 42 of those days on evaluation and leaves roughly 95 for training.
@@ -150,6 +146,13 @@ DATASETS = {
         min_entity_text_words=0,
     ),
 }
+
+
+def _temporal_period_hours(dataset: str, value: float | None) -> float:
+    value = DATASETS[dataset].temporal_period_hours if value is None else value
+    if isinstance(value, bool) or not np.isfinite(value) or value <= 0:
+        raise ValueError("temporal_period_hours must be finite and > 0")
+    return float(value)
 
 
 def _metadata_text_fields_arg(value: str | list[str] | tuple[str, ...] | None) -> str | None:
@@ -482,12 +485,7 @@ def _build_args(
         raise ValueError(f"Unsupported split_mode: {split_mode!r}")
     if annotation_source not in {"genres", "ml20m_tags", "goodbooks_tags", "none"}:
         raise ValueError(f"Unsupported annotation_source: {annotation_source!r}")
-    if temporal_period_hours is not None and (
-        isinstance(temporal_period_hours, bool)
-        or not np.isfinite(temporal_period_hours)
-        or temporal_period_hours <= 0
-    ):
-        raise ValueError("temporal_period_hours must be finite and > 0")
+    temporal_period_hours = _temporal_period_hours(dataset, temporal_period_hours)
     if temporal_test_frac is not None:
         warnings.warn(
             "temporal_test_frac is deprecated and ignored; use "
@@ -515,9 +513,7 @@ def _build_args(
         item_val_frac=item_val_frac,
         item_test_frac=item_test_frac,
         temporal_test_frac=temporal_test_frac,
-        temporal_period_hours=(
-            None if temporal_period_hours is None else float(temporal_period_hours)
-        ),
+        temporal_period_hours=float(temporal_period_hours),
         min_source_items=min_source_items,
         min_target_items=min_target_items,
         amazon_category=amazon_category,
@@ -533,6 +529,7 @@ def _build_args(
 
 def _resolve_args(args):
     spec = DATASETS[args.dataset]
+    args.temporal_period_hours = _temporal_period_hours(args.dataset, args.temporal_period_hours)
     # Normalised here rather than in _build_args because the console script
     # builds its namespace straight from argparse and never calls that.
     args.dataset_options = _dataset_options_for(spec, args)
@@ -1851,7 +1848,11 @@ def build_recsys_checkpoint(
     multimodal_features: str | list[str] | None = None,
     dataset_options: dict[str, Any] | None = None,
 ) -> Path:
-    """Build a recommender-system split checkpoint and return its path."""
+    """Build a recommender-system split checkpoint and return its path.
+
+    ``temporal_period_hours=None`` uses 720 hours for Gowalla and 8136 for
+    other datasets. An explicit positive period overrides that default.
+    """
     args = _build_args(
         multimodal_features=multimodal_features,
         dataset=dataset,

@@ -659,3 +659,29 @@ def test_clearing_does_not_swallow_none_as_a_literal_value():
     args.dataset_options = ["start=none"]
     resolved, _ = _resolve_args(args)
     assert resolved.dataset_options["start"] == "none"
+
+
+def test_the_cache_key_follows_the_event_selection_not_the_current_default():
+    """A changed default must rebuild the cache rather than reuse the old one.
+
+    The key omits the event list when it matches a frozen literal, so existing
+    caches keep working. Comparing against the live KEPT_EVENTS instead would
+    mean widening the default silently served rows filtered under the old one.
+    """
+    from compresso_recsys.datasets import otto as otto_module
+    from compresso_recsys.datasets import retailrocket as rr_module
+
+    # The literals are pinned: editing one to follow a new default reopens the bug.
+    assert rr_module._VERSION_1_EVENTS == ("view",)
+    assert otto_module._LEGACY_EVENTS == ("clicks",)
+
+    # Today's defaults keep the keys the existing parquet files were written under.
+    assert RetailRocket(data_dir="data")._cache_version() == 1
+    assert OTTO(data_dir="data", session_sample=0.1)._cache_version() == 4219242697
+
+    # Any other selection -- including one a future default might use -- moves the key.
+    for events in (("view", "addtocart"), ("view", "transaction"), ("transaction",)):
+        assert RetailRocket(data_dir="data", events=events)._cache_version() != 1
+    for events in (("clicks", "orders"), ("clicks", "carts"), ("orders",)):
+        assert OTTO(data_dir="data", session_sample=0.1,
+                    events=events)._cache_version() != 4219242697
