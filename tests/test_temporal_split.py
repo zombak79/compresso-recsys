@@ -9,6 +9,7 @@ from compresso_recsys.builder import (
     DEFAULT_TEMPORAL_PERIOD_HOURS,
     _build_args,
     _build_temporal_split,
+    _resolve_args,
     _timestamps_in_seconds,
 )
 from compresso_recsys.checkpoint import load_recsys_split, save_recsys_split
@@ -51,6 +52,8 @@ def _timeline() -> pd.DataFrame:
 
 
 def test_temporal_period_defaults_to_official_339_day_scale():
+    # Main resolves the registered window inside _build_args, so it is already
+    # concrete here rather than deferred to _resolve_args.
     args = _build_args(dataset="amazon2023")
 
     assert args.temporal_period_hours == DEFAULT_TEMPORAL_PERIOD_HOURS
