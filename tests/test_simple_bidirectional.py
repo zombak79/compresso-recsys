@@ -244,6 +244,64 @@ def test_targets_are_binary_membership_not_weights():
         torch.testing.assert_close(left, right)
 
 
+def test_the_default_prepare_targets_discards_grades():
+    """The direct counterpart of the behavioural assertion above: the default really does flatten the values."""
+    graded = _targets([[0, 0, 19, 0, 0, 0], [0, 0, 0, -3, 0, 0]])
+    prepared = _trainer()._prepare_targets(graded)
+
+    assert np.array_equal(prepared.data, np.ones_like(prepared.data))
+    assert np.array_equal(graded.data, np.asarray([19.0, -3.0], dtype=np.float32)), "the caller's matrix must not be mutated"
+
+
+def test_a_subclass_can_keep_graded_target_values():
+    """The reason the hook exists: a subclass must be able to keep the values its objective reads.
+
+    Note the targets carry **two** items per row. This trainer's own loss already consumes graded values - it
+    divides each target row by its own sum to form a distribution - so grading is meaningful here without any
+    subclass loss at all, and `_binary_targets` is the only thing standing in the way. With a single target per
+    row that normalisation cancels the magnitude exactly (`19/19 == 1/1`), so a one-target fixture would pass
+    whether the hook worked or not.
+    """
+
+    class _Graded(SimpleBidirectionalTransformerTrainer):
+        def _prepare_targets(self, targets: csr_matrix) -> csr_matrix:
+            return targets
+
+    sequences = _sequences([[0], [1]])
+    graded = _targets([[0, 0, 19, 1, 0, 0], [0, 0, 1, 7, 0, 0]])
+    default = _trainer().fit(sequences, targets=graded)
+    overridden = _Graded(_config(), _batcher()).fit(sequences, targets=graded)
+
+    assert default.model is not None and overridden.model is not None
+    differs = any(
+        not torch.equal(left, right)
+        for left, right in zip(default.model.parameters(), overridden.model.parameters())
+    )
+    assert differs, "overriding _prepare_targets did not change training, so the hook is not reaching fit"
+
+
+def test_prepare_targets_is_called_once_with_the_callers_matrix():
+    """The hook must be the single gate: called once per fit, on what the caller passed, and its return value used."""
+    sequences = _sequences([[0], [1]])
+    graded = _targets([[0, 0, 19, 1, 0, 0], [0, 0, 1, 7, 0, 0]])
+    sentinel = _targets([[0, 0, 1, 1, 0, 0], [0, 0, 1, 1, 0, 0]])
+    seen: list[csr_matrix] = []
+
+    class _Spy(SimpleBidirectionalTransformerTrainer):
+        def _prepare_targets(self, targets: csr_matrix) -> csr_matrix:
+            seen.append(targets)
+            return sentinel
+
+    spy = _Spy(_config(), _batcher()).fit(sequences, targets=graded)
+    reference = _trainer().fit(sequences, targets=sentinel)
+
+    assert len(seen) == 1
+    assert np.array_equal(seen[0].toarray(), graded.toarray())
+    assert spy.model is not None and reference.model is not None
+    for left, right in zip(spy.model.parameters(), reference.model.parameters()):
+        torch.testing.assert_close(left, right)
+
+
 def test_none_targets_reconstruct_source_membership():
     trainer = _trainer()
     observed: list[list[int]] = []
