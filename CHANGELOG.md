@@ -1,3 +1,22 @@
+## [0.3.5] — 2026-09-17
+
+### Changed
+
+- `SimpleBidirectionalTransformerTrainer.fit` prepares an explicit target
+  matrix through a new overridable `_prepare_targets` hook rather than calling
+  `_binary_targets` directly. The default is unchanged, so every existing
+  caller behaves identically and
+  `test_targets_are_binary_membership_not_weights` continues to pin that.
+  A subclass training on *graded* targets - how long an item was watched, how
+  strongly it was rated - overrides the hook to keep the stored values and
+  pairs it with a loss that reads them. That call was the only place grading
+  was discarded: `InteractionBatchSampler` already packs `matrix.data` as it
+  finds it and `dense_training_target` scatters it unchanged, so without the
+  hook the only way to train on graded targets was to reimplement the whole of
+  `fit`. Note the existing objective already consumes grades - `_train_step`
+  divides each target row by its own sum to form a distribution - so this also
+  makes graded training meaningful without any subclass loss.
+
 ## [0.3.4] — 2026-09-11
 
 ### Added

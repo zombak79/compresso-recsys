@@ -346,6 +346,23 @@ class SimpleBidirectionalTransformerTrainer(BaseSequentialRecommender):
             log_every_n_steps=self.cfg.log_every_n_steps,
         )
 
+    def _prepare_targets(self, targets: csr_matrix) -> csr_matrix:
+        """Canonicalize an explicit target matrix before training.
+
+        Binary membership by default, which is what this trainer's objective
+        assumes: a target is either in the set or it is not. A subclass training
+        on *graded* targets - how long an item was watched, how strongly it was
+        rated - overrides this to keep the stored values, and pairs it with a
+        loss that can consume them.
+
+        This is the only place the grading is discarded. Everything downstream
+        already carries values faithfully: ``InteractionBatchSampler`` packs
+        ``matrix.data`` as it finds it and ``dense_training_target`` scatters it
+        unchanged. Without this hook a subclass would have to reimplement the
+        whole of :meth:`fit` to keep them.
+        """
+        return _binary_targets(targets)
+
     def fit(
         self,
         sequences: ItemSequences,
@@ -369,7 +386,7 @@ class SimpleBidirectionalTransformerTrainer(BaseSequentialRecommender):
         if targets is None:
             training_targets = _source_target_matrix(sequences)
         else:
-            training_targets = _binary_targets(targets)
+            training_targets = self._prepare_targets(targets)
             expected_shape = (sequences.n_rows, sequences.n_items)
             if training_targets.shape != expected_shape:
                 raise ValueError(
