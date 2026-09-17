@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>compresso_recsys.models.simple_bidirectional &mdash; Compresso Recsys 0.3.4 documentation</title>
+  <title>compresso_recsys.models.simple_bidirectional &mdash; Compresso Recsys 0.3.5 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
 
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=01c71025"></script>
+      <script src="../../../_static/documentation_options.js?v=ba3b9238"></script>
       <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -805,6 +805,23 @@
             <span class="n">log_every_n_steps</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">log_every_n_steps</span><span class="p">,</span>
         <span class="p">)</span>
 
+    <span class="k">def</span><span class="w"> </span><span class="nf">_prepare_targets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">targets</span><span class="p">:</span> <span class="n">csr_matrix</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">csr_matrix</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Canonicalize an explicit target matrix before training.</span>
+
+<span class="sd">        Binary membership by default, which is what this trainer's objective</span>
+<span class="sd">        assumes: a target is either in the set or it is not. A subclass training</span>
+<span class="sd">        on *graded* targets - how long an item was watched, how strongly it was</span>
+<span class="sd">        rated - overrides this to keep the stored values, and pairs it with a</span>
+<span class="sd">        loss that can consume them.</span>
+
+<span class="sd">        This is the only place the grading is discarded. Everything downstream</span>
+<span class="sd">        already carries values faithfully: ``InteractionBatchSampler`` packs</span>
+<span class="sd">        ``matrix.data`` as it finds it and ``dense_training_target`` scatters it</span>
+<span class="sd">        unchanged. Without this hook a subclass would have to reimplement the</span>
+<span class="sd">        whole of :meth:`fit` to keep them.</span>
+<span class="sd">        """</span>
+        <span class="k">return</span> <span class="n">_binary_targets</span><span class="p">(</span><span class="n">targets</span><span class="p">)</span>
+
 <div class="viewcode-block" id="SimpleBidirectionalTransformerTrainer.fit">
 <a class="viewcode-back" href="../../../api/models.html#compresso_recsys.models.SimpleBidirectionalTransformerTrainer.fit">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">fit</span><span class="p">(</span>
@@ -830,7 +847,7 @@
         <span class="k">if</span> <span class="n">targets</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">training_targets</span> <span class="o">=</span> <span class="n">_source_target_matrix</span><span class="p">(</span><span class="n">sequences</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">training_targets</span> <span class="o">=</span> <span class="n">_binary_targets</span><span class="p">(</span><span class="n">targets</span><span class="p">)</span>
+            <span class="n">training_targets</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_targets</span><span class="p">(</span><span class="n">targets</span><span class="p">)</span>
             <span class="n">expected_shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">sequences</span><span class="o">.</span><span class="n">n_rows</span><span class="p">,</span> <span class="n">sequences</span><span class="o">.</span><span class="n">n_items</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">training_targets</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="n">expected_shape</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
