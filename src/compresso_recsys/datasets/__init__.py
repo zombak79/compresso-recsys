@@ -8,6 +8,10 @@ from .netflix import NetflixPrize
 from .taste_profile import TasteProfile
 from .gowalla import Gowalla
 from .multimodal import DBbook, LastFM2K
+from .retailrocket import RetailRocket
+from .music4all_onion import Music4AllOnion
+from .otto import OTTO
+from .yambda import Yambda
 
 __all__ = [
     "SplitBundle",
@@ -22,4 +26,8 @@ __all__ = [
     "Gowalla",
     "DBbook",
     "LastFM2K",
+    "RetailRocket",
+    "Music4AllOnion",
+    "OTTO",
+    "Yambda",
 ]

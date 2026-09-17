@@ -414,6 +414,37 @@ uses raw check-ins; the social graph is not downloaded.
      url={https://snap.stanford.edu/data/loc-gowalla.html}
    }
 
+Retailrocket
+~~~~~~~~~~~~
+
+For :class:`compresso_recsys.datasets.RetailRocket`, credit Retail Rocket and
+link the `dataset page
+<https://www.kaggle.com/datasets/retailrocket/ecommerce-dataset>`_, which states
+the licence and is the only authoritative source. There is no accompanying
+paper. State that the adapter uses ``view`` events only and retains repeats.
+
+Confirm the licence on that page before redistributing derived data or using it
+commercially; it is more restrictive than the CC-BY terms of several other
+adapters here.
+
+Music4All-Onion, OTTO and Yambda
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For :class:`compresso_recsys.datasets.Music4AllOnion`, cite the CIKM 2022
+resource paper and link `the Zenodo record
+<https://zenodo.org/records/6609677>`_ (CC-BY 4.0). State that the adapter reads
+listening events only and that the 26 feature sets are not downloaded, and give
+the time window if one was used.
+
+For :class:`compresso_recsys.datasets.OTTO`, credit OTTO and link the `dataset
+repository <https://github.com/otto-de/recsys-dataset>`_. State that the adapter
+uses ``clicks`` only and that sessions, not users, are the rows.
+
+For :class:`compresso_recsys.datasets.Yambda`, credit Yandex and link the
+`Hugging Face repository <https://huggingface.co/datasets/yandex/yambda>`_
+(Apache 2.0). State the variant, whether ``organic_only`` was set, and that
+timestamps are relative to the start of the log and rounded to five seconds.
+
 Additional Movie and Book Descriptions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
