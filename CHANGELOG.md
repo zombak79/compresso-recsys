@@ -1,3 +1,23 @@
+## [Unreleased]
+
+### Added
+
+- `MMConcatWrapper` and `MMConcatWrapperConfig` turn matrix-based cold-start
+  models into multimodal recommenders by concatenating selected feature blocks.
+  The wrapper binds the inner fit signature, supports a configurable feature
+  parameter, handles explicit missing-modality masks, and reuses fitted
+  preprocessing for candidate changes. Model checkpoints preserve both wrapper
+  preprocessing and inner model state. An executed DBbook notebook compares
+  text, image, and concatenated features for ContentRecommender and TEASER.
+
+- `BaseMultiModalRecommender`, an optional subclass of the existing cold-start
+  base, and a named-matrix candidate catalog. Models implement fitting and
+  scoring while inheriting identified recommendation, CSR batching, catalog
+  updates and default catalog persistence. Modality schemas are validated on
+  every update; candidate growth keeps the fitted history vocabulary fixed.
+  Feature transformations and alternative stored representations remain the
+  concrete model's responsibility.
+
 ## [0.3.5] — 2026-09-17
 
 ### Changed

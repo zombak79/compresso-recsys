@@ -216,6 +216,227 @@ reading a matrix. The methods on it are a facade over
    :members:
    :private-members: _prepare_source
 
+Multimodal Concatenation Wrapper
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+:class:`compresso_recsys.models.MMConcatWrapper` adapts a matrix-based cold-start
+model to named feature matrices. It concatenates selected modalities in the
+configured order and delegates fitting, scoring, and catalog storage to the
+inner model. See :doc:`../multimodal-concat-wrapper` for an executed DBbook
+tutorial comparing ContentRecommender and TEASER with text, image, and both.
+
+.. code-block:: python
+
+   import numpy as np
+   from scipy.sparse import csr_matrix
+   from compresso_recsys.models import (
+       ContentRecommender, MMConcatWrapper, MMConcatWrapperConfig,
+       TEASER, TEASERConfig,
+   )
+
+   features = {"text": np.eye(3), "image": np.ones((3, 2))}
+   interactions = csr_matrix([[1, 1, 0], [0, 1, 1]])
+   content = MMConcatWrapper(MMConcatWrapperConfig(
+       model=ContentRecommender, modalities=["text", "image"],
+   )).fit(features)
+   teaser = MMConcatWrapper(MMConcatWrapperConfig(
+       model=TEASER, model_config=TEASERConfig(max_iterations=2),
+       modalities=["text", "image"],
+   )).fit(interactions, item_features=features)
+   recommendations = teaser.recommend([[0]], k=2)
+
+``fit(*args, **kwargs)`` binds the inner model's signature and replaces only the
+configured ``fit_features_parameter`` (default ``"item_features"``). Features
+may be positional or keyword arguments. With an opaque inner ``*args, **kwargs``
+signature, provide features by the configured keyword. There is no signature
+retry, and ContentRecommender's feature-only fit API remains unchanged.
+
+``modality_masks`` and ``feature_fit_indices`` are reserved wrapper keywords.
+Masks are boolean vectors aligned to item rows; missingness is never inferred
+from zero values. ``missing="error"`` is the default. ``"zero"`` fills missing
+rows with zeros; ``"mean"`` uses available training rows. Training rows are
+``feature_fit_indices`` when supplied, otherwise the forwarded
+``train_item_indices``, otherwise all feature rows. A differently named subset
+argument requires explicit ``feature_fit_indices``. All selected modality
+matrices must be present at initial fit to establish their widths, even when
+some rows are unavailable. Unselected keys in the input mappings are ignored.
+
+Imputation happens before optional per-modality L2 normalization and block
+weighting. Nonfinite values are rejected even in masked rows; use finite
+placeholders for missing embeddings. Dense input stays dense; any sparse block
+produces a CSR concatenation. Mean imputation can add nonzeros to sparse inputs.
+
+Use the wrapper's ``build_candidates`` and ``update_candidates`` with mappings
+and optional masks to reuse fitted preprocessing. ``model.candidates`` exposes
+the inner model's ordinary matrix catalog, so calling its mutations directly
+bypasses preprocessing. Catalog validation/publication semantics and the fixed
+history vocabulary are inherited from the inner model. ``recommend``,
+``predict``, ``predict_on_batch``, ``align_source``, and ``remove_candidates``
+delegate unchanged. ``inner_model`` exposes additional model-specific methods.
+The wrapper does not impose a new representation contract on existing models.
+
+``save``/``load`` and dataset-checkpoint embedding preserve preprocessing and the
+inner checkpoint, including optional optimizer state where the inner model
+supports it. Custom model classes must implement the normal persistence API;
+register them with ``MMConcatWrapper.register_model(MyModel)`` before loading in
+a fresh process. Model classes are resolved locally without dynamic imports
+from checkpoint contents. ``to(device)`` follows the inner model's device
+capabilities; NumPy-based TEASER does not support device moves.
+
+.. autoclass:: compresso_recsys.models.MMConcatWrapperConfig
+   :members:
+
+.. autoclass:: compresso_recsys.models.MMConcatWrapper
+   :members:
+
+Multimodal Cold-Start Subclasses
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+:class:`compresso_recsys.models.BaseMultiModalRecommender` extends the cold-start
+base for models whose item features are a mapping of modality names to matrices.
+Each value may be a NumPy array, CSR matrix, Torch tensor or ``SRPTensor``. The
+existing ``ItemFeatures`` alias continues to describe one matrix; the additional
+``MultiModalItemFeatures`` alias describes the mapping. This is an optional base
+with overridable defaults, not a requirement for every multimodal model.
+
+Implement ``fit``, ``is_fitted`` and ``predict_on_batch``. The base supplies
+``recommend``, CSR history conversion, batched ``predict``, and candidate
+management. The following small example sums similarities across modalities;
+the base itself imposes no scoring, normalization or fusion rule:
+
+.. code-block:: python
+
+   import numpy as np
+   import torch
+   from scipy.sparse import csr_matrix, issparse
+   from compresso import SRPTensor
+   from compresso_recsys.models import BaseMultiModalRecommender
+
+   def dense(matrix):
+       return matrix.toarray() if issparse(matrix) else np.asarray(matrix)
+
+   class ExampleMultiModalContent(BaseMultiModalRecommender):
+       def __init__(self):
+           super().__init__()
+           self.source_features = None
+
+       @property
+       def is_fitted(self):
+           return self.source_features is not None
+
+       def fit(self, interactions, item_features, *, item_ids):
+           if interactions.shape[1] != len(item_ids):
+               raise ValueError("interaction columns must match item_ids")
+           snapshot = self.candidates.install(
+               source_item_ids=item_ids,
+               candidate_features=item_features,
+           )
+           self.source_features = {
+               name: dense(matrix).copy()
+               for name, matrix in snapshot.item_features.items()
+           }
+           return self
+
+       def predict_on_batch(self, source, *, k, exclude_seen=True,
+                            candidate_ids=None):
+           source = self._prepare_source(source)
+           selected = self.candidates.resolve_selection(candidate_ids)
+           if not 1 <= k <= selected.rows.size:
+               raise ValueError("k exceeds the selected candidate count")
+           scores = sum(
+               (source @ self.source_features[name]) @ dense(matrix).T
+               for name, matrix in selected.features.items()
+           )
+           if exclude_seen:
+               users, history_items = source.nonzero()
+               catalog_rows = selected.source_to_candidate[history_items]
+               local_rows = np.full(catalog_rows.size, -1, dtype=np.int64)
+               present = catalog_rows >= 0
+               local_rows[present] = selected.candidate_to_local[
+                   catalog_rows[present]
+               ]
+               selected_seen = local_rows >= 0
+               scores[users[selected_seen], local_rows[selected_seen]] = -np.inf
+               if np.any(np.isfinite(scores).sum(axis=1) < k):
+                   raise ValueError("fewer than k unseen candidates")
+           local = SRPTensor.from_dense(
+               torch.from_numpy(scores), k=k, score_mode="raw"
+           )
+           return SRPTensor(
+               cols=torch.from_numpy(selected.rows)[local.cols],
+               vals=local.vals,
+               shape=(source.shape[0], selected.catalog.n_items),
+           )
+
+   model = ExampleMultiModalContent().fit(
+       csr_matrix([[1, 0], [0, 1]], dtype=np.float32),
+       {"text": np.eye(2), "image": np.array([[1.], [2.]])},
+       item_ids=["a", "b"],
+   )
+   model.update_candidates(
+       item_ids=["cold"],
+       item_features={"image": np.array([[3.]]), "text": np.array([[1., 1.]])},
+   )
+   ranked = model.recommend([["a"]], k=1, exclude_seen=True)
+   assert ranked.item_ids[0, 0] == "cold"
+
+The default :class:`compresso_recsys.models.MutableMultiModalCandidateCatalog`
+stores each modality separately as a NumPy or CSR matrix. It infers dimensions
+at installation and requires the same modality names and widths on later
+``build_candidates`` and ``update_candidates`` calls. Dictionary order is
+irrelevant. Every matrix must describe the same items in the same row order;
+the caller is responsible for that semantic alignment. Each update supplies all
+modalities for its item rows. Availability masks and partial modality updates
+are not part of this default representation.
+
+Candidate registration never trains or runs an encoder. Models that transform
+features must apply the same fitted transformation during initial installation,
+rebuilding and updates. Dimensions describe the stored results. Override the
+candidate methods and persistence hooks for other representations; a model may
+also own additional representations or a different catalog.
+
+Candidate growth leaves the fitted source vocabulary fixed. A newly registered
+ID can be recommended but cannot appear in histories unless it was already a
+fitted source item. Conversely, removing a fitted item from the candidate
+catalog leaves it usable in histories. ``align_source`` aligns matrix columns
+to that fixed vocabulary; it does not extend it.
+
+All modalities belong to one published snapshot. Validation failure preserves
+the old snapshot. ``_on_catalog_published`` runs after publication under the
+catalog lock: if it raises, the new snapshot remains installed. This guarantee
+is per snapshot; inherited batched prediction does not pin one version across
+concurrent catalog mutations.
+
+The multimodal base's ``_save_checkpoint_state`` and ``_load_checkpoint_state``
+hooks persist the catalog schema and each matrix. A concrete model must declare
+``checkpoint_type``, provide configuration/construction hooks, and persist its
+additional fitted state. For the example above that includes
+``source_features``; it can differ from candidates after updates. Call
+``super()`` from state hooks to retain default catalog persistence, or implement
+the complete representation's persistence yourself. Existing single-matrix
+checkpoint formats are unchanged.
+
+The mapping-only method annotations intentionally specialize the runtime base
+interface. This addition does not make ``BaseColdStartRecommender`` or the
+single-matrix ``ColdStartRecommender`` typing protocol generic; callers needing
+a mapping-specific annotation should use ``BaseMultiModalRecommender``.
+
+.. autoclass:: compresso_recsys.models.BaseMultiModalRecommender
+   :members:
+   :private-members: _on_catalog_published, _save_checkpoint_state, _load_checkpoint_state
+
+.. autoclass:: compresso_recsys.models.MutableMultiModalCandidateCatalog
+   :members:
+
+.. autoclass:: compresso_recsys.models.MultiModalCandidateCatalog
+   :members:
+
+.. autoclass:: compresso_recsys.models.MultiModalCandidateSelection
+   :members:
+
+Sequential Subclasses
+~~~~~~~~~~~~~~~~~~~~~~~~
+
 Use :class:`compresso_recsys.models.BaseSequentialRecommender` for a model that
 reads ordered histories. It is parallel to
 :class:`compresso_recsys.models.BaseCollaborativeRecommender` rather than derived
