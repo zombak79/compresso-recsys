@@ -131,9 +131,9 @@ is reset and reused at each epoch. Reusing the batch bar is the recommended
 pattern for new trainers because creating one bar per epoch leaves a growing
 stack of completed bars in notebooks and terminals. Compressed ELSA's
 unbounded mask-search phase has no fixed epoch total, so it uses only one
-reusable batch bar. ELSA, Mult-DAE, Mult-VAE, SimpleGPT, SimpleRNN,
-SimpleBidirectionalTransformer, and TEASER-GD all follow the logger reporting
-contract above.
+reusable batch bar. ELSA, Mult-DAE, Mult-VAE, SASRec, SimpleGPT, SimpleRNN,
+SimpleBidirectionalTransformer, BERT4Rec, and TEASER-GD all follow the logger
+reporting contract above.
 
 Fitted Model Persistence
 ------------------------
@@ -1232,6 +1232,14 @@ trainers reject left padding before building a model because a raw GRU or LSTM
 would process the leading pad steps, while the transformer would need an
 additional key-padding mask and different target alignment.
 
+BERT4Rec requires the default too, but for the opposite reason to SimpleGPT's:
+it *does* pass a key padding mask, so padding costs it nothing to attend around,
+and nothing in it gathers a final state whose column depends on the row's
+length. What right padding buys is that position 0 means "oldest retained
+interaction" in every row, which is what a learned positional table reads when
+the target can sit anywhere in the sequence. It sets the padding side itself
+rather than rejecting the other one.
+
 ``max_length`` truncates to the **most recent** interactions, the only sensible
 direction, since a context window is a claim about recency rather than about
 where a history happened to start.
@@ -1814,4 +1822,168 @@ usual ``exclude_seen`` masking.
    :members:
 
 .. autoclass:: compresso_recsys.models.SimpleBidirectionalTransformerTrainer
+   :members:
+
+BERT4Rec
+~~~~~~~~
+
+BERT4Rec is a **bidirectional** transformer over chronological histories,
+trained by masking. Every position reads every other position in both
+directions, which is what separates it from a causal recommender like SASRec
+and also what forces the training objective: with full visibility a model
+predicting the next item can simply read it, so the paper hides positions
+instead and asks the model to reconstruct them. That is the Cloze objective of
+§3.6, and most of what is worth knowing about this implementation is in how one
+history becomes many masked samples. See :doc:`../citing` for the paper this
+follows; ``Bert4RecConfig``'s defaults are its published settings, with the
+authors' released TensorFlow implementation supplying anything the paper leaves
+unstated. Each field's docstring says which of the two it came from.
+
+**Masking is a rate, not a fixed pattern.** ``mask_proportion`` is the paper's
+rho: ``round(len * rho)`` positions of each sequence are chosen without
+replacement, at least one and at most ``max_predictions``. The positions are
+redrawn every epoch rather than fixed once. The reference materializes
+``dupe_factor`` maskings of every sequence to a file before training and reads
+that file each epoch; drawing them per epoch gives the same distribution over a
+run without holding the expansion in memory, and is strictly more varied for the
+same number of steps.
+
+**The default disables BERT's 80/10/10 corruption.**
+``mask_token_probability`` is 1.0, so a chosen position always becomes
+``[mask]``. The paper describes exactly that -- "replace them with a special
+token ``[mask]``" -- with no mention of random or kept tokens. Below 1.0 the
+remainder splits evenly between keeping the original item and drawing a random
+one, as the reference's ``create_masked_lm_predictions`` does. A random draw is
+never a reserved id.
+
+**One history becomes many samples.** ``duplication_factor`` repeats every
+window that many times per fit, which is how the Cloze objective earns the
+sample count it is credited with. A history longer than the window is also cut
+into overlapping windows, stepping back by
+``sliding_window_step * max_history_length``, so that everything before the last
+``N`` interactions is trained on rather than discarded. The oldest window is
+pinned to the start, so no interaction is dropped.
+
+**Prediction appends ``[mask]`` rather than overwriting.** §3.6 notes that the
+Cloze objective predicts a hidden position while the task is to predict the
+future, and resolves it by appending the token to the end of the history and
+reading the recommendation from its hidden state. ``last_item_samples`` adds the
+matching training sample: one sequence per history with only its final position
+masked. Those two line up exactly. A source history of ``n`` interactions is
+encoded, ``[mask]`` is appended at position ``n``, and the sample that trained
+that question is the full ``n + 1``-interaction history with its last position
+masked -- the same context, the same question. The batcher used for prediction
+is therefore one position shorter than the training window, so the appended
+token still falls inside the positional table.
+
+**Padding is on the right, and attention is told about it.** Unlike SASRec,
+nothing here gathers a final state whose column depends on the row's length, so
+right padding keeps position 0 meaning "oldest retained interaction" for every
+row -- which is what a learned positional table reads under Cloze. A key padding
+mask then keeps real positions from attending to the filler. Without it the
+amount of padding mixed into a representation would depend on how wide the batch
+rectangle happened to be, which is a fact about who else was in the batch rather
+than about the user.
+
+**The model returns logits.** Eq. 7 is written as a softmax and Eq. 8 as its
+negative log-likelihood, but ``cross_entropy`` computes that same composition by
+the log-sum-exp identity instead of forming the probability and taking its log.
+The two are the same function of the same inputs; only the second underflows,
+and where it does, clamping the log makes the loss locally constant and its
+gradient exactly zero. Scores returned by ``predict_on_batch`` are logits for the
+same reason every other model in this package returns them, and rank identically
+since the softmax is monotonic.
+
+**The learning rate warms up and then decays linearly**, per §4.3.
+``warmup_steps`` is a count and not a fraction of the run, because that is what
+the reference means by it: every ``run_*.sh`` script passes
+``num_warmup_steps=100``, and warmup buys a fixed number of steps for Adam's
+zero-initialized second moment to become usable, a cost that does not grow
+because the run is longer. As a fraction it would round to no warmup at all
+below about 4000 steps, so a short fit would take its very first step at the
+full rate. The decay is measured from step 0 rather than from the end of
+warmup, as ``create_optimizer``'s ``polynomial_decay`` is, so the rate re-enters
+a little below the peak once warmup lets go. Neither end of the schedule spends
+a step at exactly zero. Weight decay is decoupled and skips biases and LayerNorm
+parameters, matching ``exclude_from_weight_decay``: decaying a normalization
+scale pulls it toward zero, shrinking the activations it exists to standardize.
+
+.. code-block:: python
+
+   from compresso_recsys.models import (
+       Bert4RecConfig,
+       Bert4RecTrainer,
+       ItemTokenizer,
+       SequenceBatcher,
+   )
+
+   # The Cloze objective needs a [mask] token, so the vocabulary must carry one.
+   tokenizer = ItemTokenizer(
+       split["x_train_sequences"].n_items,
+       special_tokens={"pad": 0, "mask": 1, "unk": 2},
+       item_ids=split["train_item_ids"],   # optional; enables the ID path
+   )
+   # No max_length: the window and the padding side come from the config.
+   batcher = SequenceBatcher(tokenizer)
+
+   model = Bert4RecTrainer(
+       Bert4RecConfig(
+           d_model=64,
+           n_blocks=2,
+           n_heads=2,
+           dropout=0.2,
+           # The context window lives here, not on the batcher. It also sizes
+           # the positional table.
+           max_history_length=200,
+           # rho: the paper tunes it per dataset, 0.2 for MovieLens.
+           mask_proportion=0.2,
+           max_predictions=20,
+           # Ten independent maskings of every window per fit.
+           duplication_factor=10,
+           # Select the fixed budget on validation data.
+           epochs=10,
+           batch_size=256,
+           lr=1e-4,
+       ),
+       batcher,
+   ).fit(split["x_train_sequences"])
+
+   result = evaluate_recommender(
+       model,
+       source=split["test_source_sequences"],
+       targets=split["test_target_matrix"],
+       metrics=[CalibratedRecall(20), NDCG(20)],
+   )
+
+Omitting the batcher is supported and builds a default one over the training
+catalog, at the config's window and with the ``[mask]`` token already present.
+Pass your own to supply a vocabulary -- including one whose ``unk`` slot lets a
+later split stage's unseen items become a reserved id rather than an error. A
+batcher that states no window inherits the config's; one that states a different
+window is refused, since the window sizes the positional table and cannot be two
+numbers. Left padding is replaced rather than asked of the caller.
+
+The trainer runs a fixed epoch budget and rebuilds the model on every ``fit``
+call, so select ``epochs`` using validation data. There is no validation-based
+early stopping and no incremental training. Prediction forbids every item in the
+*full* history, truncated part included; items beyond the fitted catalog are
+dropped from that mask rather than clipped, since they were never scoreable.
+
+Saving carries the vocabulary with the weights, through the same persistence API
+as every other fitted recommender:
+
+.. code-block:: python
+
+   from compresso_recsys.models import Bert4RecTrainer
+
+   model.save("artifacts/bert4rec.ckpt")
+   restored = Bert4RecTrainer.load("artifacts/bert4rec.ckpt")
+
+.. autoclass:: compresso_recsys.models.Bert4RecConfig
+   :members:
+
+.. autoclass:: compresso_recsys.models.Bert4Rec
+   :members:
+
+.. autoclass:: compresso_recsys.models.Bert4RecTrainer
    :members:

@@ -48,6 +48,7 @@ from .elsa import (
     ELSAConfig,
     ELSATrainer,
 )
+from .bert4rec import Bert4Rec, Bert4RecConfig, Bert4RecTrainer
 from .sasrec import SASRec, SASRecConfig, SASRecTrainer
 from .simple_gpt import (
     SimpleGPT,
@@ -76,6 +77,9 @@ __all__ = [
     "BaseIdentifiedRecommender",
     "BasePersistableRecommender",
     "BaseSequentialRecommender",
+    "Bert4Rec",
+    "Bert4RecConfig",
+    "Bert4RecTrainer",
     "CompressedELSA",
     "CandidateCatalog",
     "ColdStartRecommender",
