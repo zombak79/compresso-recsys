@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
+from threading import Barrier, Event, current_thread
 
 import numpy as np
 import pandas as pd
@@ -15,6 +17,7 @@ from compresso_recsys.models import (
     BaseMultiModalRecommender,
     MultiModalCandidateCatalog,
     MutableMultiModalCandidateCatalog,
+    multimodal,
 )
 from compresso_recsys.persistence import ModelCheckpointReader, ModelCheckpointWriter
 
@@ -136,6 +139,59 @@ def test_base_is_abstract_and_reuses_existing_history_workflow():
         model.predict(csr_matrix((1, 4)), k=1)
 
 
+@pytest.mark.parametrize(
+    "candidate_ids",
+    [None, ["c", "a", "b"], ["c", "b"]],
+    ids=["all", "explicit-all", "subset"],
+)
+def test_selection_and_predictions_use_int64_with_simulated_int32_default(
+    monkeypatch, candidate_ids
+):
+    model = _model()
+    source = csr_matrix([[1, 0, 0], [0, 1, 0]], dtype=np.float32)
+    expected = model.predict_on_batch(source, k=1, candidate_ids=candidate_ids)
+    expected_recommendations = model.recommend(
+        [["a"], ["b"]], k=1, allowlist=candidate_ids
+    )
+
+    class Int32DefaultNumpy:
+        def __getattr__(self, name):
+            return getattr(np, name)
+
+        def arange(self, *args, **kwargs):
+            if len(args) < 4 and kwargs.get("dtype") is None:
+                kwargs["dtype"] = np.int32
+            return np.arange(*args, **kwargs)
+
+    # Simulate the relevant NumPy 1.x Windows default only in the catalog
+    # module. Explicit dtypes still work; NumPy/SciPy/Torch are not patched.
+    simulated_numpy = Int32DefaultNumpy()
+    assert simulated_numpy.arange(3).dtype == np.int32
+    monkeypatch.setattr(multimodal, "np", simulated_numpy)
+
+    selected = model.candidates.resolve_selection(candidate_ids)
+    for indices in (
+        selected.rows,
+        selected.source_to_candidate,
+        selected.candidate_to_local,
+    ):
+        assert indices.dtype == np.int64
+    for actual in (
+        model.predict_on_batch(source, k=1, candidate_ids=candidate_ids),
+        model.predict(source, k=1, batch_size=1, candidate_ids=candidate_ids),
+    ):
+        assert actual.cols.dtype == torch.long
+        torch.testing.assert_close(actual.cols, expected.cols)
+        torch.testing.assert_close(actual.vals, expected.vals)
+    recommendations = model.recommend([["a"], ["b"]], k=1, allowlist=candidate_ids)
+    np.testing.assert_array_equal(
+        recommendations.item_ids, expected_recommendations.item_ids
+    )
+    np.testing.assert_array_equal(
+        recommendations.scores, expected_recommendations.scores
+    )
+
+
 def test_registered_candidate_is_recommendable_but_not_a_history_item():
     model = _model()
     model.update_candidates(
@@ -221,14 +277,98 @@ def test_failed_build_preserves_snapshot(features, message):
     assert catalog.snapshot() is before
 
 
+def test_reinstall_advances_version_and_replaces_source_schema_and_candidates():
+    published = []
+    catalog = _installed(on_publish=published.append)
+    original = catalog.snapshot()
+    catalog.update(item_ids=["d"], item_features=_features((0,)))
+    catalog.update(item_ids=["e"], item_features=_features((1,)))
+    catalog.remove(["b"])
+
+    installed = catalog.install(
+        source_item_ids=["new-a", "new-b"],
+        candidate_features={"audio": np.ones((2, 4))},
+        metadata=pd.DataFrame({"label": ["A", "B"]}),
+        feature_space_id="embeddings@2",
+        dtype="float64",
+    )
+
+    assert [snapshot.version for snapshot in published] == [1, 2, 3, 4, 5]
+    assert catalog.snapshot() is installed is published[-1]
+    assert installed.item_ids.tolist() == ["new-a", "new-b"]
+    assert catalog.source_item_ids.tolist() == ["new-a", "new-b"]
+    assert dict(installed.feature_dims) == {"audio": 4}
+    assert installed.item_features["audio"].dtype == np.float64
+    assert installed.feature_space_id == "embeddings@2"
+    assert installed.metadata["label"].tolist() == ["A", "B"]
+    assert original.version == 1
+    assert original.item_ids.tolist() == ["a", "b", "c"]
+    np.testing.assert_array_equal(original.item_features["text"], _features()["text"])
+
+    updated = catalog.update(
+        item_ids=["cold"], item_features={"audio": np.zeros((1, 4))}
+    )
+    assert updated.version == 6
+    assert updated.item_ids.tolist() == ["new-a", "new-b", "cold"]
+    assert updated.item_features["audio"].dtype == np.float64
+
+
+def test_concurrent_reinstalls_and_updates_follow_publication_order():
+    published = []
+    catalog = _installed(on_publish=published.append)
+    rounds = 8
+    start = Barrier(2, timeout=5)
+
+    def reinstall():
+        for _ in range(rounds):
+            start.wait()
+            catalog.install(
+                source_item_ids=["a", "b", "c"], candidate_features=_features()
+            )
+
+    def update():
+        for index in range(rounds):
+            start.wait()
+            catalog.update(item_ids=[f"cold-{index}"], item_features=_features((0,)))
+
+    with ThreadPoolExecutor(max_workers=2) as workers:
+        futures = [workers.submit(reinstall), workers.submit(update)]
+        for future in futures:
+            future.result(timeout=10)
+
+    assert [snapshot.version for snapshot in published] == list(
+        range(1, 2 * rounds + 2)
+    )
+    # Each round permits either serial order: an update after installation is
+    # retained; an update before installation is superseded by the replacement.
+    for index in range(rounds):
+        first, second = published[1 + 2 * index : 3 + 2 * index]
+        if first.n_items == 3:
+            assert second.item_ids.tolist() == ["a", "b", "c", f"cold-{index}"]
+        else:
+            assert first.item_ids[-1] == f"cold-{index}"
+            assert second.item_ids.tolist() == ["a", "b", "c"]
+    assert catalog.snapshot() is published[-1]
+
+
 def test_failed_refit_preserves_source_and_schema():
-    catalog = _installed()
+    published = []
+    catalog = _installed(on_publish=published.append)
     snapshot = catalog.snapshot()
     with pytest.raises(ValueError, match="rows"):
-        catalog.install(source_item_ids=["new"], candidate_features=_features())
+        catalog.install(
+            source_item_ids=["new"], candidate_features=_features(), dtype="float64"
+        )
     assert catalog.snapshot() is snapshot
     assert catalog.source_item_ids.tolist() == ["a", "b", "c"]
     assert dict(catalog.feature_dims) == {"text": 2, "image": 1}
+    assert len(published) == 1
+    assert published[0] is snapshot
+
+    # Failed validation neither changes precision nor consumes a version.
+    updated = catalog.update(item_ids=["d"], item_features=_features((0,)))
+    assert updated.version == snapshot.version + 1
+    assert updated.item_features["text"].dtype == np.float32
 
 
 def test_dtype_conversion_cannot_install_nonfinite_features():
@@ -241,6 +381,95 @@ def test_dtype_conversion_cannot_install_nonfinite_features():
         )
     assert catalog.snapshot() is old
     assert catalog.source_item_ids.tolist() == ["a", "b", "c"]
+
+
+def test_none_dtype_rejects_snapshot_and_initial_installation():
+    features = _features()
+    with pytest.raises(ValueError, match="dtype must be float32 or float64"):
+        MultiModalCandidateCatalog(
+            item_ids=["a", "b", "c"], item_features=features, dtype=None
+        )
+    published = []
+    catalog = MutableMultiModalCandidateCatalog(on_publish=published.append)
+    with pytest.raises(ValueError, match="dtype must be float32 or float64"):
+        catalog.install(
+            source_item_ids=["a", "b", "c"], candidate_features=features, dtype=None
+        )
+    assert not catalog.is_installed
+    assert catalog.source_vocabulary is None
+    assert not published
+
+    # Omission keeps the API's explicit float32 default, unlike passing None.
+    installed = catalog.install(
+        source_item_ids=["a", "b", "c"], candidate_features=features
+    )
+    assert all(
+        matrix.dtype == np.float32 for matrix in installed.item_features.values()
+    )
+
+
+def test_none_dtype_refit_preserves_catalog_source_precision_and_version():
+    published = []
+    catalog = _installed(on_publish=published.append)
+    before = catalog.snapshot()
+    source = catalog.source_vocabulary
+    with pytest.raises(ValueError, match="dtype must be float32 or float64"):
+        catalog.install(
+            source_item_ids=["new"],
+            candidate_features={"audio": np.ones((1, 4), dtype=np.float64)},
+            dtype=None,
+        )
+    assert catalog.snapshot() is before
+    assert catalog.source_vocabulary is source
+    assert len(published) == 1
+    updated = catalog.update(item_ids=["d"], item_features=_features((0,)))
+    assert updated.version == before.version + 1
+    assert all(matrix.dtype == np.float32 for matrix in updated.item_features.values())
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [np.float32, np.dtype("float32"), "f4", np.float64, np.dtype("float64"), "f8"],
+)
+def test_catalog_dtype_aliases_remain_valid_through_checkpoint_roundtrip(
+    tmp_path, dtype
+):
+    catalog = MutableMultiModalCandidateCatalog()
+    catalog.install(
+        source_item_ids=["a", "b", "c"], candidate_features=_features(), dtype=dtype
+    )
+    path = tmp_path / "catalog.zip"
+    with ModelCheckpointWriter(path, model_type="test_catalog") as writer:
+        catalog._save_checkpoint(writer)
+    restored = MutableMultiModalCandidateCatalog()
+    with ModelCheckpointReader(path, expected_model_type="test_catalog") as reader:
+        snapshot = restored._load_checkpoint(reader)
+    for name, matrix in snapshot.item_features.items():
+        assert matrix.dtype == np.dtype(dtype)
+        np.testing.assert_array_equal(_dense(matrix), _dense(_features()[name]))
+
+
+@pytest.mark.parametrize("schema_version", [1, 2])
+def test_null_checkpoint_dtype_preserves_installed_catalog(tmp_path, schema_version):
+    published = []
+    catalog = _installed(on_publish=published.append)
+    before = catalog.snapshot()
+    source = catalog.source_vocabulary
+    path = tmp_path / "catalog.zip"
+    with ModelCheckpointWriter(path, model_type="test_catalog") as writer:
+        catalog._save_checkpoint(writer)
+    with ModelCheckpointReader(path, expected_model_type="test_catalog") as reader:
+        state_path = reader._input_path("catalog/state.json")
+        state = json.loads(state_path.read_text())
+        state.update(version=schema_version, dtype=None)
+        if schema_version == 1:
+            del state["metadata_columns"]
+        state_path.write_text(json.dumps(state))
+        with pytest.raises(ValueError, match="dtype must be float32 or float64"):
+            catalog._load_checkpoint(reader)
+    assert catalog.snapshot() is before
+    assert catalog.source_vocabulary is source
+    assert len(published) == 1
 
 
 @pytest.mark.parametrize(
@@ -357,6 +586,98 @@ def test_mutations_and_selection_keep_modalities_and_metadata_aligned():
     ).toarray().tolist() == [[10, 20, 30]]
 
 
+@pytest.mark.parametrize("candidate_ids", [None, ["cold", "c"]], ids=["all", "subset"])
+@pytest.mark.parametrize("mutation", ["update", "reinstall"])
+def test_selection_preparation_allows_reads_and_mutations_without_mixing_state(
+    monkeypatch, candidate_ids, mutation
+):
+    catalog = _installed()
+    catalog.build(item_ids=["c", "a", "cold"], item_features=_features((2, 0, 1)))
+    before = catalog.snapshot()
+    paused, resume = Event(), Event()
+    selection_thread = None
+
+    def pause_selection():
+        paused.set()
+        assert resume.wait(timeout=10), "selection was not released"
+
+    if candidate_ids is None:
+        # Pause row preparation on the all-candidates path, which shares its
+        # feature matrices and therefore never calls take_features.
+        n_items = MultiModalCandidateCatalog.n_items.fget
+
+        def paused_n_items(snapshot):
+            if snapshot is before and current_thread() is selection_thread:
+                pause_selection()
+            return n_items(snapshot)
+
+        monkeypatch.setattr(
+            MultiModalCandidateCatalog, "n_items", property(paused_n_items)
+        )
+    else:
+        take_features = multimodal.take_features
+
+        def paused_take_features(matrix, rows):
+            if (
+                matrix is before.item_features["text"]
+                and current_thread() is selection_thread
+            ):
+                pause_selection()
+            return take_features(matrix, rows)
+
+        monkeypatch.setattr(multimodal, "take_features", paused_take_features)
+
+    def select():
+        nonlocal selection_thread
+        selection_thread = current_thread()
+        return catalog.resolve_selection(candidate_ids)
+
+    with ThreadPoolExecutor(max_workers=2) as workers:
+        selection = workers.submit(select)
+        try:
+            assert paused.wait(timeout=5), "selection did not reach preparation"
+            # Another selection must finish even while the first is paused.
+            concurrent = workers.submit(catalog.resolve_selection, None).result(
+                timeout=5
+            )
+            assert concurrent.catalog is before
+            if mutation == "update":
+                published = workers.submit(
+                    catalog.update, item_ids=["new"], item_features=_features((0,))
+                ).result(timeout=5)
+            else:
+                # Change both the source vocabulary and modality schema. The
+                # in-flight selection must retain their old counterparts.
+                published = workers.submit(
+                    catalog.install,
+                    source_item_ids=["fresh", "c"],
+                    candidate_features={
+                        "audio": np.array([[9], [8]], dtype=np.float32)
+                    },
+                ).result(timeout=5)
+            latest = workers.submit(catalog.resolve_selection, None).result(timeout=5)
+            assert latest.catalog is published
+        finally:
+            # Unblock the worker even on failure, so lock regressions fail the
+            # test with a bounded timeout instead of hanging the test process.
+            resume.set()
+        selected = selection.result(timeout=5)
+
+    assert selected.catalog is before
+    assert published.version == before.version + 1
+    assert selected.source_to_candidate.tolist() == [1, -1, 0]
+    expected_rows = [0, 1, 2] if candidate_ids is None else [0, 2]
+    assert selected.rows.tolist() == expected_rows
+    assert selected.candidate_to_local.tolist() == (
+        [0, 1, 2] if candidate_ids is None else [0, -1, 1]
+    )
+    for name, matrix in before.item_features.items():
+        np.testing.assert_array_equal(
+            _dense(selected.features[name]), _dense(matrix)[expected_rows]
+        )
+    assert catalog.snapshot() is published
+
+
 def test_snapshots_own_features_and_metadata_and_expose_read_only_containers():
     inputs = _features()
     metadata = pd.DataFrame({"label": ["A", "B", "C"]})
@@ -465,6 +786,50 @@ def test_model_checkpoint_preserves_source_catalog_predictions_and_later_updates
         restored.recommend([["newer"]], k=1)
 
 
+@pytest.mark.parametrize("schema_version", [1, 2])
+@pytest.mark.parametrize(
+    "corrupt, message",
+    [
+        (lambda state: state["modalities"][0].pop("storage"), "feature storage"),
+        (
+            lambda state: state["modalities"][0].update(storage="future-format"),
+            "feature storage",
+        ),
+        (lambda state: state["modalities"].__setitem__(0, None), "modality schema"),
+        (lambda state: state.pop("dtype"), "missing.*dtype"),
+        (lambda state: state.pop("feature_space_id"), "missing.*feature_space_id"),
+        (lambda state: state.pop("catalog_version"), "missing.*catalog_version"),
+    ],
+)
+def test_invalid_catalog_checkpoint_fields_preserve_installed_state(
+    tmp_path, schema_version, corrupt, message
+):
+    source = _installed()
+    path = tmp_path / "catalog.zip"
+    with ModelCheckpointWriter(path, model_type="test_catalog") as writer:
+        source._save_checkpoint(writer)
+    published = []
+    target = MutableMultiModalCandidateCatalog(on_publish=published.append)
+    before = target.install(
+        source_item_ids=["old"],
+        candidate_features=_features((0,)),
+        dtype="float64",
+    )
+    vocabulary = target.source_vocabulary
+    with ModelCheckpointReader(path, expected_model_type="test_catalog") as reader:
+        state_path = reader._input_path("catalog/state.json")
+        state = json.loads(state_path.read_text())
+        state["version"] = schema_version
+        corrupt(state)
+        state_path.write_text(json.dumps(state))
+        with pytest.raises(ValueError, match=message):
+            target._load_checkpoint(reader)
+    assert target.snapshot() is before
+    assert target.source_vocabulary is vocabulary
+    assert target._dtype == np.dtype("float64")
+    assert len(published) == 1
+
+
 def test_catalog_checkpoint_uses_safe_paths_and_validates_schema_before_loading(
     tmp_path,
 ):
@@ -490,3 +855,306 @@ def test_catalog_checkpoint_uses_safe_paths_and_validates_schema_before_loading(
         with pytest.raises(ValueError, match="dimensions"):
             restored._load_checkpoint(reader)
         assert restored.snapshot() is snapshot
+
+
+@pytest.mark.parametrize(
+    "metadata",
+    [
+        pytest.param(pd.DataFrame({"label": ["p", "q"], 7: [1, 2]}), id="mixed"),
+        pytest.param(pd.DataFrame([[1, 2], [3, 4]]), id="range"),
+        pytest.param(
+            pd.DataFrame(
+                {7: pd.Series([1, 2], dtype="Int32"), "7": [3.5, 4.5]},
+            ).rename_axis("fields", axis=1),
+            id="colliding-string-representations",
+        ),
+        pytest.param(
+            pd.DataFrame([[1, 2], [3, 4]], columns=pd.RangeIndex(9, 3, -3, name=7)),
+            id="named-nondefault-range",
+        ),
+        pytest.param(
+            pd.DataFrame(
+                [[1, 2], [3, 4]],
+                columns=pd.Index([False, 2.5], dtype=object, name="fields"),
+            ),
+            id="scalar-label-types",
+        ),
+        pytest.param(
+            pd.concat(
+                [
+                    pd.Series([1, 2], name=7, dtype="int32"),
+                    pd.Series([3.5, 4.5], name=7),
+                ],
+                axis=1,
+            ),
+            id="duplicate-labels-with-different-dtypes",
+        ),
+        pytest.param(
+            pd.DataFrame(
+                [[1, 2], [3, 4]],
+                columns=pd.Index([("rank", 7), None], tupleize_cols=False),
+            ),
+            id="tuple-and-null-labels",
+        ),
+        pytest.param(
+            pd.DataFrame(
+                {
+                    "item": ["a", "b", "a", "b"],
+                    "attr": [None, None, "genre", "genre"],
+                    "val": [1, 2, 3, 4],
+                }
+            )
+            .pivot(index="item", columns="attr", values="val")
+            .reset_index(),
+            id="pivot-with-missing-attribute",
+        ),
+        pytest.param(
+            pd.DataFrame([[1, 2], [3, 4]], index=[np.nan, "genre"]).T,
+            id="transpose-with-missing-index",
+        ),
+        pytest.param(
+            pd.DataFrame({None: [1, 2], 7: [3, 4]}),
+            id="none-coerced-to-nan",
+        ),
+        pytest.param(
+            pd.DataFrame(
+                [[1, 2], [3, 4]],
+                columns=pd.Index([None, np.nan], dtype=object, name=np.nan),
+            ),
+            id="distinct-none-and-nan-with-nan-name",
+        ),
+        pytest.param(
+            pd.DataFrame(
+                [[1, 2], [3, 4]],
+                columns=pd.Index([("rank", np.nan), None], tupleize_cols=False),
+            ),
+            id="tuple-with-nan",
+        ),
+        pytest.param(
+            pd.DataFrame(
+                [[1, 2], [3, 4]],
+                columns=pd.Index([np.float32("nan"), "rank"], dtype=object),
+            ),
+            id="numpy-nan",
+        ),
+        pytest.param(
+            pd.DataFrame(
+                [[1, 2], [3, 4]],
+                columns=pd.MultiIndex.from_tuples(
+                    [("rank", np.nan), ("rank", 7)], names=[np.nan, "field"]
+                ),
+            ),
+            id="multi-index-with-nan",
+        ),
+        pytest.param(
+            pd.DataFrame(
+                [[1, 2], [3, 4]],
+                columns=pd.MultiIndex.from_tuples(
+                    [("rank", 7), ("rank", "7")], names=["group", "field"]
+                ),
+            ),
+            id="multi-index",
+        ),
+        pytest.param(
+            pd.DataFrame(
+                {
+                    "item_id": ["a", "b"],
+                    7: pd.Series(["p", "q"], dtype="category"),
+                    "nullable": pd.Series([1, None], dtype="Int64"),
+                }
+            ),
+            id="item-ids-and-extension-dtypes",
+        ),
+        pytest.param(pd.DataFrame(index=range(2)), id="zero-columns"),
+    ],
+)
+def test_model_checkpoint_preserves_metadata_labels_order_and_dtypes(
+    tmp_path, metadata
+):
+    original = metadata.copy(deep=True)
+    model = _model()
+    model.build_candidates(
+        item_ids=["a", "b"], item_features=_features((0, 1)), metadata=metadata
+    )
+    before = model.recommend([["a"]], k=1)
+    path = tmp_path / "model.zip"
+    model.save(path)
+    restored = _MultiModalContent.load(path)
+
+    pd.testing.assert_frame_equal(restored.candidates.snapshot().metadata, original)
+    pd.testing.assert_frame_equal(model.candidates.snapshot().metadata, original)
+    pd.testing.assert_frame_equal(metadata, original)
+    after = restored.recommend([["a"]], k=1)
+    np.testing.assert_array_equal(after.item_ids, before.item_ids)
+    np.testing.assert_array_equal(after.scores, before.scores)
+
+
+@pytest.mark.parametrize("label", [np.inf, -np.inf, ("rank", np.inf), 1 + 2j])
+def test_unsupported_metadata_label_error_identifies_metadata(tmp_path, label):
+    model = _model()
+    model.build_candidates(
+        item_ids=["a", "b"],
+        item_features=_features((0, 1)),
+        metadata=pd.DataFrame(
+            [[1], [2]], columns=pd.Index([label], tupleize_cols=False)
+        ),
+    )
+    with pytest.raises(ValueError, match="unsupported metadata column/index label"):
+        model.save(tmp_path / "model.zip")
+
+
+@pytest.mark.parametrize("dtypes", [None, [], [None, "int64"], ["str", "invalid"]])
+def test_invalid_checkpoint_column_level_dtypes_preserve_catalog(tmp_path, dtypes):
+    metadata = pd.DataFrame(
+        [[1, 2], [3, 4]],
+        columns=pd.MultiIndex.from_tuples([("rank", np.nan), ("rank", 7)]),
+    )
+    catalog = MutableMultiModalCandidateCatalog()
+    before = catalog.install(
+        source_item_ids=["a", "b"],
+        candidate_features=_features((0, 1)),
+        metadata=metadata,
+    )
+    path = tmp_path / "catalog.zip"
+    with ModelCheckpointWriter(path, model_type="test_catalog") as writer:
+        catalog._save_checkpoint(writer)
+    with ModelCheckpointReader(path, expected_model_type="test_catalog") as reader:
+        state_path = reader._input_path("catalog/state.json")
+        state = json.loads(state_path.read_text())
+        state["metadata_columns"]["level_dtypes"] = dtypes
+        state_path.write_text(json.dumps(state))
+        with pytest.raises(ValueError, match="invalid checkpoint metadata column"):
+            catalog._load_checkpoint(reader)
+    assert catalog.snapshot() is before
+
+
+@pytest.mark.parametrize("with_metadata", [False, True])
+def test_legacy_catalog_checkpoint_metadata_still_loads(tmp_path, with_metadata):
+    metadata = (
+        pd.DataFrame({"label": ["p", "q"], "rank": [1, 2]}) if with_metadata else None
+    )
+    catalog = MutableMultiModalCandidateCatalog()
+    catalog.install(
+        source_item_ids=["a", "b"],
+        candidate_features=_features((0, 1)),
+        metadata=metadata,
+    )
+    path = tmp_path / "legacy.zip"
+    with ModelCheckpointWriter(path, model_type="test_catalog") as writer:
+        catalog._save_checkpoint(writer)
+        # Version 1 stored string labels directly in both Parquet and JSON.
+        state = json.loads(writer._path("catalog/state.json").read_text())
+        state["version"] = 1
+        del state["metadata_columns"]
+        if metadata is not None:
+            writer.write_dataframe("catalog/metadata.parquet", metadata)
+            state["metadata_dtypes"] = {
+                name: str(dtype) for name, dtype in metadata.dtypes.items()
+            }
+        writer.write_json("catalog/state.json", state)
+    with ModelCheckpointReader(path, expected_model_type="test_catalog") as reader:
+        restored = MutableMultiModalCandidateCatalog()._load_checkpoint(reader)
+    if metadata is None:
+        assert restored.metadata is None
+    else:
+        pd.testing.assert_frame_equal(restored.metadata, metadata)
+
+
+@pytest.mark.parametrize(
+    "corrupt, message",
+    [
+        pytest.param(
+            lambda state: state.pop("metadata_dtypes"),
+            "dtype description is missing",
+            id="missing-dtypes",
+        ),
+        pytest.param(
+            lambda state: state.update(metadata_dtypes=None),
+            "dtype description is missing",
+            id="null-dtypes-with-metadata",
+        ),
+        pytest.param(
+            lambda state: state.update(metadata_dtypes=[]),
+            "invalid.*dtype description",
+            id="invalid-dtype-schema",
+        ),
+        pytest.param(
+            lambda state: state["metadata_dtypes"].update(column_0=42),
+            "invalid.*dtype description",
+            id="non-string-dtype",
+        ),
+        pytest.param(
+            lambda state: state["metadata_dtypes"].update(column_0="not-a-dtype"),
+            "cannot restore.*dtypes",
+            id="unknown-dtype",
+        ),
+        pytest.param(
+            lambda state: state["metadata_dtypes"].pop("column_0"),
+            "columns do not match",
+            id="missing-storage-column",
+        ),
+        pytest.param(
+            lambda state: state.pop("metadata_columns"),
+            "invalid.*column description",
+            id="missing-column-description",
+        ),
+        pytest.param(
+            lambda state: state["metadata_columns"]["labels"].pop(),
+            "invalid.*column description",
+            id="wrong-label-count",
+        ),
+        pytest.param(
+            lambda state: state["metadata_columns"]["labels"][0].update(type="invalid"),
+            "invalid.*column description",
+            id="invalid-label-type",
+        ),
+        pytest.param(
+            lambda state: state["metadata_columns"].update(kind="invalid"),
+            "invalid.*column description",
+            id="invalid-index-kind",
+        ),
+    ],
+)
+def test_invalid_metadata_checkpoint_preserves_installed_catalog(
+    tmp_path, corrupt, message
+):
+    source = MutableMultiModalCandidateCatalog()
+    source.install(
+        source_item_ids=["x", "y"],
+        candidate_features=_features((0, 1)),
+        metadata=pd.DataFrame({7: [1, 2], "7": [3.5, 4.5]}),
+        dtype="float64",
+    )
+    path = tmp_path / "catalog.zip"
+    with ModelCheckpointWriter(path, model_type="test_catalog") as writer:
+        source._save_checkpoint(writer)
+
+    published = []
+    target = _installed(on_publish=published.append)
+    before = target.snapshot()
+    with ModelCheckpointReader(path, expected_model_type="test_catalog") as reader:
+        state_path = reader._input_path("catalog/state.json")
+        state = json.loads(state_path.read_text())
+        corrupt(state)
+        state_path.write_text(json.dumps(state))
+        with pytest.raises(ValueError, match=message):
+            target._load_checkpoint(reader)
+    assert target.snapshot() is before
+    assert target.source_item_ids.tolist() == ["a", "b", "c"]
+    assert len(published) == 1
+
+
+def test_absent_metadata_still_requires_dtype_description(tmp_path):
+    source = _installed()
+    path = tmp_path / "catalog.zip"
+    with ModelCheckpointWriter(path, model_type="test_catalog") as writer:
+        source._save_checkpoint(writer)
+    with ModelCheckpointReader(path, expected_model_type="test_catalog") as reader:
+        state_path = reader._input_path("catalog/state.json")
+        state = json.loads(state_path.read_text())
+        del state["metadata_dtypes"]
+        state_path.write_text(json.dumps(state))
+        target = MutableMultiModalCandidateCatalog()
+        with pytest.raises(ValueError, match="metadata dtype description is missing"):
+            target._load_checkpoint(reader)
+        assert not target.is_installed

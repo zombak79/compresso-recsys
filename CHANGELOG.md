@@ -18,6 +18,50 @@
   Feature transformations and alternative stored representations remain the
   concrete model's responsibility.
 
+### Fixed
+
+- Multimodal catalog checkpoints preserve NaN metadata column labels and index
+  names, including those produced by pandas pivots and transposes. NaN and `None`
+  remain distinct; unsupported label errors now identify metadata.
+- Multimodal checkpoint readers report missing or malformed schema fields and
+  unsupported wrapper config keys as descriptive `ValueError`s. Invalid catalog
+  loads preserve the installed snapshot and source vocabulary.
+- Multimodal catalogs reject explicit `dtype=None`, including null checkpoint
+  dtypes, before NumPy can silently select float64. Omitting dtype still selects
+  float32, and invalid installs or loads preserve existing catalog state.
+- Multimodal selections explicitly use int64 row indices on every platform,
+  preserving Torch/SRPTensor compatibility when NumPy defaults to int32.
+- Multimodal candidate selection holds the catalog lock only while capturing
+  the snapshot and fitted source vocabulary. Feature copies and ID mappings
+  are prepared outside the lock without mixing state across publications.
+  Publication callback documentation explains how to avoid worker deadlocks.
+- Multimodal catalog checkpoints preserve metadata column labels, order, and
+  dtypes using separate label metadata and unique Parquet storage names. Integer
+  labels and string equivalents no longer collide. The reader accepts earlier
+  checkpoints and reports invalid metadata schemas before publishing any state.
+- Reinstalling a multimodal candidate catalog advances its current version under
+  the publication lock. Reinstallation remains a complete replacement of the
+  source vocabulary, schema, and candidates; validation failures preserve them.
+- `MMConcatWrapper` avoids redundant block copies, unit-weight multiplication,
+  and dtype copies during concatenation while preserving caller-owned inputs.
+- `MMConcatWrapper.device` reflects the current inner model's device, and `to()`
+  retains the instance returned by the inner model. Device moves synchronize
+  the inner config so later refits use the selected device.
+- `MMConcatWrapperConfig` stores weights in an immutable mapping compatible with
+  copying, pickling, `dataclasses.asdict`, and hashing when the inner config is
+  hashable. The wrapper's `_checkpoint_config()` and `save()` now share the same
+  JSON-compatible configuration serialization.
+- Sparse mean imputation in `MMConcatWrapper` constructs CSR rows directly,
+  avoiding the repeated filler matrix and accidental float64 promotion of
+  float32 inputs. The additional nonzeros required by mean imputation remain.
+- `MMConcatWrapper` rejects unknown feature and availability-mask keys by default,
+  preventing misspellings from silently triggering imputation or changing fitted
+  means. Set `extra_modalities="ignore"` to select modalities from shared larger
+  dictionaries. Checkpoints preserve this policy.
+- `MMConcatWrapper` no longer converts dense candidate catalogs to CSR merely
+  because a modality was omitted. Imputation follows the supplied feature
+  format, or the saved fitting format when every modality is omitted.
+
 ## [0.3.5] — 2026-09-17
 
 ### Changed

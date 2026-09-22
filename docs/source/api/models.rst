@@ -225,6 +225,12 @@ configured order and delegates fitting, scoring, and catalog storage to the
 inner model. See :doc:`../multimodal-concat-wrapper` for an executed DBbook
 tutorial comparing ContentRecommender and TEASER with text, image, and both.
 
+Because that delegation includes the catalog, ``candidates`` is the inner
+model's single-matrix catalog holding the concatenated blocks, not a multimodal
+one. The wrapper is an adapter over an existing model rather than the reference
+for writing a new one -- a model that stores modalities itself should follow
+`Multimodal Cold-Start Subclasses`_ below.
+
 .. code-block:: python
 
    import numpy as np
@@ -259,12 +265,26 @@ rows with zeros; ``"mean"`` uses available training rows. Training rows are
 ``train_item_indices``, otherwise all feature rows. A differently named subset
 argument requires explicit ``feature_fit_indices``. All selected modality
 matrices must be present at initial fit to establish their widths, even when
-some rows are unavailable. Unselected keys in the input mappings are ignored.
+some rows are unavailable.
+
+``extra_modalities="error"`` is the default: unknown keys in either feature or
+mask mappings raise an error before fitting or candidate mutation. Omitting a
+selected modality still follows ``missing``; omitting its mask means all supplied
+rows are available. Set ``extra_modalities="ignore"`` explicitly to reuse larger
+feature and mask dictionaries for models selecting different modalities. This
+ignores every unselected key, including misspellings. The policy is saved in
+wrapper checkpoints; older checkpoints without it load with the strict default.
 
 Imputation happens before optional per-modality L2 normalization and block
 weighting. Nonfinite values are rejected even in masked rows; use finite
-placeholders for missing embeddings. Dense input stays dense; any sparse block
-produces a CSR concatenation. Mean imputation can add nonzeros to sparse inputs.
+placeholders for missing embeddings. Dense input stays dense, including when
+modalities are omitted; any supplied sparse block produces a CSR concatenation.
+If every selected modality is omitted in a candidate mutation, the wrapper uses
+the concatenation format established during fitting. This format is retained
+across save/load; older checkpoints without it use their current catalog format
+as a fallback. Sparse mean imputation constructs the replacement CSR rows
+directly in the configured precision. A dense mean still adds a stored value for
+every feature in each missing row; use ``missing="zero"`` to preserve sparsity.
 
 Use the wrapper's ``build_candidates`` and ``update_candidates`` with mappings
 and optional masks to reuse fitted preprocessing. ``model.candidates`` exposes
@@ -280,8 +300,20 @@ inner checkpoint, including optional optimizer state where the inner model
 supports it. Custom model classes must implement the normal persistence API;
 register them with ``MMConcatWrapper.register_model(MyModel)`` before loading in
 a fresh process. Model classes are resolved locally without dynamic imports
-from checkpoint contents. ``to(device)`` follows the inner model's device
-capabilities; NumPy-based TEASER does not support device moves.
+from checkpoint contents. ``device`` exposes the current inner model's device;
+``to(device)`` retains the inner method's returned instance and returns the
+wrapper. Its inner config is synchronized for subsequent refits, matching the
+base class's device-move behavior. Device capabilities follow the inner model;
+NumPy-based TEASER does not expose a device or support device moves.
+
+Wrapper configs support ``dataclasses.asdict``, ``copy.deepcopy``, and pickle
+when the supplied model class and config support those operations. Weights remain
+an immutable mapping after copying or unpickling; their insertion order does not
+affect config equality or hashing. Hashing requires the supplied ``model_config``
+to be hashable as well. The wrapper's ``_checkpoint_config()`` returns the same
+JSON-compatible settings written by ``save()``; inner model configuration lives
+in the nested model checkpoint. Model checkpoints continue to use the existing
+safe format, independently of Python config pickling.
 
 .. autoclass:: compresso_recsys.models.MMConcatWrapperConfig
    :members:
@@ -389,6 +421,10 @@ the caller is responsible for that semantic alignment. Each update supplies all
 modalities for its item rows. Availability masks and partial modality updates
 are not part of this default representation.
 
+Catalog precision defaults to ``float32``. Explicit dtype values must resolve
+to ``float32`` or ``float64``; passing ``None`` is rejected rather than selecting
+NumPy's default precision. Checkpoint loading applies the same validation.
+
 Candidate registration never trains or runs an encoder. Models that transform
 features must apply the same fitted transformation during initial installation,
 rebuilding and updates. Dimensions describe the stored results. Override the
@@ -407,6 +443,24 @@ catalog lock: if it raises, the new snapshot remains installed. This guarantee
 is per snapshot; inherited batched prediction does not pin one version across
 concurrent catalog mutations.
 
+``resolve_selection`` captures the candidate snapshot and fitted source
+vocabulary together under the lock, then prepares feature rows and ID mappings
+outside it. Concurrent publications leave that selection's captured state
+intact; selection preparation does not hold up other reads or catalog changes.
+
+Publication callbacks must not wait for a worker that reacquires the catalog
+lock through ``snapshot``, ``resolve_selection``, or a mutation: that worker
+would wait for the callback to release the lock. Pass the callback's immutable
+snapshot argument directly to workers that need its contents. Same-thread
+catalog reads are reentrant; callback execution remains under the lock.
+
+Reinstalling into the same multimodal catalog advances its current version.
+``install`` replaces the source vocabulary, schema, and all candidates, including
+additions published before it; candidates from an earlier fit are not merged.
+Version selection and publication share the catalog lock. This orders catalog
+changes but does not synchronize an entire model refit with prediction; the
+model must also coordinate changes to its other fitted state.
+
 The multimodal base's ``_save_checkpoint_state`` and ``_load_checkpoint_state``
 hooks persist the catalog schema and each matrix. A concrete model must declare
 ``checkpoint_type``, provide configuration/construction hooks, and persist its
@@ -415,6 +469,16 @@ additional fitted state. For the example above that includes
 ``super()`` from state hooks to retain default catalog persistence, or implement
 the complete representation's persistence yourself. Existing single-matrix
 checkpoint formats are unchanged.
+
+Multimodal catalog checkpoints use schema version 2 and retain support for
+reading version 1. Metadata columns have unique internal Parquet names; their
+original labels, order, index names, and value dtypes are restored on load.
+The label encoding supports strings, integers, finite floats, booleans, ``None``,
+NaN, and tuples of these values, including range and multi-level column indexes.
+Missing column labels produced by pandas pivots or transposes round-trip through
+checkpoints. ``None`` and NaN remain distinct, as do labels such as ``7`` and
+``"7"``. Missing or malformed metadata schema information raises ``ValueError``
+before changing an installed catalog.
 
 The mapping-only method annotations intentionally specialize the runtime base
 interface. This addition does not make ``BaseColdStartRecommender`` or the

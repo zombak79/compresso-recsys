@@ -33,7 +33,12 @@ from compresso_recsys.models.cold_start import (
     take_features,
 )
 from compresso_recsys.models.identifiers import ItemVocabulary, canonical_item_ids
-from compresso_recsys.persistence import ModelCheckpointReader, ModelCheckpointWriter
+from compresso_recsys.persistence import (
+    ModelCheckpointReader,
+    ModelCheckpointWriter,
+    _decoded_item_id,
+    _encoded_item_id,
+)
 
 __all__ = [
     "BaseMultiModalRecommender",
@@ -88,10 +93,107 @@ def _canonical_features(
 
 
 def _canonical_dtype(dtype: str | np.dtype) -> np.dtype:
+    # NumPy interprets None as float64; an unset config must not choose precision.
+    if dtype is None:
+        raise ValueError("dtype must be float32 or float64")
     resolved = np.dtype(dtype)
     if resolved not in (np.dtype("float32"), np.dtype("float64")):
         raise ValueError("dtype must be float32 or float64")
     return resolved
+
+
+def _encode_metadata_label(label: Hashable) -> dict:
+    """Reuse the safe scalar codec, adding null, NaN and tuple metadata labels."""
+    if label is None:
+        return {"type": "none"}
+    # Pandas can coerce missing column labels to NaN; keep it distinct from None.
+    if isinstance(label, (float, np.floating)) and np.isnan(label):
+        return {"type": "nan"}
+    if isinstance(label, tuple):
+        return {"type": "tuple", "value": [_encode_metadata_label(v) for v in label]}
+    try:
+        return _encoded_item_id(label)
+    except (TypeError, ValueError) as error:
+        raise ValueError(
+            f"unsupported metadata column/index label: {label!r} "
+            f"({type(label).__name__})"
+        ) from error
+
+
+def _decode_metadata_label(state: object) -> Hashable:
+    if isinstance(state, dict):
+        if state.get("type") == "none":
+            return None
+        if state.get("type") == "nan":
+            return np.nan
+        if state.get("type") == "tuple" and isinstance(state.get("value"), list):
+            return tuple(_decode_metadata_label(v) for v in state["value"])
+    return _decoded_item_id(state)
+
+
+def _metadata_columns_state(columns: pd.Index) -> dict:
+    state = {
+        "labels": [_encode_metadata_label(label) for label in columns],
+        "names": [_encode_metadata_label(name) for name in columns.names],
+    }
+    if isinstance(columns, pd.MultiIndex):
+        state["kind"] = "multi"
+        state["level_dtypes"] = [str(level.dtype) for level in columns.levels]
+    elif isinstance(columns, pd.RangeIndex):
+        state.update(
+            kind="range", start=columns.start, stop=columns.stop, step=columns.step
+        )
+    else:
+        state.update(kind="index", dtype=str(columns.dtype))
+    return state
+
+
+def _restore_metadata_columns(state: object, *, n_columns: int) -> pd.Index:
+    try:
+        if not isinstance(state, dict):
+            raise TypeError("column description must be an object")
+        labels, names = state["labels"], state["names"]
+        if not isinstance(labels, list) or not isinstance(names, list):
+            raise TypeError("column labels and names must be lists")
+        if len(labels) != n_columns:
+            raise ValueError("column count does not match metadata")
+        labels = [_decode_metadata_label(label) for label in labels]
+        names = [_decode_metadata_label(name) for name in names]
+        if state["kind"] == "multi":
+            columns = pd.MultiIndex.from_tuples(labels, names=names)
+            if "level_dtypes" in state:
+                dtypes = state["level_dtypes"]
+                if (
+                    not isinstance(dtypes, list)
+                    or len(dtypes) != columns.nlevels
+                    or any(not isinstance(dtype, str) for dtype in dtypes)
+                ):
+                    raise ValueError("invalid multi-level column dtypes")
+                # Iterating a level with NaN can turn its integer labels into
+                # floats. Restore the level dtype independently of missing codes.
+                columns = columns.set_levels(
+                    [
+                        level.astype(dtype)
+                        for level, dtype in zip(columns.levels, dtypes)
+                    ]
+                )
+            return columns
+        if len(names) != 1:
+            raise ValueError("flat columns must have one index name")
+        if state["kind"] == "range":
+            columns = pd.RangeIndex(
+                state["start"], state["stop"], state["step"], name=names[0]
+            )
+            if len(columns) != n_columns or columns.tolist() != labels:
+                raise ValueError("range does not match column labels")
+            return columns
+        if state["kind"] == "index" and isinstance(state.get("dtype"), str):
+            return pd.Index(
+                labels, dtype=state["dtype"], name=names[0], tupleize_cols=False
+            )
+        raise ValueError("unsupported column index description")
+    except (KeyError, TypeError, ValueError) as error:
+        raise ValueError("invalid checkpoint metadata column description") from error
 
 
 @dataclass(frozen=True, init=False)
@@ -188,7 +290,10 @@ class MultiModalCandidateCatalog:
 
 @dataclass(frozen=True)
 class MultiModalCandidateSelection:
-    """Selected feature rows and their mappings into one complete snapshot."""
+    """Selected feature rows and their mappings into one complete snapshot.
+
+    Row indices and both mappings use int64 for compatibility with Torch indices.
+    """
 
     catalog: MultiModalCandidateCatalog
     rows: np.ndarray
@@ -203,6 +308,9 @@ class MutableMultiModalCandidateCatalog:
     All mutations validate before publication. The optional callback runs
     *after* publication, under the catalog lock; if it raises, the new snapshot
     remains installed. Adding candidates never extends the source vocabulary.
+    Callbacks must not wait for workers that acquire this catalog's lock (for
+    example through snapshot/selection reads or mutations). Pass the supplied
+    immutable snapshot to workers instead. Same-thread reads are reentrant.
 
     Every build/update supplies all registered modalities for its item rows.
     There is no implicit encoding, normalization, fusion or popularity feature.
@@ -284,17 +392,30 @@ class MutableMultiModalCandidateCatalog:
 
         Dimensions are inferred from the supplied stored representations. A
         refit may install a new schema; later candidate mutations cannot.
+        Omitting ``dtype`` uses float32; an explicit None is rejected.
+
+        Reinstallation advances this catalog's current version and replaces
+        all candidates, including additions published before it. It does not
+        merge candidates from an earlier fit into a potentially new schema.
+        The lock orders catalog publications only; the model must coordinate
+        changes to its other fitted state with concurrent prediction itself.
         """
         vocabulary = ItemVocabulary.from_ids(source_item_ids, name="source_item_ids")
         resolved_dtype = _canonical_dtype(dtype)
-        snapshot = MultiModalCandidateCatalog(
-            item_ids=vocabulary.item_ids,
-            item_features=candidate_features,
-            metadata=metadata,
-            feature_space_id=feature_space_id,
-            dtype=resolved_dtype,
-        )
         with self._lock:
+            # Choose the version under the publication lock so a refit cannot
+            # reuse an earlier version or race another catalog mutation.
+            current = self._snapshot
+            snapshot = MultiModalCandidateCatalog(
+                item_ids=vocabulary.item_ids,
+                item_features=candidate_features,
+                metadata=metadata,
+                feature_space_id=feature_space_id,
+                version=1 if current is None else current.version + 1,
+                dtype=resolved_dtype,
+            )
+            # Validate the complete replacement before changing fitted source
+            # state; validation failure must leave the previous catalog intact.
             self._source_vocabulary = vocabulary
             self._dtype = resolved_dtype
             return self._publish(snapshot)
@@ -470,40 +591,45 @@ class MutableMultiModalCandidateCatalog:
         self,
         candidate_ids: Sequence[Hashable] | np.ndarray | None,
     ) -> MultiModalCandidateSelection:
+        """Capture consistent catalog/source state, then prepare rows unlocked."""
         with self._lock:
             current = self.snapshot()
-            assert self._source_vocabulary is not None
-            rows = (
-                np.arange(current.n_items)
-                if candidate_ids is None
-                else np.sort(current.rows_for(candidate_ids))
+            # A reinstall replaces both references. Capture the pair together,
+            # then use these immutable objects without blocking other readers
+            # or publications during feature copies and mapping construction.
+            source_vocabulary = self._source_vocabulary
+            assert source_vocabulary is not None
+        rows = (
+            np.arange(current.n_items, dtype=np.int64)
+            if candidate_ids is None
+            else np.sort(current.rows_for(candidate_ids))
+        )
+        features = (
+            current.item_features
+            if rows.size == current.n_items
+            else MappingProxyType(
+                {
+                    name: _freeze_features(take_features(matrix, rows))
+                    for name, matrix in current.item_features.items()
+                }
             )
-            features = (
-                current.item_features
-                if rows.size == current.n_items
-                else MappingProxyType(
-                    {
-                        name: _freeze_features(take_features(matrix, rows))
-                        for name, matrix in current.item_features.items()
-                    }
-                )
-            )
-            source_to_candidate = np.array(
-                [
-                    current.id_to_row.get(item_id, -1)
-                    for item_id in self._source_vocabulary.item_ids
-                ],
-                dtype=np.int64,
-            )
-            candidate_to_local = np.full(current.n_items, -1, dtype=np.int64)
-            candidate_to_local[rows] = np.arange(rows.size)
-            return MultiModalCandidateSelection(
-                current,
-                rows,
-                features,
-                source_to_candidate,
-                candidate_to_local,
-            )
+        )
+        source_to_candidate = np.array(
+            [
+                current.id_to_row.get(item_id, -1)
+                for item_id in source_vocabulary.item_ids
+            ],
+            dtype=np.int64,
+        )
+        candidate_to_local = np.full(current.n_items, -1, dtype=np.int64)
+        candidate_to_local[rows] = np.arange(rows.size, dtype=np.int64)
+        return MultiModalCandidateSelection(
+            current,
+            rows,
+            features,
+            source_to_candidate,
+            candidate_to_local,
+        )
 
     def _save_checkpoint(
         self,
@@ -527,17 +653,25 @@ class MutableMultiModalCandidateCatalog:
                     {"name": name, "n_features": matrix.shape[1], "storage": storage}
                 )
             metadata = current.metadata
+            metadata_columns = None
             if metadata is not None:
+                # Parquet stringifies labels: 7 and "7" would collide. Persist
+                # labels separately and use unique physical names for the data.
+                metadata_columns = _metadata_columns_state(metadata.columns)
+                metadata.columns = [
+                    f"column_{index}" for index in range(metadata.shape[1])
+                ]
                 writer.write_dataframe(f"{prefix}/metadata.parquet", metadata)
             writer.write_json(
                 f"{prefix}/state.json",
                 {
                     "format": "multimodal",
-                    "version": 1,
+                    "version": 2,
                     "modalities": modalities,
                     "dtype": self._dtype.str,
                     "feature_space_id": current.feature_space_id,
                     "catalog_version": current.version,
+                    "metadata_columns": metadata_columns,
                     "metadata_dtypes": None
                     if metadata is None
                     else {name: str(dtype) for name, dtype in metadata.dtypes.items()},
@@ -552,8 +686,11 @@ class MutableMultiModalCandidateCatalog:
     ) -> MultiModalCandidateCatalog:
         """Validate the full checkpoint before replacing any installed state."""
         state = reader.read_json(f"{prefix}/state.json")
-        if state.get("format") != "multimodal" or state.get("version") != 1:
+        if state.get("format") != "multimodal" or state.get("version") not in (1, 2):
             raise ValueError("unsupported multimodal catalog checkpoint format")
+        for key in ("dtype", "feature_space_id", "catalog_version"):
+            if key not in state:
+                raise ValueError(f"multimodal catalog checkpoint is missing {key!r}")
         dtype = _canonical_dtype(state["dtype"])
         modalities = state.get("modalities")
         if not isinstance(modalities, list) or not modalities:
@@ -561,37 +698,63 @@ class MutableMultiModalCandidateCatalog:
         features = {}
         for index, modality in enumerate(modalities):
             if not isinstance(modality, dict):
-                raise TypeError("checkpoint modality schema must be an object")
+                raise ValueError(  # noqa: TRY004 - invalid serialized checkpoint data
+                    "checkpoint modality schema must be an object"
+                )
             name = modality.get("name")
             if not isinstance(name, str) or not name.strip() or name in features:
                 raise ValueError(
                     "checkpoint modality names must be unique non-empty strings"
                 )
             matrix = reader.read_features(
-                f"{prefix}/features/{index}", storage=modality["storage"]
+                f"{prefix}/features/{index}", storage=modality.get("storage")
             )
             if matrix.ndim != 2 or matrix.shape[1] != modality.get("n_features"):
                 raise ValueError(
                     f"checkpoint modality {name!r} has incompatible dimensions"
                 )
             features[name] = matrix
+        if "metadata_dtypes" not in state:
+            raise ValueError("checkpoint metadata dtype description is missing")
         metadata_dtypes = state["metadata_dtypes"]
+        candidate_ids = reader.read_item_ids(f"{prefix}/candidate_item_ids.json")
         metadata = None
         if metadata_dtypes is not None:
-            if not isinstance(metadata_dtypes, dict):
+            if not isinstance(metadata_dtypes, dict) or any(
+                not isinstance(value, str) for value in metadata_dtypes.values()
+            ):
                 raise ValueError("invalid checkpoint metadata dtype description")
             metadata = reader.read_dataframe(f"{prefix}/metadata.parquet")
             if set(metadata.columns) != set(metadata_dtypes):
                 raise ValueError(
                     "checkpoint metadata columns do not match their schema"
                 )
-            metadata = metadata.astype(metadata_dtypes)
+            try:
+                metadata = metadata.astype(metadata_dtypes)
+            except (TypeError, ValueError) as error:
+                raise ValueError("cannot restore checkpoint metadata dtypes") from error
+            if state["version"] == 2:
+                expected = [f"column_{index}" for index in range(metadata.shape[1])]
+                if metadata.columns.tolist() != expected:
+                    raise ValueError("checkpoint metadata storage columns are invalid")
+                metadata.columns = _restore_metadata_columns(
+                    state.get("metadata_columns"), n_columns=metadata.shape[1]
+                )
+                # Parquet without an index cannot retain rows of a zero-column
+                # frame; its row count comes from the aligned candidate IDs.
+                if metadata.shape[1] == 0:
+                    metadata = metadata.reindex(range(candidate_ids.size))
+        elif (
+            reader.exists(f"{prefix}/metadata.parquet")
+            or state.get("metadata_columns") is not None
+        ):
+            raise ValueError("checkpoint metadata dtype description is missing")
         vocabulary = ItemVocabulary.from_ids(
             reader.read_item_ids(f"{prefix}/source_item_ids.json"),
             name="source_item_ids",
         )
         snapshot = MultiModalCandidateCatalog(
-            item_ids=reader.read_item_ids(f"{prefix}/candidate_item_ids.json"),
+            item_ids=candidate_ids,
             item_features=features,
             metadata=metadata,
             feature_space_id=state["feature_space_id"],
@@ -678,7 +841,12 @@ class BaseMultiModalRecommender(BaseColdStartRecommender):
         """Fit the model and install its initial multimodal candidate catalog."""
 
     def _on_catalog_published(self, catalog: MultiModalCandidateCatalog) -> None:  # type: ignore[override]
-        """Invalidate model caches after publication; raising does not roll it back."""
+        """Invalidate caches under the catalog lock; raising does not roll back.
+
+        Do not wait for another thread that reads or mutates this catalog: it
+        needs the same lock. Workers can instead use the immutable ``catalog``
+        argument directly without reacquiring the owner's lock.
+        """
 
     def build_candidates(  # type: ignore[override]
         self,
