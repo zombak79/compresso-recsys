@@ -16,9 +16,8 @@ from compresso import SRPTensor
 from compresso_recsys._reporting import (
     _INHERIT,
     _Inherit,
-    _Reporter,
+    TrainingProgress,
     _format_duration,
-    _resolve_reporter,
     _validate_log_every_n_steps,
 )
 from compresso_recsys.persistence import ModelCheckpointReader, ModelCheckpointWriter
@@ -372,26 +371,6 @@ class TEASERGDTrainer(BaseColdStartRecommender):
         self._n_training_users: int | None = None
         self._is_fitted = False
 
-    def _reporter(
-        self,
-        logger: Any,
-        show_progress: Any,
-        *,
-        default_show_progress: bool | None = None,
-    ) -> _Reporter:
-        return _resolve_reporter(
-            default_logger=self.logger,
-            logger=logger,
-            default_show_progress=(
-                self.cfg.show_progress
-                if default_show_progress is None
-                else default_show_progress
-            ),
-            show_progress=show_progress,
-            prefix=self.cfg.log_prefix,
-            log_every_n_steps=self.cfg.log_every_n_steps,
-        )
-
     @property
     def is_fitted(self) -> bool:
         return self._is_fitted
@@ -715,77 +694,44 @@ class TEASERGDTrainer(BaseColdStartRecommender):
             if self.cfg.decay
             else None
         )
-        fit_started = time.monotonic()
-        reporter.log(
-            "fit started: "
-            f"{training_interactions.shape[0]} users | {n_items} items | "
-            f"{training_interactions.nnz} interactions | {len(dataset)} batches of "
-            f"{self.cfg.batch_size} | {self.cfg.epochs} epochs | device {self.device}"
-        )
-        epoch_iter = reporter.wrap(
-            range(1, self.cfg.epochs + 1),
-            total=self.cfg.epochs,
-            desc=f"{self._fit_name} fit",
-        )
-        # A single batch bar is rewound and relabelled each epoch, rather than a
-        # finished bar being left behind per epoch.
-        batch_bar = reporter.bar(
-            total=len(dataset),
-            desc=f"{self._fit_name} epoch 1",
-        )
-        try:
-            for epoch in epoch_iter:
-                epoch_started = time.monotonic()
+        with TrainingProgress(
+            reporter,
+            label=self._fit_name,
+            epochs=self.cfg.epochs,
+            batches=len(dataset),
+        ) as progress:
+            progress.start(
+                f"{training_interactions.shape[0]} users | {n_items} items | "
+                f"{training_interactions.nnz} interactions | "
+                f"{len(dataset)} batches of {self.cfg.batch_size} | "
+                f"{self.cfg.epochs} epochs | device {self.device}"
+            )
+            for epoch in progress.epochs():
                 sums = self._empty_epoch_sums()
                 batches = 0
-                if batch_bar is not None:
-                    batch_bar.reset(total=len(dataset))
-                    batch_bar.set_description(f"{self._fit_name} epoch {epoch}")
+
+                def running() -> dict[str, float]:
+                    """Mean of each running sum, built only when logging."""
+                    return {key: value / batches for key, value in sums.items()}
+
                 for batch_index in range(len(dataset)):
                     batch = dataset[batch_index]
                     stats = self._train_step(batch, training_features)
                     for key, value in stats.items():
                         sums[key] += float(value)
                     batches += 1
-                    if batch_bar is not None:
-                        batch_bar.update(1)
-                    log_steps = reporter.log_every_n_steps
-                    if log_steps and batches % log_steps == 0:
-                        reporter.step(
-                            f"epoch {epoch}/{self.cfg.epochs} step "
-                            f"{batches}/{len(dataset)}",
-                            batches,
-                            len(dataset),
-                            epoch_started,
-                            {
-                                key: value / batches
-                                for key, value in sums.items()
-                            },
-                        )
+                    progress.batch(batches, metrics=running)
                 dataset.on_epoch_end()
-                record = {key: value / max(1, batches) for key, value in sums.items()}
+                record = {
+                    key: value / max(1, batches) for key, value in sums.items()
+                }
                 record["epoch"] = float(epoch)
                 record["lr"] = float(self.optimizer.param_groups[0]["lr"])
                 self.history.append(record)
-                reporter.epoch(
-                    f"epoch {epoch}/{self.cfg.epochs}",
-                    record,
-                    epoch_started,
-                )
-                if hasattr(epoch_iter, "set_postfix"):
-                    epoch_iter.set_postfix(loss=f"{record['loss']:.4f}")
+                progress.epoch_done(record)
                 if scheduler is not None:
                     scheduler.step()
-        finally:
-            if batch_bar is not None:
-                batch_bar.close()
-            if hasattr(epoch_iter, "close"):
-                epoch_iter.close()
-        self._is_fitted = True
-        reporter.log(
-            f"fit finished: {_format_duration(time.monotonic() - fit_started)} total | "
-            f"{len(self.history)} epochs recorded"
-        )
+            self._is_fitted = True
         return self
 
     def _train_step(

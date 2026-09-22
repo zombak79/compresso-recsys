@@ -24,9 +24,8 @@ may legitimately also be a target.
 from __future__ import annotations
 
 import math
-import time
 from dataclasses import dataclass, field
-from typing import Any, Hashable, Literal, Sequence
+from typing import Any, Hashable, Literal, Mapping, Sequence
 
 import numpy as np
 import torch
@@ -38,18 +37,15 @@ from compresso import SRPTensor
 from compresso_recsys._reporting import (
     _INHERIT,
     _Inherit,
-    _Reporter,
-    _format_duration,
-    _resolve_reporter,
+    TrainingProgress,
     _validate_log_every_n_steps,
 )
-from compresso_recsys.persistence import ModelCheckpointReader, ModelCheckpointWriter
+from compresso_recsys.persistence import ModelCheckpointReader
 from compresso_recsys.sequences import ItemSequences
 
 from ._schedule import LRSchedule, build_scheduler, check_schedule
 from ._validation import canonical_csr
 from .base import BaseSequentialRecommender
-from .identifiers import ItemVocabulary
 from .sequence_batching import SequenceBatcher
 from .simple_gpt import LayerNorm, MLP, TransformerConfig
 from .tokenizer import ItemTokenizer
@@ -336,16 +332,6 @@ class SimpleBidirectionalTransformerTrainer(BaseSequentialRecommender):
         """Whether the most recent fit used a separate target matrix."""
         return self._trained_with_explicit_targets
 
-    def _reporter(self, logger: Any, show_progress: Any) -> _Reporter:
-        return _resolve_reporter(
-            default_logger=self.logger,
-            logger=logger,
-            default_show_progress=self.cfg.show_progress,
-            show_progress=show_progress,
-            prefix=self.cfg.log_prefix,
-            log_every_n_steps=self.cfg.log_every_n_steps,
-        )
-
     def _prepare_targets(self, targets: csr_matrix) -> csr_matrix:
         """Canonicalize an explicit target matrix before training.
 
@@ -374,13 +360,7 @@ class SimpleBidirectionalTransformerTrainer(BaseSequentialRecommender):
     ) -> SimpleBidirectionalTransformerTrainer:
         """Train on source histories and optional explicit target sets."""
         reporter = self._reporter(logger, show_progress)
-        if not isinstance(sequences, ItemSequences):
-            raise TypeError(
-                "SimpleBidirectionalTransformerTrainer trains on ItemSequences, "
-                f"got {type(sequences).__name__}"
-            )
-        if sequences.n_rows == 0:
-            raise ValueError("cannot train on zero sequences")
+        self._check_training_sequences(sequences)
 
         explicit_targets = targets is not None
         if targets is None:
@@ -401,23 +381,7 @@ class SimpleBidirectionalTransformerTrainer(BaseSequentialRecommender):
                 ItemTokenizer(sequences.n_items),
                 max_length=self.DEFAULT_MAX_LENGTH,
             )
-        if self.batcher is None:  # pragma: no cover - defensive against mutation
-            raise RuntimeError("trainer batcher is unavailable")
-        if self.batcher.tokenizer.n_items != sequences.n_items:
-            raise ValueError(
-                "batcher tokenizer has "
-                f"{self.batcher.tokenizer.n_items} items, but training sequences "
-                f"have {sequences.n_items}"
-            )
-        tokenizer_ids = getattr(self.batcher.tokenizer, "item_ids", None)
-        if item_ids is not None and tokenizer_ids is not None:
-            supplied = ItemVocabulary.from_ids(item_ids).item_ids
-            if not np.array_equal(supplied, tokenizer_ids):
-                raise ValueError("item_ids must match the batcher tokenizer item IDs")
-        self._set_item_ids(
-            tokenizer_ids if item_ids is None else item_ids,
-            n_items=sequences.n_items,
-        )
+        self._adopt_batcher_vocabulary(sequences, item_ids)
         self._check_batcher(self.batcher)
 
         torch.manual_seed(int(self.cfg.seed))
@@ -435,32 +399,21 @@ class SimpleBidirectionalTransformerTrainer(BaseSequentialRecommender):
         starts = range(0, n_rows, batch_size)
         scheduler = self._build_scheduler(optimizer, len(starts) * self.cfg.epochs)
         target_mode = "explicit" if explicit_targets else "source reconstruction"
-        fit_started = time.monotonic()
-        reporter.log(
-            "fit started: "
-            f"{n_rows} sequences | {self._n_items} items | "
-            f"{training_targets.nnz} target memberships ({target_mode}) | "
-            f"{len(starts)} batches of {batch_size} | {self.cfg.epochs} epochs | "
-            f"device {self.device}"
-        )
-        epoch_iter = reporter.wrap(
-            range(1, self.cfg.epochs + 1),
-            total=self.cfg.epochs,
-            desc="SimpleBidirectionalTransformer fit",
-        )
-        batch_bar = reporter.bar(
-            total=len(starts), desc="SimpleBidirectionalTransformer epoch 1"
-        )
-        try:
-            for epoch in epoch_iter:
-                epoch_started = time.monotonic()
+        with TrainingProgress(
+            reporter,
+            label="SimpleBidirectionalTransformer",
+            epochs=self.cfg.epochs,
+            batches=len(starts),
+        ) as progress:
+            progress.start(
+                f"{n_rows} sequences | {self._n_items} items | "
+                f"{training_targets.nnz} target memberships ({target_mode}) | "
+                f"{len(starts)} batches of {batch_size} | "
+                f"{self.cfg.epochs} epochs | device {self.device}"
+            )
+            for epoch in progress.epochs():
                 self.model.train()
                 order = rng.permutation(n_rows)
-                if batch_bar is not None:
-                    batch_bar.reset(total=len(starts))
-                    batch_bar.set_description(
-                        f"SimpleBidirectionalTransformer epoch {epoch}"
-                    )
                 loss_sum, target_rows = 0.0, 0
                 last_training_lr = float(optimizer.param_groups[0]["lr"])
                 for step_index, start in enumerate(starts, start=1):
@@ -478,47 +431,17 @@ class SimpleBidirectionalTransformerTrainer(BaseSequentialRecommender):
                         batch_loss, batch_target_rows = step
                         loss_sum += batch_loss * batch_target_rows
                         target_rows += batch_target_rows
-                    if batch_bar is not None:
-                        batch_bar.update(1)
-                    log_steps = reporter.log_every_n_steps
-                    if log_steps and step_index % log_steps == 0:
-                        reporter.step(
-                            f"epoch {epoch}/{self.cfg.epochs} step "
-                            f"{step_index}/{len(starts)}",
-                            step_index,
-                            len(starts),
-                            epoch_started,
-                            {
-                                "loss": (
-                                    loss_sum / target_rows
-                                    if target_rows
-                                    else float("nan")
-                                )
-                            },
-                        )
-                mean_loss = loss_sum / target_rows if target_rows else float("nan")
+                    progress.batch(step_index, loss_sum, target_rows)
                 record = {
                     "epoch": float(epoch),
-                    "loss": mean_loss,
+                    "loss": (
+                        loss_sum / target_rows if target_rows else float("nan")
+                    ),
                     "target_rows": float(target_rows),
                     "lr": last_training_lr,
                 }
                 self.history.append(record)
-                reporter.epoch(
-                    f"epoch {epoch}/{self.cfg.epochs}", record, epoch_started
-                )
-                if hasattr(epoch_iter, "set_postfix"):
-                    epoch_iter.set_postfix({"loss": f"{mean_loss:.4f}"})
-        finally:
-            if batch_bar is not None:
-                batch_bar.close()
-            if hasattr(epoch_iter, "close"):
-                epoch_iter.close()
-
-        reporter.log(
-            f"fit finished: {_format_duration(time.monotonic() - fit_started)} total | "
-            f"{len(self.history)} epochs recorded"
-        )
+                progress.epoch_done(record)
         return self
 
     def _build_scheduler(
@@ -652,22 +575,6 @@ class SimpleBidirectionalTransformerTrainer(BaseSequentialRecommender):
             cols = candidates[local_cols]
         return SRPTensor(cols=cols, vals=vals, shape=(rows, n_items))
 
-    @staticmethod
-    def _mask_seen(logits: torch.Tensor, source: ItemSequences) -> None:
-        if source.values.size == 0:
-            return
-        n_items = int(logits.shape[1])
-        rows = np.repeat(np.arange(source.n_rows), source.row_lengths)
-        cols = np.asarray(source.values, dtype=np.int64)
-        scoreable = cols < n_items
-        rows, cols = rows[scoreable], cols[scoreable]
-        if cols.size == 0:
-            return
-        logits[
-            torch.as_tensor(rows, dtype=torch.long, device=logits.device),
-            torch.as_tensor(cols, dtype=torch.long, device=logits.device),
-        ] = -torch.inf
-
     @classmethod
     def _from_checkpoint_config(
         cls,
@@ -709,49 +616,34 @@ class SimpleBidirectionalTransformerTrainer(BaseSequentialRecommender):
         trainer.model = trainer._build_model()
         return trainer
 
-    def _checkpoint_module(self) -> nn.Module | None:
-        return self.model
+    def _checkpoint_trainer_state(self) -> dict[str, Any]:
+        """Add the padding side and the target mode ``fit`` ran in.
 
-    def _save_checkpoint_state(self, writer: ModelCheckpointWriter) -> None:
-        if self.batcher is None or not isinstance(
-            self.batcher.tokenizer, ItemTokenizer
-        ):
-            raise TypeError(
-                "SimpleBidirectionalTransformerTrainer checkpoints support "
-                "ItemTokenizer only"
-            )
-        assert self.batcher.max_length is not None
-        writer.write_json(
-            "state/trainer.json",
-            {
-                "max_length": int(self.batcher.max_length),
-                "padding": self.batcher.padding,
-                "history": self.history,
-                "trained_with_explicit_targets": self._trained_with_explicit_targets,
-            },
+        Padding is a stored choice here rather than an architectural constant:
+        unlike SASRec or SimpleGPT this model accepts either side, so a
+        checkpoint has to say which one produced its weights.
+        """
+        state = super()._checkpoint_trainer_state()
+        state["padding"] = self.batcher.padding
+        state["trained_with_explicit_targets"] = (
+            self._trained_with_explicit_targets
         )
-        writer.write_json(
-            "state/tokenizer.json",
-            self.batcher.tokenizer.to_dict(include_item_ids=False),
-        )
-        item_ids = self.batcher.tokenizer.item_ids
-        if item_ids is not None:
-            writer.write_item_ids("state/tokenizer_item_ids.json", item_ids)
+        return state
 
-    def _load_checkpoint_state(self, reader: ModelCheckpointReader) -> None:
-        state = reader.read_json("state/trainer.json")
-        history = state.get("history")
-        if not isinstance(history, list):
-            raise ValueError(
-                "SimpleBidirectionalTransformer training history must be a list"
-            )
+    def _restore_checkpoint_trainer_state(
+        self,
+        state: Mapping[str, Any],
+    ) -> None:
+        super()._restore_checkpoint_trainer_state(state)
         explicit = state.get("trained_with_explicit_targets")
         if not isinstance(explicit, bool):
             raise ValueError(
                 "SimpleBidirectionalTransformer target mode must be a bool"
             )
-        self.history = list(history)
         self._trained_with_explicit_targets = explicit
+
+    def _checkpoint_module(self) -> nn.Module | None:
+        return self.model
 
     def _build_checkpoint_optimizer(self) -> None:
         if self.model is None:

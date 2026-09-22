@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import time
 from collections.abc import Hashable, Sequence
 from dataclasses import dataclass, replace
 from typing import Any, Literal
@@ -14,18 +13,14 @@ from torch import nn
 from compresso_recsys._reporting import (
     _INHERIT,
     _Inherit,
-    _Reporter,
-    _format_duration,
-    _resolve_reporter,
+    TrainingProgress,
     _validate_log_every_n_steps,
 )
 from compresso_recsys.models.base import BaseSequentialRecommender
-from compresso_recsys.models.identifiers import ItemVocabulary
 from compresso_recsys.models.sequence_batching import SequenceBatcher
 from compresso_recsys.models.tokenizer import ItemTokenizer
 from compresso_recsys.persistence import (
     ModelCheckpointReader,
-    ModelCheckpointWriter,
 )
 from compresso_recsys.sequences import ItemSequences
 
@@ -501,16 +496,6 @@ class SASRecTrainer(BaseSequentialRecommender):
         """Number of scoreable candidates, or ``None`` before fitting."""
         return self._n_items
 
-    def _reporter(self, logger: Any, show_progress: Any) -> _Reporter:
-        return _resolve_reporter(
-            default_logger=self.logger,
-            logger=logger,
-            default_show_progress=self.cfg.show_progress,
-            show_progress=show_progress,
-            prefix=self.cfg.log_prefix,
-            log_every_n_steps=self.cfg.log_every_n_steps,
-        )
-
     # -- training -----------------------------------------------------------
 
     def fit(
@@ -540,13 +525,7 @@ class SASRecTrainer(BaseSequentialRecommender):
         training are not part of this contract.
         """
         reporter = self._reporter(logger, show_progress)
-        if not isinstance(sequences, ItemSequences):
-            raise TypeError(
-                "SASRecTrainer trains on ItemSequences, got "
-                f"{type(sequences).__name__}"
-            )
-        if sequences.n_rows == 0:
-            raise ValueError("cannot train on zero sequences")
+        self._check_training_sequences(sequences)
         if sequences.n_items < 2:
             raise ValueError(
                 "SASRec's sampled objective needs at least two items: every "
@@ -561,25 +540,7 @@ class SASRecTrainer(BaseSequentialRecommender):
                 ItemTokenizer(sequences.n_items),
                 max_length=self.cfg.max_history_length,
             )
-        if self.batcher is None:  # pragma: no cover - defensive against mutation
-            raise RuntimeError("trainer batcher is unavailable")
-        if self.batcher.tokenizer.n_items != sequences.n_items:
-            raise ValueError(
-                "batcher tokenizer has "
-                f"{self.batcher.tokenizer.n_items} items, but training "
-                f"sequences have {sequences.n_items}"
-            )
-        tokenizer_ids = getattr(self.batcher.tokenizer, "item_ids", None)
-        if item_ids is not None and tokenizer_ids is not None:
-            supplied = ItemVocabulary.from_ids(item_ids).item_ids
-            if not np.array_equal(supplied, tokenizer_ids):
-                raise ValueError(
-                    "item_ids must match the batcher tokenizer item IDs"
-                )
-        self._set_item_ids(
-            tokenizer_ids if item_ids is None else item_ids,
-            n_items=sequences.n_items,
-        )
+        self._adopt_batcher_vocabulary(sequences, item_ids)
         # Resolved before anything reads the window -- truncated_lengths just
         # below is the first thing that would. A batcher stating no window
         # inherits the config's, and the batcher is frozen, so this is a new
@@ -637,26 +598,20 @@ class SASRecTrainer(BaseSequentialRecommender):
         n_rows = sequences.n_rows
         batch_size = self.cfg.batch_size
         starts = range(0, n_rows, batch_size)
-        fit_started = time.monotonic()
-        reporter.log(
-            "fit started: "
-            f"{n_rows} sequences | {self._n_items} items | {len(starts)} batches of "
-            f"{batch_size} | {self.cfg.epochs} epochs | device {self.device}"
-        )
-        epoch_iter = reporter.wrap(
-            range(1, self.cfg.epochs + 1),
-            total=self.cfg.epochs,
-            desc="SASRec fit",
-        )
-        batch_bar = reporter.bar(total=len(starts), desc="SASRec epoch 1")
-        try:
-            for epoch in epoch_iter:
-                epoch_started = time.monotonic()
+        with TrainingProgress(
+            reporter,
+            label="SASRec",
+            epochs=self.cfg.epochs,
+            batches=len(starts),
+        ) as progress:
+            progress.start(
+                f"{n_rows} sequences | {self._n_items} items | "
+                f"{len(starts)} batches of {batch_size} | "
+                f"{self.cfg.epochs} epochs | device {self.device}"
+            )
+            for epoch in progress.epochs():
                 self.model.train()
                 order = rng.permutation(n_rows)
-                if batch_bar is not None:
-                    batch_bar.reset(total=len(starts))
-                    batch_bar.set_description(f"SASRec epoch {epoch}")
                 loss_sum, positions = 0.0, 0
                 for step_index, start in enumerate(starts, start=1):
                     batch = sequences.select_rows(
@@ -667,48 +622,16 @@ class SASRecTrainer(BaseSequentialRecommender):
                         batch_loss, batch_positions = step
                         loss_sum += batch_loss * batch_positions
                         positions += batch_positions
-                    if batch_bar is not None:
-                        batch_bar.update(1)
-                    log_steps = reporter.log_every_n_steps
-                    if log_steps and step_index % log_steps == 0:
-                        reporter.step(
-                            f"epoch {epoch}/{self.cfg.epochs} step "
-                            f"{step_index}/{len(starts)}",
-                            step_index,
-                            len(starts),
-                            epoch_started,
-                            {
-                                "loss": (
-                                    loss_sum / positions
-                                    if positions
-                                    else float("nan")
-                                )
-                            },
-                        )
-                mean_loss = loss_sum / positions if positions else float("nan")
+                    progress.batch(step_index, loss_sum, positions)
                 record = {
                     "epoch": float(epoch),
-                    "loss": mean_loss,
+                    "loss": (
+                        loss_sum / positions if positions else float("nan")
+                    ),
                     "positions": float(positions),
                 }
                 self.history.append(record)
-                reporter.epoch(
-                    f"epoch {epoch}/{self.cfg.epochs}",
-                    record,
-                    epoch_started,
-                )
-                if hasattr(epoch_iter, "set_postfix"):
-                    epoch_iter.set_postfix({"loss": f"{mean_loss:.4f}"})
-        finally:
-            if batch_bar is not None:
-                batch_bar.close()
-            if hasattr(epoch_iter, "close"):
-                epoch_iter.close()
-
-        reporter.log(
-            f"fit finished: {_format_duration(time.monotonic() - fit_started)} total | "
-            f"{len(self.history)} epochs recorded"
-        )
+                progress.epoch_done(record)
         return self
 
     def _check_batcher(self, batcher: SequenceBatcher) -> None:
@@ -1012,32 +935,6 @@ class SASRecTrainer(BaseSequentialRecommender):
 
         return SRPTensor(cols=cols, vals=vals, shape=(rows, n_items))
 
-    def _mask_seen(self, scores: torch.Tensor, source: ItemSequences) -> None:
-        """Forbid every item in the *full* history, truncated part included.
-
-        Scores are indexed by catalog position, and a history may span a wider
-        catalog than this model was fitted on -- a later split stage does exactly
-        that. Items beyond the fitted catalog are dropped from the mask rather
-        than clipped: they were never scoreable, so there is nothing to forbid.
-        """
-        if source.values.size == 0:
-            return
-        n_items = int(scores.shape[1])
-        # The flat values are already the concatenation of every history, so
-        # one scatter covers the batch. np.array copies, both because the
-        # buffers are read-only and because torch.from_numpy would share them.
-        rows = np.repeat(np.arange(source.n_rows), source.row_lengths)
-        cols = np.array(source.values, dtype=np.int64)
-        scoreable = cols < n_items
-        if not scoreable.all():
-            rows, cols = rows[scoreable], cols[scoreable]
-        if cols.size == 0:
-            return
-        scores[
-            torch.as_tensor(rows, dtype=torch.long, device=scores.device),
-            torch.as_tensor(cols, dtype=torch.long, device=scores.device),
-        ] = -torch.inf
-
     # -- persistence --------------------------------------------------------
 
     @classmethod
@@ -1083,42 +980,6 @@ class SASRecTrainer(BaseSequentialRecommender):
 
     def _checkpoint_module(self) -> nn.Module | None:
         return self.model
-
-    def _save_checkpoint_state(self, writer: ModelCheckpointWriter) -> None:
-        """Write the non-module state: ``max_length``, history, and tokenizer.
-
-        Item IDs go to their own entry when the tokenizer carries them, since
-        they may be arbitrary hashables rather than JSON scalars.
-        """
-        if self.batcher is None or not isinstance(
-            self.batcher.tokenizer, ItemTokenizer
-        ):
-            raise TypeError(
-                "SASRecTrainer checkpoints support ItemTokenizer only"
-            )
-        assert self.batcher.max_length is not None
-        writer.write_json(
-            "state/trainer.json",
-            {
-                "max_length": int(self.batcher.max_length),
-                "history": self.history,
-            },
-        )
-        writer.write_json(
-            "state/tokenizer.json",
-            self.batcher.tokenizer.to_dict(include_item_ids=False),
-        )
-        item_ids = self.batcher.tokenizer.item_ids
-        if item_ids is not None:
-            writer.write_item_ids("state/tokenizer_item_ids.json", item_ids)
-
-    def _load_checkpoint_state(self, reader: ModelCheckpointReader) -> None:
-        """Restore :attr:`history` from the archive."""
-        state = reader.read_json("state/trainer.json")
-        history = state.get("history")
-        if not isinstance(history, list):
-            raise TypeError("SASRec training history must be a list")
-        self.history = list(history)
 
     def _build_checkpoint_optimizer(self) -> None:
         """Construct the optimizer before optimizer state is loaded into it."""

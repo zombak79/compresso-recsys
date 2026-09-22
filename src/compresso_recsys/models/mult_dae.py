@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import time
 from dataclasses import asdict, dataclass
 from typing import Any, Hashable, Sequence
 
@@ -17,8 +16,7 @@ from compresso_recsys._reporting import (
     _INHERIT,
     _Inherit,
     _Reporter,
-    _format_duration,
-    _resolve_reporter,
+    TrainingProgress,
     _validate_log_every_n_steps,
 )
 from compresso_recsys.models._autoencoder_batching import (
@@ -144,16 +142,6 @@ class MultDAETrainer(BaseCollaborativeRecommender):
     def n_items(self) -> int | None:
         return self._n_items
 
-    def _reporter(self, logger: Any, show_progress: Any) -> _Reporter:
-        return _resolve_reporter(
-            default_logger=self.logger,
-            logger=logger,
-            default_show_progress=self.cfg.show_progress,
-            show_progress=show_progress,
-            prefix=self.cfg.log_prefix,
-            log_every_n_steps=self.cfg.log_every_n_steps,
-        )
-
     def _train_step(self, target: torch.Tensor) -> torch.Tensor:
         """Optimize one dense user batch and return reconstruction loss."""
         assert self.model is not None and self.optimizer is not None
@@ -244,36 +232,32 @@ class MultDAETrainer(BaseCollaborativeRecommender):
         steps_per_epoch = (active_rows.size + int(self.cfg.batch_size) - 1) // int(
             self.cfg.batch_size
         )
-        fit_started = time.monotonic()
-        reporter.log(
-            "fit started: "
-            f"{active_rows.size} active users | {interactions.shape[1]} items | "
-            f"{interactions.nnz} interactions | {steps_per_epoch} batches of "
-            f"{self.cfg.batch_size} | {self.cfg.epochs} epochs | device {self.device}"
-        )
-        training_data = prepare_dense_training_data(
-            interactions,
-            device=self.device,
-            preload=self.cfg.preload_training_data,
-        )
-        self.training_data_preloaded_ = training_data is not None
-
-        epochs = reporter.wrap(
-            range(1, int(self.cfg.epochs) + 1),
-            total=int(self.cfg.epochs),
-            desc="MultDAE fit",
-        )
-        batch_bar = reporter.bar(total=steps_per_epoch, desc="MultDAE epoch 1")
-        try:
-            for epoch in epochs:
-                epoch_started = time.monotonic()
+        with TrainingProgress(
+            reporter,
+            label="MultDAE",
+            epochs=int(self.cfg.epochs),
+            batches=steps_per_epoch,
+            metric="reconstruction_loss",
+        ) as progress:
+            progress.start(
+                f"{active_rows.size} active users | {interactions.shape[1]} items | "
+                f"{interactions.nnz} interactions | {steps_per_epoch} batches of "
+                f"{self.cfg.batch_size} | {self.cfg.epochs} epochs | "
+                f"device {self.device}"
+            )
+            # Inside the block, so preloading counts toward the reported total
+            # exactly as it did when fit timed itself.
+            training_data = prepare_dense_training_data(
+                interactions,
+                device=self.device,
+                preload=self.cfg.preload_training_data,
+            )
+            self.training_data_preloaded_ = training_data is not None
+            for epoch in progress.epochs():
                 self.model.train()
                 order = rng.permutation(active_rows)
                 reconstruction_sum = torch.zeros((), device=self.device)
                 users = 0
-                if batch_bar is not None:
-                    batch_bar.reset(total=steps_per_epoch)
-                    batch_bar.set_description(f"MultDAE epoch {epoch}")
                 for step, start in enumerate(
                     range(0, order.size, int(self.cfg.batch_size)),
                     start=1,
@@ -289,46 +273,16 @@ class MultDAETrainer(BaseCollaborativeRecommender):
                     batch_users = int(selected.size)
                     reconstruction_sum += reconstruction_loss * batch_users
                     users += batch_users
-                    if batch_bar is not None:
-                        batch_bar.update(1)
-                    log_steps = reporter.log_every_n_steps
-                    if log_steps and step % log_steps == 0:
-                        reporter.step(
-                            f"epoch {epoch}/{self.cfg.epochs} step {step}/{steps_per_epoch}",
-                            step,
-                            steps_per_epoch,
-                            epoch_started,
-                            {
-                                "reconstruction_loss": float(
-                                    (reconstruction_sum / users).item()
-                                )
-                            },
-                        )
-                mean_reconstruction = float((reconstruction_sum / users).item())
+                    progress.batch(step, reconstruction_sum, users)
                 record = {
                     "epoch": float(epoch),
-                    "reconstruction_loss": mean_reconstruction,
+                    "reconstruction_loss": float(
+                        (reconstruction_sum / users).item()
+                    ),
                 }
                 self.history.append(record)
-                reporter.epoch(
-                    f"epoch {epoch}/{self.cfg.epochs}",
-                    record,
-                    epoch_started,
-                )
-                if hasattr(epochs, "set_postfix"):
-                    epochs.set_postfix(
-                        {"reconstruction_loss": f"{mean_reconstruction:.4f}"}
-                    )
-        finally:
-            if batch_bar is not None:
-                batch_bar.close()
-            if hasattr(epochs, "close"):
-                epochs.close()
-        self._is_fitted = True
-        reporter.log(
-            f"fit finished: {_format_duration(time.monotonic() - fit_started)} total | "
-            f"{len(self.history)} epochs recorded"
-        )
+                progress.epoch_done(record)
+            self._is_fitted = True
         return self
 
     def _build_model(self) -> MultDAE:
