@@ -1,0 +1,1043 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Multimodal ContentRecommender and TEASER with MMConcatWrapper &mdash; Compresso Recsys 0.3.6 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/nbsphinx-code-cells.css?v=2aa19091" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=ad4f125e"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Reproducing SASRec Results on ML1M" href="reproducing-sasrec-results-on-ml1m.html" />
+    <link rel="prev" title="Implementing a Recommender" href="implementing-a-recommender.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Compresso Recsys
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#install-from-pypi">Install from PyPI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#optional-extras">Optional Extras</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#local-development">Local Development</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#install-from-github">Install from GitHub</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#build-the-documentation-locally">Build the Documentation Locally</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="getting-started.html">Getting Started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="getting-started.html#basic-python-usage">Basic Python Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started.html#checkpoint-workflow">Checkpoint Workflow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started.html#what-goes-into-a-checkpoint">What Goes Into a Checkpoint</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started.html#split-modes">Split Modes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started.html#retrieval-metrics">Retrieval Metrics</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#choose-a-split-mode">Choose a Split Mode</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User Guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#dataset-loader">Dataset Loader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#building-checkpoints">Building Checkpoints</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#checkpoint-read-write">Checkpoint Read/Write</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#evaluate-embeddings-from-python">Evaluate Embeddings From Python</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#evaluate-model-predictions">Evaluate Model Predictions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#train-teaser-for-cold-items">Train TEASER for Cold Items</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#train-teaser-with-gradient-descent">Train TEASER with Gradient Descent</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#serve-new-teaser-candidates">Serve New TEASER Candidates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#train-and-evaluate-elsa">Train and Evaluate ELSA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#using-item-embeddings">Using item embeddings</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="examples.html#precomputed-features">Precomputed features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples.html#user-computed-features">User-computed features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples.html#reading-and-evaluating-features">Reading and evaluating features</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="datasets.html">Datasets</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#reading-the-default-tables">Reading the default tables</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#movielens-1m">MovieLens 1M</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#movielens-20m">MovieLens 20M</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#goodbooks-10k">Goodbooks-10k</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#amazon-reviews-2023">Amazon Reviews 2023</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#steam">Steam</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#netflix-prize">Netflix Prize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#msd-taste-profile">MSD Taste Profile</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#gowalla">Gowalla</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#dbbook">DBbook</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#last-fm-2k">Last.fm-2K</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#using-item-embeddings">Using item embeddings</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="bring-your-own-dataset.html">Bringing Your Own Dataset</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="bring-your-own-dataset.html#What-a-dataset-has-to-produce">What a dataset has to produce</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bring-your-own-dataset.html#The-dataset">The dataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bring-your-own-dataset.html#The-dataset-class">The dataset class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bring-your-own-dataset.html#Two-defaults-that-will-empty-your-dataset">Two defaults that will empty your dataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bring-your-own-dataset.html#What-is-in-it">What is in it</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bring-your-own-dataset.html#Does-it-work?">Does it work?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bring-your-own-dataset.html#Cold-items,-for-free">Cold items, for free</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bring-your-own-dataset.html#What-timestamps-would-have-added">What timestamps would have added</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bring-your-own-dataset.html#You-do-not-need-a-dataset-class-at-all">You do not need a dataset class at all</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="implementing-a-recommender.html">Implementing a Recommender</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="implementing-a-recommender.html#What-the-base-class-owns">What the base class owns</a></li>
+<li class="toctree-l2"><a class="reference internal" href="implementing-a-recommender.html#Data">Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="implementing-a-recommender.html#Configuration">Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="implementing-a-recommender.html#The-complete-model">The complete model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="implementing-a-recommender.html#Low-level-prediction">Low-level prediction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="implementing-a-recommender.html#Stable-ID-recommendation">Stable-ID recommendation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="implementing-a-recommender.html#Standalone-persistence">Standalone persistence</a></li>
+<li class="toctree-l2"><a class="reference internal" href="implementing-a-recommender.html#Persistence-inside-a-data-checkpoint">Persistence inside a data checkpoint</a></li>
+<li class="toctree-l2"><a class="reference internal" href="implementing-a-recommender.html#Evaluation">Evaluation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="implementing-a-recommender.html#Executable-contract-checks">Executable contract checks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="implementing-a-recommender.html#Extending-the-pattern">Extending the pattern</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Multimodal ContentRecommender and TEASER with MMConcatWrapper</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#Load-aligned-embeddings-and-explicit-availability-masks">Load aligned embeddings and explicit availability masks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#The-same-wrapper,-two-different-fit-signatures">The same wrapper, two different fit signatures</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Register-cold-candidates-without-refitting">Register cold candidates without refitting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Compare-individual-modalities-with-their-concatenation">Compare individual modalities with their concatenation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Save-the-complete-wrapper-and-update-candidates-later">Save the complete wrapper and update candidates later</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="reproducing-sasrec-results-on-ml1m.html">Reproducing SASRec Results on ML1M</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="reproducing-sasrec-results-on-ml1m.html#Configuration-and-run-modes">Configuration and run modes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reproducing-sasrec-results-on-ml1m.html#Build-the-MovieLens-1M-checkpoint">Build the MovieLens 1M checkpoint</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reproducing-sasrec-results-on-ml1m.html#Inspect-the-split">Inspect the split</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reproducing-sasrec-results-on-ml1m.html#Train-SASRec">Train SASRec</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reproducing-sasrec-results-on-ml1m.html#Score-the-catalog">Score the catalog</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reproducing-sasrec-results-on-ml1m.html#Published-protocol:-100-sampled-negatives-at-10">Published protocol: 100 sampled negatives at 10</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reproducing-sasrec-results-on-ml1m.html#Package-protocol:-full-catalog-at-20">Package protocol: full catalog at 20</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reproducing-sasrec-results-on-ml1m.html#Check-the-epoch-budget-on-validation-data">Check the epoch budget on validation data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reproducing-sasrec-results-on-ml1m.html#Save-the-trained-model">Save the trained model</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="statistical-comparison.html">Comparing Models Statistically</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="statistical-comparison.html#why-the-aggregates-are-not-enough">Why the aggregates are not enough</a></li>
+<li class="toctree-l2"><a class="reference internal" href="statistical-comparison.html#do-the-comparison">Do the comparison</a></li>
+<li class="toctree-l2"><a class="reference internal" href="statistical-comparison.html#a-complete-worked-example">A complete worked example</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#build-the-split">Build the split</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#train-both-models">Train both models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#evaluate-both-on-identical-users">Evaluate both on identical users</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#compare">Compare</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#reading-it">Reading it</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="statistical-comparison.html#reading-the-output">Reading the output</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#the-effect">The effect</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#how-precisely-you-know-it">How precisely you know it</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#how-often-the-two-models-tied">How often the two models tied</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#whether-it-could-be-chance">Whether it could be chance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#the-verdict">The verdict</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="statistical-comparison.html#five-traps">Five traps</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#p-values-have-a-floor">p-values have a floor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#ties-are-not-missing-data">Ties are not missing data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#the-interval-and-the-p-value-can-disagree">The interval and the p-value can disagree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#confidence-level-also-moves-the-significance-bar"><code class="docutils literal notranslate"><span class="pre">confidence_level</span></code> also moves the significance bar</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#one-trained-model-is-not-the-method">One trained model is not the method</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="statistical-comparison.html#choosing-the-settings">Choosing the settings</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#n-resamples"><code class="docutils literal notranslate"><span class="pre">n_resamples</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#test-method"><code class="docutils literal notranslate"><span class="pre">test_method</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#test-method-why-not-a-t-test"><code class="docutils literal notranslate"><span class="pre">test_method</span></code>: why not a t-test?</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#alternative"><code class="docutils literal notranslate"><span class="pre">alternative</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#correction"><code class="docutils literal notranslate"><span class="pre">correction</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="statistical-comparison.html#when-one-user-owns-several-rows">When one user owns several rows</a></li>
+<li class="toctree-l2"><a class="reference internal" href="statistical-comparison.html#what-the-methods-do-formally">What the methods do, formally</a></li>
+<li class="toctree-l2"><a class="reference internal" href="statistical-comparison.html#reporting-the-result">Reporting the result</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#methods">Methods</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#results">Results</a></li>
+<li class="toctree-l3"><a class="reference internal" href="statistical-comparison.html#checklist">Checklist</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="statistical-comparison.html#references">References</a></li>
+<li class="toctree-l2"><a class="reference internal" href="statistical-comparison.html#see-also">See also</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="citing.html">Citing Compresso Recsys</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#compresso">Compresso</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#ease">EASE</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#neighborhood-models">Neighborhood Models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#mult-vae-mult-dae-and-autorec">Mult-VAE, Mult-DAE, and AutoRec</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#teaser">TEASER</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#elsa">ELSA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#elsa-with-sampled-output-candidates">ELSA with sampled output candidates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#compressed-elsa">Compressed ELSA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#sasrec">SASRec</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#simplernn">SimpleRNN</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#simplegpt-and-simplebidirectionaltransformer">SimpleGPT and SimpleBidirectionalTransformer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#content-popularity-and-random-baselines">Content, Popularity, and Random Baselines</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#datasets">Datasets</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="citing.html#movielens-1m-and-20m">MovieLens 1M and 20M</a></li>
+<li class="toctree-l3"><a class="reference internal" href="citing.html#goodbooks-10k">Goodbooks-10k</a></li>
+<li class="toctree-l3"><a class="reference internal" href="citing.html#amazon-reviews-2023">Amazon Reviews 2023</a></li>
+<li class="toctree-l3"><a class="reference internal" href="citing.html#steam">Steam</a></li>
+<li class="toctree-l3"><a class="reference internal" href="citing.html#netflix-prize">Netflix Prize</a></li>
+<li class="toctree-l3"><a class="reference internal" href="citing.html#msd-taste-profile">MSD / Taste Profile</a></li>
+<li class="toctree-l3"><a class="reference internal" href="citing.html#gowalla">Gowalla</a></li>
+<li class="toctree-l3"><a class="reference internal" href="citing.html#additional-movie-and-book-descriptions">Additional Movie and Book Descriptions</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#evaluation-protocol">Evaluation Protocol</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="citing.html#dataset-preprocessing">Dataset preprocessing</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#statistical-comparison">Statistical Comparison</a></li>
+<li class="toctree-l2"><a class="reference internal" href="citing.html#swap-multimodal-ml-1m-dbbook-and-last-fm-2k">SWAP multimodal ML-1M, DBbook, and Last.fm-2K</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="cli-reference.html">Checkpoint CLI Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="cli-reference.html#temporary-movielens-download-workaround">Temporary MovieLens download workaround</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cli-reference.html#steam">Steam</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cli-reference.html#amazon-reviews-2023">Amazon Reviews 2023</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cli-reference.html#leave-last-out-checkpoint">Leave-Last-Out Checkpoint</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cli-reference.html#temporal-checkpoint">Temporal Checkpoint</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cli-reference.html#checkpoint-split-schema">Checkpoint Split Schema</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cli-reference.html#builder-parameters">Builder Parameters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cli-reference.html#supported-amazon-reviews-2023-datasets">Supported Amazon Reviews 2023 Datasets</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="api/index.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/compresso_recsys.html">Core API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/compresso_recsys.html#datasets">Datasets</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.SplitBundle"><code class="docutils literal notranslate"><span class="pre">SplitBundle</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.RecSysDataset"><code class="docutils literal notranslate"><span class="pre">RecSysDataset</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.Goodbooks"><code class="docutils literal notranslate"><span class="pre">Goodbooks</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.MovieLens1M"><code class="docutils literal notranslate"><span class="pre">MovieLens1M</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.MovieLens20M"><code class="docutils literal notranslate"><span class="pre">MovieLens20M</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.AmazonReviews2023"><code class="docutils literal notranslate"><span class="pre">AmazonReviews2023</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/compresso_recsys.html#checkpoint-helpers">Checkpoint Helpers</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.build_recsys_checkpoint"><code class="docutils literal notranslate"><span class="pre">build_recsys_checkpoint()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.update_checkpoint"><code class="docutils literal notranslate"><span class="pre">update_checkpoint()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.read_checkpoint"><code class="docutils literal notranslate"><span class="pre">read_checkpoint()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.load_manifest"><code class="docutils literal notranslate"><span class="pre">load_manifest()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.save_manifest"><code class="docutils literal notranslate"><span class="pre">save_manifest()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.update_stage_manifest"><code class="docutils literal notranslate"><span class="pre">update_stage_manifest()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.save_json"><code class="docutils literal notranslate"><span class="pre">save_json()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.load_json"><code class="docutils literal notranslate"><span class="pre">load_json()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.save_recsys_split"><code class="docutils literal notranslate"><span class="pre">save_recsys_split()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.load_recsys_split"><code class="docutils literal notranslate"><span class="pre">load_recsys_split()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.save_cluster_graph_stage"><code class="docutils literal notranslate"><span class="pre">save_cluster_graph_stage()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.load_cluster_graph_stage"><code class="docutils literal notranslate"><span class="pre">load_cluster_graph_stage()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api/datasets.html">Datasets API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/datasets.html#compresso_recsys.datasets.DBbook"><code class="docutils literal notranslate"><span class="pre">DBbook</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/datasets.html#compresso_recsys.datasets.DBbook.timestamp_precision"><code class="docutils literal notranslate"><span class="pre">DBbook.timestamp_precision</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/datasets.html#compresso_recsys.datasets.DBbook.get_official_split"><code class="docutils literal notranslate"><span class="pre">DBbook.get_official_split()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/datasets.html#compresso_recsys.datasets.LastFM2K"><code class="docutils literal notranslate"><span class="pre">LastFM2K</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/datasets.html#compresso_recsys.datasets.LastFM2K.timestamp_precision"><code class="docutils literal notranslate"><span class="pre">LastFM2K.timestamp_precision</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api/checkpoint.html">Checkpoint API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/checkpoint.html#item-embeddings">Item embeddings</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/checkpoint.html#compresso_recsys.embeddings.save_item_embeddings"><code class="docutils literal notranslate"><span class="pre">save_item_embeddings()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/checkpoint.html#compresso_recsys.embeddings.load_item_embeddings"><code class="docutils literal notranslate"><span class="pre">load_item_embeddings()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/checkpoint.html#compresso_recsys.embeddings.list_item_embeddings"><code class="docutils literal notranslate"><span class="pre">list_item_embeddings()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/checkpoint.html#compresso_recsys.multimodal.enrich_multimodal_checkpoint"><code class="docutils literal notranslate"><span class="pre">enrich_multimodal_checkpoint()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/checkpoint.html#checkpoint-contexts">Checkpoint Contexts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/checkpoint.html#manifest-and-json-helpers">Manifest and JSON Helpers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/checkpoint.html#split-and-cluster-stages">Split and Cluster Stages</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/checkpoint.html#item-partitions">Item partitions</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api/persistence.html">Fitted Model Persistence</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/persistence.html#embedding-models-in-data-checkpoints">Embedding Models in Data Checkpoints</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/persistence.html#stable-item-ids">Stable Item IDs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/persistence.html#optimizer-state">Optimizer State</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/persistence.html#checkpoint-format">Checkpoint Format</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/persistence.html#compresso_recsys.ModelCheckpointWriter"><code class="docutils literal notranslate"><span class="pre">ModelCheckpointWriter</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/persistence.html#compresso_recsys.ModelCheckpointReader"><code class="docutils literal notranslate"><span class="pre">ModelCheckpointReader</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/persistence.html#extending-persistence">Extending Persistence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/persistence.html#warm-catalog-adapters">Warm Catalog Adapters</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api/sequences.html">Sequences API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/sequences.html#interaction-histories">Interaction Histories</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/sequences.html#compresso_recsys.ItemSequences"><code class="docutils literal notranslate"><span class="pre">ItemSequences</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/sequences.html#compresso_recsys.save_item_sequences"><code class="docutils literal notranslate"><span class="pre">save_item_sequences()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/sequences.html#compresso_recsys.load_item_sequences"><code class="docutils literal notranslate"><span class="pre">load_item_sequences()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/sequences.html#which-split-modes-produce-them">Which Split Modes Produce Them</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api/models.html">Models API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#recommender-contract">Recommender Contract</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.Recommender"><code class="docutils literal notranslate"><span class="pre">Recommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.ColdStartRecommender"><code class="docutils literal notranslate"><span class="pre">ColdStartRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.ItemVocabulary"><code class="docutils literal notranslate"><span class="pre">ItemVocabulary</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.SequentialRecommender"><code class="docutils literal notranslate"><span class="pre">SequentialRecommender</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#production-recommendations">Production Recommendations</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.IdentifiedRecommender"><code class="docutils literal notranslate"><span class="pre">IdentifiedRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.Recommendations"><code class="docutils literal notranslate"><span class="pre">Recommendations</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#training-and-prediction-progress">Training and Prediction Progress</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#fitted-model-persistence">Fitted Model Persistence</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.PersistableRecommender"><code class="docutils literal notranslate"><span class="pre">PersistableRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.BasePersistableRecommender"><code class="docutils literal notranslate"><span class="pre">BasePersistableRecommender</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#implementing-new-models">Implementing New Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.BaseIdentifiedRecommender"><code class="docutils literal notranslate"><span class="pre">BaseIdentifiedRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.BaseCollaborativeRecommender"><code class="docutils literal notranslate"><span class="pre">BaseCollaborativeRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#compresso_recsys.models.BaseColdStartRecommender"><code class="docutils literal notranslate"><span class="pre">BaseColdStartRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#multimodal-concatenation-wrapper">Multimodal Concatenation Wrapper</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#multimodal-cold-start-subclasses">Multimodal Cold-Start Subclasses</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#sequential-subclasses">Sequential Subclasses</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#the-owned-candidate-catalog">The Owned Candidate Catalog</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#training-interaction-batches">Training Interaction Batches</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#transductive-models-in-expanding-catalogs">Transductive Models in Expanding Catalogs</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#when-to-reach-for-it-outside-temporal">When to Reach for It Outside <code class="docutils literal notranslate"><span class="pre">temporal</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#collaborative-filtering-models">Collaborative Filtering Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#baselines">Baselines</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#neighborhood-models">Neighborhood Models</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#multinomial-autoencoders">Multinomial Autoencoders</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#ease">EASE</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#elsa">ELSA</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#cold-start-models">Cold-Start Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#contentrecommender">ContentRecommender</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#teaser">TEASER</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#teasergd">TEASERGD</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/models.html#sequential-models">Sequential Models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#tokenizing-histories">Tokenizing Histories</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#simplernn">SimpleRNN</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#simplegpt">SimpleGPT</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#sasrec">SASRec</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/models.html#simplebidirectionaltransformer">SimpleBidirectionalTransformer</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api/retrieval.html">Retrieval API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/retrieval.html#holdout-builders">Holdout Builders</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/retrieval.html#compresso_recsys.retrieval.build_eval_holdout"><code class="docutils literal notranslate"><span class="pre">build_eval_holdout()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/retrieval.html#compresso_recsys.retrieval.build_item_cold_holdout"><code class="docutils literal notranslate"><span class="pre">build_item_cold_holdout()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/retrieval.html#compresso_recsys.retrieval.build_leave_last_out_holdout"><code class="docutils literal notranslate"><span class="pre">build_leave_last_out_holdout()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/retrieval.html#compresso_recsys.retrieval.build_temporal_holdout"><code class="docutils literal notranslate"><span class="pre">build_temporal_holdout()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/retrieval.html#embedding-evaluation">Embedding Evaluation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/retrieval.html#compresso_recsys.retrieval.evaluate_item_embeddings"><code class="docutils literal notranslate"><span class="pre">evaluate_item_embeddings()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/retrieval.html#compresso_recsys.retrieval.evaluate_item_embeddings_with_holdout"><code class="docutils literal notranslate"><span class="pre">evaluate_item_embeddings_with_holdout()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api/evaluation.html">Ranking Evaluation API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/evaluation.html#predictions-and-targets">Predictions and Targets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/evaluation.html#evaluation-results">Evaluation Results</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/evaluation.html#compresso_recsys.evaluation.EvaluationResult"><code class="docutils literal notranslate"><span class="pre">EvaluationResult</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/evaluation.html#custom-metrics">Custom Metrics</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/evaluation.html#compresso_recsys.evaluation.evaluate_recommender"><code class="docutils literal notranslate"><span class="pre">evaluate_recommender()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/evaluation.html#compresso_recsys.evaluation.evaluate_ranked_predictions"><code class="docutils literal notranslate"><span class="pre">evaluate_ranked_predictions()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/evaluation.html#compresso_recsys.evaluation.RankingEvaluator"><code class="docutils literal notranslate"><span class="pre">RankingEvaluator</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/evaluation.html#metrics">Metrics</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/evaluation.html#default-metrics">Default Metrics</a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/evaluation.html#optional-metrics">Optional Metrics</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api/statistics.html">Statistics API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api/statistics.html#comparison-functions">Comparison Functions</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/statistics.html#compresso_recsys.stats.compare_models"><code class="docutils literal notranslate"><span class="pre">compare_models()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/statistics.html#compresso_recsys.stats.compare_pair"><code class="docutils literal notranslate"><span class="pre">compare_pair()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/statistics.html#results">Results</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/statistics.html#compresso_recsys.stats.PairwiseComparison"><code class="docutils literal notranslate"><span class="pre">PairwiseComparison</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/statistics.html#compresso_recsys.stats.ComparisonReport"><code class="docutils literal notranslate"><span class="pre">ComparisonReport</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/statistics.html#parameter-values">Parameter Values</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Compresso Recsys</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Multimodal ContentRecommender and TEASER with MMConcatWrapper</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/multimodal-concat-wrapper.ipynb" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="admonition tip">
+  <p class="admonition-title">Run this notebook</p>
+  <p>
+    Download it with the <em>View page source</em> link at the top right,
+    or from the repository at
+    <code>docs/source/multimodal-concat-wrapper.ipynb</code>.
+  </p>
+</div><section id="Multimodal-ContentRecommender-and-TEASER-with-MMConcatWrapper">
+<h1>Multimodal ContentRecommender and TEASER with MMConcatWrapper<a class="headerlink" href="#Multimodal-ContentRecommender-and-TEASER-with-MMConcatWrapper" title="Link to this heading"></a></h1>
+<p><code class="docutils literal notranslate"><span class="pre">MMConcatWrapper</span></code> makes an existing matrix-based cold-start recommender consume a dictionary of modality embeddings. It validates the selected matrices, handles missing rows, optionally normalizes each modality, and concatenates them in a fixed order. The wrapped model still learns and scores in its usual way.</p>
+<p>Here we use real <strong>DBbook</strong> interactions and pretrained <strong>MiniLM text</strong> and <strong>ViT image</strong> vectors from the <a class="reference external" href="https://zenodo.org/records/15403972">SWAP multimodal dataset release</a>. We train both <code class="docutils literal notranslate"><span class="pre">ContentRecommender</span></code> and <code class="docutils literal notranslate"><span class="pre">TEASER</span></code>, register unseen books from their embeddings, and measure cold-item recommendations. Neither raw-text embedding generation nor a GPU is needed.</p>
+<p>This is a small API tutorial, not a reproduction of the paper’s results. We use support filtering and a new random item split, rather than DBbook’s official train/test protocol. Filtering uses the interaction dataset before splitting; this is not a temporal or prospective evaluation.</p>
+<p>Install the package from the checkout containing the wrapper with <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">-e</span> <span class="pre">&quot;.[docs]&quot;</span></code>, then select that environment as the notebook kernel. The first run downloads the DBbook interaction archive and roughly 348 MB of multimodal JSON data. Subsequent runs reuse the cache. Run from the repository root to reuse its <code class="docutils literal notranslate"><span class="pre">data/</span></code> directory, or use any writable working directory.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">time</span><span class="w"> </span><span class="kn">import</span> <span class="n">perf_counter</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">IPython.display</span><span class="w"> </span><span class="kn">import</span> <span class="n">display</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">compresso_recsys</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cr</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.evaluation</span><span class="w"> </span><span class="kn">import</span> <span class="n">evaluate_recommender</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">CalibratedRecall</span><span class="p">,</span> <span class="n">NDCG</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.models</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">ContentRecommender</span><span class="p">,</span> <span class="n">ContentRecommenderConfig</span><span class="p">,</span>
+    <span class="n">MMConcatWrapper</span><span class="p">,</span> <span class="n">MMConcatWrapperConfig</span><span class="p">,</span>
+    <span class="n">TEASER</span><span class="p">,</span> <span class="n">TEASERConfig</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">OUTPUT_DIR</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">"artifacts/tutorials"</span><span class="p">)</span>
+<span class="n">OUTPUT_DIR</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">checkpoint</span> <span class="o">=</span> <span class="n">OUTPUT_DIR</span> <span class="o">/</span> <span class="s2">"mm-concat-dbbook.zip"</span>
+</pre></div>
+</div>
+</div>
+<section id="Load-aligned-embeddings-and-explicit-availability-masks">
+<h2>Load aligned embeddings and explicit availability masks<a class="headerlink" href="#Load-aligned-embeddings-and-explicit-availability-masks" title="Link to this heading"></a></h2>
+<p>We use <code class="docutils literal notranslate"><span class="pre">split_mode=&quot;item_split&quot;</span></code> with the builder’s default filtering, split fractions, and random seed for DBbook. The validation partition is unused here; model settings are fixed without test-set tuning. Delete the cached checkpoint if you change the preparation settings.</p>
+<p>Each loaded modality is aligned by stable item ID. The <code class="docutils literal notranslate"><span class="pre">available</span></code> vector tells us which rows have embeddings; a zero vector by itself does not imply missingness.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="ow">not</span> <span class="n">checkpoint</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+    <span class="n">cr</span><span class="o">.</span><span class="n">build_recsys_checkpoint</span><span class="p">(</span>
+        <span class="n">dataset</span><span class="o">=</span><span class="s2">"dbbook"</span><span class="p">,</span>
+        <span class="n">data_dir</span><span class="o">=</span><span class="s2">"data"</span><span class="p">,</span>
+        <span class="n">checkpoint_path</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">checkpoint</span><span class="p">),</span>
+        <span class="n">split_mode</span><span class="o">=</span><span class="s2">"item_split"</span><span class="p">,</span>
+        <span class="n">multimodal_features</span><span class="o">=</span><span class="p">[</span><span class="s2">"text/minilm"</span><span class="p">,</span> <span class="s2">"image/vit_cls"</span><span class="p">],</span>
+        <span class="n">show_progress</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span>
+
+<span class="k">with</span> <span class="n">cr</span><span class="o">.</span><span class="n">read_checkpoint</span><span class="p">(</span><span class="n">checkpoint</span><span class="p">)</span> <span class="k">as</span> <span class="n">root</span><span class="p">:</span>
+    <span class="n">split</span> <span class="o">=</span> <span class="n">cr</span><span class="o">.</span><span class="n">load_recsys_split</span><span class="p">(</span><span class="n">root</span><span class="p">)</span>
+    <span class="n">item_ids</span> <span class="o">=</span> <span class="n">split</span><span class="p">[</span><span class="s2">"item_ids"</span><span class="p">]</span>
+    <span class="n">loaded</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">"text"</span><span class="p">:</span> <span class="n">cr</span><span class="o">.</span><span class="n">load_item_embeddings</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="s2">"text/minilm"</span><span class="p">,</span> <span class="n">item_ids</span><span class="o">=</span><span class="n">item_ids</span><span class="p">),</span>
+        <span class="s2">"image"</span><span class="p">:</span> <span class="n">cr</span><span class="o">.</span><span class="n">load_item_embeddings</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="s2">"image/vit_cls"</span><span class="p">,</span> <span class="n">item_ids</span><span class="o">=</span><span class="n">item_ids</span><span class="p">),</span>
+    <span class="p">}</span>
+
+<span class="n">features</span> <span class="o">=</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">value</span><span class="p">[</span><span class="s2">"embeddings"</span><span class="p">]</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">loaded</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+<span class="n">available</span> <span class="o">=</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">value</span><span class="p">[</span><span class="s2">"available"</span><span class="p">]</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">loaded</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+<span class="n">warm</span> <span class="o">=</span> <span class="n">split</span><span class="p">[</span><span class="s2">"warm_item_indices"</span><span class="p">]</span>
+<span class="n">cold</span> <span class="o">=</span> <span class="n">split</span><span class="p">[</span><span class="s2">"test_cold_item_indices"</span><span class="p">]</span>
+<span class="n">x_train</span> <span class="o">=</span> <span class="n">split</span><span class="p">[</span><span class="s2">"x_train"</span><span class="p">][:,</span> <span class="n">warm</span><span class="p">]</span><span class="o">.</span><span class="n">tocsr</span><span class="p">()</span>
+<span class="n">test_source</span> <span class="o">=</span> <span class="n">split</span><span class="p">[</span><span class="s2">"test_source_matrix"</span><span class="p">][:,</span> <span class="n">warm</span><span class="p">]</span><span class="o">.</span><span class="n">tocsr</span><span class="p">()</span>
+<span class="n">test_targets</span> <span class="o">=</span> <span class="n">split</span><span class="p">[</span><span class="s2">"test_target_matrix"</span><span class="p">][:,</span> <span class="n">cold</span><span class="p">]</span><span class="o">.</span><span class="n">tocsr</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">warm_ids</span><span class="p">,</span> <span class="n">cold_ids</span> <span class="o">=</span> <span class="n">item_ids</span><span class="p">[</span><span class="n">warm</span><span class="p">],</span> <span class="n">item_ids</span><span class="p">[</span><span class="n">cold</span><span class="p">]</span>
+<span class="n">warm_features</span> <span class="o">=</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">matrix</span><span class="p">[</span><span class="n">warm</span><span class="p">]</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">matrix</span> <span class="ow">in</span> <span class="n">features</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+<span class="n">cold_features</span> <span class="o">=</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">matrix</span><span class="p">[</span><span class="n">cold</span><span class="p">]</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">matrix</span> <span class="ow">in</span> <span class="n">features</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+<span class="n">warm_masks</span> <span class="o">=</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">mask</span><span class="p">[</span><span class="n">warm</span><span class="p">]</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">mask</span> <span class="ow">in</span> <span class="n">available</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+<span class="n">cold_masks</span> <span class="o">=</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">mask</span><span class="p">[</span><span class="n">cold</span><span class="p">]</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">mask</span> <span class="ow">in</span> <span class="n">available</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+
+<span class="k">assert</span> <span class="nb">set</span><span class="p">(</span><span class="n">warm_ids</span><span class="p">)</span><span class="o">.</span><span class="n">isdisjoint</span><span class="p">(</span><span class="n">cold_ids</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">x_train</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">warm_ids</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">test_source</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">test_targets</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">cold_ids</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">20</span>
+
+<span class="n">display</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">([</span>
+    <span class="p">{</span>
+        <span class="s2">"modality"</span><span class="p">:</span> <span class="n">name</span><span class="p">,</span>
+        <span class="s2">"dimensions"</span><span class="p">:</span> <span class="n">matrix</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+        <span class="s2">"warm items available"</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">warm_masks</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()),</span>
+        <span class="s2">"warm items total"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">warm</span><span class="p">),</span>
+        <span class="s2">"cold items available"</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">cold_masks</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()),</span>
+        <span class="s2">"cold items total"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">cold</span><span class="p">),</span>
+    <span class="p">}</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">matrix</span> <span class="ow">in</span> <span class="n">features</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+<span class="p">])</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">"modality"</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Training: </span><span class="si">{</span><span class="n">x_train</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> users, </span><span class="si">{</span><span class="n">x_train</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> warm items, </span><span class="si">{</span><span class="n">x_train</span><span class="o">.</span><span class="n">nnz</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> interactions"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Evaluation: </span><span class="si">{</span><span class="n">test_source</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> histories, </span><span class="si">{</span><span class="n">test_targets</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> cold candidates"</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>dimensions</th>
+      <th>warm items available</th>
+      <th>warm items total</th>
+      <th>cold items available</th>
+      <th>cold items total</th>
+    </tr>
+    <tr>
+      <th>modality</th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>text</th>
+      <td>384</td>
+      <td>4863</td>
+      <td>5557</td>
+      <td>558</td>
+      <td>654</td>
+    </tr>
+    <tr>
+      <th>image</th>
+      <td>768</td>
+      <td>5353</td>
+      <td>5557</td>
+      <td>624</td>
+      <td>654</td>
+    </tr>
+  </tbody>
+</table>
+</div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Training: 5,883 users, 5,557 warm items, 62,110 interactions
+Evaluation: 3,974 histories, 654 cold candidates
+</pre></div></div>
+</div>
+</section>
+<section id="The-same-wrapper,-two-different-fit-signatures">
+<h2>The same wrapper, two different fit signatures<a class="headerlink" href="#The-same-wrapper,-two-different-fit-signatures" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">ContentRecommender.fit</span></code> receives <strong>features alone</strong>. <code class="docutils literal notranslate"><span class="pre">TEASER.fit</span></code> receives <strong>interactions and features</strong>. The wrapper binds each inner signature and replaces only its feature argument. Positional and keyword calls both work; other arguments pass through unchanged. A custom model naming that argument <code class="docutils literal notranslate"><span class="pre">embeddings</span></code> can set <code class="docutils literal notranslate"><span class="pre">fit_features_parameter=&quot;embeddings&quot;</span></code> in the wrapper config. For an opaque <code class="docutils literal notranslate"><span class="pre">fit(*args,</span> <span class="pre">**kwargs)</span></code>, supply it by the configured keyword.</p>
+<p>We choose <code class="docutils literal notranslate"><span class="pre">missing=&quot;mean&quot;</span></code> and <code class="docutils literal notranslate"><span class="pre">normalize=True</span></code>: unavailable rows receive the mean of available training rows in that modality, then each modality is L2 normalized before concatenation. Only warm features enter these fits, so cold items cannot influence imputation statistics. When fitting a full catalog instead, use <code class="docutils literal notranslate"><span class="pre">feature_fit_indices=warm</span></code>; a forwarded <code class="docutils literal notranslate"><span class="pre">train_item_indices</span></code> is also recognized.</p>
+<p>The configured order is always <strong>text, image</strong>, regardless of dictionary order. Default block weights are one. Set <code class="docutils literal notranslate"><span class="pre">weights={&quot;text&quot;:</span> <span class="pre">1.0,</span> <span class="pre">&quot;image&quot;:</span> <span class="pre">0.5}</span></code> to scale the image block; these are feature multipliers, not guaranteed score contributions.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">content_rec</span> <span class="o">=</span> <span class="n">MMConcatWrapper</span><span class="p">(</span><span class="n">MMConcatWrapperConfig</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">ContentRecommender</span><span class="p">,</span>
+    <span class="n">model_config</span><span class="o">=</span><span class="n">ContentRecommenderConfig</span><span class="p">(</span><span class="n">normalize</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">"cpu"</span><span class="p">),</span>
+    <span class="n">modalities</span><span class="o">=</span><span class="p">[</span><span class="s2">"text"</span><span class="p">,</span> <span class="s2">"image"</span><span class="p">],</span>
+    <span class="n">missing</span><span class="o">=</span><span class="s2">"mean"</span><span class="p">,</span>
+    <span class="n">normalize</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">))</span>
+<span class="n">started</span> <span class="o">=</span> <span class="n">perf_counter</span><span class="p">()</span>
+<span class="n">content_rec</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">warm_features</span><span class="p">,</span> <span class="n">item_ids</span><span class="o">=</span><span class="n">warm_ids</span><span class="p">,</span> <span class="n">modality_masks</span><span class="o">=</span><span class="n">warm_masks</span><span class="p">)</span>
+<span class="n">content_fit_seconds</span> <span class="o">=</span> <span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">started</span>
+
+<span class="n">teaser_rec</span> <span class="o">=</span> <span class="n">MMConcatWrapper</span><span class="p">(</span><span class="n">MMConcatWrapperConfig</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">TEASER</span><span class="p">,</span>
+    <span class="n">model_config</span><span class="o">=</span><span class="n">TEASERConfig</span><span class="p">(</span>
+        <span class="n">l2_coefficients</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span>
+        <span class="n">l2_encoder</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span>
+        <span class="n">rho</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span>
+        <span class="n">max_iterations</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+    <span class="p">),</span>
+    <span class="n">modalities</span><span class="o">=</span><span class="p">[</span><span class="s2">"text"</span><span class="p">,</span> <span class="s2">"image"</span><span class="p">],</span>
+    <span class="n">missing</span><span class="o">=</span><span class="s2">"mean"</span><span class="p">,</span>
+    <span class="n">normalize</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">))</span>
+<span class="n">started</span> <span class="o">=</span> <span class="n">perf_counter</span><span class="p">()</span>
+<span class="n">teaser_rec</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span>
+    <span class="n">x_train</span><span class="p">,</span> <span class="n">item_features</span><span class="o">=</span><span class="n">warm_features</span><span class="p">,</span>
+    <span class="n">item_ids</span><span class="o">=</span><span class="n">warm_ids</span><span class="p">,</span> <span class="n">modality_masks</span><span class="o">=</span><span class="n">warm_masks</span>
+<span class="p">)</span>
+<span class="n">teaser_fit_seconds</span> <span class="o">=</span> <span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">started</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">"Input widths:"</span><span class="p">,</span> <span class="nb">dict</span><span class="p">(</span><span class="n">teaser_rec</span><span class="o">.</span><span class="n">feature_dims_</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"Concatenated width:"</span><span class="p">,</span> <span class="n">teaser_rec</span><span class="o">.</span><span class="n">transform_features</span><span class="p">(</span><span class="n">warm_features</span><span class="p">,</span> <span class="n">modality_masks</span><span class="o">=</span><span class="n">warm_masks</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"Inner models:"</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">content_rec</span><span class="o">.</span><span class="n">inner_model</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="s2">"and"</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">teaser_rec</span><span class="o">.</span><span class="n">inner_model</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Input widths: {&#39;text&#39;: 384, &#39;image&#39;: 768}
+Concatenated width: 1152
+Inner models: ContentRecommender and TEASER
+</pre></div></div>
+</div>
+</section>
+<section id="Register-cold-candidates-without-refitting">
+<h2>Register cold candidates without refitting<a class="headerlink" href="#Register-cold-candidates-without-refitting" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">build_candidates</span></code> replaces the recommendation catalog with the held-out books. The wrapper applies the <strong>same fitted</strong> imputation and normalization and passes the resulting matrix to the inner model’s candidate method. The inner model owns the only stored catalog, including any model-specific transformation it performs.</p>
+<p>Histories keep their warm-item columns; targets use the cold-candidate columns. New candidates become recommendable immediately, but <strong>do not become valid history items</strong>. Removing an item from the candidate catalog likewise does not remove its fitted history representation. Catalog publication guarantees are inherited from the inner model; a whole multi-batch prediction is not pinned to one version.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">model</span> <span class="ow">in</span> <span class="p">(</span><span class="n">content_rec</span><span class="p">,</span> <span class="n">teaser_rec</span><span class="p">):</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">build_candidates</span><span class="p">(</span>
+        <span class="n">item_ids</span><span class="o">=</span><span class="n">cold_ids</span><span class="p">,</span>
+        <span class="n">item_features</span><span class="o">=</span><span class="n">cold_features</span><span class="p">,</span>
+        <span class="n">modality_masks</span><span class="o">=</span><span class="n">cold_masks</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_array_equal</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">source_item_ids</span><span class="p">,</span> <span class="n">warm_ids</span><span class="p">)</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_array_equal</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">candidate_item_ids</span><span class="p">,</span> <span class="n">cold_ids</span><span class="p">)</span>
+
+<span class="n">batch</span> <span class="o">=</span> <span class="n">teaser_rec</span><span class="o">.</span><span class="n">predict_on_batch</span><span class="p">(</span><span class="n">test_source</span><span class="p">[:</span><span class="mi">2</span><span class="p">],</span> <span class="n">k</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+<span class="n">batched</span> <span class="o">=</span> <span class="n">teaser_rec</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">test_source</span><span class="p">[:</span><span class="mi">2</span><span class="p">],</span> <span class="n">k</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_array_equal</span><span class="p">(</span><span class="n">batch</span><span class="o">.</span><span class="n">cols</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span> <span class="n">batched</span><span class="o">.</span><span class="n">cols</span><span class="o">.</span><span class="n">numpy</span><span class="p">())</span>
+
+<span class="n">history</span> <span class="o">=</span> <span class="n">warm_ids</span><span class="p">[</span><span class="n">test_source</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">indices</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+<span class="n">recommendations</span> <span class="o">=</span> <span class="n">teaser_rec</span><span class="o">.</span><span class="n">recommend</span><span class="p">([</span><span class="n">history</span><span class="p">],</span> <span class="n">k</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+<span class="n">display</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
+    <span class="s2">"rank"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">6</span><span class="p">),</span>
+    <span class="s2">"recommended cold book ID"</span><span class="p">:</span> <span class="n">recommendations</span><span class="o">.</span><span class="n">item_ids</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+    <span class="s2">"score"</span><span class="p">:</span> <span class="n">recommendations</span><span class="o">.</span><span class="n">scores</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+<span class="p">}))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>rank</th>
+      <th>recommended cold book ID</th>
+      <th>score</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>1</td>
+      <td>4076</td>
+      <td>0.090634</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>2</td>
+      <td>5464</td>
+      <td>0.064508</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>3</td>
+      <td>4823</td>
+      <td>0.057424</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>4</td>
+      <td>7042</td>
+      <td>0.055381</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>5</td>
+      <td>3189</td>
+      <td>0.052498</td>
+    </tr>
+  </tbody>
+</table>
+</div></div>
+</div>
+</section>
+<section id="Compare-individual-modalities-with-their-concatenation">
+<h2>Compare individual modalities with their concatenation<a class="headerlink" href="#Compare-individual-modalities-with-their-concatenation" title="Link to this heading"></a></h2>
+<p>All six models see the same training interactions (where needed), histories, candidate IDs, and relevance labels. The two single-modality variants select one key from the same dictionary. We set <code class="docutils literal notranslate"><span class="pre">extra_modalities=&quot;ignore&quot;</span></code> explicitly so unused keys in both feature and availability-mask dictionaries are ignored. The default, <code class="docutils literal notranslate"><span class="pre">extra_modalities=&quot;error&quot;</span></code>, rejects unknown keys to catch typos before they can silently trigger imputation or change fitted means. Both model families keep their
+settings fixed across feature choices. The table reports <a class="reference external" href="mailto:NDCG&#37;&#52;&#48;20">NDCG<span>&#64;</span>20</a> and calibrated <a class="reference external" href="mailto:recall&#37;&#52;&#48;20">recall<span>&#64;</span>20</a> on cold candidates only, plus observed fitting time.</p>
+<p>Concatenation makes a model multimodal; it does not guarantee better ranking. The results describe this filtered split and these untuned settings, not a general comparison of the models or modalities. Fitting time depends on hardware.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">models</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"Content / text + image"</span><span class="p">:</span> <span class="n">content_rec</span><span class="p">,</span> <span class="s2">"TEASER / text + image"</span><span class="p">:</span> <span class="n">teaser_rec</span><span class="p">}</span>
+<span class="n">fit_seconds</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"Content / text + image"</span><span class="p">:</span> <span class="n">content_fit_seconds</span><span class="p">,</span> <span class="s2">"TEASER / text + image"</span><span class="p">:</span> <span class="n">teaser_fit_seconds</span><span class="p">}</span>
+
+<span class="k">for</span> <span class="n">family</span><span class="p">,</span> <span class="n">model_class</span><span class="p">,</span> <span class="n">model_config</span> <span class="ow">in</span> <span class="p">[</span>
+    <span class="p">(</span><span class="s2">"Content"</span><span class="p">,</span> <span class="n">ContentRecommender</span><span class="p">,</span> <span class="n">content_rec</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">model_config</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">"TEASER"</span><span class="p">,</span> <span class="n">TEASER</span><span class="p">,</span> <span class="n">teaser_rec</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">model_config</span><span class="p">),</span>
+<span class="p">]:</span>
+    <span class="k">for</span> <span class="n">modality</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"text"</span><span class="p">,</span> <span class="s2">"image"</span><span class="p">]:</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">MMConcatWrapper</span><span class="p">(</span><span class="n">MMConcatWrapperConfig</span><span class="p">(</span>
+            <span class="n">model</span><span class="o">=</span><span class="n">model_class</span><span class="p">,</span> <span class="n">model_config</span><span class="o">=</span><span class="n">model_config</span><span class="p">,</span>
+            <span class="n">modalities</span><span class="o">=</span><span class="p">[</span><span class="n">modality</span><span class="p">],</span> <span class="n">missing</span><span class="o">=</span><span class="s2">"mean"</span><span class="p">,</span> <span class="n">normalize</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">extra_modalities</span><span class="o">=</span><span class="s2">"ignore"</span><span class="p">,</span>
+        <span class="p">))</span>
+        <span class="n">started</span> <span class="o">=</span> <span class="n">perf_counter</span><span class="p">()</span>
+        <span class="n">args</span> <span class="o">=</span> <span class="p">()</span> <span class="k">if</span> <span class="n">model_class</span> <span class="ow">is</span> <span class="n">ContentRecommender</span> <span class="k">else</span> <span class="p">(</span><span class="n">x_train</span><span class="p">,)</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">item_features</span><span class="o">=</span><span class="n">warm_features</span><span class="p">,</span> <span class="n">item_ids</span><span class="o">=</span><span class="n">warm_ids</span><span class="p">,</span> <span class="n">modality_masks</span><span class="o">=</span><span class="n">warm_masks</span><span class="p">)</span>
+        <span class="n">label</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">family</span><span class="si">}</span><span class="s2"> / </span><span class="si">{</span><span class="n">modality</span><span class="si">}</span><span class="s2">"</span>
+        <span class="n">fit_seconds</span><span class="p">[</span><span class="n">label</span><span class="p">]</span> <span class="o">=</span> <span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">started</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">build_candidates</span><span class="p">(</span><span class="n">item_ids</span><span class="o">=</span><span class="n">cold_ids</span><span class="p">,</span> <span class="n">item_features</span><span class="o">=</span><span class="n">cold_features</span><span class="p">,</span> <span class="n">modality_masks</span><span class="o">=</span><span class="n">cold_masks</span><span class="p">)</span>
+        <span class="n">models</span><span class="p">[</span><span class="n">label</span><span class="p">]</span> <span class="o">=</span> <span class="n">model</span>
+
+<span class="n">rows</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">model</span> <span class="ow">in</span> <span class="n">models</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">evaluate_recommender</span><span class="p">(</span>
+        <span class="n">model</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="n">test_source</span><span class="p">,</span> <span class="n">targets</span><span class="o">=</span><span class="n">test_targets</span><span class="p">,</span>
+        <span class="n">metrics</span><span class="o">=</span><span class="p">[</span><span class="n">NDCG</span><span class="p">(</span><span class="mi">20</span><span class="p">),</span> <span class="n">CalibratedRecall</span><span class="p">(</span><span class="mi">20</span><span class="p">)],</span>
+        <span class="n">batch_size</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span> <span class="n">show_progress</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">"model"</span><span class="p">:</span> <span class="n">label</span><span class="p">,</span> <span class="o">**</span><span class="n">result</span><span class="o">.</span><span class="n">metrics</span><span class="p">,</span> <span class="s2">"users scored"</span><span class="p">:</span> <span class="n">result</span><span class="o">.</span><span class="n">n_scored_rows</span><span class="p">,</span> <span class="s2">"fit seconds"</span><span class="p">:</span> <span class="n">fit_seconds</span><span class="p">[</span><span class="n">label</span><span class="p">]})</span>
+
+<span class="n">results</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">"model"</span><span class="p">)</span><span class="o">.</span><span class="n">sort_index</span><span class="p">()</span>
+<span class="n">display</span><span class="p">(</span><span class="n">results</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">4</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<script type="application/vnd.jupyter.widget-view+json">{"model_id": "45648724755e48068d45056d150f15e5", "version_major": 2, "version_minor": 0}</script></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<script type="application/vnd.jupyter.widget-view+json">{"model_id": "7bdacd5972f94848b05cda3b30c1e51b", "version_major": 2, "version_minor": 0}</script></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<script type="application/vnd.jupyter.widget-view+json">{"model_id": "ce7d5e10e35a4be18e1e8fe60f596432", "version_major": 2, "version_minor": 0}</script></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<script type="application/vnd.jupyter.widget-view+json">{"model_id": "fcc83312ca8b4e27a27577a9e21b3097", "version_major": 2, "version_minor": 0}</script></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<script type="application/vnd.jupyter.widget-view+json">{"model_id": "3a3d3576083f4814af67c1674c843e52", "version_major": 2, "version_minor": 0}</script></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<script type="application/vnd.jupyter.widget-view+json">{"model_id": "d9e56e950f8a4132b45a8f1761271fdf", "version_major": 2, "version_minor": 0}</script></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>ndcg@20</th>
+      <th>calibrated_recall@20</th>
+      <th>users scored</th>
+      <th>fit seconds</th>
+    </tr>
+    <tr>
+      <th>model</th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>Content / image</th>
+      <td>0.0107</td>
+      <td>0.0227</td>
+      <td>3974</td>
+      <td>0.0548</td>
+    </tr>
+    <tr>
+      <th>Content / text</th>
+      <td>0.0083</td>
+      <td>0.0127</td>
+      <td>3974</td>
+      <td>0.0263</td>
+    </tr>
+    <tr>
+      <th>Content / text + image</th>
+      <td>0.0102</td>
+      <td>0.0206</td>
+      <td>3974</td>
+      <td>0.1014</td>
+    </tr>
+    <tr>
+      <th>TEASER / image</th>
+      <td>0.0490</td>
+      <td>0.0894</td>
+      <td>3974</td>
+      <td>14.9155</td>
+    </tr>
+    <tr>
+      <th>TEASER / text</th>
+      <td>0.1279</td>
+      <td>0.1951</td>
+      <td>3974</td>
+      <td>11.6066</td>
+    </tr>
+    <tr>
+      <th>TEASER / text + image</th>
+      <td>0.1058</td>
+      <td>0.1735</td>
+      <td>3974</td>
+      <td>18.1052</td>
+    </tr>
+  </tbody>
+</table>
+</div></div>
+</div>
+</section>
+<section id="Save-the-complete-wrapper-and-update-candidates-later">
+<h2>Save the complete wrapper and update candidates later<a class="headerlink" href="#Save-the-complete-wrapper-and-update-candidates-later" title="Link to this heading"></a></h2>
+<p>Saving includes modality order and widths, preprocessing settings and learned means, and the inner model’s checkpoint. Loading restores the current candidate catalog as well as the fixed history vocabulary. Built-in cold-start models load directly. For a custom model, call <code class="docutils literal notranslate"><span class="pre">MMConcatWrapper.register_model(MyModel)</span></code> in a fresh process before loading; checkpoints never dynamically import model classes.</p>
+<p>Below we reload TEASER and replace one existing candidate using <strong>only its image embedding</strong>. Since its text width and training mean are known, <code class="docutils literal notranslate"><span class="pre">missing=&quot;mean&quot;</span></code> can fill the entire omitted text modality. <code class="docutils literal notranslate"><span class="pre">missing=&quot;zero&quot;</span></code> would use zeros; the default <code class="docutils literal notranslate"><span class="pre">missing=&quot;error&quot;</span></code> would reject this call. All selected modalities must be present at initial fit to establish their dimensions.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">model_path</span> <span class="o">=</span> <span class="n">OUTPUT_DIR</span> <span class="o">/</span> <span class="s2">"mm-concat-teaser.zip"</span>
+<span class="n">teaser_rec</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">model_path</span><span class="p">)</span>
+<span class="n">restored</span> <span class="o">=</span> <span class="n">MMConcatWrapper</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">model_path</span><span class="p">)</span>
+<span class="n">before</span> <span class="o">=</span> <span class="n">teaser_rec</span><span class="o">.</span><span class="n">predict_on_batch</span><span class="p">(</span><span class="n">test_source</span><span class="p">[:</span><span class="mi">2</span><span class="p">],</span> <span class="n">k</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+<span class="n">after</span> <span class="o">=</span> <span class="n">restored</span><span class="o">.</span><span class="n">predict_on_batch</span><span class="p">(</span><span class="n">test_source</span><span class="p">[:</span><span class="mi">2</span><span class="p">],</span> <span class="n">k</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+<span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_array_equal</span><span class="p">(</span><span class="n">before</span><span class="o">.</span><span class="n">cols</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span> <span class="n">after</span><span class="o">.</span><span class="n">cols</span><span class="o">.</span><span class="n">numpy</span><span class="p">())</span>
+<span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_allclose</span><span class="p">(</span><span class="n">before</span><span class="o">.</span><span class="n">vals</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span> <span class="n">after</span><span class="o">.</span><span class="n">vals</span><span class="o">.</span><span class="n">numpy</span><span class="p">())</span>
+
+<span class="n">restored</span><span class="o">.</span><span class="n">update_candidates</span><span class="p">(</span>
+    <span class="n">item_ids</span><span class="o">=</span><span class="n">cold_ids</span><span class="p">[:</span><span class="mi">1</span><span class="p">],</span>
+    <span class="n">item_features</span><span class="o">=</span><span class="p">{</span><span class="s2">"image"</span><span class="p">:</span> <span class="n">cold_features</span><span class="p">[</span><span class="s2">"image"</span><span class="p">][:</span><span class="mi">1</span><span class="p">]},</span>
+    <span class="n">modality_masks</span><span class="o">=</span><span class="p">{</span><span class="s2">"image"</span><span class="p">:</span> <span class="n">cold_masks</span><span class="p">[</span><span class="s2">"image"</span><span class="p">][:</span><span class="mi">1</span><span class="p">]},</span>
+    <span class="n">on_conflict</span><span class="o">=</span><span class="s2">"replace"</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_array_equal</span><span class="p">(</span><span class="n">restored</span><span class="o">.</span><span class="n">source_item_ids</span><span class="p">,</span> <span class="n">warm_ids</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"Reloaded predictions match. Candidate replacement reuses the fitted text mean."</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Reloaded predictions match. Candidate replacement reuses the fitted text mean.
+</pre></div></div>
+</div>
+<p>For custom fusion architectures, use <code class="docutils literal notranslate"><span class="pre">BaseMultiModalRecommender</span></code> directly and define fitting, scoring, and any representation-specific candidate operations. <code class="docutils literal notranslate"><span class="pre">MMConcatWrapper</span></code> is the simpler choice when an existing matrix model and feature concatenation are the desired architecture.</p>
+<p>Dataset references: <a class="reference external" href="https://zenodo.org/records/15403972">SWAP dataset release</a>, <a class="reference external" href="https://github.com/swapUniba/multimodal_ml1m_dbbook_lfm2k">dataset repository</a>, and <a class="reference external" href="https://doi.org/10.1145/3705328.3748162">resource paper</a>.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="implementing-a-recommender.html" class="btn btn-neutral float-left" title="Implementing a Recommender" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="reproducing-sasrec-results-on-ml1m.html" class="btn btn-neutral float-right" title="Reproducing SASRec Results on ML1M" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

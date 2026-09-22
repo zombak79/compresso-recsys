@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>compresso_recsys.sequences &mdash; Compresso Recsys 0.3.5 documentation</title>
+  <title>compresso_recsys.sequences &mdash; Compresso Recsys 0.3.6 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
 
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=ba3b9238"></script>
+      <script src="../../_static/documentation_options.js?v=ad4f125e"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -122,6 +122,14 @@
 <li class="toctree-l2"><a class="reference internal" href="../../implementing-a-recommender.html#Evaluation">Evaluation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../implementing-a-recommender.html#Executable-contract-checks">Executable contract checks</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../implementing-a-recommender.html#Extending-the-pattern">Extending the pattern</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../multimodal-concat-wrapper.html">Multimodal ContentRecommender and TEASER with MMConcatWrapper</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../multimodal-concat-wrapper.html#Load-aligned-embeddings-and-explicit-availability-masks">Load aligned embeddings and explicit availability masks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../multimodal-concat-wrapper.html#The-same-wrapper,-two-different-fit-signatures">The same wrapper, two different fit signatures</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../multimodal-concat-wrapper.html#Register-cold-candidates-without-refitting">Register cold candidates without refitting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../multimodal-concat-wrapper.html#Compare-individual-modalities-with-their-concatenation">Compare individual modalities with their concatenation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../multimodal-concat-wrapper.html#Save-the-complete-wrapper-and-update-candidates-later">Save the complete wrapper and update candidates later</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../reproducing-sasrec-results-on-ml1m.html">Reproducing SASRec Results on ML1M</a><ul>
@@ -333,7 +341,9 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.BaseIdentifiedRecommender"><code class="docutils literal notranslate"><span class="pre">BaseIdentifiedRecommender</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.BaseCollaborativeRecommender"><code class="docutils literal notranslate"><span class="pre">BaseCollaborativeRecommender</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.BaseColdStartRecommender"><code class="docutils literal notranslate"><span class="pre">BaseColdStartRecommender</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#compresso_recsys.models.BaseSequentialRecommender"><code class="docutils literal notranslate"><span class="pre">BaseSequentialRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#multimodal-concatenation-wrapper">Multimodal Concatenation Wrapper</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#multimodal-cold-start-subclasses">Multimodal Cold-Start Subclasses</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/models.html#sequential-subclasses">Sequential Subclasses</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/models.html#the-owned-candidate-catalog">The Owned Candidate Catalog</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/models.html#training-interaction-batches">Training Interaction Batches</a></li>
 </ul>

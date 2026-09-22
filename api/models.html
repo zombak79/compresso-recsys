@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Models API &mdash; Compresso Recsys 0.3.5 documentation</title>
+  <title>Models API &mdash; Compresso Recsys 0.3.6 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
 
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=ba3b9238"></script>
+      <script src="../_static/documentation_options.js?v=ad4f125e"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -125,6 +125,14 @@
 <li class="toctree-l2"><a class="reference internal" href="../implementing-a-recommender.html#Evaluation">Evaluation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../implementing-a-recommender.html#Executable-contract-checks">Executable contract checks</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../implementing-a-recommender.html#Extending-the-pattern">Extending the pattern</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../multimodal-concat-wrapper.html">Multimodal ContentRecommender and TEASER with MMConcatWrapper</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../multimodal-concat-wrapper.html#Load-aligned-embeddings-and-explicit-availability-masks">Load aligned embeddings and explicit availability masks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../multimodal-concat-wrapper.html#The-same-wrapper,-two-different-fit-signatures">The same wrapper, two different fit signatures</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../multimodal-concat-wrapper.html#Register-cold-candidates-without-refitting">Register cold candidates without refitting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../multimodal-concat-wrapper.html#Compare-individual-modalities-with-their-concatenation">Compare individual modalities with their concatenation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../multimodal-concat-wrapper.html#Save-the-complete-wrapper-and-update-candidates-later">Save the complete wrapper and update candidates later</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../reproducing-sasrec-results-on-ml1m.html">Reproducing SASRec Results on ML1M</a><ul>
@@ -336,7 +344,9 @@
 <li class="toctree-l4"><a class="reference internal" href="#compresso_recsys.models.BaseIdentifiedRecommender"><code class="docutils literal notranslate"><span class="pre">BaseIdentifiedRecommender</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#compresso_recsys.models.BaseCollaborativeRecommender"><code class="docutils literal notranslate"><span class="pre">BaseCollaborativeRecommender</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#compresso_recsys.models.BaseColdStartRecommender"><code class="docutils literal notranslate"><span class="pre">BaseColdStartRecommender</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#compresso_recsys.models.BaseSequentialRecommender"><code class="docutils literal notranslate"><span class="pre">BaseSequentialRecommender</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#multimodal-concatenation-wrapper">Multimodal Concatenation Wrapper</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#multimodal-cold-start-subclasses">Multimodal Cold-Start Subclasses</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#sequential-subclasses">Sequential Subclasses</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#the-owned-candidate-catalog">The Owned Candidate Catalog</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#training-interaction-batches">Training Interaction Batches</a></li>
 </ul>
@@ -1392,6 +1402,802 @@ the initial catalog.</p>
 
 </dd></dl>
 
+<section id="multimodal-concatenation-wrapper">
+<h3>Multimodal Concatenation Wrapper<a class="headerlink" href="#multimodal-concatenation-wrapper" title="Link to this heading"></a></h3>
+<p><a class="reference internal" href="#compresso_recsys.models.MMConcatWrapper" title="compresso_recsys.models.MMConcatWrapper"><code class="xref py py-class docutils literal notranslate"><span class="pre">compresso_recsys.models.MMConcatWrapper</span></code></a> adapts a matrix-based cold-start
+model to named feature matrices. It concatenates selected modalities in the
+configured order and delegates fitting, scoring, and catalog storage to the
+inner model. See <a class="reference internal" href="../multimodal-concat-wrapper.html"><span class="doc">Multimodal ContentRecommender and TEASER with MMConcatWrapper</span></a> for an executed DBbook
+tutorial comparing ContentRecommender and TEASER with text, image, and both.</p>
+<p>Because that delegation includes the catalog, <code class="docutils literal notranslate"><span class="pre">candidates</span></code> is the inner
+model’s single-matrix catalog holding the concatenated blocks, not a multimodal
+one. The wrapper is an adapter over an existing model rather than the reference
+for writing a new one – a model that stores modalities itself should follow
+<a class="reference internal" href="#multimodal-cold-start-subclasses">Multimodal Cold-Start Subclasses</a> below.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy.sparse</span><span class="w"> </span><span class="kn">import</span> <span class="n">csr_matrix</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.models</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">ContentRecommender</span><span class="p">,</span> <span class="n">MMConcatWrapper</span><span class="p">,</span> <span class="n">MMConcatWrapperConfig</span><span class="p">,</span>
+    <span class="n">TEASER</span><span class="p">,</span> <span class="n">TEASERConfig</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">features</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"text"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span> <span class="s2">"image"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">))}</span>
+<span class="n">interactions</span> <span class="o">=</span> <span class="n">csr_matrix</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]])</span>
+<span class="n">content</span> <span class="o">=</span> <span class="n">MMConcatWrapper</span><span class="p">(</span><span class="n">MMConcatWrapperConfig</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">ContentRecommender</span><span class="p">,</span> <span class="n">modalities</span><span class="o">=</span><span class="p">[</span><span class="s2">"text"</span><span class="p">,</span> <span class="s2">"image"</span><span class="p">],</span>
+<span class="p">))</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">features</span><span class="p">)</span>
+<span class="n">teaser</span> <span class="o">=</span> <span class="n">MMConcatWrapper</span><span class="p">(</span><span class="n">MMConcatWrapperConfig</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">TEASER</span><span class="p">,</span> <span class="n">model_config</span><span class="o">=</span><span class="n">TEASERConfig</span><span class="p">(</span><span class="n">max_iterations</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span>
+    <span class="n">modalities</span><span class="o">=</span><span class="p">[</span><span class="s2">"text"</span><span class="p">,</span> <span class="s2">"image"</span><span class="p">],</span>
+<span class="p">))</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">interactions</span><span class="p">,</span> <span class="n">item_features</span><span class="o">=</span><span class="n">features</span><span class="p">)</span>
+<span class="n">recommendations</span> <span class="o">=</span> <span class="n">teaser</span><span class="o">.</span><span class="n">recommend</span><span class="p">([[</span><span class="mi">0</span><span class="p">]],</span> <span class="n">k</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">fit(*args,</span> <span class="pre">**kwargs)</span></code> binds the inner model’s signature and replaces only the
+configured <code class="docutils literal notranslate"><span class="pre">fit_features_parameter</span></code> (default <code class="docutils literal notranslate"><span class="pre">&quot;item_features&quot;</span></code>). Features
+may be positional or keyword arguments. With an opaque inner <code class="docutils literal notranslate"><span class="pre">*args,</span> <span class="pre">**kwargs</span></code>
+signature, provide features by the configured keyword. There is no signature
+retry, and ContentRecommender’s feature-only fit API remains unchanged.</p>
+<p><code class="docutils literal notranslate"><span class="pre">modality_masks</span></code> and <code class="docutils literal notranslate"><span class="pre">feature_fit_indices</span></code> are reserved wrapper keywords.
+Masks are boolean vectors aligned to item rows; missingness is never inferred
+from zero values. <code class="docutils literal notranslate"><span class="pre">missing=&quot;error&quot;</span></code> is the default. <code class="docutils literal notranslate"><span class="pre">&quot;zero&quot;</span></code> fills missing
+rows with zeros; <code class="docutils literal notranslate"><span class="pre">&quot;mean&quot;</span></code> uses available training rows. Training rows are
+<code class="docutils literal notranslate"><span class="pre">feature_fit_indices</span></code> when supplied, otherwise the forwarded
+<code class="docutils literal notranslate"><span class="pre">train_item_indices</span></code>, otherwise all feature rows. A differently named subset
+argument requires explicit <code class="docutils literal notranslate"><span class="pre">feature_fit_indices</span></code>. All selected modality
+matrices must be present at initial fit to establish their widths, even when
+some rows are unavailable.</p>
+<p><code class="docutils literal notranslate"><span class="pre">extra_modalities=&quot;error&quot;</span></code> is the default: unknown keys in either feature or
+mask mappings raise an error before fitting or candidate mutation. Omitting a
+selected modality still follows <code class="docutils literal notranslate"><span class="pre">missing</span></code>; omitting its mask means all supplied
+rows are available. Set <code class="docutils literal notranslate"><span class="pre">extra_modalities=&quot;ignore&quot;</span></code> explicitly to reuse larger
+feature and mask dictionaries for models selecting different modalities. This
+ignores every unselected key, including misspellings. The policy is saved in
+wrapper checkpoints; older checkpoints without it load with the strict default.</p>
+<p>Imputation happens before optional per-modality L2 normalization and block
+weighting. Nonfinite values are rejected even in masked rows; use finite
+placeholders for missing embeddings. Dense input stays dense, including when
+modalities are omitted; any supplied sparse block produces a CSR concatenation.
+If every selected modality is omitted in a candidate mutation, the wrapper uses
+the concatenation format established during fitting. This format is retained
+across save/load; older checkpoints without it use their current catalog format
+as a fallback. Sparse mean imputation constructs the replacement CSR rows
+directly in the configured precision. A dense mean still adds a stored value for
+every feature in each missing row; use <code class="docutils literal notranslate"><span class="pre">missing=&quot;zero&quot;</span></code> to preserve sparsity.</p>
+<p>Use the wrapper’s <code class="docutils literal notranslate"><span class="pre">build_candidates</span></code> and <code class="docutils literal notranslate"><span class="pre">update_candidates</span></code> with mappings
+and optional masks to reuse fitted preprocessing. <code class="docutils literal notranslate"><span class="pre">model.candidates</span></code> exposes
+the inner model’s ordinary matrix catalog, so calling its mutations directly
+bypasses preprocessing. Catalog validation/publication semantics and the fixed
+history vocabulary are inherited from the inner model. <code class="docutils literal notranslate"><span class="pre">recommend</span></code>,
+<code class="docutils literal notranslate"><span class="pre">predict</span></code>, <code class="docutils literal notranslate"><span class="pre">predict_on_batch</span></code>, <code class="docutils literal notranslate"><span class="pre">align_source</span></code>, and <code class="docutils literal notranslate"><span class="pre">remove_candidates</span></code>
+delegate unchanged. <code class="docutils literal notranslate"><span class="pre">inner_model</span></code> exposes additional model-specific methods.
+The wrapper does not impose a new representation contract on existing models.</p>
+<p><code class="docutils literal notranslate"><span class="pre">save</span></code>/<code class="docutils literal notranslate"><span class="pre">load</span></code> and dataset-checkpoint embedding preserve preprocessing and the
+inner checkpoint, including optional optimizer state where the inner model
+supports it. Custom model classes must implement the normal persistence API;
+register them with <code class="docutils literal notranslate"><span class="pre">MMConcatWrapper.register_model(MyModel)</span></code> before loading in
+a fresh process. Model classes are resolved locally without dynamic imports
+from checkpoint contents. <code class="docutils literal notranslate"><span class="pre">device</span></code> exposes the current inner model’s device;
+<code class="docutils literal notranslate"><span class="pre">to(device)</span></code> retains the inner method’s returned instance and returns the
+wrapper. Its inner config is synchronized for subsequent refits, matching the
+base class’s device-move behavior. Device capabilities follow the inner model;
+NumPy-based TEASER does not expose a device or support device moves.</p>
+<p>Wrapper configs support <code class="docutils literal notranslate"><span class="pre">dataclasses.asdict</span></code>, <code class="docutils literal notranslate"><span class="pre">copy.deepcopy</span></code>, and pickle
+when the supplied model class and config support those operations. Weights remain
+an immutable mapping after copying or unpickling; their insertion order does not
+affect config equality or hashing. Hashing requires the supplied <code class="docutils literal notranslate"><span class="pre">model_config</span></code>
+to be hashable as well. The wrapper’s <code class="docutils literal notranslate"><span class="pre">_checkpoint_config()</span></code> returns the same
+JSON-compatible settings written by <code class="docutils literal notranslate"><span class="pre">save()</span></code>; inner model configuration lives
+in the nested model checkpoint. Model checkpoints continue to use the existing
+safe format, independently of Python config pickling.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="compresso_recsys.models.MMConcatWrapperConfig">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">compresso_recsys.models.</span></span><span class="sig-name descname"><span class="pre">MMConcatWrapperConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">modalities</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fit_features_parameter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'item_features'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">missing</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'error'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weights</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'float32'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extra_modalities</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'error'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/mm_concat.html#MMConcatWrapperConfig"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.MMConcatWrapperConfig" title="Link to this definition"></a></dt>
+<dd><p>Configure feature concatenation and construction of the inner model.</p>
+<p><code class="docutils literal notranslate"><span class="pre">model</span></code> is a cold-start model/trainer class constructed with
+<code class="docutils literal notranslate"><span class="pre">model_config</span></code> as its sole positional argument (or no arguments if None).
+<code class="docutils literal notranslate"><span class="pre">modalities</span></code> fixes the block order. Unknown keys in features and
+<code class="docutils literal notranslate"><span class="pre">modality_masks</span></code> are rejected by default. Set <code class="docutils literal notranslate"><span class="pre">extra_modalities=&quot;ignore&quot;</span></code>
+to select modalities from larger feature and mask mappings; unused keys
+are then ignored, including misspellings.
+<code class="docutils literal notranslate"><span class="pre">fit_features_parameter</span></code> identifies the inner fit argument to transform,
+whether supplied positionally or by keyword. Other fit arguments pass through.</p>
+<p><code class="docutils literal notranslate"><span class="pre">missing</span></code> handles explicitly unavailable rows: reject them, fill with
+zeros, or impute the mean of available training rows. Zero vectors alone do
+not imply missingness. Every selected modality must be present at first fit
+to establish its width; later calls may omit entire modalities.</p>
+<p>Imputation precedes optional per-modality row L2 normalization, followed by
+multiplication by <code class="docutils literal notranslate"><span class="pre">weights</span></code> (unspecified weights are 1). These are feature
+multipliers, not promised contributions to an inner model’s scores.
+<code class="docutils literal notranslate"><span class="pre">dtype</span></code> controls concatenation; the inner model controls its own precision.</p>
+<p>Weights are copied into an immutable mapping compatible with <code class="docutils literal notranslate"><span class="pre">asdict</span></code>,
+copying, and pickling. Those operations still depend on the supplied model
+class/config supporting them; hashing also requires a hashable model config.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> (<em>type</em><em>[</em><a class="reference internal" href="#compresso_recsys.models.BaseColdStartRecommender" title="compresso_recsys.models.cold_start.BaseColdStartRecommender"><em>BaseColdStartRecommender</em></a><em>]</em>)</p></li>
+<li><p><strong>modalities</strong> (<em>Sequence</em><em>[</em><em>str</em><em>]</em>)</p></li>
+<li><p><strong>model_config</strong> (<em>Any</em>)</p></li>
+<li><p><strong>fit_features_parameter</strong> (<em>str</em>)</p></li>
+<li><p><strong>missing</strong> (<em>Literal</em><em>[</em><em>'error'</em><em>, </em><em>'zero'</em><em>, </em><em>'mean'</em><em>]</em>)</p></li>
+<li><p><strong>normalize</strong> (<em>bool</em>)</p></li>
+<li><p><strong>weights</strong> (<em>Mapping</em><em>[</em><em>str</em><em>, </em><em>float</em><em>] </em><em>| </em><em>None</em>)</p></li>
+<li><p><strong>dtype</strong> (<em>Literal</em><em>[</em><em>'float32'</em><em>, </em><em>'float64'</em><em>]</em>)</p></li>
+<li><p><strong>extra_modalities</strong> (<em>Literal</em><em>[</em><em>'error'</em><em>, </em><em>'ignore'</em><em>]</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="compresso_recsys.models.MMConcatWrapper">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">compresso_recsys.models.</span></span><span class="sig-name descname"><span class="pre">MMConcatWrapper</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/mm_concat.html#MMConcatWrapper"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.MMConcatWrapper" title="Link to this definition"></a></dt>
+<dd><p>Concatenate named matrices and delegate learning/scoring to a cold model.</p>
+<p>The inner model owns the only candidate catalog, containing its normal
+stored matrix representation. Use this wrapper’s candidate mutation methods
+to preprocess raw modalities. <code class="docutils literal notranslate"><span class="pre">inner_model</span></code> exposes model-specific APIs.
+Source/history support, filters, prediction batching, and publication
+semantics remain those of the inner model.</p>
+<p>Refitting constructs a fresh inner model and publishes it only after fitting
+succeeds. Means use <code class="docutils literal notranslate"><span class="pre">feature_fit_indices</span></code>, otherwise the forwarded
+<code class="docutils literal notranslate"><span class="pre">train_item_indices</span></code>, otherwise all rows. Callers with a differently named
+training subset must supply <code class="docutils literal notranslate"><span class="pre">feature_fit_indices</span></code> explicitly.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> (<a class="reference internal" href="#compresso_recsys.models.MMConcatWrapperConfig" title="compresso_recsys.models.MMConcatWrapperConfig"><em>MMConcatWrapperConfig</em></a>)</p>
+</dd>
+</dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="compresso_recsys.models.MMConcatWrapper.device">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">device</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">device</span></span><a class="headerlink" href="#compresso_recsys.models.MMConcatWrapper.device" title="Link to this definition"></a></dt>
+<dd><p>The current inner model’s device, when the inner model exposes one.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="compresso_recsys.models.MMConcatWrapper.feature_dims_">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">feature_dims_</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#compresso_recsys.models.MMConcatWrapper.feature_dims_" title="Link to this definition"></a></dt>
+<dd><p>Fitted widths of the selected input modalities.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="compresso_recsys.models.MMConcatWrapper.is_fitted">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">is_fitted</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><a class="headerlink" href="#compresso_recsys.models.MMConcatWrapper.is_fitted" title="Link to this definition"></a></dt>
+<dd><p>Whether the model is ready for prediction.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.MMConcatWrapper.fit">
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">modality_masks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_fit_indices</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/mm_concat.html#MMConcatWrapper.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.MMConcatWrapper.fit" title="Link to this definition"></a></dt>
+<dd><p>Bind the inner fit signature, transform its features, and forward it.</p>
+<p><code class="docutils literal notranslate"><span class="pre">modality_masks</span></code> and <code class="docutils literal notranslate"><span class="pre">feature_fit_indices</span></code> belong to the wrapper and
+are not forwarded. For an opaque <code class="docutils literal notranslate"><span class="pre">fit(*args,</span> <span class="pre">**kwargs)</span></code>, pass features
+by the configured keyword; unnamed positional arguments cannot be inferred.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#compresso_recsys.models.MMConcatWrapper" title="compresso_recsys.models.mm_concat.MMConcatWrapper"><code class="xref py py-class docutils literal notranslate"><span class="pre">MMConcatWrapper</span></code></a></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>modality_masks</strong> (<em>Mapping</em><em>[</em><em>str</em><em>, </em><em>ndarray</em><em>] </em><em>| </em><em>None</em>)</p></li>
+<li><p><strong>feature_fit_indices</strong> (<em>Sequence</em><em>[</em><em>int</em><em>] </em><em>| </em><em>ndarray</em><em> | </em><em>None</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.MMConcatWrapper.transform_features">
+<span class="sig-name descname"><span class="pre">transform_features</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">item_features</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">modality_masks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/mm_concat.html#MMConcatWrapper.transform_features"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.MMConcatWrapper.transform_features" title="Link to this definition"></a></dt>
+<dd><p>Return concatenated features using the fitted schema and preprocessing.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">csr_matrix</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>item_features</strong> (<em>Mapping</em><em>[</em><em>str</em><em>, </em><em>csr_matrix</em><em> | </em><em>SRPTensor</em><em> | </em><em>ndarray</em><em> | </em><em>Tensor</em><em>]</em>)</p></li>
+<li><p><strong>modality_masks</strong> (<em>Mapping</em><em>[</em><em>str</em><em>, </em><em>ndarray</em><em>] </em><em>| </em><em>None</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.MMConcatWrapper.build_candidates">
+<span class="sig-name descname"><span class="pre">build_candidates</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">item_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">item_features</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">modality_masks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/mm_concat.html#MMConcatWrapper.build_candidates"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.MMConcatWrapper.build_candidates" title="Link to this definition"></a></dt>
+<dd><p>Replace inner candidates after applying the fitted transformation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#compresso_recsys.models.CandidateCatalog" title="compresso_recsys.models.cold_start.CandidateCatalog"><code class="xref py py-class docutils literal notranslate"><span class="pre">CandidateCatalog</span></code></a></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>item_ids</strong> (<em>Sequence</em><em>[</em><em>Hashable</em><em>] </em><em>| </em><em>ndarray</em>)</p></li>
+<li><p><strong>item_features</strong> (<em>Mapping</em><em>[</em><em>str</em><em>, </em><em>csr_matrix</em><em> | </em><em>SRPTensor</em><em> | </em><em>ndarray</em><em> | </em><em>Tensor</em><em>]</em>)</p></li>
+<li><p><strong>modality_masks</strong> (<em>Mapping</em><em>[</em><em>str</em><em>, </em><em>ndarray</em><em>] </em><em>| </em><em>None</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.MMConcatWrapper.update_candidates">
+<span class="sig-name descname"><span class="pre">update_candidates</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">item_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">item_features</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">modality_masks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/mm_concat.html#MMConcatWrapper.update_candidates"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.MMConcatWrapper.update_candidates" title="Link to this definition"></a></dt>
+<dd><p>Register candidates without expanding the inner history vocabulary.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#compresso_recsys.models.CandidateCatalog" title="compresso_recsys.models.cold_start.CandidateCatalog"><code class="xref py py-class docutils literal notranslate"><span class="pre">CandidateCatalog</span></code></a></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>item_ids</strong> (<em>Sequence</em><em>[</em><em>Hashable</em><em>] </em><em>| </em><em>ndarray</em>)</p></li>
+<li><p><strong>item_features</strong> (<em>Mapping</em><em>[</em><em>str</em><em>, </em><em>csr_matrix</em><em> | </em><em>SRPTensor</em><em> | </em><em>ndarray</em><em> | </em><em>Tensor</em><em>]</em>)</p></li>
+<li><p><strong>modality_masks</strong> (<em>Mapping</em><em>[</em><em>str</em><em>, </em><em>ndarray</em><em>] </em><em>| </em><em>None</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.MMConcatWrapper.remove_candidates">
+<span class="sig-name descname"><span class="pre">remove_candidates</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">item_ids</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/mm_concat.html#MMConcatWrapper.remove_candidates"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.MMConcatWrapper.remove_candidates" title="Link to this definition"></a></dt>
+<dd><p>Remove registered candidates and publish a new snapshot.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#compresso_recsys.models.CandidateCatalog" title="compresso_recsys.models.cold_start.CandidateCatalog"><code class="xref py py-class docutils literal notranslate"><span class="pre">CandidateCatalog</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.MMConcatWrapper.align_source">
+<span class="sig-name descname"><span class="pre">align_source</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/mm_concat.html#MMConcatWrapper.align_source"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.MMConcatWrapper.align_source" title="Link to this definition"></a></dt>
+<dd><p>Align external sparse columns to the fitted source vocabulary.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.MMConcatWrapper.recommend">
+<span class="sig-name descname"><span class="pre">recommend</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/mm_concat.html#MMConcatWrapper.recommend"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.MMConcatWrapper.recommend" title="Link to this definition"></a></dt>
+<dd><p>Recommend up to <code class="docutils literal notranslate"><span class="pre">k</span></code> item IDs for each item-ID history.</p>
+<p><code class="docutils literal notranslate"><span class="pre">logger</span></code> and <code class="docutils literal notranslate"><span class="pre">show_progress</span></code> override prediction reporting for this
+call. Passing <code class="docutils literal notranslate"><span class="pre">logger=None</span></code> makes the request quiet even when the
+recommender has a constructor logger.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.MMConcatWrapper.predict">
+<span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/mm_concat.html#MMConcatWrapper.predict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.MMConcatWrapper.predict" title="Link to this definition"></a></dt>
+<dd><p>Predict all source rows by repeatedly calling <code class="docutils literal notranslate"><span class="pre">predict_on_batch</span></code>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.MMConcatWrapper.predict_on_batch">
+<span class="sig-name descname"><span class="pre">predict_on_batch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/mm_concat.html#MMConcatWrapper.predict_on_batch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.MMConcatWrapper.predict_on_batch" title="Link to this definition"></a></dt>
+<dd><p>Return ranked predictions against the current candidate catalog.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.MMConcatWrapper.to">
+<span class="sig-name descname"><span class="pre">to</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">device</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/mm_concat.html#MMConcatWrapper.to"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.MMConcatWrapper.to" title="Link to this definition"></a></dt>
+<dd><p>Move the inner model and retain its config for subsequent refits.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#compresso_recsys.models.MMConcatWrapper" title="compresso_recsys.models.mm_concat.MMConcatWrapper"><code class="xref py py-class docutils literal notranslate"><span class="pre">MMConcatWrapper</span></code></a></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>device</strong> (<em>str</em><em> | </em><em>device</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.MMConcatWrapper.register_model">
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">register_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/mm_concat.html#MMConcatWrapper.register_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.MMConcatWrapper.register_model" title="Link to this definition"></a></dt>
+<dd><p>Allow a trusted custom model class when loading wrapper checkpoints.</p>
+<p>Built-ins are registered automatically. Construction also registers its
+class; a fresh process must register custom classes explicitly. Checkpoint
+contents never trigger dynamic imports or pickle deserialization.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>model</strong> (<em>type</em><em>[</em><a class="reference internal" href="#compresso_recsys.models.BaseColdStartRecommender" title="compresso_recsys.models.cold_start.BaseColdStartRecommender"><em>BaseColdStartRecommender</em></a><em>]</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.MMConcatWrapper.save">
+<span class="sig-name descname"><span class="pre">save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_optimizer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/mm_concat.html#MMConcatWrapper.save"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.MMConcatWrapper.save" title="Link to this definition"></a></dt>
+<dd><p>Save preprocessing and an ordinary inner-model checkpoint together.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>path</strong> (<em>str</em><em> | </em><em>Path</em>)</p></li>
+<li><p><strong>include_optimizer</strong> (<em>bool</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.MMConcatWrapper.load">
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cpu'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">load_optimizer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/mm_concat.html#MMConcatWrapper.load"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.MMConcatWrapper.load" title="Link to this definition"></a></dt>
+<dd><p>Restore preprocessing and the inner model, including candidate changes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#compresso_recsys.models.MMConcatWrapper" title="compresso_recsys.models.mm_concat.MMConcatWrapper"><code class="xref py py-class docutils literal notranslate"><span class="pre">MMConcatWrapper</span></code></a></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>path</strong> (<em>str</em><em> | </em><em>Path</em>)</p></li>
+<li><p><strong>device</strong> (<em>str</em><em> | </em><em>device</em>)</p></li>
+<li><p><strong>load_optimizer</strong> (<em>bool</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="multimodal-cold-start-subclasses">
+<h3>Multimodal Cold-Start Subclasses<a class="headerlink" href="#multimodal-cold-start-subclasses" title="Link to this heading"></a></h3>
+<p><a class="reference internal" href="#compresso_recsys.models.BaseMultiModalRecommender" title="compresso_recsys.models.BaseMultiModalRecommender"><code class="xref py py-class docutils literal notranslate"><span class="pre">compresso_recsys.models.BaseMultiModalRecommender</span></code></a> extends the cold-start
+base for models whose item features are a mapping of modality names to matrices.
+Each value may be a NumPy array, CSR matrix, Torch tensor or <code class="docutils literal notranslate"><span class="pre">SRPTensor</span></code>. The
+existing <code class="docutils literal notranslate"><span class="pre">ItemFeatures</span></code> alias continues to describe one matrix; the additional
+<code class="docutils literal notranslate"><span class="pre">MultiModalItemFeatures</span></code> alias describes the mapping. This is an optional base
+with overridable defaults, not a requirement for every multimodal model.</p>
+<p>Implement <code class="docutils literal notranslate"><span class="pre">fit</span></code>, <code class="docutils literal notranslate"><span class="pre">is_fitted</span></code> and <code class="docutils literal notranslate"><span class="pre">predict_on_batch</span></code>. The base supplies
+<code class="docutils literal notranslate"><span class="pre">recommend</span></code>, CSR history conversion, batched <code class="docutils literal notranslate"><span class="pre">predict</span></code>, and candidate
+management. The following small example sums similarities across modalities;
+the base itself imposes no scoring, normalization or fusion rule:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy.sparse</span><span class="w"> </span><span class="kn">import</span> <span class="n">csr_matrix</span><span class="p">,</span> <span class="n">issparse</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">compresso</span><span class="w"> </span><span class="kn">import</span> <span class="n">SRPTensor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseMultiModalRecommender</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">dense</span><span class="p">(</span><span class="n">matrix</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">matrix</span><span class="o">.</span><span class="n">toarray</span><span class="p">()</span> <span class="k">if</span> <span class="n">issparse</span><span class="p">(</span><span class="n">matrix</span><span class="p">)</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">matrix</span><span class="p">)</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">ExampleMultiModalContent</span><span class="p">(</span><span class="n">BaseMultiModalRecommender</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">source_features</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">is_fitted</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">source_features</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">interactions</span><span class="p">,</span> <span class="n">item_features</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">item_ids</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">interactions</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">item_ids</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"interaction columns must match item_ids"</span><span class="p">)</span>
+        <span class="n">snapshot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">candidates</span><span class="o">.</span><span class="n">install</span><span class="p">(</span>
+            <span class="n">source_item_ids</span><span class="o">=</span><span class="n">item_ids</span><span class="p">,</span>
+            <span class="n">candidate_features</span><span class="o">=</span><span class="n">item_features</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">source_features</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">name</span><span class="p">:</span> <span class="n">dense</span><span class="p">(</span><span class="n">matrix</span><span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">matrix</span> <span class="ow">in</span> <span class="n">snapshot</span><span class="o">.</span><span class="n">item_features</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="p">}</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">predict_on_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">exclude_seen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                         <span class="n">candidate_ids</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">source</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_source</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>
+        <span class="n">selected</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">candidates</span><span class="o">.</span><span class="n">resolve_selection</span><span class="p">(</span><span class="n">candidate_ids</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="mi">1</span> <span class="o">&lt;=</span> <span class="n">k</span> <span class="o">&lt;=</span> <span class="n">selected</span><span class="o">.</span><span class="n">rows</span><span class="o">.</span><span class="n">size</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"k exceeds the selected candidate count"</span><span class="p">)</span>
+        <span class="n">scores</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">source</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">source_features</span><span class="p">[</span><span class="n">name</span><span class="p">])</span> <span class="o">@</span> <span class="n">dense</span><span class="p">(</span><span class="n">matrix</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>
+            <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">matrix</span> <span class="ow">in</span> <span class="n">selected</span><span class="o">.</span><span class="n">features</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">exclude_seen</span><span class="p">:</span>
+            <span class="n">users</span><span class="p">,</span> <span class="n">history_items</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">nonzero</span><span class="p">()</span>
+            <span class="n">catalog_rows</span> <span class="o">=</span> <span class="n">selected</span><span class="o">.</span><span class="n">source_to_candidate</span><span class="p">[</span><span class="n">history_items</span><span class="p">]</span>
+            <span class="n">local_rows</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">catalog_rows</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+            <span class="n">present</span> <span class="o">=</span> <span class="n">catalog_rows</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+            <span class="n">local_rows</span><span class="p">[</span><span class="n">present</span><span class="p">]</span> <span class="o">=</span> <span class="n">selected</span><span class="o">.</span><span class="n">candidate_to_local</span><span class="p">[</span>
+                <span class="n">catalog_rows</span><span class="p">[</span><span class="n">present</span><span class="p">]</span>
+            <span class="p">]</span>
+            <span class="n">selected_seen</span> <span class="o">=</span> <span class="n">local_rows</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+            <span class="n">scores</span><span class="p">[</span><span class="n">users</span><span class="p">[</span><span class="n">selected_seen</span><span class="p">],</span> <span class="n">local_rows</span><span class="p">[</span><span class="n">selected_seen</span><span class="p">]]</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">scores</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">k</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"fewer than k unseen candidates"</span><span class="p">)</span>
+        <span class="n">local</span> <span class="o">=</span> <span class="n">SRPTensor</span><span class="o">.</span><span class="n">from_dense</span><span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">scores</span><span class="p">),</span> <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span> <span class="n">score_mode</span><span class="o">=</span><span class="s2">"raw"</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">SRPTensor</span><span class="p">(</span>
+            <span class="n">cols</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">selected</span><span class="o">.</span><span class="n">rows</span><span class="p">)[</span><span class="n">local</span><span class="o">.</span><span class="n">cols</span><span class="p">],</span>
+            <span class="n">vals</span><span class="o">=</span><span class="n">local</span><span class="o">.</span><span class="n">vals</span><span class="p">,</span>
+            <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">selected</span><span class="o">.</span><span class="n">catalog</span><span class="o">.</span><span class="n">n_items</span><span class="p">),</span>
+        <span class="p">)</span>
+
+<span class="n">model</span> <span class="o">=</span> <span class="n">ExampleMultiModalContent</span><span class="p">()</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span>
+    <span class="n">csr_matrix</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+    <span class="p">{</span><span class="s2">"text"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span> <span class="s2">"image"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">1.</span><span class="p">],</span> <span class="p">[</span><span class="mf">2.</span><span class="p">]])},</span>
+    <span class="n">item_ids</span><span class="o">=</span><span class="p">[</span><span class="s2">"a"</span><span class="p">,</span> <span class="s2">"b"</span><span class="p">],</span>
+<span class="p">)</span>
+<span class="n">model</span><span class="o">.</span><span class="n">update_candidates</span><span class="p">(</span>
+    <span class="n">item_ids</span><span class="o">=</span><span class="p">[</span><span class="s2">"cold"</span><span class="p">],</span>
+    <span class="n">item_features</span><span class="o">=</span><span class="p">{</span><span class="s2">"image"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">3.</span><span class="p">]]),</span> <span class="s2">"text"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">]])},</span>
+<span class="p">)</span>
+<span class="n">ranked</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">recommend</span><span class="p">([[</span><span class="s2">"a"</span><span class="p">]],</span> <span class="n">k</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">exclude_seen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">ranked</span><span class="o">.</span><span class="n">item_ids</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"cold"</span>
+</pre></div>
+</div>
+<p>The default <a class="reference internal" href="#compresso_recsys.models.MutableMultiModalCandidateCatalog" title="compresso_recsys.models.MutableMultiModalCandidateCatalog"><code class="xref py py-class docutils literal notranslate"><span class="pre">compresso_recsys.models.MutableMultiModalCandidateCatalog</span></code></a>
+stores each modality separately as a NumPy or CSR matrix. It infers dimensions
+at installation and requires the same modality names and widths on later
+<code class="docutils literal notranslate"><span class="pre">build_candidates</span></code> and <code class="docutils literal notranslate"><span class="pre">update_candidates</span></code> calls. Dictionary order is
+irrelevant. Every matrix must describe the same items in the same row order;
+the caller is responsible for that semantic alignment. Each update supplies all
+modalities for its item rows. Availability masks and partial modality updates
+are not part of this default representation.</p>
+<p>Catalog precision defaults to <code class="docutils literal notranslate"><span class="pre">float32</span></code>. Explicit dtype values must resolve
+to <code class="docutils literal notranslate"><span class="pre">float32</span></code> or <code class="docutils literal notranslate"><span class="pre">float64</span></code>; passing <code class="docutils literal notranslate"><span class="pre">None</span></code> is rejected rather than selecting
+NumPy’s default precision. Checkpoint loading applies the same validation.</p>
+<p>Candidate registration never trains or runs an encoder. Models that transform
+features must apply the same fitted transformation during initial installation,
+rebuilding and updates. Dimensions describe the stored results. Override the
+candidate methods and persistence hooks for other representations; a model may
+also own additional representations or a different catalog.</p>
+<p>Candidate growth leaves the fitted source vocabulary fixed. A newly registered
+ID can be recommended but cannot appear in histories unless it was already a
+fitted source item. Conversely, removing a fitted item from the candidate
+catalog leaves it usable in histories. <code class="docutils literal notranslate"><span class="pre">align_source</span></code> aligns matrix columns
+to that fixed vocabulary; it does not extend it.</p>
+<p>All modalities belong to one published snapshot. Validation failure preserves
+the old snapshot. <code class="docutils literal notranslate"><span class="pre">_on_catalog_published</span></code> runs after publication under the
+catalog lock: if it raises, the new snapshot remains installed. This guarantee
+is per snapshot; inherited batched prediction does not pin one version across
+concurrent catalog mutations.</p>
+<p><code class="docutils literal notranslate"><span class="pre">resolve_selection</span></code> captures the candidate snapshot and fitted source
+vocabulary together under the lock, then prepares feature rows and ID mappings
+outside it. Concurrent publications leave that selection’s captured state
+intact; selection preparation does not hold up other reads or catalog changes.</p>
+<p>Publication callbacks must not wait for a worker that reacquires the catalog
+lock through <code class="docutils literal notranslate"><span class="pre">snapshot</span></code>, <code class="docutils literal notranslate"><span class="pre">resolve_selection</span></code>, or a mutation: that worker
+would wait for the callback to release the lock. Pass the callback’s immutable
+snapshot argument directly to workers that need its contents. Same-thread
+catalog reads are reentrant; callback execution remains under the lock.</p>
+<p>Reinstalling into the same multimodal catalog advances its current version.
+<code class="docutils literal notranslate"><span class="pre">install</span></code> replaces the source vocabulary, schema, and all candidates, including
+additions published before it; candidates from an earlier fit are not merged.
+Version selection and publication share the catalog lock. This orders catalog
+changes but does not synchronize an entire model refit with prediction; the
+model must also coordinate changes to its other fitted state.</p>
+<p>The multimodal base’s <code class="docutils literal notranslate"><span class="pre">_save_checkpoint_state</span></code> and <code class="docutils literal notranslate"><span class="pre">_load_checkpoint_state</span></code>
+hooks persist the catalog schema and each matrix. A concrete model must declare
+<code class="docutils literal notranslate"><span class="pre">checkpoint_type</span></code>, provide configuration/construction hooks, and persist its
+additional fitted state. For the example above that includes
+<code class="docutils literal notranslate"><span class="pre">source_features</span></code>; it can differ from candidates after updates. Call
+<code class="docutils literal notranslate"><span class="pre">super()</span></code> from state hooks to retain default catalog persistence, or implement
+the complete representation’s persistence yourself. Existing single-matrix
+checkpoint formats are unchanged.</p>
+<p>Multimodal catalog checkpoints use schema version 2 and retain support for
+reading version 1. Metadata columns have unique internal Parquet names; their
+original labels, order, index names, and value dtypes are restored on load.
+The label encoding supports strings, integers, finite floats, booleans, <code class="docutils literal notranslate"><span class="pre">None</span></code>,
+NaN, and tuples of these values, including range and multi-level column indexes.
+Missing column labels produced by pandas pivots or transposes round-trip through
+checkpoints. <code class="docutils literal notranslate"><span class="pre">None</span></code> and NaN remain distinct, as do labels such as <code class="docutils literal notranslate"><span class="pre">7</span></code> and
+<code class="docutils literal notranslate"><span class="pre">&quot;7&quot;</span></code>. Missing or malformed metadata schema information raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>
+before changing an installed catalog.</p>
+<p>The mapping-only method annotations intentionally specialize the runtime base
+interface. This addition does not make <code class="docutils literal notranslate"><span class="pre">BaseColdStartRecommender</span></code> or the
+single-matrix <code class="docutils literal notranslate"><span class="pre">ColdStartRecommender</span></code> typing protocol generic; callers needing
+a mapping-specific annotation should use <code class="docutils literal notranslate"><span class="pre">BaseMultiModalRecommender</span></code>.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="compresso_recsys.models.BaseMultiModalRecommender">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">compresso_recsys.models.</span></span><span class="sig-name descname"><span class="pre">BaseMultiModalRecommender</span></span><a class="reference internal" href="../_modules/compresso_recsys/models/multimodal.html#BaseMultiModalRecommender"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.BaseMultiModalRecommender" title="Link to this definition"></a></dt>
+<dd><p>Optional CSR-history base with a default named-matrix candidate catalog.</p>
+<p>Implement <code class="docutils literal notranslate"><span class="pre">fit</span></code>, <code class="docutils literal notranslate"><span class="pre">is_fitted</span></code> and <code class="docutils literal notranslate"><span class="pre">predict_on_batch</span></code>. Fitting installs
+the source IDs and stored matrices with <code class="docutils literal notranslate"><span class="pre">self.candidates.install(...)</span></code>.
+Recommendation, history alignment and prediction batching are inherited.</p>
+<p>Initial installation, rebuilding and updates must produce the same stored
+representation using the same fitted transformation. Override candidate
+methods if a model must encode incoming matrices first. Other storage and
+scoring designs are equally valid; no fusion rule is imposed by this base.</p>
+<p>The default persistence hooks save/load the catalog. Overrides saving model
+state should call <code class="docutils literal notranslate"><span class="pre">super()</span></code> as well, or manage catalog persistence themselves.
+The model still supplies its checkpoint construction/configuration hooks.</p>
+<p>Mapping-specific overrides intentionally specialize the existing runtime
+interface; the matrix base and its annotations are not made generic here.</p>
+<dl class="field-list simple">
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.BaseMultiModalRecommender.fit">
+<span class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">interactions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">item_features</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/multimodal.html#BaseMultiModalRecommender.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.BaseMultiModalRecommender.fit" title="Link to this definition"></a></dt>
+<dd><p>Fit the model and install its initial multimodal candidate catalog.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#compresso_recsys.models.BaseMultiModalRecommender" title="compresso_recsys.models.multimodal.BaseMultiModalRecommender"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseMultiModalRecommender</span></code></a></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>interactions</strong> (<em>csr_matrix</em>)</p></li>
+<li><p><strong>item_features</strong> (<em>Mapping</em><em>[</em><em>str</em><em>, </em><em>csr_matrix</em><em> | </em><em>SRPTensor</em><em> | </em><em>ndarray</em><em> | </em><em>Tensor</em><em>]</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.BaseMultiModalRecommender._on_catalog_published">
+<span class="sig-name descname"><span class="pre">_on_catalog_published</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">catalog</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/multimodal.html#BaseMultiModalRecommender._on_catalog_published"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.BaseMultiModalRecommender._on_catalog_published" title="Link to this definition"></a></dt>
+<dd><p>Invalidate caches under the catalog lock; raising does not roll back.</p>
+<p>Do not wait for another thread that reads or mutates this catalog: it
+needs the same lock. Workers can instead use the immutable <code class="docutils literal notranslate"><span class="pre">catalog</span></code>
+argument directly without reacquiring the owner’s lock.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>catalog</strong> (<a class="reference internal" href="#compresso_recsys.models.MultiModalCandidateCatalog" title="compresso_recsys.models.multimodal.MultiModalCandidateCatalog"><em>MultiModalCandidateCatalog</em></a>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.BaseMultiModalRecommender.build_candidates">
+<span class="sig-name descname"><span class="pre">build_candidates</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">item_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">item_features</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_space_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/multimodal.html#BaseMultiModalRecommender.build_candidates"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.BaseMultiModalRecommender.build_candidates" title="Link to this definition"></a></dt>
+<dd><p>Replace candidates using already prepared stored representations.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#compresso_recsys.models.MultiModalCandidateCatalog" title="compresso_recsys.models.multimodal.MultiModalCandidateCatalog"><code class="xref py py-class docutils literal notranslate"><span class="pre">MultiModalCandidateCatalog</span></code></a></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>item_ids</strong> (<em>Sequence</em><em>[</em><em>Hashable</em><em>] </em><em>| </em><em>ndarray</em>)</p></li>
+<li><p><strong>item_features</strong> (<em>Mapping</em><em>[</em><em>str</em><em>, </em><em>csr_matrix</em><em> | </em><em>SRPTensor</em><em> | </em><em>ndarray</em><em> | </em><em>Tensor</em><em>]</em>)</p></li>
+<li><p><strong>metadata</strong> (<em>DataFrame</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>feature_space_id</strong> (<em>str</em><em> | </em><em>None</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.BaseMultiModalRecommender.update_candidates">
+<span class="sig-name descname"><span class="pre">update_candidates</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">item_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">item_features</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">on_conflict</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'error'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_space_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/multimodal.html#BaseMultiModalRecommender.update_candidates"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.BaseMultiModalRecommender.update_candidates" title="Link to this definition"></a></dt>
+<dd><p>Append or replace candidates using already prepared representations.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#compresso_recsys.models.MultiModalCandidateCatalog" title="compresso_recsys.models.multimodal.MultiModalCandidateCatalog"><code class="xref py py-class docutils literal notranslate"><span class="pre">MultiModalCandidateCatalog</span></code></a></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>item_ids</strong> (<em>Sequence</em><em>[</em><em>Hashable</em><em>] </em><em>| </em><em>ndarray</em>)</p></li>
+<li><p><strong>item_features</strong> (<em>Mapping</em><em>[</em><em>str</em><em>, </em><em>csr_matrix</em><em> | </em><em>SRPTensor</em><em> | </em><em>ndarray</em><em> | </em><em>Tensor</em><em>]</em>)</p></li>
+<li><p><strong>metadata</strong> (<em>DataFrame</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>on_conflict</strong> (<em>Literal</em><em>[</em><em>'error'</em><em>, </em><em>'replace'</em><em>, </em><em>'ignore'</em><em>]</em>)</p></li>
+<li><p><strong>feature_space_id</strong> (<em>str</em><em> | </em><em>None</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.BaseMultiModalRecommender.remove_candidates">
+<span class="sig-name descname"><span class="pre">remove_candidates</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">item_ids</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">missing</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'error'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/multimodal.html#BaseMultiModalRecommender.remove_candidates"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.BaseMultiModalRecommender.remove_candidates" title="Link to this definition"></a></dt>
+<dd><p>Remove registered candidates and publish a new snapshot.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#compresso_recsys.models.MultiModalCandidateCatalog" title="compresso_recsys.models.multimodal.MultiModalCandidateCatalog"><code class="xref py py-class docutils literal notranslate"><span class="pre">MultiModalCandidateCatalog</span></code></a></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>item_ids</strong> (<em>Sequence</em><em>[</em><em>Hashable</em><em>] </em><em>| </em><em>ndarray</em>)</p></li>
+<li><p><strong>missing</strong> (<em>Literal</em><em>[</em><em>'error'</em><em>, </em><em>'ignore'</em><em>]</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.BaseMultiModalRecommender._save_checkpoint_state">
+<span class="sig-name descname"><span class="pre">_save_checkpoint_state</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">writer</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/multimodal.html#BaseMultiModalRecommender._save_checkpoint_state"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.BaseMultiModalRecommender._save_checkpoint_state" title="Link to this definition"></a></dt>
+<dd><p>Write non-module fitted state.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>writer</strong> (<a class="reference internal" href="persistence.html#compresso_recsys.ModelCheckpointWriter" title="compresso_recsys.persistence.ModelCheckpointWriter"><em>ModelCheckpointWriter</em></a>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.BaseMultiModalRecommender._load_checkpoint_state">
+<span class="sig-name descname"><span class="pre">_load_checkpoint_state</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reader</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/multimodal.html#BaseMultiModalRecommender._load_checkpoint_state"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.BaseMultiModalRecommender._load_checkpoint_state" title="Link to this definition"></a></dt>
+<dd><p>Restore non-module fitted state.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>reader</strong> (<a class="reference internal" href="persistence.html#compresso_recsys.ModelCheckpointReader" title="compresso_recsys.persistence.ModelCheckpointReader"><em>ModelCheckpointReader</em></a>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="compresso_recsys.models.MutableMultiModalCandidateCatalog">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">compresso_recsys.models.</span></span><span class="sig-name descname"><span class="pre">MutableMultiModalCandidateCatalog</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">on_publish</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/multimodal.html#MutableMultiModalCandidateCatalog"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.MutableMultiModalCandidateCatalog" title="Link to this definition"></a></dt>
+<dd><p>Candidate-only lifecycle for named feature matrices.</p>
+<p>All mutations validate before publication. The optional callback runs
+<em>after</em> publication, under the catalog lock; if it raises, the new snapshot
+remains installed. Adding candidates never extends the source vocabulary.
+Callbacks must not wait for workers that acquire this catalog’s lock (for
+example through snapshot/selection reads or mutations). Pass the supplied
+immutable snapshot to workers instead. Same-thread reads are reentrant.</p>
+<p>Every build/update supplies all registered modalities for its item rows.
+There is no implicit encoding, normalization, fusion or popularity feature.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>on_publish</strong> (<em>Callable</em><em>[</em><em>[</em><a class="reference internal" href="#compresso_recsys.models.MultiModalCandidateCatalog" title="compresso_recsys.models.MultiModalCandidateCatalog"><em>MultiModalCandidateCatalog</em></a><em>]</em><em>, </em><em>None</em><em>] </em><em>| </em><em>None</em>)</p>
+</dd>
+</dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="compresso_recsys.models.MutableMultiModalCandidateCatalog.feature_dims">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">feature_dims</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#compresso_recsys.models.MutableMultiModalCandidateCatalog.feature_dims" title="Link to this definition"></a></dt>
+<dd><p>Installed dimensions describe the stored representation of each modality.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.MutableMultiModalCandidateCatalog.install">
+<span class="sig-name descname"><span class="pre">install</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">source_item_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">candidate_features</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_space_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'float32'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/multimodal.html#MutableMultiModalCandidateCatalog.install"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.MutableMultiModalCandidateCatalog.install" title="Link to this definition"></a></dt>
+<dd><p>Install fitted source IDs and initial candidates with those same IDs.</p>
+<p>Dimensions are inferred from the supplied stored representations. A
+refit may install a new schema; later candidate mutations cannot.
+Omitting <code class="docutils literal notranslate"><span class="pre">dtype</span></code> uses float32; an explicit None is rejected.</p>
+<p>Reinstallation advances this catalog’s current version and replaces
+all candidates, including additions published before it. It does not
+merge candidates from an earlier fit into a potentially new schema.
+The lock orders catalog publications only; the model must coordinate
+changes to its other fitted state with concurrent prediction itself.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#compresso_recsys.models.MultiModalCandidateCatalog" title="compresso_recsys.models.multimodal.MultiModalCandidateCatalog"><code class="xref py py-class docutils literal notranslate"><span class="pre">MultiModalCandidateCatalog</span></code></a></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>source_item_ids</strong> (<em>Sequence</em><em>[</em><em>Hashable</em><em>] </em><em>| </em><em>ndarray</em>)</p></li>
+<li><p><strong>candidate_features</strong> (<em>Mapping</em><em>[</em><em>str</em><em>, </em><em>csr_matrix</em><em> | </em><em>SRPTensor</em><em> | </em><em>ndarray</em><em> | </em><em>Tensor</em><em>]</em>)</p></li>
+<li><p><strong>metadata</strong> (<em>DataFrame</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>feature_space_id</strong> (<em>str</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>dtype</strong> (<em>str</em><em> | </em><em>dtype</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.MutableMultiModalCandidateCatalog.build">
+<span class="sig-name descname"><span class="pre">build</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">item_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">item_features</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_space_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/multimodal.html#MutableMultiModalCandidateCatalog.build"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.MutableMultiModalCandidateCatalog.build" title="Link to this definition"></a></dt>
+<dd><p>Replace all candidates while preserving the fitted source vocabulary.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#compresso_recsys.models.MultiModalCandidateCatalog" title="compresso_recsys.models.multimodal.MultiModalCandidateCatalog"><code class="xref py py-class docutils literal notranslate"><span class="pre">MultiModalCandidateCatalog</span></code></a></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>item_ids</strong> (<em>Sequence</em><em>[</em><em>Hashable</em><em>] </em><em>| </em><em>ndarray</em>)</p></li>
+<li><p><strong>item_features</strong> (<em>Mapping</em><em>[</em><em>str</em><em>, </em><em>csr_matrix</em><em> | </em><em>SRPTensor</em><em> | </em><em>ndarray</em><em> | </em><em>Tensor</em><em>]</em>)</p></li>
+<li><p><strong>metadata</strong> (<em>DataFrame</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>feature_space_id</strong> (<em>str</em><em> | </em><em>None</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.MutableMultiModalCandidateCatalog.update">
+<span class="sig-name descname"><span class="pre">update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">item_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">item_features</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">on_conflict</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'error'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_space_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/multimodal.html#MutableMultiModalCandidateCatalog.update"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.MutableMultiModalCandidateCatalog.update" title="Link to this definition"></a></dt>
+<dd><p>Append or replace complete modality rows for the supplied item IDs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#compresso_recsys.models.MultiModalCandidateCatalog" title="compresso_recsys.models.multimodal.MultiModalCandidateCatalog"><code class="xref py py-class docutils literal notranslate"><span class="pre">MultiModalCandidateCatalog</span></code></a></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>item_ids</strong> (<em>Sequence</em><em>[</em><em>Hashable</em><em>] </em><em>| </em><em>ndarray</em>)</p></li>
+<li><p><strong>item_features</strong> (<em>Mapping</em><em>[</em><em>str</em><em>, </em><em>csr_matrix</em><em> | </em><em>SRPTensor</em><em> | </em><em>ndarray</em><em> | </em><em>Tensor</em><em>]</em>)</p></li>
+<li><p><strong>metadata</strong> (<em>DataFrame</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>on_conflict</strong> (<em>Literal</em><em>[</em><em>'error'</em><em>, </em><em>'replace'</em><em>, </em><em>'ignore'</em><em>]</em>)</p></li>
+<li><p><strong>feature_space_id</strong> (<em>str</em><em> | </em><em>None</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.MutableMultiModalCandidateCatalog.remove">
+<span class="sig-name descname"><span class="pre">remove</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">item_ids</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">missing</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'error'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/multimodal.html#MutableMultiModalCandidateCatalog.remove"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.MutableMultiModalCandidateCatalog.remove" title="Link to this definition"></a></dt>
+<dd><p>Remove candidates only; fitted history items remain valid.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#compresso_recsys.models.MultiModalCandidateCatalog" title="compresso_recsys.models.multimodal.MultiModalCandidateCatalog"><code class="xref py py-class docutils literal notranslate"><span class="pre">MultiModalCandidateCatalog</span></code></a></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>item_ids</strong> (<em>Sequence</em><em>[</em><em>Hashable</em><em>] </em><em>| </em><em>ndarray</em>)</p></li>
+<li><p><strong>missing</strong> (<em>Literal</em><em>[</em><em>'error'</em><em>, </em><em>'ignore'</em><em>]</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="compresso_recsys.models.MutableMultiModalCandidateCatalog.resolve_selection">
+<span class="sig-name descname"><span class="pre">resolve_selection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">candidate_ids</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/multimodal.html#MutableMultiModalCandidateCatalog.resolve_selection"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.MutableMultiModalCandidateCatalog.resolve_selection" title="Link to this definition"></a></dt>
+<dd><p>Capture consistent catalog/source state, then prepare rows unlocked.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#compresso_recsys.models.MultiModalCandidateSelection" title="compresso_recsys.models.multimodal.MultiModalCandidateSelection"><code class="xref py py-class docutils literal notranslate"><span class="pre">MultiModalCandidateSelection</span></code></a></span></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>candidate_ids</strong> (<em>Sequence</em><em>[</em><em>Hashable</em><em>] </em><em>| </em><em>ndarray</em><em> | </em><em>None</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="compresso_recsys.models.MultiModalCandidateCatalog">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">compresso_recsys.models.</span></span><span class="sig-name descname"><span class="pre">MultiModalCandidateCatalog</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">item_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">item_features</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_space_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">version</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'float32'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/multimodal.html#MultiModalCandidateCatalog"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.MultiModalCandidateCatalog" title="Link to this definition"></a></dt>
+<dd><p>One published snapshot with aligned, read-only modality matrices.</p>
+<p>Snapshot consistency does not pin a catalog version across an entire
+batched prediction. Model authors needing that guarantee must capture one
+snapshot for the whole prediction themselves.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>item_ids</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>item_features</strong> (<em>Mapping</em><em>[</em><em>str</em><em>, </em><em>csr_matrix</em><em> | </em><em>ndarray</em><em>]</em>)</p></li>
+<li><p><strong>metadata</strong> (<em>pd.DataFrame</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>feature_space_id</strong> (<em>str</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>version</strong> (<em>int</em>)</p></li>
+<li><p><strong>dtype</strong> (<em>str</em><em> | </em><em>np.dtype</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="compresso_recsys.models.MultiModalCandidateSelection">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">compresso_recsys.models.</span></span><span class="sig-name descname"><span class="pre">MultiModalCandidateSelection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">catalog</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rows</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">features</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source_to_candidate</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">candidate_to_local</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/models/multimodal.html#MultiModalCandidateSelection"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#compresso_recsys.models.MultiModalCandidateSelection" title="Link to this definition"></a></dt>
+<dd><p>Selected feature rows and their mappings into one complete snapshot.</p>
+<p>Row indices and both mappings use int64 for compatibility with Torch indices.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>catalog</strong> (<a class="reference internal" href="#compresso_recsys.models.MultiModalCandidateCatalog" title="compresso_recsys.models.multimodal.MultiModalCandidateCatalog"><em>MultiModalCandidateCatalog</em></a>)</p></li>
+<li><p><strong>rows</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>features</strong> (<em>Mapping</em><em>[</em><em>str</em><em>, </em><em>csr_matrix</em><em> | </em><em>ndarray</em><em>]</em>)</p></li>
+<li><p><strong>source_to_candidate</strong> (<em>ndarray</em>)</p></li>
+<li><p><strong>candidate_to_local</strong> (<em>ndarray</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="sequential-subclasses">
+<h3>Sequential Subclasses<a class="headerlink" href="#sequential-subclasses" title="Link to this heading"></a></h3>
 <p>Use <a class="reference internal" href="#compresso_recsys.models.BaseSequentialRecommender" title="compresso_recsys.models.BaseSequentialRecommender"><code class="xref py py-class docutils literal notranslate"><span class="pre">compresso_recsys.models.BaseSequentialRecommender</span></code></a> for a model that
 reads ordered histories. It is parallel to
 <a class="reference internal" href="#compresso_recsys.models.BaseCollaborativeRecommender" title="compresso_recsys.models.BaseCollaborativeRecommender"><code class="xref py py-class docutils literal notranslate"><span class="pre">compresso_recsys.models.BaseCollaborativeRecommender</span></code></a> rather than derived
@@ -1505,6 +2311,7 @@ to recommend the 201st.</p>
 
 </dd></dl>
 
+</section>
 <section id="the-owned-candidate-catalog">
 <span id="id1"></span><h3>The Owned Candidate Catalog<a class="headerlink" href="#the-owned-candidate-catalog" title="Link to this heading"></a></h3>
 <p><a class="reference internal" href="#compresso_recsys.models.CandidateCatalog" title="compresso_recsys.models.CandidateCatalog"><code class="xref py py-class docutils literal notranslate"><span class="pre">compresso_recsys.models.CandidateCatalog</span></code></a> is an immutable snapshot.
