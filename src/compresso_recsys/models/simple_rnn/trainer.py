@@ -1,42 +1,9 @@
-"""A recurrent next-item recommender — the smallest honest sequential baseline.
-
-One training example per user: read the history left to right and predict the
-next item at every position. That is the GRU4Rec objective, and it is the
-cheapest thing that actually uses order, which makes it the baseline a
-transformer has to beat before its extra machinery has earned anything.
-
-The architecture is deliberately unremarkable::
-
-    ItemSequences
-      -> SequenceBatcher.encode        tokens (rows, length), mask
-      -> Embedding(vocab, dim, padding_idx=pad_id)
-      -> GRU or LSTM                   states (rows, length, hidden)
-      -> Linear(hidden, n_items)       one score per catalog item
-      -> cross entropy against the history shifted one step left
-
-Two details carry all the risk, and both are pushed into
-:class:`~compresso_recsys.models.sequence_batching.SequenceBatcher`.
-
-**Reading the final state.** With right padding, the last *column* is padding
-for every row shorter than the batch maximum, so scoring from ``states[:, -1]``
-would score most users from a pad embedding. Prediction goes through
-:meth:`~compresso_recsys.models.sequence_batching.SequenceBatcher.gather_final`,
-which reads each row's own last real position.
-
-**Truncation is not exclusion.** The batcher's ``max_length`` bounds what the
-encoder reads, not what the model may recommend: ``exclude_seen`` masks the whole
-history, including the part truncation dropped -- and, since a history may span a
-wider catalog than the model was fitted on, including nothing it could not have
-scored anyway.
-
-Training uses a fixed epoch budget and rebuilds the model on every ``fit`` call;
-early stopping and incremental training are not implemented. Tied embeddings
-and sampled softmax are also absent.
-"""
+"""The training procedure, and the fitted model's prediction path."""
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from __future__ import annotations
+
 from typing import Any, Hashable, Literal, Sequence
 
 import numpy as np
@@ -54,134 +21,16 @@ from compresso_recsys._reporting import (
 from compresso_recsys.persistence import ModelCheckpointReader
 from compresso_recsys.sequences import ItemSequences
 
-from ._schedule import LRSchedule, build_scheduler, check_schedule
-from .base import BaseSequentialRecommender
-from .sequence_batching import SequenceBatcher
-from .tokenizer import ItemTokenizer
-
-__all__ = ["SimpleRNN", "SimpleRNNConfig", "SimpleRNNTrainer"]
-
-RNNType = Literal["gru", "lstm"]
-OptimizerName = Literal["NAdam", "AdamW"]
-
-
-@dataclass
-class SimpleRNNConfig:
-    """Configuration for :class:`SimpleRNNTrainer`.
-
-    ``dropout`` is applied to the states before scoring, and additionally
-    between recurrent layers when ``num_layers > 1``. A single-layer RNN has no
-    between-layer position to apply it, which is PyTorch's own behaviour rather
-    than a choice made here.
-
-    ``unk_dropout`` replaces that fraction of *input* positions with the
-    tokenizer's ``unk`` token, teaching the model to read a history containing an
-    item it cannot identify. It defaults to a non-zero rate because otherwise
-    ``unk`` is never trained at all: the training vocabulary *is* the training
-    window, so an out-of-catalog item cannot occur until evaluation, and its
-    embedding would still sit at its initialisation when a quarter of a temporal
-    test history turns out to need it.
-
-    The right rate tracks the out-of-catalog share the model will actually face,
-    which is a property of the split rather than of the model: near zero under
-    ``leave_last_out``, and far higher on a late ``temporal`` stage. It is
-    ignored when the tokenizer has no ``unk`` to substitute.
-    """
-
-    rnn_type: RNNType = "gru"
-    embedding_dim: int = 128
-    hidden_dim: int = 256
-    num_layers: int = 1
-    dropout: float = 0.0
-    unk_dropout: float = 0.05
-    lr_schedule: LRSchedule = "constant"
-    warmup_fraction: float = 0.05
-    min_lr_ratio: float = 0.1
-    batch_size: int = 256
-    epochs: int = 10
-    lr: float = 1e-3
-    weight_decay: float = 0.0
-    optimizer: OptimizerName = "NAdam"
-    device: str | torch.device = "cpu"
-    show_progress: bool = True
-    seed: int = 0
-    log_prefix: str = "SimpleRNN"
-    log_every_n_steps: int = 1000
-
-    def __post_init__(self) -> None:
-        _validate_log_every_n_steps(self.log_every_n_steps)
-        check_schedule(self.lr_schedule, self.warmup_fraction, self.min_lr_ratio)
-        if self.rnn_type not in ("gru", "lstm"):
-            raise ValueError(
-                f"rnn_type must be 'gru' or 'lstm', got {self.rnn_type!r}"
-            )
-        for name in ("embedding_dim", "hidden_dim", "num_layers", "batch_size"):
-            value = getattr(self, name)
-            if value < 1:
-                raise ValueError(f"{name} must be >= 1, got {value}")
-        if self.epochs < 1:
-            raise ValueError(f"epochs must be >= 1, got {self.epochs}")
-        if not 0.0 <= self.dropout < 1.0:
-            raise ValueError(f"dropout must be in [0, 1), got {self.dropout}")
-        if not 0.0 <= self.unk_dropout < 1.0:
-            raise ValueError(
-                f"unk_dropout must be in [0, 1), got {self.unk_dropout}"
-            )
-        if self.lr <= 0.0:
-            raise ValueError(f"lr must be > 0, got {self.lr}")
-
-
-class SimpleRNN(nn.Module):
-    """Embedding, recurrence, and a linear head over the catalog.
-
-    The head outputs ``n_items`` scores rather than ``vocab_size``: special
-    tokens are never prediction targets, so giving them output columns would
-    train weights that can only ever be wrong.
-
-    :meth:`forward` returns states and :meth:`score` turns states into logits,
-    kept separate because prediction needs logits at one position per row.
-    Scoring first and gathering after would materialise
-    ``rows x length x n_items``, which on a real catalog is where the memory
-    goes.
-    """
-
-    def __init__(
-        self,
-        *,
-        vocab_size: int,
-        n_items: int,
-        embedding_dim: int,
-        hidden_dim: int,
-        num_layers: int,
-        dropout: float,
-        rnn_type: RNNType,
-        pad_id: int,
-    ) -> None:
-        super().__init__()
-        self.embedding = nn.Embedding(
-            vocab_size, embedding_dim, padding_idx=pad_id
-        )
-        recurrent = nn.GRU if rnn_type == "gru" else nn.LSTM
-        self.rnn = recurrent(
-            embedding_dim,
-            hidden_dim,
-            num_layers=num_layers,
-            batch_first=True,
-            # PyTorch applies this between layers only, so a single-layer RNN
-            # would silently ignore it. self.dropout below covers both cases.
-            dropout=dropout if num_layers > 1 else 0.0,
-        )
-        self.dropout = nn.Dropout(dropout)
-        self.head = nn.Linear(hidden_dim, n_items)
-
-    def forward(self, tokens: torch.Tensor) -> torch.Tensor:
-        """Hidden states for every position, shape ``(rows, length, hidden)``."""
-        states, _ = self.rnn(self.embedding(tokens))
-        return states
-
-    def score(self, states: torch.Tensor) -> torch.Tensor:
-        """Catalog logits for the given states, one score per item."""
-        return self.head(self.dropout(states))
+from ..core.schedule import LRSchedule, build_scheduler, check_schedule
+from ..base import BaseSequentialRecommender
+from ..sequence_batching import SequenceBatcher
+from ..tokenizer import ItemTokenizer
+from compresso_recsys.models.simple_rnn.config import (
+    SimpleRNNConfig,
+)
+from compresso_recsys.models.simple_rnn.model import (
+    SimpleRNN,
+)
 
 
 class SimpleRNNTrainer(BaseSequentialRecommender):
@@ -541,4 +390,3 @@ class SimpleRNNTrainer(BaseSequentialRecommender):
             cols = candidates[local_cols]
 
         return SRPTensor(cols=cols, vals=vals, shape=(rows, n_items))
-

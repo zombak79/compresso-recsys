@@ -1,14 +1,16 @@
+"""The training procedure, and the fitted model's prediction path."""
+
+from __future__ import annotations
+
 from __future__ import annotations
 
 import time
 import warnings
-from dataclasses import dataclass
 from typing import Any, Hashable, Literal, Sequence
 
 import numpy as np
 import pandas as pd
 import torch
-import torch.nn.functional as F
 from scipy.sparse import csr_matrix, isspmatrix_csr
 from torch import nn
 
@@ -21,16 +23,16 @@ from compresso_recsys._reporting import (
     _validate_log_every_n_steps,
 )
 from compresso_recsys.persistence import ModelCheckpointReader, ModelCheckpointWriter
-from compresso_recsys.models._batching import (
+from compresso_recsys.models.core.batching import (
     InteractionBatchSampler,
     dense_training_target,
     normalized_mse,
 )
-from compresso_recsys.models._validation import (
+from compresso_recsys.models.core.validation import (
     canonical_csr,
     canonical_train_item_indices,
 )
-from compresso_recsys.models.cold_start import (
+from compresso_recsys.models.core.cold_start import (
     BaseColdStartRecommender,
     CandidateCatalog,
     CandidateSelection,
@@ -42,12 +44,12 @@ from compresso_recsys.models.cold_start import (
     canonical_metadata,
     take_features,
 )
-
-__all__ = ["TEASERGD", "TEASERGDConfig", "TEASERGDTrainer"]
-
-OptimizerName = Literal["NAdam", "AdamW"]
-TEASERGDLoss = Literal["normalized_mse", "teaser"]
-EncoderInit = Literal["xavier", "features"]
+from compresso_recsys.models.teaser_gd.config import (
+    TEASERGDConfig,
+)
+from compresso_recsys.models.teaser_gd.model import (
+    TEASERGD,
+)
 
 
 def _teaser_reconstruction_loss(
@@ -116,15 +118,6 @@ def _feature_tensor(
         ).to(device)
 
 
-def _score_feature_rows(
-    profiles: torch.Tensor,
-    candidate_features: torch.Tensor,
-) -> torch.Tensor:
-    if candidate_features.layout == torch.strided:
-        return profiles @ candidate_features.T
-    return torch.sparse.mm(candidate_features, profiles.T).T
-
-
 @torch.no_grad()
 def _initialize_encoder_from_features(
     model: TEASERGD,
@@ -153,191 +146,6 @@ def _initialize_encoder_from_features(
         model.encoder.device
     )
     model.encoder[rows, columns] = values
-
-
-class TEASERGD(nn.Module):
-    """Trainable TEASER encoder with a fixed feature decoder.
-
-    The model represents the coefficient matrix as ``E @ S.T`` without
-    constructing it. ``source_candidate_positions`` identifies each source
-    item's position in the candidate output so ``diagonal_scale`` can remove
-    all or part of the diagonal contribution ``(E * S).sum(-1)`` exactly.
-    """
-
-    def __init__(
-        self,
-        input_dim: int,
-        feature_dim: int,
-        *,
-        use_relu: bool = True,
-        normalize_encoder: bool = False,
-        diagonal_scale: float = 1.0,
-    ) -> None:
-        super().__init__()
-        if input_dim < 1:
-            raise ValueError("input_dim must be >= 1")
-        if feature_dim < 1:
-            raise ValueError("feature_dim must be >= 1")
-        if (
-            isinstance(diagonal_scale, bool)
-            or not np.isfinite(diagonal_scale)
-            or not 0 <= diagonal_scale <= 1
-        ):
-            raise ValueError("diagonal_scale must be finite and in [0, 1]")
-        self.input_dim = int(input_dim)
-        self.feature_dim = int(feature_dim)
-        self.use_relu = bool(use_relu)
-        self.normalize_encoder = bool(normalize_encoder)
-        self.diagonal_scale = float(diagonal_scale)
-        self.encoder = nn.Parameter(torch.empty(self.input_dim, self.feature_dim))
-        nn.init.xavier_uniform_(self.encoder)
-
-    def encoder_weights(
-        self,
-        rows: torch.Tensor | None = None,
-    ) -> torch.Tensor:
-        """Return effective encoder rows, optionally normalized as in ELSA."""
-        weights = self.encoder if rows is None else self.encoder[rows]
-        if self.normalize_encoder:
-            return F.normalize(weights, p=2.0, dim=-1)
-        return weights
-
-    def forward(
-        self,
-        x: torch.Tensor,
-        *,
-        sources: torch.Tensor,
-        source_features: torch.Tensor,
-        candidate_features: torch.Tensor,
-        source_candidate_positions: torch.Tensor,
-    ) -> torch.Tensor:
-        """Score candidates and scale represented self-coefficient removal."""
-        if x.shape[1] != sources.numel():
-            raise ValueError("x columns must match sources")
-        if source_features.shape != (sources.numel(), self.feature_dim):
-            raise ValueError("source_features shape must match sources and feature_dim")
-        if candidate_features.shape[1] != self.feature_dim:
-            raise ValueError("candidate_features has an incompatible feature dimension")
-        if source_candidate_positions.shape != sources.shape:
-            raise ValueError("source_candidate_positions must match sources")
-
-        source_encoder = self.encoder_weights(sources)
-        profiles = x @ source_encoder
-        scores = _score_feature_rows(profiles, candidate_features)
-        diagonal = (source_encoder * source_features).sum(dim=-1)
-        valid = source_candidate_positions >= 0
-        positions = source_candidate_positions[valid]
-        correction = -self.diagonal_scale * (x[:, valid] * diagonal[valid])
-        scores = scores.scatter_add(
-            1,
-            positions.expand(x.shape[0], -1),
-            correction,
-        )
-        return F.relu(scores) if self.use_relu else scores
-
-    def exact_coefficient_squared_norm(
-        self,
-        item_features: torch.Tensor,
-    ) -> torch.Tensor:
-        """Return the exact effective coefficient squared norm."""
-        if item_features.layout != torch.strided:
-            item_features = item_features.to_dense()
-        if item_features.shape != (self.input_dim, self.feature_dim):
-            raise ValueError("item_features shape must match input_dim and feature_dim")
-        encoder = self.encoder_weights()
-        coefficients = encoder @ item_features.T
-        diagonal = (encoder * item_features).sum(dim=-1)
-        removed_fraction = self.diagonal_scale * (2.0 - self.diagonal_scale)
-        return coefficients.square().sum() - removed_fraction * diagonal.square().sum()
-
-
-@dataclass(frozen=True)
-class TEASERGDConfig:
-    """Configuration for gradient-trained TEASER.
-
-    ``loss="normalized_mse"`` preserves the ELSA-style objective, while
-    ``loss="teaser"`` uses the original TEASER Frobenius reconstruction and
-    regularization scale. ``max_output`` uses the same source-prefix candidate
-    sampling as ELSA. In TEASER mode, sampled negatives are importance-weighted
-    to estimate full-output reconstruction.
-    ``coefficient_regularization_samples`` controls a Monte Carlo estimate of
-    the effective coefficient norm; zero disables that term.
-    """
-
-    batch_size: int = 1024
-    max_output: int | None = None
-    epochs: int = 1
-    lr: float = 1e-3
-    weight_decay: float = 0.0
-    l2_coefficients: float = 0.05
-    l2_encoder: float = 0.05
-    coefficient_regularization_samples: int = 4096
-    decay: bool = False
-    compile: bool = False
-    device: str | torch.device = "cpu"
-    show_progress: bool = True
-    seed: int = 0
-    use_relu: bool = True
-    include_popularity: bool = True
-    optimizer: OptimizerName = "NAdam"
-    loss: TEASERGDLoss = "normalized_mse"
-    encoder_init: EncoderInit = "xavier"
-    normalize_encoder: bool = False
-    diagonal_scale: float = 1.0
-    log_prefix: str = "TEASERGD"
-    log_every_n_steps: int = 1000
-
-    def __post_init__(self) -> None:
-        _validate_log_every_n_steps(self.log_every_n_steps)
-        for name in ("batch_size", "epochs"):
-            value = getattr(self, name)
-            if isinstance(value, bool) or not isinstance(value, int) or value < 1:
-                raise ValueError(f"{name} must be >= 1")
-        if self.max_output is not None and (
-            isinstance(self.max_output, bool)
-            or not isinstance(self.max_output, int)
-            or self.max_output < 1
-        ):
-            raise ValueError("max_output must be >= 1 or None")
-        if (
-            isinstance(self.coefficient_regularization_samples, bool)
-            or not isinstance(self.coefficient_regularization_samples, int)
-            or self.coefficient_regularization_samples < 0
-        ):
-            raise ValueError("coefficient_regularization_samples must be >= 0")
-        for name in (
-            "lr",
-            "weight_decay",
-            "l2_coefficients",
-            "l2_encoder",
-        ):
-            value = float(getattr(self, name))
-            if not np.isfinite(value) or value < 0 or (name == "lr" and value == 0):
-                relation = "> 0" if name == "lr" else ">= 0"
-                raise ValueError(f"{name} must be finite and {relation}")
-        if (
-            isinstance(self.diagonal_scale, bool)
-            or not np.isfinite(self.diagonal_scale)
-            or not 0 <= self.diagonal_scale <= 1
-        ):
-            raise ValueError("diagonal_scale must be finite and in [0, 1]")
-        if self.optimizer not in {"NAdam", "AdamW"}:
-            raise ValueError("optimizer must be 'NAdam' or 'AdamW'")
-        if self.loss not in {"normalized_mse", "teaser"}:
-            raise ValueError("loss must be 'normalized_mse' or 'teaser'")
-        if self.encoder_init not in {"xavier", "features"}:
-            raise ValueError("encoder_init must be 'xavier' or 'features'")
-        for name in (
-            "decay",
-            "compile",
-            "show_progress",
-            "use_relu",
-            "normalize_encoder",
-        ):
-            if not isinstance(getattr(self, name), bool):
-                raise ValueError(f"{name} must be a bool")
-        if not isinstance(self.include_popularity, bool):
-            raise ValueError("include_popularity must be a bool")
 
 
 class TEASERGDTrainer(BaseColdStartRecommender):

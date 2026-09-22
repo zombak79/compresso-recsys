@@ -12,13 +12,13 @@ from .base import (
     Recommender,
     SequentialRecommender,
 )
-from .identifiers import Recommendations
+from .core.identifiers import Recommendations
 from .batching import (
     InteractionBatch,
     InteractionBatchSampler,
     dense_training_target,
 )
-from .cold_start import (
+from .core.cold_start import (
     BaseColdStartRecommender,
     CandidateCatalog,
     ColdStartRecommender,

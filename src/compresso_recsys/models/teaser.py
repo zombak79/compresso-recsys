@@ -8,11 +8,11 @@ import pandas as pd
 import torch
 from scipy.sparse import csr_matrix, issparse, isspmatrix_csr
 
-from compresso_recsys.models._validation import (
+from compresso_recsys.models.core.validation import (
     canonical_csr,
     canonical_train_item_indices,
 )
-from compresso_recsys.models.cold_start import (
+from compresso_recsys.models.core.cold_start import (
     CandidateCatalog,
     ItemFeatures,
     _LinearFeatureRecommenderMixin,

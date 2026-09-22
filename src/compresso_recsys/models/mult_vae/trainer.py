@@ -1,4 +1,6 @@
-"""Variational autoencoder for multinomial implicit collaborative filtering."""
+"""The training procedure, and the fitted model's prediction path."""
+
+from __future__ import annotations
 
 from __future__ import annotations
 
@@ -19,145 +21,20 @@ from compresso_recsys._reporting import (
     TrainingProgress,
     _validate_log_every_n_steps,
 )
-from compresso_recsys.models._autoencoder_batching import (
+from compresso_recsys.models.core.autoencoder_batching import (
     dense_training_batch,
     prepare_dense_training_data,
 )
-from compresso_recsys.models._ranking import validate_candidate_topk
-from compresso_recsys.models._validation import canonical_csr
+from compresso_recsys.models.core.ranking import validate_candidate_topk
+from compresso_recsys.models.core.validation import canonical_csr
 from compresso_recsys.models.base import BaseCollaborativeRecommender
 from compresso_recsys.persistence import ModelCheckpointReader, ModelCheckpointWriter
-
-__all__ = ["MultVAE", "MultVAEConfig", "MultVAETrainer"]
-
-
-@dataclass
-class MultVAEConfig:
-    """Configuration for :class:`MultVAETrainer`.
-
-    ``kl_cap`` is the maximum coefficient on KL divergence.
-    ``kl_anneal_steps`` is the denominator in ``updates / kl_anneal_steps``;
-    the coefficient is clipped at ``kl_cap``. It therefore reaches the cap
-    after ``kl_cap * kl_anneal_steps`` updates. Set the step count to zero to
-    use ``kl_cap`` from the first update.
-    ``preload_training_data=True`` caches the dense interaction matrix on the
-    training device by default. Set it to ``False`` to stream CSR minibatches
-    when the complete dense matrix does not fit.
-    """
-
-    latent_dim: int = 200
-    hidden_dim: int = 600
-    dropout: float = 0.5
-    epochs: int = 20
-    batch_size: int = 256
-    lr: float = 1e-3
-    weight_decay: float = 0.0
-    kl_cap: float = 0.2
-    kl_anneal_steps: int = 200_000
-    preload_training_data: bool = True
-    device: str | torch.device = "cpu"
-    show_progress: bool = True
-    seed: int = 0
-    log_prefix: str = "MultVAE"
-    log_every_n_steps: int = 1000
-
-    def __post_init__(self) -> None:
-        _validate_log_every_n_steps(self.log_every_n_steps)
-        for name in ("latent_dim", "hidden_dim", "epochs", "batch_size"):
-            value = getattr(self, name)
-            if isinstance(value, (bool, np.bool_)) or not isinstance(
-                value, (int, np.integer)
-            ):
-                raise TypeError(f"{name} must be an integer")
-            if value < 1:
-                raise ValueError(f"{name} must be >= 1, got {value}")
-        if isinstance(self.kl_anneal_steps, (bool, np.bool_)) or not isinstance(
-            self.kl_anneal_steps, (int, np.integer)
-        ):
-            raise TypeError("kl_anneal_steps must be an integer")
-        if self.kl_anneal_steps < 0:
-            raise ValueError("kl_anneal_steps must be >= 0")
-        if not np.isfinite(self.dropout) or not 0.0 <= self.dropout < 1.0:
-            raise ValueError(f"dropout must be in [0, 1), got {self.dropout}")
-        if not np.isfinite(self.lr) or self.lr <= 0.0:
-            raise ValueError(f"lr must be finite and > 0, got {self.lr}")
-        if not np.isfinite(self.weight_decay) or self.weight_decay < 0.0:
-            raise ValueError(
-                "weight_decay must be finite and >= 0, got "
-                f"{self.weight_decay}"
-            )
-        if not np.isfinite(self.kl_cap) or self.kl_cap < 0.0:
-            raise ValueError(f"kl_cap must be finite and >= 0, got {self.kl_cap}")
-        if not isinstance(self.preload_training_data, (bool, np.bool_)):
-            raise TypeError("preload_training_data must be a bool")
-        if isinstance(self.seed, (bool, np.bool_)) or not isinstance(
-            self.seed, (int, np.integer)
-        ):
-            raise TypeError("seed must be an integer")
-        torch.device(self.device)
-
-
-class MultVAE(nn.Module):
-    """Symmetric multinomial VAE with a Gaussian latent representation."""
-
-    def __init__(
-        self,
-        n_items: int,
-        latent_dim: int,
-        hidden_dim: int,
-        dropout: float,
-    ) -> None:
-        super().__init__()
-        if n_items < 1:
-            raise ValueError("n_items must be >= 1")
-        if latent_dim < 1:
-            raise ValueError("latent_dim must be >= 1")
-        if hidden_dim < 1:
-            raise ValueError("hidden_dim must be >= 1")
-        if not 0.0 <= dropout < 1.0:
-            raise ValueError("dropout must be in [0, 1)")
-        self.n_items = int(n_items)
-        self.input_dropout = nn.Dropout(float(dropout))
-        self.encoder = nn.Linear(self.n_items, int(hidden_dim))
-        self.mean = nn.Linear(int(hidden_dim), int(latent_dim))
-        self.log_variance = nn.Linear(int(hidden_dim), int(latent_dim))
-        self.decoder_hidden = nn.Linear(int(latent_dim), int(hidden_dim))
-        self.decoder = nn.Linear(int(hidden_dim), self.n_items)
-
-    def encode(self, interactions: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
-        """Return posterior mean and log variance for interaction rows."""
-        if interactions.ndim != 2 or interactions.shape[1] != self.n_items:
-            raise ValueError(
-                "interactions must have shape (rows, "
-                f"{self.n_items}), got {tuple(interactions.shape)}"
-            )
-        normalized = F.normalize(interactions, p=2, dim=1)
-        hidden = torch.tanh(self.encoder(self.input_dropout(normalized)))
-        return self.mean(hidden), self.log_variance(hidden)
-
-    def decode(self, latent: torch.Tensor) -> torch.Tensor:
-        """Decode latent rows to unnormalized multinomial item scores."""
-        return self.decoder(torch.tanh(self.decoder_hidden(latent)))
-
-    def forward(
-        self,
-        interactions: torch.Tensor,
-        *,
-        sample: bool | None = None,
-    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        """Return item logits, posterior mean, and posterior log variance.
-
-        Sampling defaults to the module's training mode. Evaluation therefore
-        uses the posterior mean and produces deterministic rankings.
-        """
-        mean, log_variance = self.encode(interactions)
-        should_sample = self.training if sample is None else bool(sample)
-        if should_sample:
-            standard_deviation = torch.exp(0.5 * log_variance)
-            latent = mean + standard_deviation * torch.randn_like(mean)
-        else:
-            latent = mean
-        return self.decode(latent), mean, log_variance
+from compresso_recsys.models.mult_vae.config import (
+    MultVAEConfig,
+)
+from compresso_recsys.models.mult_vae.model import (
+    MultVAE,
+)
 
 
 class MultVAETrainer(BaseCollaborativeRecommender):

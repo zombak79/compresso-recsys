@@ -11,7 +11,7 @@ from compresso_recsys.models import (
     MultVAEConfig,
     MultVAETrainer,
 )
-from compresso_recsys.models._autoencoder_batching import (
+from compresso_recsys.models.core.autoencoder_batching import (
     prepare_dense_training_data,
 )
 

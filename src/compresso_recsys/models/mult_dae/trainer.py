@@ -1,4 +1,6 @@
-"""Multinomial denoising autoencoder for implicit collaborative filtering."""
+"""The training procedure, and the fitted model's prediction path."""
+
+from __future__ import annotations
 
 from __future__ import annotations
 
@@ -19,99 +21,20 @@ from compresso_recsys._reporting import (
     TrainingProgress,
     _validate_log_every_n_steps,
 )
-from compresso_recsys.models._autoencoder_batching import (
+from compresso_recsys.models.core.autoencoder_batching import (
     dense_training_batch,
     prepare_dense_training_data,
 )
-from compresso_recsys.models._ranking import validate_candidate_topk
-from compresso_recsys.models._validation import canonical_csr
+from compresso_recsys.models.core.ranking import validate_candidate_topk
+from compresso_recsys.models.core.validation import canonical_csr
 from compresso_recsys.models.base import BaseCollaborativeRecommender
 from compresso_recsys.persistence import ModelCheckpointReader, ModelCheckpointWriter
-
-__all__ = ["MultDAE", "MultDAEConfig", "MultDAETrainer"]
-
-
-@dataclass
-class MultDAEConfig:
-    """Configuration for :class:`MultDAETrainer`.
-
-    ``latent_dim`` is the deterministic bottleneck width. ``dropout`` corrupts
-    normalized interaction vectors during training only, as in Mult-DAE.
-    ``l2_reg`` is the coefficient on the squared L2 norm of the encoder and
-    decoder weight matrices; biases are not regularized. The default matches
-    the original implementation's ``0.01 / 500`` setting.
-    ``preload_training_data=True`` caches the dense interaction matrix on the
-    training device by default. Set it to ``False`` to stream CSR minibatches
-    when the complete dense matrix does not fit.
-    """
-
-    latent_dim: int = 200
-    dropout: float = 0.5
-    epochs: int = 20
-    batch_size: int = 256
-    lr: float = 1e-3
-    l2_reg: float = 0.01 / 500
-    preload_training_data: bool = True
-    device: str | torch.device = "cpu"
-    show_progress: bool = True
-    seed: int = 0
-    log_prefix: str = "MultDAE"
-    log_every_n_steps: int = 1000
-
-    def __post_init__(self) -> None:
-        _validate_log_every_n_steps(self.log_every_n_steps)
-        for name in ("latent_dim", "epochs", "batch_size"):
-            value = getattr(self, name)
-            if isinstance(value, (bool, np.bool_)) or not isinstance(
-                value, (int, np.integer)
-            ):
-                raise TypeError(f"{name} must be an integer")
-            if value < 1:
-                raise ValueError(f"{name} must be >= 1, got {value}")
-        if not np.isfinite(self.dropout) or not 0.0 <= self.dropout < 1.0:
-            raise ValueError(f"dropout must be in [0, 1), got {self.dropout}")
-        if not np.isfinite(self.lr) or self.lr <= 0.0:
-            raise ValueError(f"lr must be finite and > 0, got {self.lr}")
-        if not np.isfinite(self.l2_reg) or self.l2_reg < 0.0:
-            raise ValueError(
-                "l2_reg must be finite and >= 0, got "
-                f"{self.l2_reg}"
-            )
-        if not isinstance(self.preload_training_data, (bool, np.bool_)):
-            raise TypeError("preload_training_data must be a bool")
-        if isinstance(self.seed, (bool, np.bool_)) or not isinstance(
-            self.seed, (int, np.integer)
-        ):
-            raise TypeError("seed must be an integer")
-        torch.device(self.device)
-
-
-class MultDAE(nn.Module):
-    """The deterministic ``n_items -> latent -> n_items`` Mult-DAE network."""
-
-    def __init__(self, n_items: int, latent_dim: int, dropout: float) -> None:
-        super().__init__()
-        if n_items < 1:
-            raise ValueError("n_items must be >= 1")
-        if latent_dim < 1:
-            raise ValueError("latent_dim must be >= 1")
-        if not 0.0 <= dropout < 1.0:
-            raise ValueError("dropout must be in [0, 1)")
-        self.n_items = int(n_items)
-        self.input_dropout = nn.Dropout(float(dropout))
-        self.encoder = nn.Linear(self.n_items, int(latent_dim))
-        self.decoder = nn.Linear(int(latent_dim), self.n_items)
-
-    def forward(self, interactions: torch.Tensor) -> torch.Tensor:
-        """Return one unnormalized multinomial score per catalog item."""
-        if interactions.ndim != 2 or interactions.shape[1] != self.n_items:
-            raise ValueError(
-                "interactions must have shape (rows, "
-                f"{self.n_items}), got {tuple(interactions.shape)}"
-            )
-        normalized = F.normalize(interactions, p=2, dim=1)
-        hidden = torch.tanh(self.encoder(self.input_dropout(normalized)))
-        return self.decoder(hidden)
+from compresso_recsys.models.mult_dae.config import (
+    MultDAEConfig,
+)
+from compresso_recsys.models.mult_dae.model import (
+    MultDAE,
+)
 
 
 class MultDAETrainer(BaseCollaborativeRecommender):

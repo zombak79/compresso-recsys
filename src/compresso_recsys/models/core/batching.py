@@ -9,7 +9,7 @@ import torch
 import torch.nn.functional as F
 from scipy.sparse import csr_matrix
 
-from compresso_recsys.models._validation import canonical_csr
+from compresso_recsys.models.core.validation import canonical_csr
 
 
 @dataclass(frozen=True)
