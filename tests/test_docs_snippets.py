@@ -124,6 +124,55 @@ def test_user_computed_feature_example_round_trips(tmp_path):
     assert features["metadata"]["encoder"] == "example-v1"
 
 
+def test_multimodal_subclass_example_runs():
+    snippets = [code for source, _, code in SNIPPETS
+                if source == "api/models.rst" and "class ExampleMultiModalContent" in code]
+    assert len(snippets) == 1
+    namespace = {}
+    exec(compile(snippets[0], "api/models.rst#multimodal", "exec"), namespace)
+    model = namespace["model"]
+    with pytest.raises(ValueError, match="unknown item ID"):
+        model.recommend([["cold"]], k=1)
+    model.remove_candidates(["a"])
+    assert model.recommend([["a"]], k=1).item_ids[0, 0] == "cold"
+
+
+def test_multimodal_wrapper_notebook_executes(tmp_path, monkeypatch):
+    """Exercise the tutorial without network access or a large data download."""
+    from scipy.sparse import csr_matrix
+
+    path = DOCS / "multimodal-concat-wrapper.ipynb"
+    cells = json.loads(path.read_text())["cells"]
+    monkeypatch.chdir(tmp_path)
+    namespace = {"__name__": "__main__"}
+    rng = np.random.default_rng(42)
+    for index, cell in enumerate(cells):
+        if cell["cell_type"] != "code":
+            continue
+        if "requires-data" in cell.get("metadata", {}).get("tags", []):
+            train = np.zeros((12, 12), dtype=np.float32)
+            for row in range(12):
+                train[row, [row, (row + 1) % 12, (row + 4) % 12]] = 1
+            targets = np.zeros((6, 24), dtype=np.float32)
+            targets[np.arange(6), np.arange(6)] = 1
+            masks = {name: np.ones(36, dtype=bool) for name in ("text", "image")}
+            masks["text"][[2, 13]] = False
+            namespace.update(
+                item_ids=np.array([f"book-{i}" for i in range(36)]),
+                warm=np.arange(12), cold=np.arange(12, 36),
+                x_train=csr_matrix(train), test_source=csr_matrix(train[:6]),
+                test_targets=csr_matrix(targets),
+                features={"text": rng.normal(size=(36, 4)).astype(np.float32),
+                          "image": rng.normal(size=(36, 5)).astype(np.float32)},
+                available=masks,
+            )
+            continue
+        exec(compile("".join(cell["source"]), f"{path.name}#cell-{index}", "exec"), namespace)
+    assert namespace["results"].shape == (6, 4)
+    assert namespace["restored"].is_fitted
+    assert len(namespace["restored"].candidate_item_ids) == 24
+
+
 @pytest.mark.parametrize(
     ("source", "line", "code"), SNIPPETS, ids=[f"{s}:{l}" for s, l, _ in SNIPPETS]
 )

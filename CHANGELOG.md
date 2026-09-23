@@ -1,3 +1,42 @@
+## [0.3.6] — 2026-09-22
+
+### Added
+
+- `BaseMultiModalRecommender` and a named-matrix candidate catalog, an optional
+  subclass of the existing cold-start base for models whose item features are a
+  mapping of modality names to matrices. Models implement fitting and scoring
+  while inheriting identified recommendation, CSR batching, catalog updates and
+  default catalog persistence. Modality schemas are validated on every update,
+  candidate growth keeps the fitted history vocabulary fixed, and reinstalling
+  advances the catalog version under the publication lock. Checkpoints preserve
+  modality order and widths alongside metadata column labels, including integer,
+  `None`, NaN and multi-level labels, so labels such as `7` and `"7"` stay
+  distinct; missing or malformed schema information raises `ValueError` before
+  any installed state changes. Candidate selection captures its snapshot and
+  fitted source vocabulary under the catalog lock and prepares feature rows
+  outside it, so preparing a selection does not block other reads or
+  publications. Catalog precision defaults to `float32`; an explicit
+  `dtype=None` is rejected rather than selecting NumPy's default. Feature
+  transformations and alternative stored representations remain the concrete
+  model's responsibility.
+
+- `MMConcatWrapper` and `MMConcatWrapperConfig` turn matrix-based cold-start
+  models into multimodal recommenders by concatenating selected feature blocks.
+  The wrapper binds the inner fit signature, supports a configurable feature
+  parameter, handles explicit missing-modality masks, and reuses fitted
+  preprocessing for candidate changes. Imputation precedes optional per-modality
+  L2 normalization and block weighting, and dense input stays dense even when a
+  modality is omitted. Unknown feature and mask keys are rejected by default, so
+  a misspelling cannot silently trigger imputation or shift fitted means; set
+  `extra_modalities="ignore"` to select modalities from shared larger
+  dictionaries. `MMConcatWrapper.device` reports the inner model's device, and
+  configs support `dataclasses.asdict`, copying, pickling and hashing. Model
+  checkpoints preserve both wrapper preprocessing and inner model state. An
+  executed DBbook notebook compares text, image, and concatenated features for
+  ContentRecommender and TEASER. The wrapper is an adapter over an existing
+  model; `BaseMultiModalRecommender` is the base for a model that stores
+  modalities itself.
+
 ## [0.3.5] — 2026-09-17
 
 ### Changed
@@ -638,7 +677,10 @@ depends on, and two evaluation-protocol corrections found while validating it.
 Initial release. EASE, ELSA and CompressedELSA, checkpoint building and the
 dataset loaders.
 
-[Unreleased]: https://github.com/zombak79/compresso-recsys/compare/v0.3.3...HEAD
+[Unreleased]: https://github.com/zombak79/compresso-recsys/compare/v0.3.6...HEAD
+[0.3.6]: https://github.com/zombak79/compresso-recsys/releases/tag/v0.3.6
+[0.3.5]: https://github.com/zombak79/compresso-recsys/releases/tag/v0.3.5
+[0.3.4]: https://github.com/zombak79/compresso-recsys/releases/tag/v0.3.4
 [0.3.3]: https://github.com/zombak79/compresso-recsys/releases/tag/v0.3.3
 [0.3.2]: https://github.com/zombak79/compresso-recsys/releases/tag/v0.3.2
 [0.3.1]: https://github.com/zombak79/compresso-recsys/releases/tag/v0.3.1

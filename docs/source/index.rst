@@ -25,6 +25,7 @@ is imported as ``compresso_recsys``.
    datasets
    bring-your-own-dataset
    implementing-a-recommender
+   multimodal-concat-wrapper
    reproducing-sasrec-results-on-ml1m
    
    statistical-comparison
