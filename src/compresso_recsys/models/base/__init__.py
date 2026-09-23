@@ -17,12 +17,14 @@ from compresso_recsys.models.base.identified import (
     BaseIdentifiedRecommender,
     _MODEL_NAME,
     _MODELS_DIR,
-    _PersistableT,
     _accepts_reporting_keywords,
     _embedded_model_path,
     _unwrapped_module,
 )
-from compresso_recsys.models.base.persistable import BasePersistableRecommender
+from compresso_recsys.models.base.persistable import (
+    BasePersistableRecommender,
+    _PersistableT,
+)
 from compresso_recsys.models.base.collaborative import BaseCollaborativeRecommender
 from compresso_recsys.models.base.sequential import BaseSequentialRecommender
 

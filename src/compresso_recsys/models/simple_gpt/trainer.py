@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-from __future__ import annotations
-
-from typing import Any, Hashable, Literal, Sequence
+from typing import Any, Hashable, Sequence
 
 import numpy as np
 import torch
@@ -16,12 +14,11 @@ from compresso_recsys._reporting import (
     _INHERIT,
     _Inherit,
     TrainingProgress,
-    _validate_log_every_n_steps,
 )
 from compresso_recsys.sequences import ItemSequences
 from compresso_recsys.persistence import ModelCheckpointReader
 
-from ..core.schedule import LRSchedule, build_scheduler, check_schedule
+from ..core.schedule import build_scheduler
 from ..base import BaseSequentialRecommender
 from ..sequence_batching import SequenceBatcher
 from ..tokenizer import ItemTokenizer

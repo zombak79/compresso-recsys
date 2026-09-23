@@ -2,14 +2,11 @@
 
 from __future__ import annotations
 
-from __future__ import annotations
-
 
 import torch
 import torch.nn.functional as F
 from torch import nn
 
-from compresso_recsys.models.tokenizer import ItemTokenizer
 from compresso_recsys.models.sasrec.config import (
     LAYER_NORM_EPS,
 )

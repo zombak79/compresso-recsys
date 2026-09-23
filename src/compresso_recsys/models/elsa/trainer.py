@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-from __future__ import annotations
-
 import time
-from typing import Any, Hashable, Literal, Sequence
+from typing import Any, Hashable, Sequence
 
 import numpy as np
 import torch
@@ -13,19 +11,16 @@ import torch.nn.functional as F
 from scipy.sparse import csr_matrix
 from torch import nn
 
-from compresso import MaskedParam, SRPParam, SRPTensor, SparsityController
+from compresso import SRPParam, SRPTensor, SparsityController
 from compresso_recsys._reporting import (
     _INHERIT,
     _Inherit,
     _Reporter,
     _format_duration,
-    _validate_log_every_n_steps,
 )
 from compresso_recsys.persistence import ModelCheckpointReader, ModelCheckpointWriter
 from compresso_recsys.models.core.batching import (
     InteractionBatchSampler,
-    dense_training_target,
-    normalized_mse,
 )
 from compresso_recsys.models.core.validation import canonical_csr
 from compresso_recsys.models.base import BaseCollaborativeRecommender

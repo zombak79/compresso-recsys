@@ -2,25 +2,14 @@
 
 from __future__ import annotations
 
-from __future__ import annotations
-
 from dataclasses import dataclass
-from typing import Any, Hashable, Literal, Sequence
+from typing import Literal
 
 import numpy as np
 import torch
 
 from compresso_recsys._reporting import (
-    _INHERIT,
-    _Inherit,
-    TrainingProgress,
-    _format_duration,
     _validate_log_every_n_steps,
-)
-from compresso_recsys.models.core.batching import (
-    InteractionBatchSampler,
-    dense_training_target,
-    normalized_mse,
 )
 
 

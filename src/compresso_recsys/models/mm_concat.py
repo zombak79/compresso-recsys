@@ -14,13 +14,13 @@ import numpy as np
 import torch
 from scipy.sparse import csr_matrix, hstack
 
-from compresso_recsys.models._validation import canonical_train_item_indices
-from compresso_recsys.models.cold_start import (
-    BaseColdStartRecommender,
+from compresso_recsys.models.core.validation import canonical_train_item_indices
+from compresso_recsys.models.core.catalog import (
     CandidateCatalog,
     MutableCandidateCatalog,
-    canonical_item_features,
 )
+from compresso_recsys.models.core.cold_start import BaseColdStartRecommender
+from compresso_recsys.models.core.features import canonical_item_features
 from compresso_recsys.models.multimodal import (
     BaseMultiModalRecommender,
     MultiModalItemFeatures,

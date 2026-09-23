@@ -11,11 +11,6 @@ import numpy as np
 import pandas as pd
 from scipy.sparse import csr_matrix
 
-from compresso_recsys.checkpoint import (
-    _indices_to_csr,
-    save_recsys_split,
-    update_checkpoint,
-)
 from compresso_recsys.sequences import ItemSequences
 from compresso_recsys.builder.progress import _CheckpointProgress
 

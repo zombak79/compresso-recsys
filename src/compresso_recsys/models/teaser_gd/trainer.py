@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-from __future__ import annotations
-
 import time
 import warnings
-from typing import Any, Hashable, Literal, Sequence
+from typing import Any, Hashable, Sequence
 
 import numpy as np
 import pandas as pd
@@ -20,7 +18,6 @@ from compresso_recsys._reporting import (
     _Inherit,
     TrainingProgress,
     _format_duration,
-    _validate_log_every_n_steps,
 )
 from compresso_recsys.persistence import ModelCheckpointReader, ModelCheckpointWriter
 from compresso_recsys.models.core.batching import (
@@ -28,19 +25,21 @@ from compresso_recsys.models.core.batching import (
     dense_training_target,
     normalized_mse,
 )
+from compresso_recsys.models.core.identifiers import canonical_item_ids
 from compresso_recsys.models.core.validation import (
     canonical_csr,
     canonical_train_item_indices,
 )
-from compresso_recsys.models.core.cold_start import (
-    BaseColdStartRecommender,
+from compresso_recsys.models.core.catalog import (
     CandidateCatalog,
     CandidateSelection,
+)
+from compresso_recsys.models.core.cold_start import BaseColdStartRecommender
+from compresso_recsys.models.core.features import (
     ItemFeatures,
     append_column,
     canonical_feature_space_id,
     canonical_item_features,
-    canonical_item_ids,
     canonical_metadata,
     take_features,
 )

@@ -10,14 +10,10 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import (
-    Any,
-    ClassVar,
     Hashable,
     Literal,
-    Mapping,
     Protocol,
     Sequence,
-    TypeVar,
     runtime_checkable,
 )
 
@@ -27,7 +23,7 @@ from scipy.sparse import csr_matrix
 
 from compresso import SRPTensor
 from compresso_recsys.sequences import ItemSequences
-from compresso_recsys.models.core.identifiers import ItemVocabulary, Recommendations
+from compresso_recsys.models.core.identifiers import Recommendations
 
 
 @runtime_checkable

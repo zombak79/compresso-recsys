@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import hashlib
 import time
-import warnings
 from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any, Literal, overload

@@ -7,17 +7,11 @@ from abc import ABC, abstractmethod
 import inspect
 from pathlib import Path
 import re
-import time
 from typing import (
     Any,
-    ClassVar,
     Hashable,
     Literal,
-    Mapping,
-    Protocol,
     Sequence,
-    TypeVar,
-    runtime_checkable,
 )
 
 import numpy as np
@@ -29,7 +23,6 @@ from compresso_recsys._reporting import (
     _INHERIT,
     _Inherit,
     _Reporter,
-    _format_duration,
     _resolve_reporter,
 )
 from compresso_recsys.persistence import (
@@ -40,7 +33,6 @@ from compresso_recsys.sequences import ItemSequences
 from compresso_recsys.models.core.identifiers import ItemVocabulary, Recommendations
 
 
-_PersistableT = TypeVar("_PersistableT", bound="BasePersistableRecommender")
 _MODEL_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
 _MODELS_DIR = "models"
 

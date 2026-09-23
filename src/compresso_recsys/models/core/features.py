@@ -6,16 +6,6 @@ the same features agree on what column means what.
 
 from __future__ import annotations
 
-from typing import (
-    Any,
-    Callable,
-    Hashable,
-    Literal,
-    Mapping,
-    Protocol,
-    Sequence,
-    runtime_checkable,
-)
 
 import numpy as np
 import pandas as pd
@@ -25,28 +15,19 @@ from scipy.sparse import csr_matrix, hstack, issparse, isspmatrix_csr, vstack
 from compresso import SRPTensor
 from compresso_recsys.models.core.validation import canonical_csr
 from compresso_recsys.models.core.identifiers import (
-    ItemVocabulary,
     canonical_item_ids,
 )
 
 __all__ = [
-    "BaseColdStartRecommender",
-    "CandidateCatalog",
-    "ColdStartRecommender",
-    "ItemVocabulary",
-    "MutableCandidateCatalog",
-    "WarmCatalogAdapter",
+    "ItemFeatures",
+    "append_column",
+    "canonical_feature_space_id",
+    "canonical_item_features",
+    "canonical_metadata",
+    "take_features",
 ]
 
 ItemFeatures = csr_matrix | SRPTensor | np.ndarray | torch.Tensor
-CandidateConflict = Literal["error", "replace", "ignore"]
-
-_NOT_INSTALLED = (
-    "no candidate catalog is installed: the model has not been fitted, or "
-    "install() was never called on the catalog"
-)
-
-
 
 
 def canonical_metadata(

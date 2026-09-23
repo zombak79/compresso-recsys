@@ -11,10 +11,8 @@ from abc import abstractmethod
 import time
 from typing import (
     Any,
-    Callable,
     Hashable,
     Literal,
-    Mapping,
     Protocol,
     Sequence,
     runtime_checkable,
@@ -23,66 +21,30 @@ from typing import (
 import numpy as np
 import pandas as pd
 import torch
-from scipy.sparse import csr_matrix, hstack, issparse, isspmatrix_csr, vstack
+from scipy.sparse import csr_matrix, isspmatrix_csr
 
 from compresso import SRPTensor
 from compresso_recsys._reporting import _INHERIT, _Inherit, _Reporter, _format_duration
 from compresso_recsys.models.core.validation import canonical_csr
 from compresso_recsys.models.base import (
-    BaseIdentifiedRecommender,
     BasePersistableRecommender,
     Recommender,
-    SequentialRecommender,
     _accepts_reporting_keywords,
 )
-from compresso_recsys.models.core.identifiers import (
-    ItemVocabulary,
-    canonical_item_ids,
+from compresso_recsys.models.core.catalog import (
+    _NOT_INSTALLED,
+    CandidateCatalog,
+    CandidateConflict,
+    MutableCandidateCatalog,
 )
+from compresso_recsys.models.core.features import ItemFeatures
+from compresso_recsys.models.core.identifiers import ItemVocabulary
 from compresso_recsys.sequences import ItemSequences
 
 __all__ = [
     "BaseColdStartRecommender",
-    "CandidateCatalog",
     "ColdStartRecommender",
-    "ItemVocabulary",
-    "MutableCandidateCatalog",
-    "WarmCatalogAdapter",
 ]
-
-ItemFeatures = csr_matrix | SRPTensor | np.ndarray | torch.Tensor
-CandidateConflict = Literal["error", "replace", "ignore"]
-
-_NOT_INSTALLED = (
-    "no candidate catalog is installed: the model has not been fitted, or "
-    "install() was never called on the catalog"
-)
-
-# Re-exported, not used here: callers have always reached these through this
-# module, and the split below it should not change that.
-from compresso_recsys.models.core.features import (  # noqa: F401
-    _freeze_features,
-    _replace_feature_rows,
-    _stack_features,
-    _torch_sparse_to_csr,
-    append_column,
-    canonical_feature_space_id,
-    canonical_item_features,
-    canonical_metadata,
-    take_features,
-)
-from compresso_recsys.models.core.adapters import WarmCatalogAdapter  # noqa: F401
-
-
-
-from compresso_recsys.models.core.adapters import WarmCatalogAdapter
-from compresso_recsys.models.core.catalog import (
-    CandidateCatalog,
-    CandidateSelection,
-    MutableCandidateCatalog,
-    _make_catalog,
-)
-# Re-exported: callers have always reached these through this module.
 
 
 @runtime_checkable

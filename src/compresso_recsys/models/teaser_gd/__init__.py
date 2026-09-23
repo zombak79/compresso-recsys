@@ -1,4 +1,7 @@
-"""teaser_gd"""
+"""TEASER fitted by gradient descent, over cold candidate catalogs.
+
+The closed-form sibling lives in :mod:`compresso_recsys.models.teaser`.
+"""
 
 from compresso_recsys.models.teaser_gd.config import (
     EncoderInit,

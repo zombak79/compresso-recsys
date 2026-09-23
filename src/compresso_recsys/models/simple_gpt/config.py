@@ -2,23 +2,17 @@
 
 from __future__ import annotations
 
-from __future__ import annotations
-
 from dataclasses import dataclass, field
-from typing import Any, Hashable, Literal, Sequence
+from typing import Literal
 
 import torch
-from torch import nn
 
 
 from compresso_recsys._reporting import (
-    _INHERIT,
-    _Inherit,
-    TrainingProgress,
     _validate_log_every_n_steps,
 )
 
-from ..core.schedule import LRSchedule, build_scheduler, check_schedule
+from ..core.schedule import LRSchedule, check_schedule
 
 
 OptimizerName = Literal["NAdam", "AdamW"]

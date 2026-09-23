@@ -2,18 +2,12 @@
 
 from __future__ import annotations
 
-from __future__ import annotations
-
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 
 import numpy as np
 import torch
 
 from compresso_recsys._reporting import (
-    _INHERIT,
-    _Inherit,
-    _Reporter,
-    TrainingProgress,
     _validate_log_every_n_steps,
 )
 

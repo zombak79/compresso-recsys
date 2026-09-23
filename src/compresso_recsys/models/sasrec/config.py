@@ -2,17 +2,12 @@
 
 from __future__ import annotations
 
-from __future__ import annotations
-
-from dataclasses import dataclass, replace
-from typing import Any, Literal
+from dataclasses import dataclass
+from typing import Literal
 
 import torch
 
 from compresso_recsys._reporting import (
-    _INHERIT,
-    _Inherit,
-    TrainingProgress,
     _validate_log_every_n_steps,
 )
 

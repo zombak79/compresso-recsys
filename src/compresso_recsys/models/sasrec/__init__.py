@@ -1,4 +1,4 @@
-"""sasrec"""
+"""Self-attentive sequential recommendation over item histories."""
 
 from compresso_recsys.models.sasrec.config import (
     LAYER_NORM_EPS,

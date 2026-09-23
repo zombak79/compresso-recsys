@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-from __future__ import annotations
-
 from collections.abc import Hashable, Sequence
-from dataclasses import dataclass, replace
-from typing import Any, Literal
+from dataclasses import replace
+from typing import Any
 
 import numpy as np
 import torch
@@ -17,7 +15,6 @@ from compresso_recsys._reporting import (
     _INHERIT,
     _Inherit,
     TrainingProgress,
-    _validate_log_every_n_steps,
 )
 from compresso_recsys.models.base import BaseSequentialRecommender
 from compresso_recsys.models.sequence_batching import SequenceBatcher

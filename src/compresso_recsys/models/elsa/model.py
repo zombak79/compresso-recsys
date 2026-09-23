@@ -2,15 +2,13 @@
 
 from __future__ import annotations
 
-from __future__ import annotations
-
 import warnings
 
 import torch
 import torch.nn.functional as F
 from torch import nn
 
-from compresso import MaskedParam, SRPParam, SRPTensor, SparsityController
+from compresso import MaskedParam, SRPParam, SRPTensor
 from compresso_recsys.models.elsa.config import (
     ELSACompressionConfig,
     SparseInferenceBackend,

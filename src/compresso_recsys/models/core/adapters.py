@@ -5,53 +5,28 @@ from __future__ import annotations
 from threading import RLock
 from typing import (
     Any,
-    Callable,
     Hashable,
-    Literal,
-    Mapping,
-    Protocol,
     Sequence,
-    runtime_checkable,
 )
 
 import numpy as np
 import torch
-from scipy.sparse import csr_matrix, hstack, issparse, isspmatrix_csr, vstack
+from scipy.sparse import csr_matrix
 
 from compresso import SRPTensor
-from compresso_recsys._reporting import _INHERIT, _Inherit, _Reporter, _format_duration
+from compresso_recsys._reporting import _Reporter
 from compresso_recsys.models.core.validation import canonical_csr
 from compresso_recsys.models.base import (
     BaseIdentifiedRecommender,
-    BasePersistableRecommender,
     Recommender,
     SequentialRecommender,
-    _accepts_reporting_keywords,
 )
 from compresso_recsys.models.core.identifiers import (
     ItemVocabulary,
-    canonical_item_ids,
 )
 from compresso_recsys.sequences import ItemSequences
 
-__all__ = [
-    "BaseColdStartRecommender",
-    "CandidateCatalog",
-    "ColdStartRecommender",
-    "ItemVocabulary",
-    "MutableCandidateCatalog",
-    "WarmCatalogAdapter",
-]
-
-ItemFeatures = csr_matrix | SRPTensor | np.ndarray | torch.Tensor
-CandidateConflict = Literal["error", "replace", "ignore"]
-
-_NOT_INSTALLED = (
-    "no candidate catalog is installed: the model has not been fitted, or "
-    "install() was never called on the catalog"
-)
-
-
+__all__ = ["WarmCatalogAdapter"]
 
 
 class WarmCatalogAdapter(BaseIdentifiedRecommender):

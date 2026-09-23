@@ -8,19 +8,13 @@ a checkpoint looks like.
 from __future__ import annotations
 
 
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from dataclasses import asdict, is_dataclass, replace
 from pathlib import Path
 from typing import (
     Any,
     ClassVar,
-    Hashable,
-    Literal,
-    Mapping,
-    Protocol,
-    Sequence,
     TypeVar,
-    runtime_checkable,
 )
 
 import torch
@@ -39,10 +33,13 @@ from compresso_recsys.persistence import (
 from compresso_recsys.models.base.identified import (
     BaseIdentifiedRecommender,
     _MODELS_DIR,
-    _PersistableT,
     _embedded_model_path,
     _unwrapped_module,
 )
+
+# Bound to the class defined just below, so it lives here rather than in
+# identified, which cannot see it.
+_PersistableT = TypeVar("_PersistableT", bound="BasePersistableRecommender")
 
 
 class BasePersistableRecommender(BaseIdentifiedRecommender):

@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-from __future__ import annotations
-
-from dataclasses import asdict, dataclass
+from dataclasses import asdict
 from typing import Any, Hashable, Sequence
 
 import numpy as np
@@ -19,7 +17,6 @@ from compresso_recsys._reporting import (
     _Inherit,
     _Reporter,
     TrainingProgress,
-    _validate_log_every_n_steps,
 )
 from compresso_recsys.models.core.autoencoder_batching import (
     dense_training_batch,

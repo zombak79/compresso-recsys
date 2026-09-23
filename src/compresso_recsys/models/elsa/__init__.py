@@ -1,4 +1,4 @@
-"""elsa"""
+"""Scalable linear shallow autoencoder with normalized item embeddings."""
 
 from compresso_recsys.models.elsa.config import (
     CompressionScoreMode,

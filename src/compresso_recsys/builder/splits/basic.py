@@ -2,16 +2,12 @@
 
 from __future__ import annotations
 
-import random
 
 import numpy as np
 
 from compresso_recsys.checkpoint import (
     _indices_to_csr,
-    save_recsys_split,
-    update_checkpoint,
 )
-from compresso_recsys.datasets import DBbook, LastFM2K
 from compresso_recsys.sequences import ItemSequences
 from compresso_recsys.retrieval import (
     LEAVE_LAST_OUT_MIN_HISTORY,

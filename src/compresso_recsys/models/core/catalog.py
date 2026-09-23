@@ -10,49 +10,26 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from threading import RLock
-import time
 from typing import (
-    Any,
     Callable,
     Hashable,
     Literal,
     Mapping,
-    Protocol,
     Sequence,
-    runtime_checkable,
 )
 
 import numpy as np
 import pandas as pd
 import torch
-from scipy.sparse import csr_matrix, hstack, issparse, isspmatrix_csr, vstack
+from scipy.sparse import csr_matrix
 
-from compresso import SRPTensor
 from compresso_recsys.persistence import ModelCheckpointReader, ModelCheckpointWriter
 from compresso_recsys.models.core.identifiers import (
     ItemVocabulary,
     canonical_item_ids,
 )
-
-__all__ = [
-    "BaseColdStartRecommender",
-    "CandidateCatalog",
-    "ColdStartRecommender",
-    "ItemVocabulary",
-    "MutableCandidateCatalog",
-    "WarmCatalogAdapter",
-]
-
-ItemFeatures = csr_matrix | SRPTensor | np.ndarray | torch.Tensor
-CandidateConflict = Literal["error", "replace", "ignore"]
-
-_NOT_INSTALLED = (
-    "no candidate catalog is installed: the model has not been fitted, or "
-    "install() was never called on the catalog"
-)
-
-
 from compresso_recsys.models.core.features import (
+    ItemFeatures,
     _freeze_features,
     _replace_feature_rows,
     _stack_features,
@@ -61,6 +38,20 @@ from compresso_recsys.models.core.features import (
     canonical_item_features,
     canonical_metadata,
     take_features,
+)
+
+__all__ = [
+    "CandidateCatalog",
+    "CandidateConflict",
+    "CandidateSelection",
+    "MutableCandidateCatalog",
+]
+
+CandidateConflict = Literal["error", "replace", "ignore"]
+
+_NOT_INSTALLED = (
+    "no candidate catalog is installed: the model has not been fitted, or "
+    "install() was never called on the catalog"
 )
 
 

@@ -19,10 +19,12 @@ import pandas as pd
 import torch
 from scipy.sparse import csr_matrix
 
-from compresso_recsys.models.cold_start import (
-    _NOT_INSTALLED,
-    BaseColdStartRecommender,
+from compresso_recsys.models.core.catalog import (
     CandidateConflict,
+    _NOT_INSTALLED,
+)
+from compresso_recsys.models.core.cold_start import BaseColdStartRecommender
+from compresso_recsys.models.core.features import (
     ItemFeatures,
     _freeze_features,
     _replace_feature_rows,
@@ -32,7 +34,7 @@ from compresso_recsys.models.cold_start import (
     canonical_metadata,
     take_features,
 )
-from compresso_recsys.models.identifiers import ItemVocabulary, canonical_item_ids
+from compresso_recsys.models.core.identifiers import ItemVocabulary, canonical_item_ids
 from compresso_recsys.persistence import (
     ModelCheckpointReader,
     ModelCheckpointWriter,

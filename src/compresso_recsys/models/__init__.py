@@ -12,19 +12,20 @@ from .base import (
     Recommender,
     SequentialRecommender,
 )
-from .core.identifiers import Recommendations
+from .core.identifiers import ItemVocabulary, Recommendations
 from .batching import (
     InteractionBatch,
     InteractionBatchSampler,
     dense_training_target,
 )
+from .core.adapters import WarmCatalogAdapter
+from .core.catalog import (
+    CandidateCatalog,
+    MutableCandidateCatalog,
+)
 from .core.cold_start import (
     BaseColdStartRecommender,
-    CandidateCatalog,
     ColdStartRecommender,
-    ItemVocabulary,
-    MutableCandidateCatalog,
-    WarmCatalogAdapter,
 )
 from .content import ContentRecommender, ContentRecommenderConfig
 from .multimodal import (

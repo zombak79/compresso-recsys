@@ -8,18 +8,13 @@ shares: the checkpoint entries, the seen-item mask, and the validation each
 from __future__ import annotations
 
 
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 import time
 from typing import (
     Any,
-    ClassVar,
     Hashable,
-    Literal,
     Mapping,
-    Protocol,
     Sequence,
-    TypeVar,
-    runtime_checkable,
 )
 
 import numpy as np
@@ -32,14 +27,13 @@ from compresso_recsys._reporting import (
     _Inherit,
     _Reporter,
     _format_duration,
-    _resolve_reporter,
 )
 from compresso_recsys.persistence import (
     ModelCheckpointReader,
     ModelCheckpointWriter,
 )
 from compresso_recsys.sequences import ItemSequences
-from compresso_recsys.models.core.identifiers import ItemVocabulary, Recommendations
+from compresso_recsys.models.core.identifiers import ItemVocabulary
 from compresso_recsys.models.tokenizer import ItemTokenizer
 from compresso_recsys.models.base.identified import _accepts_reporting_keywords
 from compresso_recsys.models.base.persistable import BasePersistableRecommender

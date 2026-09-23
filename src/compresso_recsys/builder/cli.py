@@ -10,8 +10,7 @@ import argparse
 import warnings
 
 
-from compresso_recsys.datasets import AmazonReviews2023, Goodbooks, MovieLens1M, MovieLens20M
-from compresso_recsys.datasets import Steam, NetflixPrize, TasteProfile, Gowalla
+from compresso_recsys.datasets import AmazonReviews2023
 from compresso_recsys.builder.specs import DATASETS, _temporal_period_hours
 
 
