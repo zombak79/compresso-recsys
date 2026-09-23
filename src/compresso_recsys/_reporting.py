@@ -3,7 +3,7 @@ from __future__ import annotations
 import time
 import warnings
 from numbers import Integral
-from typing import Any, Mapping
+from typing import Any, Callable, Mapping, Sequence
 
 
 class _Inherit:
@@ -225,3 +225,157 @@ def _resolve_reporter(
         log_every_n_steps,
         allow_stdout_fallback=inherited_logger and resolved_logger is None,
     )
+
+
+class TrainingProgress:
+    """The reporting scaffolding around a fit loop, not the loop itself.
+
+    A trainer keeps its own ``for epoch`` statement and its own loop body. What
+    it hands over is only the part every trainer was repeating around them: the
+    epoch and batch bars, the per-epoch timer, the periodic step line, the epoch
+    line, and the started/finished pair. That scaffolding was written out
+    fifteen times across eleven modules and differed between them only in a
+    progress-bar label and the name of the loss denominator.
+
+    Deliberately not a runner. Nothing here takes a training step as a callback,
+    so early stopping, an extra metric, or a changed schedule stays an edit to
+    code that is still visible inside ``fit``.
+
+    A trainer whose fit has two logged phases -- ELSA and TEASERGD both do --
+    builds one of these per phase rather than reusing one across both.
+    """
+
+    def __init__(
+        self,
+        reporter: _Reporter,
+        *,
+        label: str,
+        epochs: int,
+        batches: int,
+        metric: str = "loss",
+    ) -> None:
+        self.reporter = reporter
+        self.label = str(label)
+        # Autoencoders report a reconstruction loss rather than a plain one,
+        # and the name has to match what the trainer stores in its history for
+        # the epoch line and the history record to agree.
+        self.metric = str(metric)
+        self.n_epochs = int(epochs)
+        self.n_batches = int(batches)
+        self._epoch_iter: Any = None
+        self._batch_bar: Any = None
+        self._epoch = 0
+        self._epoch_started = 0.0
+        self._started = 0.0
+        self._recorded = 0
+
+    def __enter__(self) -> "TrainingProgress":
+        self._started = time.monotonic()
+        self._epoch_iter = self.reporter.wrap(
+            range(1, self.n_epochs + 1),
+            total=self.n_epochs,
+            desc=f"{self.label} fit",
+        )
+        self._batch_bar = self.reporter.bar(
+            total=self.n_batches, desc=f"{self.label} epoch 1"
+        )
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback) -> bool:
+        if self._batch_bar is not None:
+            self._batch_bar.close()
+        if hasattr(self._epoch_iter, "close"):
+            self._epoch_iter.close()
+        # The finished line follows the bars being torn down, as it did when
+        # each trainer wrote it after its own finally block.
+        if exc_type is None:
+            self.reporter.log(
+                "fit finished: "
+                f"{_format_duration(time.monotonic() - self._started)} total | "
+                f"{self._recorded} epochs recorded"
+            )
+        return False
+
+    def start(self, detail: str) -> None:
+        """Log the opening line, whose content is the model's own."""
+        self.reporter.log(f"fit started: {detail}")
+
+    def epochs(self):
+        """Yield ``1..epochs``, timing each and relabelling the batch bar."""
+        for epoch in self._epoch_iter:
+            self._epoch = epoch
+            self._epoch_started = time.monotonic()
+            if self._batch_bar is not None:
+                self._batch_bar.reset(total=self.n_batches)
+                self._batch_bar.set_description(f"{self.label} epoch {epoch}")
+            yield epoch
+
+    def batch(
+        self,
+        step_index: int,
+        loss_sum: Any = 0.0,
+        count: int = 0,
+        *,
+        metrics: Mapping[str, Any] | Callable[[], Mapping[str, Any]] | None = None,
+    ) -> None:
+        """Advance the bar and, on the configured interval, log the step.
+
+        ``loss_sum`` and ``count`` are the running totals whose ratio is the
+        mean loss so far; trainers name the denominator differently -- masked
+        items, positions, target rows -- but divide it the same way. A sum
+        accumulated on device arrives as a tensor, so the ratio is coerced
+        rather than formatted as one.
+
+        A trainer reporting several metrics passes ``metrics`` instead. Pass a
+        callable when producing them costs something: MultVAE stacks three
+        device tensors, and a callable runs only on the steps that log, which
+        is what kept that sync off the batch path before.
+        """
+        if self._batch_bar is not None:
+            self._batch_bar.update(1)
+        interval = self.reporter.log_every_n_steps
+        if not interval or step_index % interval != 0:
+            return
+        if metrics is None:
+            resolved: Mapping[str, Any] = {
+                self.metric: float(loss_sum / count) if count else float("nan")
+            }
+        elif callable(metrics):
+            resolved = metrics()
+        else:
+            resolved = metrics
+        self.reporter.step(
+            f"epoch {self._epoch}/{self.n_epochs} "
+            f"step {step_index}/{self.n_batches}",
+            step_index,
+            self.n_batches,
+            self._epoch_started,
+            resolved,
+        )
+
+    def epoch_done(
+        self,
+        record: Mapping[str, Any],
+        *,
+        postfix: Sequence[str] | None = None,
+    ) -> None:
+        """Log the completed epoch from the record also stored in history.
+
+        ``postfix`` names the record keys worth showing on the live bar, and
+        defaults to the trainer's metric alone. MultVAE shows its KL weight
+        beside the loss because the weight moves on a schedule during the run.
+        """
+        self._recorded += 1
+        self.reporter.epoch(
+            f"epoch {self._epoch}/{self.n_epochs}", record, self._epoch_started
+        )
+        if not hasattr(self._epoch_iter, "set_postfix"):
+            return
+        keys = (self.metric,) if postfix is None else tuple(postfix)
+        shown = {
+            key: f"{float(record[key]):.4f}"
+            for key in keys
+            if record.get(key) is not None
+        }
+        if shown:
+            self._epoch_iter.set_postfix(shown)

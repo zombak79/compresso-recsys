@@ -11,6 +11,7 @@ from typing import (
     ClassVar,
     Hashable,
     Literal,
+    Mapping,
     Protocol,
     Sequence,
     TypeVar,
@@ -43,6 +44,7 @@ from compresso_recsys.persistence import (
 from compresso_recsys.sequences import ItemSequences
 from compresso_recsys.models._validation import canonical_csr
 from compresso_recsys.models.identifiers import ItemVocabulary, Recommendations
+from compresso_recsys.models.tokenizer import ItemTokenizer
 
 __all__ = [
     "BasePersistableRecommender",
@@ -318,6 +320,33 @@ class BaseIdentifiedRecommender(ABC):
             show_progress=show_progress,
             prefix=getattr(config, "log_prefix", type(self).__name__),
             log_every_n_steps=getattr(config, "log_every_n_steps", 0),
+        )
+
+    def _reporter(
+        self,
+        logger: Any,
+        show_progress: Any,
+        *,
+        default_show_progress: bool | None = None,
+    ) -> _Reporter:
+        """Resolve reporting for a fit call.
+
+        Unlike :meth:`_prediction_reporter`, this honours the trainer's
+        configured ``show_progress``: fitting is the loud path by default.
+        ``default_show_progress`` overrides that for a trainer whose fit runs in
+        more than one phase and wants one of them kept quiet.
+        """
+        return _resolve_reporter(
+            default_logger=self.logger,
+            logger=logger,
+            default_show_progress=(
+                self.cfg.show_progress
+                if default_show_progress is None
+                else default_show_progress
+            ),
+            show_progress=show_progress,
+            prefix=self.cfg.log_prefix,
+            log_every_n_steps=self.cfg.log_every_n_steps,
         )
 
     def recommend(
@@ -1232,3 +1261,146 @@ class BaseSequentialRecommender(BasePersistableRecommender):
             f"{source.n_rows} rows"
         )
         return prediction
+
+    # -- shared trainer plumbing --------------------------------------------
+    #
+    # Every sequential trainer here keeps its vocabulary in an ItemTokenizer
+    # behind a SequenceBatcher and persists the same three entries. Those
+    # implementations were identical but for the class named in their error
+    # messages, so a subclass now extends them instead of restating them.
+    #
+    # They are deliberately tolerant of a subclass with no batcher: this is a
+    # public extension point, and a model that persists no tokenizer should
+    # fail when it tries to save rather than when it is defined.
+
+    def _check_training_sequences(self, sequences: Any) -> None:
+        """Reject a training source that is not usable chronological history."""
+        if not isinstance(sequences, ItemSequences):
+            raise TypeError(
+                f"{type(self).__name__} trains on ItemSequences, got "
+                f"{type(sequences).__name__}"
+            )
+        if sequences.n_rows == 0:
+            raise ValueError("cannot train on zero sequences")
+
+    def _require_batcher(self) -> Any:
+        """Return the trainer's batcher, or say it went missing.
+
+        Separate from :meth:`_adopt_batcher_vocabulary` so a trainer can run
+        its own batcher check between the two, as SimpleRNN does.
+        """
+        batcher = getattr(self, "batcher", None)
+        if batcher is None:  # pragma: no cover - defensive against mutation
+            raise RuntimeError("trainer batcher is unavailable")
+        return batcher
+
+    def _adopt_batcher_vocabulary(
+        self,
+        sequences: ItemSequences,
+        item_ids: Sequence[Hashable] | np.ndarray | None,
+    ) -> None:
+        """Check the batcher against the training catalog and record the IDs.
+
+        Supplied IDs never override the tokenizer's: a batcher handed over for
+        its vocabulary is the vocabulary, so disagreeing is an error rather
+        than a silent win for either side.
+        """
+        batcher = self._require_batcher()
+        if batcher.tokenizer.n_items != sequences.n_items:
+            raise ValueError(
+                "batcher tokenizer has "
+                f"{batcher.tokenizer.n_items} items, but training sequences "
+                f"have {sequences.n_items}"
+            )
+        tokenizer_ids = getattr(batcher.tokenizer, "item_ids", None)
+        if item_ids is not None and tokenizer_ids is not None:
+            supplied = ItemVocabulary.from_ids(item_ids).item_ids
+            if not np.array_equal(supplied, tokenizer_ids):
+                raise ValueError(
+                    "item_ids must match the batcher tokenizer item IDs"
+                )
+        self._set_item_ids(
+            tokenizer_ids if item_ids is None else item_ids,
+            n_items=sequences.n_items,
+        )
+
+    def _checkpoint_trainer_state(self) -> dict[str, Any]:
+        """Non-module state for ``state/trainer.json``.
+
+        A subclass that persists more than the window and the history extends
+        this rather than rewriting the entry, so every sequential checkpoint
+        keeps one shape underneath whatever a model adds to it.
+        """
+        max_length = self.batcher.max_length
+        return {
+            # SimpleRNN may leave the window unset, where the transformers
+            # reconcile it against the config during fit.
+            "max_length": None if max_length is None else int(max_length),
+            "history": self.history,
+        }
+
+    def _restore_checkpoint_trainer_state(
+        self,
+        state: Mapping[str, Any],
+    ) -> None:
+        """Install what :meth:`_checkpoint_trainer_state` wrote."""
+        history = state.get("history")
+        if not isinstance(history, list):
+            raise ValueError(
+                f"{type(self).__name__} training history must be a list"
+            )
+        self.history = list(history)
+
+    def _save_checkpoint_state(self, writer: ModelCheckpointWriter) -> None:
+        """Write the tokenizer alongside :meth:`_checkpoint_trainer_state`.
+
+        Item IDs go to their own entry when the tokenizer carries them, since
+        they may be arbitrary hashables rather than JSON scalars.
+        """
+        batcher = getattr(self, "batcher", None)
+        if batcher is None or not isinstance(batcher.tokenizer, ItemTokenizer):
+            raise TypeError(
+                f"{type(self).__name__} checkpoints support ItemTokenizer only"
+            )
+        writer.write_json(
+            "state/trainer.json", self._checkpoint_trainer_state()
+        )
+        writer.write_json(
+            "state/tokenizer.json",
+            batcher.tokenizer.to_dict(include_item_ids=False),
+        )
+        item_ids = batcher.tokenizer.item_ids
+        if item_ids is not None:
+            writer.write_item_ids("state/tokenizer_item_ids.json", item_ids)
+
+    def _load_checkpoint_state(self, reader: ModelCheckpointReader) -> None:
+        """Restore the non-module state :meth:`_save_checkpoint_state` wrote."""
+        self._restore_checkpoint_trainer_state(
+            reader.read_json("state/trainer.json")
+        )
+
+    def _mask_seen(self, scores: torch.Tensor, source: ItemSequences) -> None:
+        """Forbid every item in the *full* history, truncated part included.
+
+        Scores are indexed by catalog position, and a history may span a wider
+        catalog than this model was fitted on -- a later split stage does exactly
+        that. Items beyond the fitted catalog are dropped from the mask rather
+        than clipped: they were never scoreable, so there is nothing to forbid.
+        """
+        if source.values.size == 0:
+            return
+        n_items = int(scores.shape[1])
+        # The flat values are already the concatenation of every history, so
+        # one scatter covers the batch. np.array copies, both because the
+        # buffers are read-only and because torch.from_numpy would share them.
+        rows = np.repeat(np.arange(source.n_rows), source.row_lengths)
+        cols = np.array(source.values, dtype=np.int64)
+        scoreable = cols < n_items
+        if not scoreable.all():
+            rows, cols = rows[scoreable], cols[scoreable]
+        if cols.size == 0:
+            return
+        scores[
+            torch.as_tensor(rows, dtype=torch.long, device=scores.device),
+            torch.as_tensor(cols, dtype=torch.long, device=scores.device),
+        ] = -torch.inf

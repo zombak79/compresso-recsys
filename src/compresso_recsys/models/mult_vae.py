@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import time
 from dataclasses import asdict, dataclass
 from typing import Any, Hashable, Sequence
 
@@ -17,8 +16,7 @@ from compresso_recsys._reporting import (
     _INHERIT,
     _Inherit,
     _Reporter,
-    _format_duration,
-    _resolve_reporter,
+    TrainingProgress,
     _validate_log_every_n_steps,
 )
 from compresso_recsys.models._autoencoder_batching import (
@@ -191,16 +189,6 @@ class MultVAETrainer(BaseCollaborativeRecommender):
     def n_items(self) -> int | None:
         return self._n_items
 
-    def _reporter(self, logger: Any, show_progress: Any) -> _Reporter:
-        return _resolve_reporter(
-            default_logger=self.logger,
-            logger=logger,
-            default_show_progress=self.cfg.show_progress,
-            show_progress=show_progress,
-            prefix=self.cfg.log_prefix,
-            log_every_n_steps=self.cfg.log_every_n_steps,
-        )
-
     def _train_step(
         self,
         target: torch.Tensor,
@@ -311,29 +299,27 @@ class MultVAETrainer(BaseCollaborativeRecommender):
         steps_per_epoch = (active_rows.size + int(self.cfg.batch_size) - 1) // int(
             self.cfg.batch_size
         )
-        fit_started = time.monotonic()
-        reporter.log(
-            "fit started: "
-            f"{active_rows.size} active users | {interactions.shape[1]} items | "
-            f"{interactions.nnz} interactions | {steps_per_epoch} batches of "
-            f"{self.cfg.batch_size} | {self.cfg.epochs} epochs | device {self.device}"
-        )
-        training_data = prepare_dense_training_data(
-            interactions,
-            device=self.device,
-            preload=self.cfg.preload_training_data,
-        )
-        self.training_data_preloaded_ = training_data is not None
-
-        epochs = reporter.wrap(
-            range(1, int(self.cfg.epochs) + 1),
-            total=int(self.cfg.epochs),
-            desc="MultVAE fit",
-        )
-        batch_bar = reporter.bar(total=steps_per_epoch, desc="MultVAE epoch 1")
-        try:
-            for epoch in epochs:
-                epoch_started = time.monotonic()
+        with TrainingProgress(
+            reporter,
+            label="MultVAE",
+            epochs=int(self.cfg.epochs),
+            batches=steps_per_epoch,
+        ) as progress:
+            progress.start(
+                f"{active_rows.size} active users | {interactions.shape[1]} items | "
+                f"{interactions.nnz} interactions | {steps_per_epoch} batches of "
+                f"{self.cfg.batch_size} | {self.cfg.epochs} epochs | "
+                f"device {self.device}"
+            )
+            # Inside the block, so preloading counts toward the reported total
+            # exactly as it did when fit timed itself.
+            training_data = prepare_dense_training_data(
+                interactions,
+                device=self.device,
+                preload=self.cfg.preload_training_data,
+            )
+            self.training_data_preloaded_ = training_data is not None
+            for epoch in progress.epochs():
                 self.model.train()
                 order = rng.permutation(active_rows)
                 loss_sum = torch.zeros((), device=self.device)
@@ -341,9 +327,23 @@ class MultVAETrainer(BaseCollaborativeRecommender):
                 kl_sum = torch.zeros((), device=self.device)
                 users = 0
                 last_kl_weight = self._kl_weight()
-                if batch_bar is not None:
-                    batch_bar.reset(total=steps_per_epoch)
-                    batch_bar.set_description(f"MultVAE epoch {epoch}")
+
+                def running() -> dict[str, float]:
+                    """Stack the three sums into one sync, only when logging."""
+                    mean_loss, mean_reconstruction, mean_kl = torch.stack(
+                        (
+                            loss_sum / users,
+                            reconstruction_sum / users,
+                            kl_sum / users,
+                        )
+                    ).tolist()
+                    return {
+                        "loss": mean_loss,
+                        "reconstruction_loss": mean_reconstruction,
+                        "kl_loss": mean_kl,
+                        "kl_weight": last_kl_weight,
+                    }
+
                 for step, start in enumerate(
                     range(0, order.size, int(self.cfg.batch_size)),
                     start=1,
@@ -364,29 +364,7 @@ class MultVAETrainer(BaseCollaborativeRecommender):
                     reconstruction_sum += reconstruction * batch_users
                     kl_sum += kl * batch_users
                     users += batch_users
-                    if batch_bar is not None:
-                        batch_bar.update(1)
-                    log_steps = reporter.log_every_n_steps
-                    if log_steps and step % log_steps == 0:
-                        running_loss, running_reconstruction, running_kl = torch.stack(
-                            (
-                                loss_sum / users,
-                                reconstruction_sum / users,
-                                kl_sum / users,
-                            )
-                        ).tolist()
-                        reporter.step(
-                            f"epoch {epoch}/{self.cfg.epochs} step {step}/{steps_per_epoch}",
-                            step,
-                            steps_per_epoch,
-                            epoch_started,
-                            {
-                                "loss": running_loss,
-                                "reconstruction_loss": running_reconstruction,
-                                "kl_loss": running_kl,
-                                "kl_weight": last_kl_weight,
-                            },
-                        )
+                    progress.batch(step, metrics=running)
                 mean_loss, mean_reconstruction, mean_kl = torch.stack(
                     (
                         loss_sum / users,
@@ -402,28 +380,8 @@ class MultVAETrainer(BaseCollaborativeRecommender):
                     "kl_weight": last_kl_weight,
                 }
                 self.history.append(record)
-                reporter.epoch(
-                    f"epoch {epoch}/{self.cfg.epochs}",
-                    record,
-                    epoch_started,
-                )
-                if hasattr(epochs, "set_postfix"):
-                    epochs.set_postfix(
-                        {
-                            "loss": f"{mean_loss:.4f}",
-                            "kl_weight": f"{last_kl_weight:.4f}",
-                        }
-                    )
-        finally:
-            if batch_bar is not None:
-                batch_bar.close()
-            if hasattr(epochs, "close"):
-                epochs.close()
-        self._is_fitted = True
-        reporter.log(
-            f"fit finished: {_format_duration(time.monotonic() - fit_started)} total | "
-            f"{len(self.history)} epochs recorded"
-        )
+                progress.epoch_done(record, postfix=("loss", "kl_weight"))
+            self._is_fitted = True
         return self
 
     def _build_model(self) -> MultVAE:

@@ -17,7 +17,6 @@ from compresso_recsys._reporting import (
     _Inherit,
     _Reporter,
     _format_duration,
-    _resolve_reporter,
     _validate_log_every_n_steps,
 )
 from compresso_recsys.persistence import ModelCheckpointReader, ModelCheckpointWriter
@@ -693,16 +692,6 @@ class ELSATrainer(BaseCollaborativeRecommender):
         self._is_fitted = True
         if isinstance(self.elsa, CompressedELSA):
             self.elsa.prepare_inference()
-
-    def _reporter(self, logger: Any, show_progress: Any) -> _Reporter:
-        return _resolve_reporter(
-            default_logger=self.logger,
-            logger=logger,
-            default_show_progress=self.cfg.show_progress,
-            show_progress=show_progress,
-            prefix=self.cfg.log_prefix,
-            log_every_n_steps=self.cfg.log_every_n_steps,
-        )
 
     def _set_lr(self, learning_rate: float) -> None:
         if self.optimizer is None:
