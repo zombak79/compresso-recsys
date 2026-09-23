@@ -27,6 +27,13 @@ from .cold_start import (
     WarmCatalogAdapter,
 )
 from .content import ContentRecommender, ContentRecommenderConfig
+from .multimodal import (
+    BaseMultiModalRecommender,
+    MultiModalCandidateCatalog,
+    MultiModalCandidateSelection,
+    MultiModalItemFeatures,
+    MutableMultiModalCandidateCatalog,
+)
 from .baselines import (
     PopularityBaseline,
     PopularityBaselineConfig,
@@ -60,9 +67,11 @@ from .mult_dae import MultDAE, MultDAEConfig, MultDAETrainer
 from .mult_vae import MultVAE, MultVAEConfig, MultVAETrainer
 from .teaser import TEASER, TEASERConfig
 from .teaser_gd import TEASERGD, TEASERGDConfig, TEASERGDTrainer
+from .mm_concat import MMConcatWrapper, MMConcatWrapperConfig
 
 __all__ = [
     "BaseColdStartRecommender",
+    "BaseMultiModalRecommender",
     "BaseCollaborativeRecommender",
     "BaseIdentifiedRecommender",
     "BasePersistableRecommender",
@@ -101,6 +110,12 @@ __all__ = [
     "ItemTokenizer",
     "ItemVocabulary",
     "MutableCandidateCatalog",
+    "MMConcatWrapper",
+    "MMConcatWrapperConfig",
+    "MultiModalCandidateCatalog",
+    "MultiModalCandidateSelection",
+    "MultiModalItemFeatures",
+    "MutableMultiModalCandidateCatalog",
     "InteractionBatch",
     "InteractionBatchSampler",
     "ItemKNNConfig",
