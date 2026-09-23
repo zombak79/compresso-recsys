@@ -67,6 +67,9 @@ knn = [
 test = [
     "pytest>=8.0",
     "scikit-learn>=1.4",
+    # test_docs_snippets executes multimodal-concat-wrapper.ipynb, whose first
+    # cell imports IPython.display. Not a runtime dependency of the package.
+    "ipython>=8.0",
 ]
 docs = [
     "sphinx>=8.0",
