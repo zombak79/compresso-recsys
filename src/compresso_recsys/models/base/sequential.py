@@ -34,7 +34,7 @@ from compresso_recsys.persistence import (
 )
 from compresso_recsys.sequences import ItemSequences
 from compresso_recsys.models.core.identifiers import ItemVocabulary
-from compresso_recsys.models.tokenizer import ItemTokenizer
+from compresso_recsys.models.core.tokenizer import ItemTokenizer
 from compresso_recsys.models.base.identified import _accepts_reporting_keywords
 from compresso_recsys.models.base.persistable import BasePersistableRecommender
 

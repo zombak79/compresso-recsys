@@ -24,7 +24,7 @@ from compresso_recsys.models import (
     TEASERGDConfig,
     TEASERGDTrainer,
 )
-from compresso_recsys.models.mm_concat import _impute_csr_rows
+from compresso_recsys.models.mm_concat.model import _impute_csr_rows
 
 
 @pytest.fixture

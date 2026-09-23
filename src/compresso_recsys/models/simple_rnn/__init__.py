@@ -15,12 +15,12 @@ The architecture is deliberately unremarkable::
       -> cross entropy against the history shifted one step left
 
 Two details carry all the risk, and both are pushed into
-:class:`~compresso_recsys.models.sequence_batching.SequenceBatcher`.
+:class:`~compresso_recsys.models.SequenceBatcher`.
 
 **Reading the final state.** With right padding, the last *column* is padding
 for every row shorter than the batch maximum, so scoring from ``states[:, -1]``
 would score most users from a pad embedding. Prediction goes through
-:meth:`~compresso_recsys.models.sequence_batching.SequenceBatcher.gather_final`,
+:meth:`~compresso_recsys.models.SequenceBatcher.gather_final`,
 which reads each row's own last real position.
 
 **Truncation is not exclusion.** The batcher's ``max_length`` bounds what the
@@ -38,11 +38,6 @@ and sampled softmax are also absent.
 # Re-exported: the flat module carried these, and
 # tests/test_simple_rnn.py asserts the sequential trainers share one
 # schedule implementation by identity off the module.
-from compresso_recsys.models.core.schedule import (  # noqa: F401
-    LRSchedule,
-    build_scheduler,
-    check_schedule,
-)
 
 from compresso_recsys.models.simple_rnn.config import (
     OptimizerName,

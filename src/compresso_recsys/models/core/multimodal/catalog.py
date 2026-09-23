@@ -1,13 +1,13 @@
-"""Opt-in cold-start infrastructure for named item-feature matrices.
+"""The multi-modal candidate catalog: many named matrices, one item space.
 
-The catalog preserves modalities; it does not choose a fusion rule or run an
-encoder. Models may override registration and persistence for other stored
-representations without changing the single-matrix cold-start family.
+Mirrors :mod:`compresso_recsys.models.core.catalog` -- fixed at fit time in
+:class:`MultiModalCandidateCatalog`, growable in
+:class:`MutableMultiModalCandidateCatalog` -- with every feature operation
+applied across modalities that must stay row-aligned with each other.
 """
 
 from __future__ import annotations
 
-from abc import abstractmethod
 from collections.abc import Callable, Hashable, Mapping, Sequence
 from dataclasses import dataclass, field
 from threading import RLock
@@ -23,14 +23,11 @@ from compresso_recsys.models.core.catalog import (
     CandidateConflict,
     _NOT_INSTALLED,
 )
-from compresso_recsys.models.core.cold_start import BaseColdStartRecommender
 from compresso_recsys.models.core.features import (
-    ItemFeatures,
     _freeze_features,
     _replace_feature_rows,
     _stack_features,
     canonical_feature_space_id,
-    canonical_item_features,
     canonical_metadata,
     take_features,
 )
@@ -38,164 +35,15 @@ from compresso_recsys.models.core.identifiers import ItemVocabulary, canonical_i
 from compresso_recsys.persistence import (
     ModelCheckpointReader,
     ModelCheckpointWriter,
-    _decoded_item_id,
-    _encoded_item_id,
 )
-
-__all__ = [
-    "BaseMultiModalRecommender",
-    "MultiModalCandidateCatalog",
-    "MultiModalCandidateSelection",
-    "MultiModalItemFeatures",
-    "MutableMultiModalCandidateCatalog",
-]
-
-MultiModalItemFeatures = Mapping[str, ItemFeatures]
-_StoredFeatures = Mapping[str, csr_matrix | np.ndarray]
-
-
-def _canonical_features(
-    features: MultiModalItemFeatures,
-    *,
-    n_items: int,
-    dtype: np.dtype,
-    dimensions: Mapping[str, int] | None = None,
-) -> dict[str, csr_matrix | np.ndarray]:
-    if not isinstance(features, Mapping):
-        raise TypeError("item_features must be a mapping of modality names to matrices")
-    if not features:
-        raise ValueError("item_features must contain at least one modality")
-    if any(not isinstance(name, str) or not name.strip() for name in features):
-        raise ValueError("modality names must be non-empty strings")
-    if dimensions is not None and set(features) != set(dimensions):
-        raise ValueError(
-            "modality names must match the installed schema; "
-            f"missing={sorted(set(dimensions) - set(features))}, "
-            f"extra={sorted(set(features) - set(dimensions))}"
-        )
-    result = {}
-    # Use the installed order on updates, never the caller's dictionary order.
-    for name in features if dimensions is None else dimensions:
-        matrix = canonical_item_features(features[name], dtype=dtype)
-        values = matrix.data if isinstance(matrix, csr_matrix) else matrix
-        if not np.all(np.isfinite(values)):
-            raise ValueError(f"item_features[{name!r}] must remain finite in {dtype}")
-        if matrix.shape[0] != n_items:
-            raise ValueError(
-                f"item_features[{name!r}] has {matrix.shape[0]} rows, "
-                f"but item_ids has {n_items} entries"
-            )
-        if dimensions is not None and matrix.shape[1] != dimensions[name]:
-            raise ValueError(
-                f"item_features[{name!r}] has {matrix.shape[1]} columns, "
-                f"expected {dimensions[name]}"
-            )
-        result[name] = matrix
-    return result
-
-
-def _canonical_dtype(dtype: str | np.dtype) -> np.dtype:
-    # NumPy interprets None as float64; an unset config must not choose precision.
-    if dtype is None:
-        raise ValueError("dtype must be float32 or float64")
-    resolved = np.dtype(dtype)
-    if resolved not in (np.dtype("float32"), np.dtype("float64")):
-        raise ValueError("dtype must be float32 or float64")
-    return resolved
-
-
-def _encode_metadata_label(label: Hashable) -> dict:
-    """Reuse the safe scalar codec, adding null, NaN and tuple metadata labels."""
-    if label is None:
-        return {"type": "none"}
-    # Pandas can coerce missing column labels to NaN; keep it distinct from None.
-    if isinstance(label, (float, np.floating)) and np.isnan(label):
-        return {"type": "nan"}
-    if isinstance(label, tuple):
-        return {"type": "tuple", "value": [_encode_metadata_label(v) for v in label]}
-    try:
-        return _encoded_item_id(label)
-    except (TypeError, ValueError) as error:
-        raise ValueError(
-            f"unsupported metadata column/index label: {label!r} "
-            f"({type(label).__name__})"
-        ) from error
-
-
-def _decode_metadata_label(state: object) -> Hashable:
-    if isinstance(state, dict):
-        if state.get("type") == "none":
-            return None
-        if state.get("type") == "nan":
-            return np.nan
-        if state.get("type") == "tuple" and isinstance(state.get("value"), list):
-            return tuple(_decode_metadata_label(v) for v in state["value"])
-    return _decoded_item_id(state)
-
-
-def _metadata_columns_state(columns: pd.Index) -> dict:
-    state = {
-        "labels": [_encode_metadata_label(label) for label in columns],
-        "names": [_encode_metadata_label(name) for name in columns.names],
-    }
-    if isinstance(columns, pd.MultiIndex):
-        state["kind"] = "multi"
-        state["level_dtypes"] = [str(level.dtype) for level in columns.levels]
-    elif isinstance(columns, pd.RangeIndex):
-        state.update(
-            kind="range", start=columns.start, stop=columns.stop, step=columns.step
-        )
-    else:
-        state.update(kind="index", dtype=str(columns.dtype))
-    return state
-
-
-def _restore_metadata_columns(state: object, *, n_columns: int) -> pd.Index:
-    try:
-        if not isinstance(state, dict):
-            raise TypeError("column description must be an object")
-        labels, names = state["labels"], state["names"]
-        if not isinstance(labels, list) or not isinstance(names, list):
-            raise TypeError("column labels and names must be lists")
-        if len(labels) != n_columns:
-            raise ValueError("column count does not match metadata")
-        labels = [_decode_metadata_label(label) for label in labels]
-        names = [_decode_metadata_label(name) for name in names]
-        if state["kind"] == "multi":
-            columns = pd.MultiIndex.from_tuples(labels, names=names)
-            if "level_dtypes" in state:
-                dtypes = state["level_dtypes"]
-                if (
-                    not isinstance(dtypes, list)
-                    or len(dtypes) != columns.nlevels
-                    or any(not isinstance(dtype, str) for dtype in dtypes)
-                ):
-                    raise ValueError("invalid multi-level column dtypes")
-                # Iterating a level with NaN can turn its integer labels into
-                # floats. Restore the level dtype independently of missing codes.
-                columns = columns.set_levels(
-                    [
-                        level.astype(dtype)
-                        for level, dtype in zip(columns.levels, dtypes)
-                    ]
-                )
-            return columns
-        if len(names) != 1:
-            raise ValueError("flat columns must have one index name")
-        if state["kind"] == "range":
-            columns = pd.RangeIndex(
-                state["start"], state["stop"], state["step"], name=names[0]
-            )
-            if len(columns) != n_columns or columns.tolist() != labels:
-                raise ValueError("range does not match column labels")
-            return columns
-        if state["kind"] == "index" and isinstance(state.get("dtype"), str):
-            return pd.Index(
-                labels, dtype=state["dtype"], name=names[0], tupleize_cols=False
-            )
-        raise ValueError("unsupported column index description")
-    except (KeyError, TypeError, ValueError) as error:
-        raise ValueError("invalid checkpoint metadata column description") from error
+from compresso_recsys.models.core.multimodal.features import (
+    MultiModalItemFeatures,
+    _StoredFeatures,
+    _canonical_dtype,
+    _canonical_features,
+    _metadata_columns_state,
+    _restore_metadata_columns,
+)
 
 
 @dataclass(frozen=True, init=False)
@@ -803,97 +651,3 @@ def _updated_metadata(
     if "item_id" in result.columns:
         result["item_id"] = combined_ids
     return result.reset_index(drop=True)
-
-
-class BaseMultiModalRecommender(BaseColdStartRecommender):
-    """Optional CSR-history base with a default named-matrix candidate catalog.
-
-    Implement ``fit``, ``is_fitted`` and ``predict_on_batch``. Fitting installs
-    the source IDs and stored matrices with ``self.candidates.install(...)``.
-    Recommendation, history alignment and prediction batching are inherited.
-
-    Initial installation, rebuilding and updates must produce the same stored
-    representation using the same fitted transformation. Override candidate
-    methods if a model must encode incoming matrices first. Other storage and
-    scoring designs are equally valid; no fusion rule is imposed by this base.
-
-    The default persistence hooks save/load the catalog. Overrides saving model
-    state should call ``super()`` as well, or manage catalog persistence themselves.
-    The model still supplies its checkpoint construction/configuration hooks.
-
-    Mapping-specific overrides intentionally specialize the existing runtime
-    interface; the matrix base and its annotations are not made generic here.
-    """
-
-    candidates: MutableMultiModalCandidateCatalog  # type: ignore[assignment]
-
-    def __init__(self) -> None:
-        super().__init__()
-        self.candidates = MutableMultiModalCandidateCatalog(
-            on_publish=self._on_catalog_published
-        )
-
-    @abstractmethod
-    def fit(  # type: ignore[override]
-        self,
-        interactions: csr_matrix,
-        item_features: MultiModalItemFeatures,
-        **kwargs,
-    ) -> BaseMultiModalRecommender:
-        """Fit the model and install its initial multimodal candidate catalog."""
-
-    def _on_catalog_published(self, catalog: MultiModalCandidateCatalog) -> None:  # type: ignore[override]
-        """Invalidate caches under the catalog lock; raising does not roll back.
-
-        Do not wait for another thread that reads or mutates this catalog: it
-        needs the same lock. Workers can instead use the immutable ``catalog``
-        argument directly without reacquiring the owner's lock.
-        """
-
-    def build_candidates(  # type: ignore[override]
-        self,
-        *,
-        item_ids: Sequence[Hashable] | np.ndarray,
-        item_features: MultiModalItemFeatures,
-        metadata: pd.DataFrame | None = None,
-        feature_space_id: str | None = None,
-    ) -> MultiModalCandidateCatalog:
-        """Replace candidates using already prepared stored representations."""
-        return self.candidates.build(
-            item_ids=item_ids,
-            item_features=item_features,
-            metadata=metadata,
-            feature_space_id=feature_space_id,
-        )
-
-    def update_candidates(  # type: ignore[override]
-        self,
-        *,
-        item_ids: Sequence[Hashable] | np.ndarray,
-        item_features: MultiModalItemFeatures,
-        metadata: pd.DataFrame | None = None,
-        on_conflict: CandidateConflict = "error",
-        feature_space_id: str | None = None,
-    ) -> MultiModalCandidateCatalog:
-        """Append or replace candidates using already prepared representations."""
-        return self.candidates.update(
-            item_ids=item_ids,
-            item_features=item_features,
-            metadata=metadata,
-            on_conflict=on_conflict,
-            feature_space_id=feature_space_id,
-        )
-
-    def remove_candidates(  # type: ignore[override]
-        self,
-        item_ids: Sequence[Hashable] | np.ndarray,
-        *,
-        missing: Literal["error", "ignore"] = "error",
-    ) -> MultiModalCandidateCatalog:
-        return self.candidates.remove(item_ids, missing=missing)
-
-    def _save_checkpoint_state(self, writer: ModelCheckpointWriter) -> None:
-        self.candidates._save_checkpoint(writer)
-
-    def _load_checkpoint_state(self, reader: ModelCheckpointReader) -> None:
-        self.candidates._load_checkpoint(reader)

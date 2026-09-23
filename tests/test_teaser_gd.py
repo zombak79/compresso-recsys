@@ -15,7 +15,7 @@ from compresso_recsys.models import (
     TEASERGDConfig,
     TEASERGDTrainer,
 )
-from compresso_recsys.models.teaser_gd import (
+from compresso_recsys.models.teaser_gd.trainer import (
     _initialize_encoder_from_features,
     _teaser_reconstruction_loss,
 )

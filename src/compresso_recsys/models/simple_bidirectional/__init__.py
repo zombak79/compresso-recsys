@@ -25,11 +25,6 @@ may legitimately also be a target.
 # Re-exported: the flat module carried these, and
 # tests/test_simple_rnn.py asserts the sequential trainers share one
 # schedule implementation by identity off the module.
-from compresso_recsys.models.core.schedule import (  # noqa: F401
-    LRSchedule,
-    build_scheduler,
-    check_schedule,
-)
 
 from compresso_recsys.models.simple_bidirectional.config import (
     OptimizerName,
@@ -44,13 +39,6 @@ from compresso_recsys.models.simple_bidirectional.trainer import (
     SimpleBidirectionalTransformerTrainer,
 )
 
-
-# Private helpers too: the flat module exposed every top-level name,
-# and tests reach for some of them by module path.
-from compresso_recsys.models.simple_bidirectional.trainer import (  # noqa: F401
-    _binary_targets,
-    _source_target_matrix,
-)
 
 __all__ = [
     "SimpleBidirectionalTransformer",

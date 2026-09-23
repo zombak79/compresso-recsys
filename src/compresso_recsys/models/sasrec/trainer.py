@@ -17,8 +17,8 @@ from compresso_recsys._reporting import (
     TrainingProgress,
 )
 from compresso_recsys.models.base import BaseSequentialRecommender
-from compresso_recsys.models.sequence_batching import SequenceBatcher
-from compresso_recsys.models.tokenizer import ItemTokenizer
+from compresso_recsys.models.core.sequence_batching import SequenceBatcher
+from compresso_recsys.models.core.tokenizer import ItemTokenizer
 from compresso_recsys.persistence import (
     ModelCheckpointReader,
 )

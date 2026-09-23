@@ -50,11 +50,6 @@ absent.
 # Re-exported: the flat module carried these, and
 # tests/test_simple_rnn.py asserts the sequential trainers share one
 # schedule implementation by identity off the module.
-from compresso_recsys.models.core.schedule import (  # noqa: F401
-    LRSchedule,
-    build_scheduler,
-    check_schedule,
-)
 
 from compresso_recsys.models.simple_gpt.config import (
     OptimizerName,

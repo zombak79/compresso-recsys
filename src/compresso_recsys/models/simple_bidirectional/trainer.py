@@ -22,9 +22,9 @@ from compresso_recsys.sequences import ItemSequences
 from ..core.schedule import build_scheduler
 from ..core.validation import canonical_csr
 from ..base import BaseSequentialRecommender
-from ..sequence_batching import SequenceBatcher
+from ..core.sequence_batching import SequenceBatcher
 from ..simple_gpt import TransformerConfig
-from ..tokenizer import ItemTokenizer
+from ..core.tokenizer import ItemTokenizer
 from compresso_recsys.models.simple_bidirectional.config import (
     SimpleBidirectionalTransformerConfig,
 )

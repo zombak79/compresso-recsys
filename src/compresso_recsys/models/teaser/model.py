@@ -1,7 +1,8 @@
+"""The closed-form solve, and the fitted model's prediction path."""
+
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Hashable, Literal, Sequence
+from typing import Hashable, Sequence
 
 import numpy as np
 import pandas as pd
@@ -13,7 +14,6 @@ from compresso_recsys.models.core.validation import (
     canonical_csr,
     canonical_train_item_indices,
 )
-from compresso_recsys.models.core.catalog import CandidateCatalog
 from compresso_recsys.models.core.cold_start import _LinearFeatureRecommenderMixin
 from compresso_recsys.models.core.features import (
     ItemFeatures,
@@ -23,10 +23,7 @@ from compresso_recsys.models.core.features import (
     canonical_metadata,
 )
 from compresso_recsys.persistence import ModelCheckpointReader, ModelCheckpointWriter
-
-__all__ = ["CandidateCatalog", "TEASER", "TEASERConfig"]
-
-TEASERDataType = Literal["float32", "float64"]
+from compresso_recsys.models.teaser.config import TEASERConfig
 
 
 def _progress(iterable, *, enabled: bool, desc: str):
@@ -60,51 +57,6 @@ def _right_multiply_features(
     if isspmatrix_csr(features):
         return np.asarray((features.T @ left.T).T)
     return left @ features
-
-
-@dataclass(frozen=True)
-class TEASERConfig:
-    """Configuration for the reference ADMM implementation of TEASER.
-
-    Parameters
-    ----------
-    l2_coefficients:
-        L2 regularization on the diagonal-free item coefficient matrix.
-    l2_encoder:
-        L2 regularization on the learned item-to-feature encoder.
-    rho:
-        Positive ADMM penalty parameter.
-    max_iterations:
-        Number of fixed ADMM iterations. The reference implementation uses 10.
-    include_popularity:
-        Append normalized training-item popularity as an additional feature.
-    dtype:
-        Numerical precision used by fitting and prediction. ``float64`` matches
-        the reference implementation.
-    """
-
-    l2_coefficients: float = 0.05
-    l2_encoder: float = 0.05
-    rho: float = 0.05
-    max_iterations: int = 10
-    include_popularity: bool = False
-    dtype: TEASERDataType = "float64"
-
-    def __post_init__(self) -> None:
-        for name in ("l2_coefficients", "l2_encoder", "rho"):
-            value = getattr(self, name)
-            if not np.isfinite(value) or value <= 0:
-                raise ValueError(f"{name} must be finite and > 0")
-        if (
-            isinstance(self.max_iterations, bool)
-            or not isinstance(self.max_iterations, (int, np.integer))
-            or self.max_iterations < 1
-        ):
-            raise ValueError("max_iterations must be >= 1")
-        if not isinstance(self.include_popularity, bool):
-            raise ValueError("include_popularity must be a bool")
-        if self.dtype not in {"float32", "float64"}:
-            raise ValueError("dtype must be 'float32' or 'float64'")
 
 
 class TEASER(_LinearFeatureRecommenderMixin):

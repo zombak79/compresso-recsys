@@ -20,8 +20,8 @@ from compresso_recsys.sequences import ItemSequences
 
 from ..core.schedule import build_scheduler
 from ..base import BaseSequentialRecommender
-from ..sequence_batching import SequenceBatcher
-from ..tokenizer import ItemTokenizer
+from ..core.sequence_batching import SequenceBatcher
+from ..core.tokenizer import ItemTokenizer
 from compresso_recsys.models.simple_rnn.config import (
     SimpleRNNConfig,
 )

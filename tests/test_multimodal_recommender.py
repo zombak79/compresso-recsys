@@ -17,8 +17,10 @@ from compresso_recsys.models import (
     BaseMultiModalRecommender,
     MultiModalCandidateCatalog,
     MutableMultiModalCandidateCatalog,
-    multimodal,
 )
+# Both monkeypatches below reach into the catalog's own module namespace, which
+# is where ``np`` and ``take_features`` are resolved from.
+from compresso_recsys.models.core.multimodal import catalog as multimodal
 from compresso_recsys.persistence import ModelCheckpointReader, ModelCheckpointWriter
 
 

@@ -35,8 +35,8 @@ from compresso_recsys.models.core.catalog import (
     _NOT_INSTALLED,
     CandidateCatalog,
     CandidateConflict,
-    MutableCandidateCatalog,
 )
+from compresso_recsys.models.core.mutable_catalog import MutableCandidateCatalog
 from compresso_recsys.models.core.features import ItemFeatures
 from compresso_recsys.models.core.identifiers import ItemVocabulary
 from compresso_recsys.sequences import ItemSequences

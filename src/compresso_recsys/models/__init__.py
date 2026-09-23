@@ -19,16 +19,14 @@ from .batching import (
     dense_training_target,
 )
 from .core.adapters import WarmCatalogAdapter
-from .core.catalog import (
-    CandidateCatalog,
-    MutableCandidateCatalog,
-)
+from .core.catalog import CandidateCatalog
+from .core.mutable_catalog import MutableCandidateCatalog
 from .core.cold_start import (
     BaseColdStartRecommender,
     ColdStartRecommender,
 )
 from .content import ContentRecommender, ContentRecommenderConfig
-from .multimodal import (
+from .core.multimodal import (
     BaseMultiModalRecommender,
     MultiModalCandidateCatalog,
     MultiModalCandidateSelection,
