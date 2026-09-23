@@ -1,6 +1,6 @@
 """Public interaction batching utilities for custom recommender training."""
 
-from ._batching import (
+from .core.batching import (
     InteractionBatch,
     InteractionBatchSampler,
     dense_training_target,

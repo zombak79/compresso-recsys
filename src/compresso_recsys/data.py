@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Callable, Optional
 
-import torch
 from torch.utils.data import DataLoader
 
 

@@ -8,7 +8,7 @@ import torch
 from scipy.sparse import csr_matrix, issparse
 
 from compresso import SRPTensor
-from compresso_recsys.models.cold_start import BaseColdStartRecommender
+from compresso_recsys.models.core.cold_start import BaseColdStartRecommender
 from compresso_recsys.persistence import ModelCheckpointReader, ModelCheckpointWriter
 
 __all__ = ["ContentRecommender", "ContentRecommenderConfig"]

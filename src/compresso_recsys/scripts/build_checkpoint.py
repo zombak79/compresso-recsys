@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from compresso_recsys.builder import (
-    _build_args,
     _build_recsys_checkpoint_from_args,
     build_recsys_checkpoint,
     parse_args,
