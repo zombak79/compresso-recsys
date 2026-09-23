@@ -14,7 +14,8 @@ import pandas as pd
 import torch
 
 from compresso import SRPTensor
-from compresso_recsys.evaluation import RankingEvaluator, _indices_to_csr
+from compresso_recsys.evaluation import RankingEvaluator
+from compresso_recsys.evaluation.arrays import _indices_to_csr
 from compresso_recsys.metrics import CalibratedRecall, NDCG, RankingMetric
 from compresso_recsys.retrieval.holdout import build_eval_holdout
 

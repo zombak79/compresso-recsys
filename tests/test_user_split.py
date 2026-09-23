@@ -491,7 +491,8 @@ def test_a_checkpoint_written_before_the_rename_still_reads_correctly(tmp_path):
     older checkpoint — and for ``leave_last_out`` and ``item_split``, where all
     three phases share one catalog, nothing downstream could notice.
     """
-    from compresso_recsys.checkpoint import SPLIT_DIR, load_recsys_split
+    from compresso_recsys.checkpoint import load_recsys_split
+    from compresso_recsys.checkpoint.split import SPLIT_DIR
 
     item_ids = np.asarray(["a", "b", "c", "d"])
     matrix = csr_matrix(np.ones((2, 4), dtype=np.float32))
@@ -526,7 +527,8 @@ def test_a_checkpoint_written_before_the_rename_still_reads_correctly(tmp_path):
 
 def test_a_new_name_wins_over_a_stale_old_one(tmp_path):
     """Both present means the old file is a leftover, not the truth."""
-    from compresso_recsys.checkpoint import SPLIT_DIR, load_recsys_split
+    from compresso_recsys.checkpoint import load_recsys_split
+    from compresso_recsys.checkpoint.split import SPLIT_DIR
 
     matrix = csr_matrix(np.ones((2, 4), dtype=np.float32))
     save_recsys_split(

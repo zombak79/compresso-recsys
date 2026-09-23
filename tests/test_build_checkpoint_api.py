@@ -181,7 +181,10 @@ def test_csr_row_indices_survive_conversion_by_its_consumers():
     from scipy.sparse import csr_matrix
 
     from compresso_recsys.builder import _csr_row_indices
-    from compresso_recsys.checkpoint import _as_obj_array, _indices_to_csr
+    from compresso_recsys.checkpoint.io import (
+        _as_obj_array,
+        _indices_to_csr,
+    )
 
     dense = np.array([[1, 0, 1], [0, 1, 0], [0, 0, 0]], dtype=np.float32)
     matrix = csr_matrix(dense)

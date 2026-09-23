@@ -5,9 +5,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from compresso_recsys.checkpoint import (
-    _indices_to_csr,
-)
+from compresso_recsys.checkpoint.io import _indices_to_csr
 from compresso_recsys.sequences import ItemSequences
 from compresso_recsys.retrieval import (
     LEAVE_LAST_OUT_MIN_HISTORY,

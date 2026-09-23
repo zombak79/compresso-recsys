@@ -17,10 +17,10 @@ from pathlib import Path
 import numpy as np
 
 from compresso_recsys.checkpoint import (
-    _indices_to_csr,
     save_recsys_split,
     update_checkpoint,
 )
+from compresso_recsys.checkpoint.io import _indices_to_csr
 from compresso_recsys.datasets import Steam, NetflixPrize, TasteProfile, Gowalla
 from compresso_recsys.datasets._public import PublicDataset
 
