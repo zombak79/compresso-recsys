@@ -1,3 +1,41 @@
+## [0.3.7] — 2026-09-24
+
+### Added
+
+- Retailrocket, Music4All-Onion, OTTO and Yambda adapters for timestamped
+  sequential data, available through the Python checkpoint builder and CLI.
+  All four expose item IDs only. Retailrocket and OTTO need a manual Kaggle
+  download; Music4All-Onion and Yambda download automatically. Retailrocket
+  and OTTO keep view/click events by default and take an `events` filter;
+  Yambda takes a release `variant` and `organic_only`. Each dataset is
+  registered with its own temporal window (336, 720, 48 and 720 hours), since
+  none of the logs is long enough for three 339-day windows.
+
+- Adapter options: `build_recsys_checkpoint(dataset_options=...)` and a
+  repeatable `--dataset_option KEY=VALUE` flag pass adapter-specific arguments
+  through the builder. Command-line values are parsed from the adapter's own
+  annotations. An unknown name is an error listing what the dataset accepts,
+  and the resolved options are written to the checkpoint manifest. A dataset
+  can be registered with default options: OTTO (`session_sample=0.1`),
+  Music4All-Onion (`start="2014-01-01"`, `end="2015-01-01"`) and Yambda
+  (`user_sample=0.2`) do, because a full build exhausts memory on an ordinary
+  machine. Samples keep whole sessions or users, chosen by hashing the id, and
+  a build that relies on a registered subset prints a notice naming the flags
+  that undo it. Options that select rows are folded into the parquet cache key.
+
+### Changed
+
+- Filtering interactions to the metadata catalog selects rows before copying,
+  rather than copying the whole frame first.
+
+- Canonical interaction caches are stored per selection: a non-default cache
+  version is written to `<source>.v<hex>.interactions.parquet` instead of
+  overwriting the single cache beside the source. Concurrent builds with
+  different adapter options can no longer leave one selection's rows under
+  another's marker, and switching back to an earlier selection reuses its
+  cache. Version 1 keeps the original name, and an existing cache whose marker
+  matches is renamed rather than rebuilt.
+
 ## [0.3.6] — 2026-09-22
 
 ### Added

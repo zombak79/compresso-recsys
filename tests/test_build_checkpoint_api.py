@@ -15,7 +15,10 @@ def test_build_recsys_checkpoint_is_public_function():
 def test_temporal_period_defaults_and_overrides_match_api_and_cli(monkeypatch, dataset, period):
     from compresso_recsys import builder
 
-    expected = (720 if dataset == "gowalla" else 8136) if period is None else period
+    # Read from the registry rather than an exception list: several datasets now
+    # register a window because their logs are too short for the global default,
+    # and a hard-coded list goes stale the next time one is added.
+    expected = builder.DATASETS[dataset].temporal_period_hours if period is None else period
     options = {} if period is None else {"temporal_period_hours": period}
     api_args = _build_args(dataset=dataset, **options)
     assert api_args.temporal_period_hours == expected

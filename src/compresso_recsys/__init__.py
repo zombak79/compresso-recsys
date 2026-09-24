@@ -17,6 +17,7 @@ from .builder import build_recsys_checkpoint
 from .datasets import AmazonReviews2023, Goodbooks, MovieLens1M, MovieLens20M, RecSysDataset, SplitBundle
 from .datasets import Steam, NetflixPrize, TasteProfile, Gowalla
 from .datasets import DBbook, LastFM2K
+from .datasets import RetailRocket, Music4AllOnion, OTTO, Yambda
 from .embeddings import save_item_embeddings, load_item_embeddings, list_item_embeddings
 from .multimodal import enrich_multimodal_checkpoint
 from .persistence import ModelCheckpointReader, ModelCheckpointWriter
@@ -36,6 +37,10 @@ __all__ = [
     "Gowalla",
     "build_recsys_checkpoint",
     "Goodbooks",
+    "RetailRocket",
+    "Music4AllOnion",
+    "OTTO",
+    "Yambda",
     "ItemSequences",
     "MovieLens1M",
     "MovieLens20M",

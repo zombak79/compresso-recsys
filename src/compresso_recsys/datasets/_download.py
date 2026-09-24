@@ -64,13 +64,40 @@ def unix_seconds(values: pd.Series) -> pd.Series:
     return (parsed - pd.Timestamp("1970-01-01", tz="UTC")).dt.total_seconds()
 
 
+def _adopt_legacy_cache(legacy: Path, path: Path, signature: dict) -> bool:
+    """Move a cache written under the unsuffixed name to its versioned name.
+
+    Caches built before versions had their own files all used the unsuffixed
+    name. One whose marker matches is exactly the selection being asked for, so
+    it is renamed rather than rebuilt -- on OTTO that saves a full JSON parse.
+    """
+    legacy_marker = legacy.with_suffix(".json")
+    try:
+        if not legacy.exists() or json.loads(legacy_marker.read_text()) != signature:
+            return False
+        os.replace(legacy, path)
+        os.replace(legacy_marker, path.with_suffix(".json"))
+    except (ValueError, OSError):
+        return False
+    return True
+
+
 def cached_interactions(source: Path, frames, *, version: int = 1) -> pd.DataFrame:
     """Cache only canonical columns, parsing large sources in bounded batches.
 
     ``frames`` is a callable so a cache hit never opens/decompresses the source.
     The final public DataFrame is still held in memory.
+
+    Each ``version`` gets its own file, so two selections of one source never
+    overwrite each other: concurrent builds with different adapter options
+    cannot leave one selection's rows under the other's marker, and switching
+    back to an earlier selection is a cache hit rather than a re-parse.
+    ``version=1`` keeps the original unsuffixed name.
     """
-    path = source.with_name(source.name + ".interactions.parquet")
+    legacy = source.with_name(source.name + ".interactions.parquet")
+    path = legacy if version == 1 else source.with_name(
+        f"{source.name}.v{version:x}.interactions.parquet"
+    )
     marker = path.with_suffix(".json")
     stat = source.stat()
     signature = {"version": version, "size": stat.st_size, "mtime_ns": stat.st_mtime_ns}
@@ -80,6 +107,8 @@ def cached_interactions(source: Path, frames, *, version: int = 1) -> pd.DataFra
                 return pd.read_parquet(path)
         except (ValueError, OSError):
             pass
+    if path != legacy and _adopt_legacy_cache(legacy, path, signature):
+        return pd.read_parquet(path)
     schema = pa.schema([
         ("user_id", pa.string()), ("item_id", pa.string()),
         ("value", pa.float64()), ("timestamp", pa.float64()),

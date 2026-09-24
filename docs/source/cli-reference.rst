@@ -101,10 +101,13 @@ Temporal Checkpoint
 ~~~~~~~~~~~~~~~~~~~
 
 ``temporal`` uses three equal target windows ending at the latest interaction.
-The default period is 30 days (720 hours) for Gowalla and 339 days (8,136 hours)
-otherwise, following the scale of the official Amazon Reviews 2023
-absolute-timestamp validation interval. Each split ranks a mixed
-catalog of previously available warm items and newly supported cold items.
+The default period is the one the dataset is registered with: 339 days
+(8,136 hours) for most datasets, following the scale of the official Amazon
+Reviews 2023 absolute-timestamp validation interval, and shorter for logs that
+cannot fit three such windows -- 30 days (720 hours) for Gowalla, Yambda and
+Music4All-Onion, 14 days (336 hours) for Retailrocket and 2 days (48 hours) for
+OTTO. Each split ranks a mixed catalog of previously available warm items and
+newly supported cold items.
 
 For period ``w`` and latest timestamp ``T``, the target windows are
 ``[T-3w, T-2w)``, ``[T-2w, T-w)``, and ``[T-w, T]``. Their corresponding
@@ -232,7 +235,8 @@ Full ``compresso-recsys-build-checkpoint`` parameter table:
      - required
      - Dataset to build. Choices: ``goodbooks``, ``ml1m``, ``ml20m``,
        ``amazon2023``, ``steam``, ``netflix``, ``taste-profile``, ``gowalla``,
-       ``dbbook``, ``lfm2k``.
+       ``dbbook``, ``lfm2k``, ``retailrocket``, ``music4all-onion``, ``otto``,
+       ``yambda``.
    * - ``--data_dir``
      - ``data``
      - Directory where raw/downloaded dataset files are stored.
@@ -291,8 +295,13 @@ Full ``compresso-recsys-build-checkpoint`` parameter table:
      - Fraction of items held out as cold test items for ``item_split``.
    * - ``--temporal_period_hours``
      - Dataset-specific
-     - Width of each temporal target window: ``720`` hours for Gowalla,
-       ``8136`` (339 days) otherwise.
+     - Width of each temporal target window in hours. Defaults to the value the
+       dataset is registered with. The split needs three windows to fit inside
+       the log, so a value above a third of the available span fails rather
+       than silently truncating, and the shorter logs are registered
+       accordingly: ``336`` for Retailrocket (4.5 months), ``48`` for OTTO
+       (4 weeks), ``720`` for Yambda, Music4All-Onion and Gowalla. Everything
+       else uses ``8136`` (339 days).
    * - ``--min_source_items``
      - ``1``
      - Minimum number of source/profile items an eval user must have. For
@@ -305,6 +314,12 @@ Full ``compresso-recsys-build-checkpoint`` parameter table:
      - ``Toys_and_Games``
      - Amazon Reviews 2023 category. Supports official names and aliases like
        ``toys``, ``electronics``, ``clothing``.
+   * - ``--dataset_option``
+     - none
+     - Adapter-specific option as ``KEY=VALUE``, repeatable. Values are parsed
+       using the adapter's annotations, so ``session_sample=0.1`` arrives as a
+       float and ``events=clicks,orders`` as a tuple. An unknown name lists the
+       options the chosen dataset accepts. See :ref:`dataset-options`.
    * - ``--metadata_text_fields``
      - dataset-specific
      - Metadata columns joined into canonical ``entity_text``. Steam uses
