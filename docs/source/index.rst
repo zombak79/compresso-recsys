@@ -27,6 +27,7 @@ is imported as ``compresso_recsys``.
    implementing-a-recommender
    multimodal-concat-wrapper
    reproducing-sasrec-results-on-ml1m
+   reproducing-bert4rec-results-on-ml1m
    
    statistical-comparison
    citing

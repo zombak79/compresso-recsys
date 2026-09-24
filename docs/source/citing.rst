@@ -200,6 +200,33 @@ rather than exact implementation parity:
      doi={10.1109/ICDM.2018.00035}
    }
 
+.. _cite-bert4rec:
+
+BERT4Rec
+--------
+
+For :class:`compresso_recsys.models.Bert4RecTrainer`, cite the original
+BERT4Rec paper. The architecture, the Cloze objective, and the published
+hyperparameters are all its; where the paper is silent the implementation
+follows the authors' released TensorFlow code, and
+:class:`compresso_recsys.models.Bert4RecConfig` records which of the two each
+default came from. Report the settings you actually used, since the paper tunes
+the masking proportion per dataset:
+
+.. code-block:: bibtex
+
+   @inproceedings{sun2019bert4rec,
+     title={{BERT4Rec}: Sequential Recommendation with Bidirectional Encoder
+            Representations from Transformer},
+     author={Sun, Fei and Liu, Jun and Wu, Jian and Pei, Changhua and Lin, Xiao
+             and Ou, Wenwu and Jiang, Peng},
+     booktitle={Proceedings of the 28th ACM International Conference on
+                Information and Knowledge Management},
+     year={2019},
+     doi={10.1145/3357384.3357895},
+     url={https://arxiv.org/abs/1904.06690}
+   }
+
 SimpleRNN
 ---------
 
@@ -252,9 +279,13 @@ attribute nanoGPT when discussing the implementation:
    }
 
 These are Compresso baseline implementations, not separate published methods.
-In particular, the bidirectional model is not an implementation of BERT4Rec's
-masked-item objective. Its set-valued multinomial loss is related to the
-Mult-VAE/Mult-DAE formulation above; cite that work when the loss is relevant.
+In particular, :class:`compresso_recsys.models.SimpleBidirectionalTransformerTrainer`
+is not an implementation of BERT4Rec's masked-item objective, despite both being
+bidirectional: it predicts an unordered target set from a pooled ``CLS`` state,
+and its set-valued multinomial loss is related to the Mult-VAE/Mult-DAE
+formulation above, so cite that work when the loss is relevant. For the Cloze
+objective itself, see :class:`compresso_recsys.models.Bert4RecTrainer` and
+:ref:`cite-bert4rec`.
 
 Content, Popularity, and Random Baselines
 -------------------------------------------

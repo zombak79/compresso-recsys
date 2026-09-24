@@ -127,7 +127,8 @@ cold-start examples, and defaults.
 - Sequential recommenders over chronological histories: `SimpleRNN`, a recurrent
   next-item baseline; `SimpleGPT`, a causal transformer with a tied head;
   `SASRec`, a modernized variant of the published self-attentive architecture
-  trained against sampled negatives; and
+  trained against sampled negatives; `BERT4Rec`, the bidirectional encoder
+  trained with the Cloze objective; and
   `SimpleBidirectionalTransformer`, a sequence-to-set encoder that can train on
   the target matrices produced by temporal splits. They are built from
   replaceable parts — an `ItemTokenizer` owning the vocabulary and a

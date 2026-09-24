@@ -192,6 +192,17 @@ authors' all-modalities MMRec benchmark; no matching score target is assigned ye
      - :doc:`reproducing-sasrec-results-on-ml1m` contains both
      - HR@10 0.8245, NDCG@10 0.5905 (Table III).
        Sampled-negative protocol only; see notebook caveats.
+   * - BERT4Rec / ML-1M
+     - `BERT4Rec paper <https://arxiv.org/abs/1904.06690>`_;
+       `authors' code <https://github.com/FeiSun/BERT4Rec>`_
+     - :doc:`reproducing-bert4rec-results-on-ml1m` contains both
+     - HR@10 0.6970, NDCG@10 0.4818 (Table 2). Measured at commit ``881da91c85612d5ba79c6a60549a51877d3c5f15``,
+       seed 0, 907 epochs (399,987 steps): HR@10 0.6965, NDCG@10 0.4805, and
+       nDCG@20 0.1954 full-catalog against 0.0258 for most-popular. One seed;
+       ``adapted benchmark`` because the epoch budget is derived rather than
+       published. §4.2 samples the 100 negatives by popularity rather than
+       uniformly, so this row is not comparable with the SASRec row above
+       even at a shared cutoff.
    * - EASE / Steam
      - EASE_; no Steam target in that paper
      - Same script: build ``--dataset steam``, train ``--model ease``
