@@ -34,13 +34,19 @@ class Yambda(PublicDataset):
       dataset recorded at second precision.
 
     ``variant`` selects the release size: ``"50m"`` (the default), ``"500m"`` or
-    ``"5b"``, named for roughly that many interactions. Only the default fits in
-    memory as a DataFrame on an ordinary machine; the other two are one and two
-    orders of magnitude past it. Unlike OTTO and Music4All-Onion this adapter has
-    no sampling or windowing argument to bring a larger release back down, so
-    reaching for ``"500m"`` or ``"5b"`` means providing the memory to hold it.
-    Each variant is cached under its own filename, so switching between them
-    re-reads rather than reusing the previous one's rows.
+    ``"5b"``, named for roughly that many interactions. None of them builds whole
+    on an ordinary machine: even ``"50m"`` is 46.5M listens, which exhausts a
+    16 GB machine. ``user_sample`` keeps a deterministic fraction of users,
+    chosen by hashing the user id::
+
+        Yambda(user_sample=0.2)
+
+    Sample users rather than rows, for the same reason OTTO samples sessions:
+    dropping random events would destroy the adjacency inside a history, while
+    keeping or dropping whole users leaves every surviving history exactly as it
+    was. The larger two variants need a lower fraction again, or the memory to
+    hold them. Each variant is cached under its own filename, so switching
+    between them re-reads rather than reusing the previous one's rows.
 
     The published files are sorted by ``(uid, timestamp)``. Order within a tie is
     therefore whatever that sort produced, so the within-tie ascent diagnostic

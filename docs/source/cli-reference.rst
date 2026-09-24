@@ -101,10 +101,13 @@ Temporal Checkpoint
 ~~~~~~~~~~~~~~~~~~~
 
 ``temporal`` uses three equal target windows ending at the latest interaction.
-The default period is 30 days (720 hours) for Gowalla and 339 days (8,136 hours)
-otherwise, following the scale of the official Amazon Reviews 2023
-absolute-timestamp validation interval. Each split ranks a mixed
-catalog of previously available warm items and newly supported cold items.
+The default period is the one the dataset is registered with: 339 days
+(8,136 hours) for most datasets, following the scale of the official Amazon
+Reviews 2023 absolute-timestamp validation interval, and shorter for logs that
+cannot fit three such windows -- 30 days (720 hours) for Gowalla, Yambda and
+Music4All-Onion, 14 days (336 hours) for Retailrocket and 2 days (48 hours) for
+OTTO. Each split ranks a mixed catalog of previously available warm items and
+newly supported cold items.
 
 For period ``w`` and latest timestamp ``T``, the target windows are
 ``[T-3w, T-2w)``, ``[T-2w, T-w)``, and ``[T-w, T]``. Their corresponding

@@ -565,10 +565,6 @@ def _resolve_args(args):
     args.min_value_to_keep = spec.min_value_to_keep if args.min_value_to_keep is None else args.min_value_to_keep
     args.set_all_values_to = spec.set_all_values_to if args.set_all_values_to is None else args.set_all_values_to
     args.min_entity_text_words = spec.min_entity_text_words if args.min_entity_text_words is None else args.min_entity_text_words
-    args.temporal_period_hours = (
-        spec.temporal_period_hours if getattr(args, "temporal_period_hours", None) is None
-        else args.temporal_period_hours
-    )
     if args.split_mode in {"leave_last_out", "temporal"} and not getattr(spec.cls, "has_timestamps", True):
         raise ValueError(f"{args.dataset} has no interaction timestamps; use user_split or item_split")
     return args, spec
@@ -1850,8 +1846,10 @@ def build_recsys_checkpoint(
 ) -> Path:
     """Build a recommender-system split checkpoint and return its path.
 
-    ``temporal_period_hours=None`` uses 720 hours for Gowalla and 8136 for
-    other datasets. An explicit positive period overrides that default.
+    ``temporal_period_hours=None`` uses the period the dataset is registered
+    with: 336 hours for Retailrocket, 48 for OTTO, 720 for Gowalla, Yambda and
+    Music4All-Onion, and 8136 for every other dataset. An explicit positive
+    period overrides that default.
     """
     args = _build_args(
         multimodal_features=multimodal_features,

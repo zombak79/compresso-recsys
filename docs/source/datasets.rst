@@ -1736,55 +1736,18 @@ cannot build a temporal split here.
 Retailrocket
 ------------
 
-Use ``dataset="retailrocket"`` / ``RetailRocket`` for timestamped ecommerce
-behaviour: 2,664,312 views by 1,404,179 visitors over 234,838 items, collected
-across 4.5 months. Item properties are published as hashed values, so the
-adapter exposes item IDs only and there is no item text, integrated embedding
-set, or category metadata.
+**Loading:** ``dataset="retailrocket"`` reads ``events.csv`` from
+``data/retailrocket/``; this is a **manual download**, since Kaggle requires
+sign-in. It uses ``view`` events only, with repeats retained. There are item IDs
+only; item properties are hashed.
 
-The adapter keeps ``view`` events by default. Carts and transactions are
-discarded because the canonical interaction schema has no event-type column, and
-mapping all three onto the same row would make a purchase indistinguishable from
-a page view. Pass ``events`` (see :ref:`dataset-options`) when that trade is
-acceptable for your use.
-Repeated views of the same item are retained; they are 20.0% of the raw log and
-44.1% of it after the builder's support filters.
+**Terms:** Follow the licence on the `Kaggle dataset page
+<https://www.kaggle.com/datasets/retailrocket/ecommerce-dataset>`_; it is more
+restrictive than CC-BY.
 
-**This dataset requires a manual download.** Kaggle serves the archive to
-signed-in users only, so ``download()`` verifies the export rather than fetching
-it, and raises with instructions when it is absent. Sign in, download
-``ecommerce-dataset.zip``, and extract at least ``events.csv`` to
-``data/retailrocket/``.
-
-Builder defaults require user/item support 5/5, hold out 2,500 validation and
-5,000 test users, and impose no rating threshold or text-length minimum. Those
-support defaults matter more here than on most datasets: the median visitor has
-one view and only 8.1% of visitors reach the four events the leave-last-out
-protocol needs. On the ordered paths -- leave-last-out and temporal, which retain repeat views
--- 5/5 leaves 693,382 events over 60,112 visitors and 34,185 items, all of whom
-clear that protocol: 4.3% of visitors and 14.6% of items. The random paths
-deduplicate each visitor/item pair *before* the support filter, so the same 5/5
-bites far harder there and leaves 22,178 visitors over 17,803 items. Both
-figures appear in the table below; most of the catalog is gone by design rather
-than by accident, so report the surviving share alongside any metric.
-
-The temporal window is 336 hours (14 days) rather than the 8,136 used
-elsewhere. A temporal split needs three target windows inside the log, and
-three 339-day windows do not fit in 4.5 months -- at the usual default this
-dataset cannot build a temporal split at all. Fourteen days spends 42 days on
-evaluation and leaves roughly 95 for training. The evaluation is thin as a
-result -- 254 validation and 319 test visitors, both under the 1,000 the table
-flags with **†** -- because activity in any two-week tail window is a small
-slice of a 4.5-month log. Treat those two columns as indicative, or widen the
-window and trade training history for evaluation users.
-
-Adjacent events within a visitor share a timestamp 0.05% of the time, so the
-recorded order is genuine rather than an artifact of batch logging.
-
-Source: `Retailrocket recommender system dataset
-<https://www.kaggle.com/datasets/retailrocket/ecommerce-dataset>`_.
-Cache: ``data/retailrocket/events.csv``. Read the licence stated on the dataset
-page before redistributing anything derived from it.
+**Defaults:** 5/5 support removes most one-view visitors, so report the
+surviving share. The log spans 4.5 months, so the temporal window is 336 hours
+and its hold-outs are small (†).
 
 .. list-table:: Installed Retailrocket preprocessing and split defaults
    :header-rows: 1
@@ -1841,41 +1804,17 @@ page before redistributing anything derived from it.
 Music4All-Onion
 ---------------
 
-Use ``dataset="music4all-onion"`` / ``Music4AllOnion`` for Last.fm listening
-events: 252,984,396 records by 119,140 users over 56,512 tracks. The adapter
-downloads only ``userid_trackid_timestamp.tsv.bz2`` (2.2 GB); the release's 26
-audio, video, lyric and metadata feature sets are not fetched, so the catalog
-carries item IDs only.
+**Loading:** ``dataset="music4all-onion"`` downloads only the Last.fm listening
+events (2.2 GB); the release's 26 feature sets are not fetched, so there are
+item IDs only.
 
-Repeat listening is retained and is the point of this dataset: a replayed track
-is a separate event, so "predict the next listen" and "predict a listen of
-something new" are different questions here. Report metrics split by whether the
-target already occurs in the source history, and note that the model defaults
-exclude seen items, which makes a replayed target unreachable.
+**Terms:** `Zenodo record <https://zenodo.org/records/6609677>`_ under CC-BY 4.0;
+cite the CIKM 2022 paper.
 
-The full log does not fit in memory as a DataFrame. Pass ``start`` and ``end``
-to take a half-open time window::
-
-    Music4AllOnion(start="2014-01-01", end="2015-01-01")
-
-Window by time, not by sampling rows: dropping random events destroys the
-adjacency every sequential claim rests on. Each window gets its own parquet
-cache, so switching windows rebuilds rather than silently reusing the previous
-one's rows.
-
-Rows are stored newest-first within a user. Nothing re-sorts them, because the
-ordered split modes sort by timestamp themselves and the stored order is the
-only available evidence about how tied events were recorded.
-
-Builder defaults require user/item support 5/5, hold out 2,500 validation and
-5,000 test users, and register the calendar year ``start="2014-01-01"`` to
-``end="2015-01-01"`` -- 33.7M listens, because the full 253M exhausts memory on
-an ordinary machine. Three 339-day windows do not fit in one year, so the
-temporal window is 30 days. The table below is measured at that window, so the
-counts stop applying the moment you change it.
-
-Source: `Music4All-Onion <https://zenodo.org/records/6609677>`_ (CC-BY 4.0).
-Cache: ``data/music4all-onion/userid_trackid_timestamp.tsv.bz2``.
+**Defaults:** Registers the calendar-year window ``start="2014-01-01"`` to
+``end="2015-01-01"`` (33.7M of 253M listens; see :ref:`dataset-options`), with a
+720-hour temporal window. Replays are separate events, and seen items are
+excluded by default, so a replayed target is unreachable.
 
 .. list-table:: Installed Music4All-Onion preprocessing and split defaults
    :header-rows: 1
@@ -1932,50 +1871,17 @@ Cache: ``data/music4all-onion/userid_trackid_timestamp.tsv.bz2``.
 OTTO
 ----
 
-Use ``dataset="otto"`` / ``OTTO`` for ecommerce sessions with recorded
-boundaries: 12.9M sessions, 1.8M items, 216M events. Sessions are the rows, so
-``user_id`` holds a session id; there is no identity linking one session to the
-next, and no item metadata of any kind. This dataset supports sequential work
-and nothing else.
+**Loading:** ``dataset="otto"`` reads ``train.jsonl`` from ``data/otto/``; this
+is a **manual download**, via ``kaggle datasets download -d otto/recsys-dataset``.
+It uses ``clicks`` only. Rows are sessions, not users, and there is no item
+metadata.
 
-The adapter keeps ``clicks`` by default. Carts and orders are discarded for the
-same reason as elsewhere: the canonical schema has one event kind, and mapping
-all three onto one column would record a purchase and a page view as the same
-event. Pass ``events`` (see :ref:`dataset-options`) to keep more of them.
+**Terms:** Follow the `OTTO dataset repository's
+<https://github.com/otto-de/recsys-dataset>`_ licence and attribution.
 
-**This dataset requires a manual download.** Kaggle serves it to signed-in users
-only, so ``download()`` verifies the export and raises with instructions when it
-is absent. Run ``kaggle datasets download -d otto/recsys-dataset`` and place
-``train.jsonl`` (optionally gzipped, or under its ``otto-recsys-train`` name) in
-``data/otto/``.
-
-Parsing is a Python loop over nested JSON and is slow on the full file. The
-canonical columns are cached as parquet afterwards, so it happens once.
-
-The full log is around 194 million clicks and does not fit in memory as a
-DataFrame on an ordinary machine. ``session_sample`` keeps a deterministic
-fraction of sessions, chosen by hashing the session id::
-
-    OTTO(session_sample=0.1)
-
-Sample sessions, not rows and not a time window: dropping random events destroys
-the adjacency inside a session, and a window cuts sessions in half, while keeping
-or dropping whole sessions leaves every surviving history intact. Hashing rather
-than taking the first N lines matters as well, because the file is ordered by
-session id and the earliest ids are the longest-running sessions. Each sample
-gets its own parquet cache.
-
-The competition's ``test.jsonl`` is its held-out split and is not read; the
-adapter builds its own splits from ``train.jsonl``.
-
-Builder defaults require user/item support 5/5, hold out 10,000 validation and
-10,000 test users, and register ``session_sample=0.1`` -- 19.5M clicks over
-roughly 1.29 million sessions, because the full 194M does not fit in memory as a
-DataFrame. Sessions are short, so measure how many clear the four events
-``leave_last_out`` needs before reading anything into a metric.
-
-Source: `OTTO recsys dataset <https://github.com/otto-de/recsys-dataset>`_.
-Cache: ``data/otto/train.jsonl``.
+**Defaults:** Registers ``session_sample=0.1`` (19.5M of 194M clicks; see
+:ref:`dataset-options`). The log spans four weeks, so the temporal window is
+48 hours.
 
 .. list-table:: Installed OTTO preprocessing and split defaults
    :header-rows: 1
@@ -2032,52 +1938,17 @@ Cache: ``data/otto/train.jsonl``.
 Yambda
 ------
 
-Use ``dataset="yambda"`` / ``Yambda`` for Yandex Music listening events. The
-``variant`` argument selects ``"50m"`` (the default), ``"500m"`` or ``"5b"``;
-the adapter downloads ``flat/<variant>/listens.parquet`` from the Hugging Face
-repository, which is ungated.
+**Loading:** ``dataset="yambda"`` downloads the listens of one release variant
+(``"50m"`` by default) from Hugging Face. There are item IDs only, and
+``organic_only=True`` drops recommender-served events.
 
-The variants are named for roughly that many interactions, and none of them
-builds whole on an ordinary machine: even ``"50m"`` is 46.5M listens, which
-exhausted a 16 GB machine before ``user_sample`` existed. ``user_sample`` keeps
-a deterministic fraction of whole users and is what makes a default build
-possible here; the larger two need it set lower again, or the memory to hold
-them. Each variant caches under its own filename, so switching between them
-re-reads rather than reusing the previous one's rows.
+**Terms:** `Yambda on Hugging Face <https://huggingface.co/datasets/yandex/yambda>`_
+under Apache 2.0.
 
-Every row carries ``is_organic``, saying whether the user started the event or a
-recommender served it. ``organic_only=True`` keeps the former. No other dataset
-here records that distinction, so this is the one place where exposure bias can
-be measured rather than named as a caveat.
-
-Two properties of its timestamps matter:
-
-* **They are seconds since the start of the log, not since 1970.** Values around
-  2.6e7 would parse as January 1970 without raising, so nothing converts them
-  and the builder's magnitude normalisation leaves numbers this small alone.
-* **They are rounded to five seconds**, which creates ties by construction. A
-  nonzero tie rate here says nothing about logging quality, and because the
-  published files are sorted by ``(uid, timestamp)``, within-tie ordering
-  reflects that sort rather than the source data.
-
-Likes, dislikes, unlikes, undislikes and audio embeddings ship alongside; this
-adapter reads listens only.
-
-Builder defaults require user/item support 5/5 and register ``user_sample=0.2``
--- roughly 9.3M of the 46.5M listens in the smallest variant, because the
-release ships nothing smaller and the whole file exhausts memory on an ordinary
-machine. ``user_sample`` keeps a deterministic fraction of whole users, chosen
-by hashing the id.
-
-This dataset has few users with very long histories: the sample measures 1,800
-users over 149,971 items, around 1,300 interactions each. The hold-outs are
-therefore 200 validation and 400 test users, hundreds where every other dataset
-affords thousands. Both fall below the 1,000-user mark the tables flag with
-**†**, and that is the shape of the data rather than a mistake. The log runs
-7,222 hours, so the temporal window is 30 days.
-
-Source: `Yambda <https://huggingface.co/datasets/yandex/yambda>`_ (Apache 2.0).
-Cache: ``data/yambda/listens-<variant>.parquet``.
+**Defaults:** Registers ``user_sample=0.2`` (about 9.3M of 46.5M listens; see
+:ref:`dataset-options`), with a 720-hour temporal window. Timestamps are
+relative to the log start and rounded to 5 s, so ties are expected. Only about
+1,800 users with long histories remain, so hold-outs are 200/400 (†).
 
 .. list-table:: Installed Yambda preprocessing and split defaults
    :header-rows: 1
