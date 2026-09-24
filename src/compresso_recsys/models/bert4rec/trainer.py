@@ -249,8 +249,9 @@ class Bert4RecTrainer(BaseSequentialRecommender):
         samples = self._training_windows(sequences)
         if not samples:
             raise ValueError(
-                "no history has an item to mask, so there is no Cloze example "
-                "to learn from"
+                "no history has at least two interactions -- one to mask and "
+                "one to predict it from -- so there is no Cloze example to "
+                "learn from"
             )
 
         n_samples = len(samples)
@@ -354,14 +355,21 @@ class Bert4RecTrainer(BaseSequentialRecommender):
         last-item-masked sample, the paper's fine-tuning for the actual
         prediction task -- one per window, as ``mask_last`` does.
 
-        Empty histories are dropped: there is nothing to mask in one.
+        Histories shorter than two interactions are dropped. An empty one has
+        nothing to mask, and a single one has nothing to mask it *from*: every
+        such sample would be a lone ``[mask]`` at position 0, the same input
+        whatever its label, so all it could teach is a popularity prior. The
+        last-item branch below drops the same case for the same reason.
         """
         width = self.cfg.max_history_length
         step = max(1, int(self.cfg.sliding_window_step * width))
         samples: list[tuple[np.ndarray, bool]] = []
         for row in range(sequences.n_rows):
             history = np.asarray(sequences.row(row), dtype=np.int64)
-            if history.size == 0:
+            # Sliding windows over a history of two or more are all at least
+            # that long -- the oldest is pinned to the start, not cut short --
+            # so filtering the history filters every window it yields.
+            if history.size < 2:
                 continue
             windows = _sliding_windows(history, width, step)
             for _ in range(self.cfg.duplication_factor):
@@ -389,11 +397,9 @@ class Bert4RecTrainer(BaseSequentialRecommender):
                 # Masking the last item of a window with only one position
                 # leaves no context at all, so the model would be asked to
                 # predict an item from nothing. The reference asserts the
-                # position is non-zero rather than handling it; dropping the
-                # sample is the same requirement without the crash.
-                samples.extend(
-                    (window, True) for window in windows if window.size >= 2
-                )
+                # position is non-zero rather than handling it; the length
+                # filter above is the same requirement without the crash.
+                samples.extend((window, True) for window in windows)
         return samples
 
     def _cloze_batch(
@@ -415,7 +421,8 @@ class Bert4RecTrainer(BaseSequentialRecommender):
         ones, so ``tokens == mask`` finds fewer positions than there are labels.
 
         Positions are chosen per §3.6: ``round(len * rho)`` of them, at least
-        one, capped at ``max_predictions``, sampled without replacement. The
+        one, capped at ``max_predictions`` and at ``len - 1`` so that some
+        context always survives, sampled without replacement. The
         reference is Python 2, where ``round`` goes half away from zero rather
         than to even, but no published rho puts ``len * rho`` on a half-integer,
         so the two agree everywhere it has been run. A
@@ -423,10 +430,18 @@ class Bert4RecTrainer(BaseSequentialRecommender):
         ``mask_token_probability``; the reference's default of 1.0 means it
         always does, and the remainder splits evenly between keeping the item
         and drawing a random one.
+
+        ``unk_dropout`` then replaces a fraction of the positions *not* chosen
+        -- the context -- with ``unk``. Chosen positions are exempt so no label
+        is lost, and padding is exempt so ``unk`` and ``pad`` stay distinct. At
+        a rate of zero no random number is drawn, so the batch is exactly the
+        one a config without the field would have produced from the same seed.
         """
         assert self.batcher is not None
         tokenizer = self.batcher.tokenizer
         mask_id = tokenizer.token_id("mask")
+        unk_id = getattr(tokenizer, "unk_id", None)
+        unk_dropout = self.cfg.unk_dropout if unk_id is not None else 0.0
         n_reserved = tokenizer.n_reserved
         n_items = tokenizer.n_items
 
@@ -446,15 +461,26 @@ class Bert4RecTrainer(BaseSequentialRecommender):
             if force_last:
                 chosen = np.array([length - 1], dtype=np.int64)
             else:
+                # The len - 1 cap keeps one position of context: a fully masked
+                # window is the same input whatever its items, so its labels
+                # could only be learned as a popularity prior. It binds only at
+                # a rho high enough to round up to the whole window -- 1.0, or
+                # >= 0.75 on a window of two.
                 count = min(
                     self.cfg.max_predictions,
                     max(1, round(length * self.cfg.mask_proportion)),
+                    length - 1,
                 )
                 chosen = rng.choice(length, size=count, replace=False)
                 chosen.sort()
 
             masked[row, chosen] = True
             labels.append(encoded[chosen])
+
+            if unk_dropout > 0.0:
+                context = ~masked[row, :length]
+                replaced = context & (rng.random(length) < unk_dropout)
+                tokens[row, :length][replaced] = unk_id
 
             if force_last or self.cfg.mask_token_probability >= 1.0:
                 tokens[row, chosen] = mask_id

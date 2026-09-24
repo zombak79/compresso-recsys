@@ -139,6 +139,8 @@ def _model(**overrides):
         (dict(mask_token_probability=1.1), r"mask_token_probability must be in \[0, 1\]"),
         (dict(duplication_factor=0), "duplication_factor must be >= 1"),
         (dict(sliding_window_step=0.0), r"sliding_window_step .* must be in \(0, 1\]"),
+        (dict(unk_dropout=1.0), r"unk_dropout must be in \[0, 1\)"),
+        (dict(unk_dropout=-0.1), r"unk_dropout must be in \[0, 1\)"),
         (dict(batch_size=0), "batch_size must be >= 1"),
         (dict(epochs=0), "epochs must be >= 1"),
         (dict(lr=0.0), "lr must be > 0"),
@@ -195,6 +197,9 @@ def test_the_defaults_are_the_published_settings():
     assert cfg.duplication_factor == 10
     assert cfg.sliding_window_step == 0.5
     assert cfg.last_item_samples is True
+    # No unk corruption: the paper has none, and SASRec defaults it off for the
+    # same parity reason.
+    assert cfg.unk_dropout == 0.0
 
     # Optimization: §4.3's batch of 256 and lr 1e-4, which every script passes
     # too; decoupled weight decay 0.01; gradients clipped at l2 norm 5; the
@@ -467,14 +472,23 @@ def test_the_last_item_samples_are_the_windows_themselves():
     assert tails == [window.tolist() for window in expected]
 
 
-def test_a_single_item_history_yields_no_last_item_sample():
+def test_a_single_item_history_yields_no_sample_at_all():
     """Masking the only position leaves no context to predict it from.
 
-    The reference asserts the position is non-zero rather than handling it;
-    dropping the sample is the same requirement without the crash.
+    For the last-item sample the reference asserts the position is non-zero
+    rather than handling it. For the random Cloze samples it has no such floor,
+    but a lone [mask] at position 0 is the same input for every such history, so
+    duplication_factor copies of it would teach only a popularity prior.
     """
-    samples = _trainer(_config())._training_windows(_seqs([[0], [1, 2, 3]]))
-    assert [len(window) for window, force_last in samples if force_last] == [3]
+    trainer = _trainer(_config(duplication_factor=3))
+    samples = trainer._training_windows(_seqs([[0], [1, 2, 3]]))
+    assert all(window.tolist() == [1, 2, 3] for window, _ in samples)
+    assert len(samples) == 3 + 1
+
+
+def test_fitting_only_single_item_histories_is_refused():
+    with pytest.raises(ValueError, match="at least two interactions"):
+        Bert4RecTrainer(_config()).fit(_seqs([[0], [3], [5]]))
 
 
 def test_an_empty_history_contributes_nothing():
@@ -503,6 +517,22 @@ def test_at_least_one_position_is_always_masked():
     assert labels.numel() == 1
 
 
+def test_every_sample_keeps_one_position_of_context():
+    """rho high enough to round up to the whole window still leaves one item.
+
+    A fully masked window is the same input whatever its items, so rho 1.0
+    means "all but one", and a window of two keeps one at rho 0.75.
+    """
+    for rho, length in [(1.0, 8), (1.0, 2), (0.75, 2)]:
+        trainer = _trainer(_config(mask_proportion=rho, max_predictions=100))
+        for seed in range(5):
+            tokens, _, masked, labels = _masked_batch(
+                trainer, [list(range(length))], seed=seed
+            )
+            assert int(masked.sum()) == labels.numel() == length - 1
+            assert int((tokens >= N_RESERVED).sum()) == 1
+
+
 def test_the_masked_count_is_capped_by_max_predictions():
     """The reference's max_predictions_per_seq binds before rho on a long row."""
     trainer = _trainer(
@@ -525,7 +555,8 @@ def test_below_one_some_chosen_positions_keep_or_replace_the_item():
     )
     tokens, _, _, labels = _masked_batch(trainer, [list(range(8))] * 8, seed=3)
     assert int((tokens == MASK_ID).sum()) == 0
-    assert labels.numel() == 64
+    # rho 1.0 is "all but one": seven chosen per row of eight.
+    assert labels.numel() == 56
 
 
 def test_a_random_replacement_is_never_a_reserved_id():
@@ -543,14 +574,76 @@ def test_the_masked_index_covers_positions_that_kept_their_item():
     """Regression: the loss is taken at every *chosen* position, and below a
     mask_token_probability of 1.0 most of those no longer hold [MASK]. The
     index is what tells the model where to read; recovering it from the token
-    would find nothing here while the labels still number 64.
+    would find nothing here while the labels still number 56.
     """
     trainer = _trainer(
         _config(mask_proportion=1.0, max_predictions=100, mask_token_probability=0.0)
     )
     tokens, _, masked, labels = _masked_batch(trainer, [list(range(8))] * 8, seed=3)
     assert int((tokens == MASK_ID).sum()) == 0
-    assert int(masked.sum()) == labels.numel() == 64
+    assert int(masked.sum()) == labels.numel() == 56
+
+
+UNK_ID = SPECIAL_TOKENS["unk"]
+
+
+def test_unk_is_never_inserted_at_the_default_rate():
+    """Paper parity: the reference has no unk corruption."""
+    trainer = _trainer(_config(mask_token_probability=0.5))
+    for seed in range(5):
+        tokens, _, _, _ = _masked_batch(trainer, [list(range(6))] * 8, seed=seed)
+        assert int((tokens == UNK_ID).sum()) == 0
+
+
+def test_unk_dropout_replaces_context_and_nothing_else():
+    """Chosen positions keep their [mask] and label; padding stays padding.
+
+    Otherwise a label would be lost to unk, or the model would learn that unk
+    and pad mean the same thing.
+    """
+    trainer = _trainer(_config(unk_dropout=0.5, mask_proportion=0.5))
+    rows = [list(range(6)), [1, 2, 3]] * 16
+    tokens, padding, masked, labels = _masked_batch(trainer, rows, seed=0)
+    unk = tokens == UNK_ID
+    assert int(unk.sum()) > 0
+    assert not bool((unk & masked).any())
+    assert not bool((unk & ~padding).any())
+    assert bool((tokens[masked] == MASK_ID).all())
+    assert bool((labels >= N_RESERVED).all())
+    context = padding & ~masked
+    rate = float(unk.sum()) / float(context.sum())
+    assert 0.3 < rate < 0.7
+
+
+def test_unk_dropout_does_not_move_the_chosen_positions():
+    """The positions are drawn before the corruption, so the first row's choice
+    is the same at any rate -- the corruption is layered on, not re-drawn."""
+    rows = [list(range(6))]
+    plain = _masked_batch(_trainer(_config(mask_proportion=0.5)), rows, seed=4)
+    noisy = _masked_batch(
+        _trainer(_config(mask_proportion=0.5, unk_dropout=0.9)), rows, seed=4
+    )
+    assert torch.equal(plain[2], noisy[2])
+    assert torch.equal(plain[3], noisy[3])
+    differs = plain[0] != noisy[0]
+    assert bool((noisy[0][differs] == UNK_ID).all())
+
+
+def test_unk_dropout_is_ignored_without_an_unk_token():
+    tokenizer = ItemTokenizer(N_ITEMS, special_tokens={"pad": 0, "mask": 1})
+    config = _config(unk_dropout=0.9)
+    trainer = _trainer(
+        config, SequenceBatcher(tokenizer, max_length=config.max_history_length)
+    )
+    tokens, padding, masked, _ = _masked_batch(trainer, [list(range(6))] * 4)
+    assert bool((tokens[padding & ~masked] >= tokenizer.n_reserved).all())
+
+
+def test_training_runs_with_unk_dropout():
+    trainer = Bert4RecTrainer(_config(unk_dropout=0.3, epochs=2)).fit(
+        _seqs(_cycle_rows())
+    )
+    assert all(np.isfinite(record["loss"]) for record in trainer.history)
 
 
 def test_training_runs_below_a_mask_token_probability_of_one():

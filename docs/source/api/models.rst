@@ -1841,7 +1841,10 @@ unstated. Each field's docstring says which of the two it came from.
 
 **Masking is a rate, not a fixed pattern.** ``mask_proportion`` is the paper's
 rho: ``round(len * rho)`` positions of each sequence are chosen without
-replacement, at least one and at most ``max_predictions``. The positions are
+replacement, at least one and at most ``max_predictions`` -- and never all of
+them, so a rho of 1.0 means "all but one". A fully masked sequence is the same
+input whatever its items and could teach only a popularity prior, which is also
+why a history of a single interaction yields no sample at all. The positions are
 redrawn every epoch rather than fixed once. The reference materializes
 ``dupe_factor`` maskings of every sequence to a file before training and reads
 that file each epoch; drawing them per epoch gives the same distribution over a
@@ -1855,6 +1858,14 @@ token ``[mask]``" -- with no mention of random or kept tokens. Below 1.0 the
 remainder splits evenly between keeping the original item and drawing a random
 one, as the reference's ``create_masked_lm_predictions`` does. A random draw is
 never a reserved id.
+
+**``unk_dropout`` is what trains the unknown-item embedding here too.** Training
+sequences define the catalog, so no training input is ever out of catalog and
+``unk`` would otherwise be learned only as a wrong answer in the tied softmax.
+It replaces that fraction of the unchosen, unpadded positions with ``unk``;
+chosen positions keep their label. The default is 0.0 for paper parity, as in
+SASRec -- raise it when the evaluation split produces out-of-catalog history,
+as a late ``temporal`` stage does.
 
 **One history becomes many samples.** ``duplication_factor`` repeats every
 window that many times per fit, which is how the Cloze objective earns the

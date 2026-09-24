@@ -106,6 +106,29 @@ class Bert4RecConfig:
     -- so one per sliding window, not one per user -- and the default is
     ``True``.
 
+    Every Cloze sample keeps at least one position unmasked, so the count is
+    also capped at ``len - 1`` and a ``mask_proportion`` of 1.0 means "all but
+    one". A history of a single interaction therefore yields no sample at all:
+    masking its only position would leave the input identical for every such
+    history, teaching nothing but a popularity prior ``duplication_factor``
+    times over. The reference's ``create_masked_lm_predictions`` has no such
+    floor and would mask the lone position; this one is the package's.
+
+    ``unk_dropout`` replaces that fraction of the *context* positions -- real
+    positions not chosen for prediction -- with the tokenizer's ``unk`` token,
+    teaching the model to read a history containing an item it cannot
+    identify. It defaults to zero for paper parity. Set it above zero when
+    otherwise ``unk`` would never be trained: the training vocabulary *is* the
+    training window, so an out-of-catalog item cannot occur until evaluation.
+    Until then the ``unk`` row is trained only as a wrong answer in the tied
+    softmax, so it reaches a temporal test history as a vector pushed away from
+    every masked state rather than as a learned "unknown item". The right rate
+    tracks the out-of-catalog share the split will actually produce -- near zero
+    under ``leave_last_out``, far higher on a late ``temporal`` stage. Chosen
+    positions are never replaced, so no label is lost and ``unk`` never stands
+    in for ``[mask]``. It is ignored when the tokenizer has no ``unk`` to
+    substitute.
+
     **Optimization.** The paper's §4.3 settings, and the scripts agree with it
     throughout: ``lr`` 1e-4 and ``batch_size`` 256 are both §4.3's *and* what
     all four scripts pass, so there is nothing to adjudicate. (``run.py``
@@ -155,6 +178,7 @@ class Bert4RecConfig:
     duplication_factor: int = 10
     sliding_window_step: float = 0.5
     last_item_samples: bool = True
+    unk_dropout: float = 0.0
 
     # -- optimization -------------------------------------------------------
     batch_size: int = 256
@@ -226,6 +250,10 @@ class Bert4RecConfig:
             raise ValueError(
                 "sliding_window_step is a fraction of max_history_length and "
                 f"must be in (0, 1], got {self.sliding_window_step}"
+            )
+        if not 0.0 <= self.unk_dropout < 1.0:
+            raise ValueError(
+                f"unk_dropout must be in [0, 1), got {self.unk_dropout}"
             )
         if self.batch_size < 1:
             raise ValueError(f"batch_size must be >= 1, got {self.batch_size}")
