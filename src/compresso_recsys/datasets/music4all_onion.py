@@ -14,10 +14,10 @@ RECORD = "https://zenodo.org/records/6609677"
 def window_version(start: str | None, end: str | None) -> int:
     """Cache signature for a time window.
 
-    :func:`cached_interactions` keys its parquet on the source file alone, so
-    two windows would otherwise share one cache and the second would silently
-    read the first one's rows. Folding the window into ``version`` costs a
-    rebuild when the window changes and never returns the wrong events.
+    :func:`cached_interactions` keys its parquet on the source file and this
+    version, so two windows would otherwise share one cache and the second
+    would silently read the first one's rows. Folding the window into
+    ``version`` gives each window its own cache file.
     """
     return int(hashlib.sha256(f"1|{start}|{end}".encode()).hexdigest()[:8], 16)
 
@@ -77,6 +77,11 @@ class Music4AllOnion(PublicDataset):
         # the events on their boundary.
         self._start_seconds = None if start is None else pd.Timestamp(start, tz="UTC").timestamp()
         self._end_seconds = None if end is None else pd.Timestamp(end, tz="UTC").timestamp()
+        # Checked here, before a full parse of the 2.2 GB source that would
+        # otherwise end in an empty log and an unrelated error from the split.
+        if (self._start_seconds is not None and self._end_seconds is not None
+                and self._start_seconds >= self._end_seconds):
+            raise ValueError(f"start must be before end, got start={start!r}, end={end!r}")
 
     def download(self) -> None:
         download(self.url, self.root / self.events_file, show_progress=self.show_progress)

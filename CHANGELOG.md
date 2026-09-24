@@ -28,6 +28,14 @@
 - Filtering interactions to the metadata catalog selects rows before copying,
   rather than copying the whole frame first.
 
+- Canonical interaction caches are stored per selection: a non-default cache
+  version is written to `<source>.v<hex>.interactions.parquet` instead of
+  overwriting the single cache beside the source. Concurrent builds with
+  different adapter options can no longer leave one selection's rows under
+  another's marker, and switching back to an earlier selection reuses its
+  cache. Version 1 keeps the original name, and an existing cache whose marker
+  matches is renamed rather than rebuilt.
+
 ## [0.3.6] — 2026-09-22
 
 ### Added

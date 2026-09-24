@@ -685,3 +685,64 @@ def test_the_cache_key_follows_the_event_selection_not_the_current_default():
     for events in (("clicks", "orders"), ("clicks", "carts"), ("orders",)):
         assert OTTO(data_dir="data", session_sample=0.1,
                     events=events)._cache_version() != 4219242697
+
+
+def test_passing_the_registered_value_yourself_is_not_warned_about(capsys):
+    # Deliberate even when it matches the default: the key was set, so the
+    # caller already knows which subset they are reading.
+    _resolve_args(_build_args(dataset="otto", dataset_options={"session_sample": 0.1}))
+    assert "registered subset" not in capsys.readouterr().out
+
+
+def test_setting_one_bound_still_reports_the_other(capsys):
+    _resolve_args(_build_args(dataset="music4all-onion", dataset_options={"end": "2014-06-01"}))
+    notice = capsys.readouterr().out
+    assert "start='2014-01-01'" in notice
+    assert "--dataset_option start=" in notice
+    assert "--dataset_option end=" not in notice
+
+
+@pytest.mark.parametrize("start, end", [("2015-01-01", "2014-01-01"), ("2014-01-01", "2014-01-01")])
+def test_music4all_rejects_an_empty_or_inverted_window(tmp_path, start, end):
+    with pytest.raises(ValueError, match="start must be before end"):
+        Music4AllOnion(data_dir=tmp_path, start=start, end=end, show_progress=False)
+
+
+def test_each_selection_keeps_its_own_cache_file(tmp_path):
+    source = tmp_path / "events.src"
+    source.write_text("x")
+    calls = []
+
+    def frames(tag):
+        def produce():
+            calls.append(tag)
+            yield pd.DataFrame({"user_id": [tag], "item_id": ["i"], "value": [1.0], "timestamp": [0.0]})
+        return produce
+
+    assert _download.cached_interactions(source, frames("a"), version=7).user_id.tolist() == ["a"]
+    assert _download.cached_interactions(source, frames("b"), version=8).user_id.tolist() == ["b"]
+    # Switching back is a hit on the first selection's own file, not a re-parse,
+    # and the second selection did not overwrite it.
+    assert _download.cached_interactions(source, frames("a"), version=7).user_id.tolist() == ["a"]
+    assert calls == ["a", "b"]
+    # version=1 keeps the original name, so caches from before versioned files still hit.
+    _download.cached_interactions(source, frames("c"), version=1)
+    assert (tmp_path / "events.src.interactions.parquet").is_file()
+
+
+def test_a_cache_under_the_old_unsuffixed_name_is_adopted_not_rebuilt(tmp_path):
+    source = tmp_path / "events.src"
+    source.write_text("x")
+    stat = source.stat()
+    legacy = tmp_path / "events.src.interactions.parquet"
+    pd.DataFrame({"user_id": ["old"], "item_id": ["i"], "value": [1.0], "timestamp": [0.0]}).to_parquet(legacy)
+    legacy.with_suffix(".json").write_text(json.dumps(
+        {"version": 42, "size": stat.st_size, "mtime_ns": stat.st_mtime_ns}))
+
+    def fail():
+        raise AssertionError("a matching legacy cache must not be re-parsed")
+        yield
+
+    assert _download.cached_interactions(source, fail, version=42).user_id.tolist() == ["old"]
+    assert not legacy.exists()
+    assert (tmp_path / "events.src.v2a.interactions.parquet").is_file()

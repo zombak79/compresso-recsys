@@ -119,8 +119,9 @@ class RetailRocket(PublicDataset):
     def _cache_version(self) -> int:
         """Cache key for the event selection.
 
-        The cache is keyed on the source file alone, so a different selection
-        has to change the version or it would read the previous one's parquet.
+        The cache is keyed on the source file and this version, so a different
+        selection has to change the version or it would read the previous one's
+        parquet.
         Only :data:`_VERSION_1_EVENTS` keeps the original key, so adding this
         option did not invalidate caches built before it existed, and changing
         the default later still rebuilds rather than reusing them.

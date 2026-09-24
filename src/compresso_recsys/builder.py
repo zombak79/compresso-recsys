@@ -362,16 +362,16 @@ _FULL_SOURCE_OPTION = {
 }
 
 
-def _registered_subset_notice(spec, dataset: str, options: dict[str, Any]) -> str | None:
+def _registered_subset_notice(spec, dataset: str, caller_options: dict[str, Any]) -> str | None:
     """Say so when a build silently reads a registered subset of its source.
 
-    Only the registered defaults still in force are reported: an option the
-    caller set themselves is a deliberate choice and needs no warning. Without
-    this a bare build of OTTO looks exactly like a full one and quietly
-    measures a tenth of the log.
+    Only the registered defaults the caller did not set are reported: an option
+    the caller set themselves is a deliberate choice and needs no warning, even
+    when its value equals the registered one. Without this a bare build of OTTO
+    looks exactly like a full one and quietly measures a tenth of the log.
     """
     registered = getattr(spec, "dataset_options", None) or {}
-    in_force = {key: value for key, value in registered.items() if options.get(key) == value}
+    in_force = {key: value for key, value in registered.items() if key not in caller_options}
     if not in_force:
         return None
     settings = ", ".join(f"{key}={value!r}" for key, value in sorted(in_force.items()))
@@ -532,8 +532,9 @@ def _resolve_args(args):
     args.temporal_period_hours = _temporal_period_hours(args.dataset, args.temporal_period_hours)
     # Normalised here rather than in _build_args because the console script
     # builds its namespace straight from argparse and never calls that.
+    caller_options = _resolve_dataset_options(spec, getattr(args, "dataset_options", None))
     args.dataset_options = _dataset_options_for(spec, args)
-    notice = _registered_subset_notice(spec, args.dataset, args.dataset_options)
+    notice = _registered_subset_notice(spec, args.dataset, caller_options)
     if notice is not None and getattr(args, "show_progress", True):
         print(f"[compresso-recsys] {notice}", flush=True)
     if args.split_mode == "official" and args.dataset != "dbbook":

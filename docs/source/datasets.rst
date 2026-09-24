@@ -202,7 +202,8 @@ Ask for the full source only when you have the memory for it, and be aware the
 measured tables then no longer describe what you built.
 
 Changing an option that selects rows also changes the adapter's cached parquet
-key, so a new selection rebuilds the cache instead of reusing the previous one.
+key, and each selection is cached in its own file, so a new selection builds its
+own cache and switching back reuses the earlier one.
 Amazon's category is not an adapter option; it has its own ``amazon_category``
 argument, described under :ref:`dataset-amazon2023`.
 

@@ -202,8 +202,8 @@ class OTTO(PublicDataset):
         """Cache key for the options that change which rows are kept.
 
         The sample and the event filter both select rows, and the cache is keyed
-        on the source file alone, so they have to enter the key or a second run
-        would silently read the first one's parquet. Only options that *differ*
+        on the source file and this version, so they have to enter the key or a
+        second run would silently read the first one's parquet. Only options that *differ*
         from their default are folded in, which means adding a new option never
         invalidates a cache built before that option existed -- worth the small
         asymmetry on a source that takes a Python JSON loop to re-parse.

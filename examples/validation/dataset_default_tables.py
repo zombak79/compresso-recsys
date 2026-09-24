@@ -167,9 +167,12 @@ def measure_dataset(dataset, cache_roots, *, download_root=None, features=False,
     if root is not None:
         record["sources"] = [fingerprint(root / path) for path in SOURCES[dataset]]
         # Canonical caches may be reused by the adapter, so fingerprint them too.
-        record["interaction_caches"] = [fingerprint(path) for source in SOURCES[dataset]
-                                       for suffix in (".interactions.parquet", ".interactions.json")
-                                       if (path := root / (source + suffix)).is_file()]
+        # Versioned caches sit beside the source as <name>.v<hex>.interactions.*.
+        record["interaction_caches"] = [
+            fingerprint(path) for source in SOURCES[dataset]
+            for path in sorted((root / source).parent.glob(Path(source).name + "*.interactions.*"))
+            if path.suffix in {".parquet", ".json"} and path.is_file()
+        ]
     for mode in SPLITS:
         reason = unsupported(dataset, mode)
         if reason:
