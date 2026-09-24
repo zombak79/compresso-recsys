@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Checkpoint CLI Reference &mdash; Compresso Recsys 0.3.6 documentation</title>
+  <title>Checkpoint CLI Reference &mdash; Compresso Recsys 0.3.7 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=ad4f125e"></script>
+      <script src="_static/documentation_options.js?v=16b39043"></script>
       <script src="_static/doctools.js?v=fd6eb6e6"></script>
       <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -88,6 +88,7 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="datasets.html">Datasets</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="datasets.html#reading-the-default-tables">Reading the default tables</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#adapter-options">Adapter options</a></li>
 <li class="toctree-l2"><a class="reference internal" href="datasets.html#movielens-1m">MovieLens 1M</a></li>
 <li class="toctree-l2"><a class="reference internal" href="datasets.html#movielens-20m">MovieLens 20M</a></li>
 <li class="toctree-l2"><a class="reference internal" href="datasets.html#goodbooks-10k">Goodbooks-10k</a></li>
@@ -96,6 +97,10 @@
 <li class="toctree-l2"><a class="reference internal" href="datasets.html#netflix-prize">Netflix Prize</a></li>
 <li class="toctree-l2"><a class="reference internal" href="datasets.html#msd-taste-profile">MSD Taste Profile</a></li>
 <li class="toctree-l2"><a class="reference internal" href="datasets.html#gowalla">Gowalla</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#retailrocket">Retailrocket</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#music4all-onion">Music4All-Onion</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#otto">OTTO</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#yambda">Yambda</a></li>
 <li class="toctree-l2"><a class="reference internal" href="datasets.html#dbbook">DBbook</a></li>
 <li class="toctree-l2"><a class="reference internal" href="datasets.html#last-fm-2k">Last.fm-2K</a></li>
 <li class="toctree-l2"><a class="reference internal" href="datasets.html#using-item-embeddings">Using item embeddings</a></li>
@@ -215,6 +220,8 @@
 <li class="toctree-l3"><a class="reference internal" href="citing.html#netflix-prize">Netflix Prize</a></li>
 <li class="toctree-l3"><a class="reference internal" href="citing.html#msd-taste-profile">MSD / Taste Profile</a></li>
 <li class="toctree-l3"><a class="reference internal" href="citing.html#gowalla">Gowalla</a></li>
+<li class="toctree-l3"><a class="reference internal" href="citing.html#retailrocket">Retailrocket</a></li>
+<li class="toctree-l3"><a class="reference internal" href="citing.html#music4all-onion-otto-and-yambda">Music4All-Onion, OTTO and Yambda</a></li>
 <li class="toctree-l3"><a class="reference internal" href="citing.html#additional-movie-and-book-descriptions">Additional Movie and Book Descriptions</a></li>
 </ul>
 </li>
@@ -538,10 +545,13 @@ user’s test target.</p>
 <section id="temporal-checkpoint">
 <h3>Temporal Checkpoint<a class="headerlink" href="#temporal-checkpoint" title="Link to this heading"></a></h3>
 <p><code class="docutils literal notranslate"><span class="pre">temporal</span></code> uses three equal target windows ending at the latest interaction.
-The default period is 30 days (720 hours) for Gowalla and 339 days (8,136 hours)
-otherwise, following the scale of the official Amazon Reviews 2023
-absolute-timestamp validation interval. Each split ranks a mixed
-catalog of previously available warm items and newly supported cold items.</p>
+The default period is the one the dataset is registered with: 339 days
+(8,136 hours) for most datasets, following the scale of the official Amazon
+Reviews 2023 absolute-timestamp validation interval, and shorter for logs that
+cannot fit three such windows – 30 days (720 hours) for Gowalla, Yambda and
+Music4All-Onion, 14 days (336 hours) for Retailrocket and 2 days (48 hours) for
+OTTO. Each split ranks a mixed catalog of previously available warm items and
+newly supported cold items.</p>
 <p>For period <code class="docutils literal notranslate"><span class="pre">w</span></code> and latest timestamp <code class="docutils literal notranslate"><span class="pre">T</span></code>, the target windows are
 <code class="docutils literal notranslate"><span class="pre">[T-3w,</span> <span class="pre">T-2w)</span></code>, <code class="docutils literal notranslate"><span class="pre">[T-2w,</span> <span class="pre">T-w)</span></code>, and <code class="docutils literal notranslate"><span class="pre">[T-w,</span> <span class="pre">T]</span></code>. Their corresponding
 sources contain every eligible interaction before the start of that target
@@ -653,7 +663,8 @@ that later evaluation population.</p>
 <td><p>required</p></td>
 <td><p>Dataset to build. Choices: <code class="docutils literal notranslate"><span class="pre">goodbooks</span></code>, <code class="docutils literal notranslate"><span class="pre">ml1m</span></code>, <code class="docutils literal notranslate"><span class="pre">ml20m</span></code>,
 <code class="docutils literal notranslate"><span class="pre">amazon2023</span></code>, <code class="docutils literal notranslate"><span class="pre">steam</span></code>, <code class="docutils literal notranslate"><span class="pre">netflix</span></code>, <code class="docutils literal notranslate"><span class="pre">taste-profile</span></code>, <code class="docutils literal notranslate"><span class="pre">gowalla</span></code>,
-<code class="docutils literal notranslate"><span class="pre">dbbook</span></code>, <code class="docutils literal notranslate"><span class="pre">lfm2k</span></code>.</p></td>
+<code class="docutils literal notranslate"><span class="pre">dbbook</span></code>, <code class="docutils literal notranslate"><span class="pre">lfm2k</span></code>, <code class="docutils literal notranslate"><span class="pre">retailrocket</span></code>, <code class="docutils literal notranslate"><span class="pre">music4all-onion</span></code>, <code class="docutils literal notranslate"><span class="pre">otto</span></code>,
+<code class="docutils literal notranslate"><span class="pre">yambda</span></code>.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--data_dir</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">data</span></code></p></td>
@@ -729,8 +740,13 @@ fold-in history the model sees.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--temporal_period_hours</span></code></p></td>
 <td><p>Dataset-specific</p></td>
-<td><p>Width of each temporal target window: <code class="docutils literal notranslate"><span class="pre">720</span></code> hours for Gowalla,
-<code class="docutils literal notranslate"><span class="pre">8136</span></code> (339 days) otherwise.</p></td>
+<td><p>Width of each temporal target window in hours. Defaults to the value the
+dataset is registered with. The split needs three windows to fit inside
+the log, so a value above a third of the available span fails rather
+than silently truncating, and the shorter logs are registered
+accordingly: <code class="docutils literal notranslate"><span class="pre">336</span></code> for Retailrocket (4.5 months), <code class="docutils literal notranslate"><span class="pre">48</span></code> for OTTO
+(4 weeks), <code class="docutils literal notranslate"><span class="pre">720</span></code> for Yambda, Music4All-Onion and Gowalla. Everything
+else uses <code class="docutils literal notranslate"><span class="pre">8136</span></code> (339 days).</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--min_source_items</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">1</span></code></p></td>
@@ -747,7 +763,14 @@ cold-item eval, these are cold items.</p></td>
 <td><p>Amazon Reviews 2023 category. Supports official names and aliases like
 <code class="docutils literal notranslate"><span class="pre">toys</span></code>, <code class="docutils literal notranslate"><span class="pre">electronics</span></code>, <code class="docutils literal notranslate"><span class="pre">clothing</span></code>.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--metadata_text_fields</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--dataset_option</span></code></p></td>
+<td><p>none</p></td>
+<td><p>Adapter-specific option as <code class="docutils literal notranslate"><span class="pre">KEY=VALUE</span></code>, repeatable. Values are parsed
+using the adapter’s annotations, so <code class="docutils literal notranslate"><span class="pre">session_sample=0.1</span></code> arrives as a
+float and <code class="docutils literal notranslate"><span class="pre">events=clicks,orders</span></code> as a tuple. An unknown name lists the
+options the chosen dataset accepts. See <a class="reference internal" href="datasets.html#dataset-options"><span class="std std-ref">Adapter options</span></a>.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--metadata_text_fields</span></code></p></td>
 <td><p>dataset-specific</p></td>
 <td><p>Metadata columns joined into canonical <code class="docutils literal notranslate"><span class="pre">entity_text</span></code>. Steam uses
 title, genres, tags, developer, and publisher by default.
@@ -757,23 +780,23 @@ paths such as <code class="docutils literal notranslate"><span class="pre">detai
 list replaces the default. Selecting raw <code class="docutils literal notranslate"><span class="pre">details</span></code> includes all keys,
 which may contain identifiers and popularity data.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--min_entity_text_words</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--min_entity_text_words</span></code></p></td>
 <td><p>dataset-specific</p></td>
 <td><p>Drop items whose constructed <code class="docutils literal notranslate"><span class="pre">entity_text</span></code> is shorter than this many
 words. Defaults to <code class="docutils literal notranslate"><span class="pre">30</span></code> for MovieLens/Goodbooks and <code class="docutils literal notranslate"><span class="pre">0</span></code> for
 Amazon/Steam/Netflix/Taste Profile/Gowalla/DBbook/Last.fm.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--include_image_urls</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--include_image_urls</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">False</span></code></p></td>
 <td><p>For Amazon, include <code class="docutils literal notranslate"><span class="pre">image_url</span></code> and <code class="docutils literal notranslate"><span class="pre">image_urls</span></code> columns in
 <code class="docutils literal notranslate"><span class="pre">entity_metadata</span></code> without adding them to <code class="docutils literal notranslate"><span class="pre">entity_text</span></code>.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--annotation_source</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--annotation_source</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">genres</span></code></p></td>
 <td><p>Optional tag source for clustering. Choices: <code class="docutils literal notranslate"><span class="pre">genres</span></code>,
 <code class="docutils literal notranslate"><span class="pre">ml20m_tags</span></code>, <code class="docutils literal notranslate"><span class="pre">goodbooks_tags</span></code>, <code class="docutils literal notranslate"><span class="pre">none</span></code>.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--annotation_min_count</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--annotation_min_count</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">100</span></code></p></td>
 <td><p>Minimum count threshold for tag annotations when using user-generated
 tags.</p></td>

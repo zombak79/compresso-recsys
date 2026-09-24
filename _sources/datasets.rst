@@ -44,6 +44,22 @@ for citations, :doc:`cli-reference` for parameters, and :doc:`examples` for code
      - Location coordinates
      - None integrated
      - Yes
+   * - :ref:`dataset-retailrocket`
+     - Item IDs only
+     - None integrated
+     - Yes, millisecond precision
+   * - :ref:`dataset-music4all-onion`
+     - Item IDs only
+     - None integrated
+     - Yes, second precision
+   * - :ref:`dataset-otto`
+     - Item IDs only
+     - None integrated
+     - Yes, millisecond precision
+   * - :ref:`dataset-yambda`
+     - Item IDs only
+     - None integrated
+     - Yes, 5-second bins, relative epoch
    * - :ref:`dataset-dbbook`
      - Book titles and DBpedia mappings; optional abstract/cover features
      - Text, image (SWAP)
@@ -71,6 +87,125 @@ Reading the default tables
 Defaults binarize retained feedback; measured does not mean paper-reproducing.
 See :ref:`dataset-default-table-details` for definitions, methodology, and
 the :download:`non-Amazon measurement archive <_static/dataset-default-measurements.json>`.
+
+.. _dataset-options:
+
+Adapter options
+---------------
+
+Some adapters take arguments that change which rows they read: a release
+variant, a sample fraction, a time window, an event-type filter. Pass them to
+the constructor directly, or to :func:`~compresso_recsys.build_recsys_checkpoint`
+as ``dataset_options``::
+
+    cr.build_recsys_checkpoint(dataset="yambda",
+                               dataset_options={"variant": "500m", "organic_only": True})
+    cr.build_recsys_checkpoint(dataset="otto", dataset_options={"session_sample": 0.1})
+
+From the command line, ``--dataset_option`` is repeatable and values are parsed
+using the adapter's own annotations, so ``0.1`` arrives as a float and a
+comma-separated list as a tuple::
+
+    compresso-recsys-build-checkpoint --dataset yambda \
+        --dataset_option variant=500m --dataset_option organic_only=true
+
+.. list-table:: Options by dataset
+   :header-rows: 1
+   :widths: 22 22 56
+
+   * - Dataset
+     - Option
+     - Meaning
+   * - :ref:`dataset-retailrocket`
+     - ``events``
+     - Event types to keep, from ``view``, ``addtocart``, ``transaction``.
+       Default ``("view",)``.
+   * - :ref:`dataset-music4all-onion`
+     - ``start``, ``end``
+     - Half-open time window, as timestamps. The builder registers
+       ``2014-01-01`` to ``2015-01-01``; unset means the whole log.
+   * - :ref:`dataset-otto`
+     - ``session_sample``
+     - Deterministic fraction of whole sessions in (0, 1]. The builder
+       registers ``0.1``; unset means every session.
+   * - :ref:`dataset-otto`
+     - ``events``
+     - Event types to keep, from ``clicks``, ``carts``, ``orders``.
+       Default ``("clicks",)``.
+   * - :ref:`dataset-yambda`
+     - ``variant``
+     - Release size, ``"50m"`` (default), ``"500m"`` or ``"5b"``. Even the
+       smallest needs ``user_sample`` to build on an ordinary machine.
+   * - :ref:`dataset-yambda`
+     - ``user_sample``
+     - Deterministic fraction of whole users in (0, 1]. The builder registers
+       ``0.2``; unset means every user.
+   * - :ref:`dataset-yambda`
+     - ``organic_only``
+     - Keep only events the user started themselves. Default ``False``.
+
+An unrecognised name is an error listing what the chosen dataset accepts, rather
+than a silently ignored keyword -- a build that quietly used the default variant
+would be indistinguishable afterwards from one that did not. The resolved
+options are written to the checkpoint manifest as ``dataset_options`` for the
+same reason.
+
+A dataset can also be *registered* with default options, through
+``DatasetSpec.dataset_options`` in :mod:`compresso_recsys.builder`. Anything the
+caller passes wins over a registered default, and the two merge by key, so a
+default narrows what a bare build reads without taking the choice away.
+
+Three datasets set one, because a bare build of them exhausts memory on an
+ordinary machine. The interactions frame is not the problem -- the canonical
+columns cost about 43 bytes a row, so even 46M events is under two gigabytes --
+but the split payload built from it holds a Python list entry per event, and
+that is what runs a 16 GB machine out of memory:
+
+.. list-table:: Registered defaults
+   :header-rows: 1
+   :widths: 26 34 40
+
+   * - Dataset
+     - Registered default
+     - What it reduces
+   * - :ref:`dataset-otto`
+     - ``session_sample=0.1``
+     - 194M clicks over 12.9M sessions to 19.5M over roughly 1.29M.
+   * - :ref:`dataset-music4all-onion`
+     - ``start="2014-01-01"``, ``end="2015-01-01"``
+     - 253M listens to 33.7M in one calendar year.
+   * - :ref:`dataset-yambda`
+     - ``user_sample=0.2``
+     - 46.5M listens to roughly 9.3M; the release ships no smaller variant.
+
+All three keep whole histories rather than random events: OTTO samples entire
+sessions, Yambda whole users, and Music4All takes a contiguous window, because
+dropping random rows would destroy the adjacency any sequential claim rests on.
+Each sample is chosen by hashing the id, not by taking the first N, so it is
+stable across runs and machines.
+
+A build that falls back on one of these says so, and names the flags that undo
+it::
+
+    [compresso-recsys] otto is reading a registered subset of its source, not
+    the whole of it: session_sample=0.1. This is what the published default
+    tables measure. For everything, pass --dataset_option session_sample=1.0
+    -- which needs substantially more memory.
+
+An empty value clears an option, which is how a registered window is turned off
+from the command line: ``--dataset_option start= --dataset_option end=``. Only
+an empty value means this, so ``start=none`` still passes the string. Setting an
+option yourself is taken as deliberate and is not warned about, and the notice
+is suppressed by ``--no-show_progress``.
+
+Ask for the full source only when you have the memory for it, and be aware the
+measured tables then no longer describe what you built.
+
+Changing an option that selects rows also changes the adapter's cached parquet
+key, and each selection is cached in its own file, so a new selection builds its
+own cache and switching back reuses the earlier one.
+Amazon's category is not an adapter option; it has its own ``amazon_category``
+argument, described under :ref:`dataset-amazon2023`.
 
 .. _dataset-ml1m:
 
@@ -1543,8 +1678,9 @@ not the social graph or pre-made LightGCN splits.
 **Terms:** Retain `SNAP's source citation and usage information
 <https://snap.stanford.edu/data/loc-gowalla.html>`_.
 
-**Defaults:** NGCF-style 10/10 support; 720-hour (30-day) temporal windows fit
-the available check-in history.
+**Defaults:** NGCF-style 10/10 support. The temporal window is 720 hours
+(30 days): three 339-day windows exceed the 626-day span, so the global default
+cannot build a temporal split here.
 
 .. list-table:: Installed Gowalla preprocessing and split defaults
    :header-rows: 1
@@ -1593,6 +1729,275 @@ the available check-in history.
        | 18,537 items / 40.63% cold
        | Window: 720 h
      - | Union: 121,866 items
+       | Image URLs: not exposed
+       | ≥10 words: 0 (0.00%)
+
+.. _dataset-retailrocket:
+
+Retailrocket
+------------
+
+**Loading:** ``dataset="retailrocket"`` reads ``events.csv`` from
+``data/retailrocket/``; this is a **manual download**, since Kaggle requires
+sign-in. It uses ``view`` events only, with repeats retained. There are item IDs
+only; item properties are hashed.
+
+**Terms:** Follow the licence on the `Kaggle dataset page
+<https://www.kaggle.com/datasets/retailrocket/ecommerce-dataset>`_; it is more
+restrictive than CC-BY.
+
+**Defaults:** 5/5 support removes most one-view visitors, so report the
+surviving share. The log spans 4.5 months, so the temporal window is 336 hours
+and its hold-outs are small (†).
+
+.. list-table:: Installed Retailrocket preprocessing and split defaults
+   :header-rows: 1
+
+   * - Dataset / preprocessing
+     - User split
+     - Item split
+     - Leave-last-out
+     - Temporal
+     - Item metadata (union of measured splits)
+   * - | Retailrocket
+       | All feedback
+       | Min text: 0 words
+       | Seed: 42
+     - | 5/5
+       | 22,178 users
+       | 17,803 items
+       | Train: 14,678 users
+       | Val: 2,490 users
+       | 4,534 items / 0.00% cold
+       | Test: 4,990 users
+       | 7,927 items / 0.00% cold
+     - | 5/5
+       | 22,178 users
+       | 17,803 items
+       | Train: 22,178 users
+       | Val: 7,423 users
+       | 891 items / 100.00% cold
+       | Test: 11,989 users
+       | 1,781 items / 100.00% cold
+     - | 5/5
+       | 60,112 users
+       | 34,185 items
+       | Train: 60,112 users
+       | Val: 60,112 users
+       | 24,289 items / 0.02% cold
+       | Test: 60,112 users
+       | 24,282 items / 0.02% cold
+     - | 5/5
+       | 571 users
+       | 1,417 items
+       | Train: 195 users
+       | Val: 254 users †
+       | 713 items / 46.84% cold
+       | Test: 319 users †
+       | 809 items / 59.70% cold
+       | Window: 336 h
+     - | Union: 34,185 items
+       | Image URLs: not exposed
+       | ≥10 words: 0 (0.00%)
+
+.. _dataset-music4all-onion:
+
+Music4All-Onion
+---------------
+
+**Loading:** ``dataset="music4all-onion"`` downloads only the Last.fm listening
+events (2.2 GB); the release's 26 feature sets are not fetched, so there are
+item IDs only.
+
+**Terms:** `Zenodo record <https://zenodo.org/records/6609677>`_ under CC-BY 4.0;
+cite the CIKM 2022 paper.
+
+**Defaults:** Registers the calendar-year window ``start="2014-01-01"`` to
+``end="2015-01-01"`` (33.7M of 253M listens; see :ref:`dataset-options`), with a
+720-hour temporal window. Replays are separate events, and seen items are
+excluded by default, so a replayed target is unreachable.
+
+.. list-table:: Installed Music4All-Onion preprocessing and split defaults
+   :header-rows: 1
+
+   * - Dataset / preprocessing
+     - User split
+     - Item split
+     - Leave-last-out
+     - Temporal
+     - Item metadata (union of measured splits)
+   * - | Music4All-Onion
+       | All feedback
+       | Min text: 0 words
+       | Seed: 42
+     - | 5/5
+       | 50,891 users
+       | 37,042 items
+       | Train: 43,391 users
+       | Val: 2,500 users
+       | 25,235 items / 0.00% cold
+       | Test: 5,000 users
+       | 30,069 items / 0.00% cold
+     - | 5/5
+       | 50,891 users
+       | 37,042 items
+       | Train: 50,891 users
+       | Val: 44,557 users
+       | 1,853 items / 100.00% cold
+       | Test: 47,762 users
+       | 3,705 items / 100.00% cold
+     - | 5/5
+       | 51,556 users
+       | 37,633 items
+       | Train: 51,556 users
+       | Val: 51,556 users
+       | 18,768 items / 0.00% cold
+       | Test: 51,556 users
+       | 18,820 items / 0.00% cold
+     - | 5/5
+       | 36,603 users
+       | 36,885 items
+       | Train: 31,434 users
+       | Val: 31,002 users
+       | 35,886 items / 0.97% cold
+       | Test: 30,369 users
+       | 35,998 items / 1.41% cold
+       | Window: 720 h
+     - | Union: 37,633 items
+       | Image URLs: not exposed
+       | ≥10 words: 0 (0.00%)
+
+.. _dataset-otto:
+
+OTTO
+----
+
+**Loading:** ``dataset="otto"`` reads ``train.jsonl`` from ``data/otto/``; this
+is a **manual download**, via ``kaggle datasets download -d otto/recsys-dataset``.
+It uses ``clicks`` only. Rows are sessions, not users, and there is no item
+metadata.
+
+**Terms:** Follow the `OTTO dataset repository's
+<https://github.com/otto-de/recsys-dataset>`_ licence and attribution.
+
+**Defaults:** Registers ``session_sample=0.1`` (19.5M of 194M clicks; see
+:ref:`dataset-options`). The log spans four weeks, so the temporal window is
+48 hours.
+
+.. list-table:: Installed OTTO preprocessing and split defaults
+   :header-rows: 1
+
+   * - Dataset / preprocessing
+     - User split
+     - Item split
+     - Leave-last-out
+     - Temporal
+     - Item metadata (union of measured splits)
+   * - | OTTO
+       | All feedback
+       | Min text: 0 words
+       | Seed: 42
+     - | 5/5
+       | 543,448 users
+       | 360,552 items
+       | Train: 523,448 users
+       | Val: 10,000 users
+       | 30,944 items / 0.00% cold
+       | Test: 10,000 users
+       | 30,523 items / 0.00% cold
+     - | 5/5
+       | 543,448 users
+       | 360,552 items
+       | Train: 543,442 users
+       | Val: 258,344 users
+       | 18,028 items / 100.00% cold
+       | Test: 369,270 users
+       | 36,056 items / 100.00% cold
+     - | 5/5
+       | 685,400 users
+       | 492,279 items
+       | Train: 685,400 users
+       | Val: 685,400 users
+       | 237,303 items / <0.01% cold
+       | Test: 685,400 users
+       | 236,350 items / <0.01% cold
+     - | 5/5
+       | 206,515 users
+       | 177,762 items
+       | Train: 95,460 users
+       | Val: 96,159 users
+       | 105,789 items / 16.71% cold
+       | Test: 110,922 users
+       | 126,742 items / 27.00% cold
+       | Window: 48 h
+     - | Union: 492,279 items
+       | Image URLs: not exposed
+       | ≥10 words: 0 (0.00%)
+
+.. _dataset-yambda:
+
+Yambda
+------
+
+**Loading:** ``dataset="yambda"`` downloads the listens of one release variant
+(``"50m"`` by default) from Hugging Face. There are item IDs only, and
+``organic_only=True`` drops recommender-served events.
+
+**Terms:** `Yambda on Hugging Face <https://huggingface.co/datasets/yandex/yambda>`_
+under Apache 2.0.
+
+**Defaults:** Registers ``user_sample=0.2`` (about 9.3M of 46.5M listens; see
+:ref:`dataset-options`), with a 720-hour temporal window. Timestamps are
+relative to the log start and rounded to 5 s, so ties are expected. Only about
+1,800 users with long histories remain, so hold-outs are 200/400 (†).
+
+.. list-table:: Installed Yambda preprocessing and split defaults
+   :header-rows: 1
+
+   * - Dataset / preprocessing
+     - User split
+     - Item split
+     - Leave-last-out
+     - Temporal
+     - Item metadata (union of measured splits)
+   * - | Yambda
+       | All feedback
+       | Min text: 0 words
+       | Seed: 42
+     - | 5/5
+       | 1,797 users
+       | 84,967 items
+       | Train: 1,197 users
+       | Val: 200 users †
+       | 28,284 items / 0.00% cold
+       | Test: 400 users †
+       | 39,609 items / 0.00% cold
+     - | 5/5
+       | 1,797 users
+       | 84,967 items
+       | Train: 1,797 users
+       | Val: 1,756 users
+       | 4,249 items / 100.00% cold
+       | Test: 1,789 users
+       | 8,497 items / 100.00% cold
+     - | 5/5
+       | 1,800 users
+       | 149,971 items
+       | Train: 1,800 users
+       | Val: 1,800 users
+       | 1,676 items / 0.00% cold
+       | Test: 1,800 users
+       | 1,678 items / 0.00% cold
+     - | 5/5
+       | 1,751 users
+       | 84,805 items
+       | Train: 1,391 users
+       | Val: 1,514 users
+       | 64,100 items / 11.85% cold
+       | Test: 1,745 users
+       | 72,146 items / 21.05% cold
+       | Window: 720 h
+     - | Union: 149,971 items
        | Image URLs: not exposed
        | ≥10 words: 0 (0.00%)
 

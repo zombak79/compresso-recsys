@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Citing Compresso Recsys &mdash; Compresso Recsys 0.3.6 documentation</title>
+  <title>Citing Compresso Recsys &mdash; Compresso Recsys 0.3.7 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=ad4f125e"></script>
+      <script src="_static/documentation_options.js?v=16b39043"></script>
       <script src="_static/doctools.js?v=fd6eb6e6"></script>
       <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -88,6 +88,7 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="datasets.html">Datasets</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="datasets.html#reading-the-default-tables">Reading the default tables</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#adapter-options">Adapter options</a></li>
 <li class="toctree-l2"><a class="reference internal" href="datasets.html#movielens-1m">MovieLens 1M</a></li>
 <li class="toctree-l2"><a class="reference internal" href="datasets.html#movielens-20m">MovieLens 20M</a></li>
 <li class="toctree-l2"><a class="reference internal" href="datasets.html#goodbooks-10k">Goodbooks-10k</a></li>
@@ -96,6 +97,10 @@
 <li class="toctree-l2"><a class="reference internal" href="datasets.html#netflix-prize">Netflix Prize</a></li>
 <li class="toctree-l2"><a class="reference internal" href="datasets.html#msd-taste-profile">MSD Taste Profile</a></li>
 <li class="toctree-l2"><a class="reference internal" href="datasets.html#gowalla">Gowalla</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#retailrocket">Retailrocket</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#music4all-onion">Music4All-Onion</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#otto">OTTO</a></li>
+<li class="toctree-l2"><a class="reference internal" href="datasets.html#yambda">Yambda</a></li>
 <li class="toctree-l2"><a class="reference internal" href="datasets.html#dbbook">DBbook</a></li>
 <li class="toctree-l2"><a class="reference internal" href="datasets.html#last-fm-2k">Last.fm-2K</a></li>
 <li class="toctree-l2"><a class="reference internal" href="datasets.html#using-item-embeddings">Using item embeddings</a></li>
@@ -215,6 +220,8 @@
 <li class="toctree-l3"><a class="reference internal" href="#netflix-prize">Netflix Prize</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#msd-taste-profile">MSD / Taste Profile</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#gowalla">Gowalla</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#retailrocket">Retailrocket</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#music4all-onion-otto-and-yambda">Music4All-Onion, OTTO and Yambda</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#additional-movie-and-book-descriptions">Additional Movie and Book Descriptions</a></li>
 </ul>
 </li>
@@ -485,16 +492,18 @@ applicable. See <a class="reference internal" href="datasets.html"><span class="
 <li><p><a class="reference internal" href="#netflix-prize" id="id18">Netflix Prize</a></p></li>
 <li><p><a class="reference internal" href="#msd-taste-profile" id="id19">MSD / Taste Profile</a></p></li>
 <li><p><a class="reference internal" href="#gowalla" id="id20">Gowalla</a></p></li>
-<li><p><a class="reference internal" href="#additional-movie-and-book-descriptions" id="id21">Additional Movie and Book Descriptions</a></p></li>
+<li><p><a class="reference internal" href="#retailrocket" id="id21">Retailrocket</a></p></li>
+<li><p><a class="reference internal" href="#music4all-onion-otto-and-yambda" id="id22">Music4All-Onion, OTTO and Yambda</a></p></li>
+<li><p><a class="reference internal" href="#additional-movie-and-book-descriptions" id="id23">Additional Movie and Book Descriptions</a></p></li>
 </ul>
 </li>
-<li><p><a class="reference internal" href="#evaluation-protocol" id="id22">Evaluation Protocol</a></p>
+<li><p><a class="reference internal" href="#evaluation-protocol" id="id24">Evaluation Protocol</a></p>
 <ul>
-<li><p><a class="reference internal" href="#dataset-preprocessing" id="id23">Dataset preprocessing</a></p></li>
+<li><p><a class="reference internal" href="#dataset-preprocessing" id="id25">Dataset preprocessing</a></p></li>
 </ul>
 </li>
-<li><p><a class="reference internal" href="#statistical-comparison" id="id24">Statistical Comparison</a></p></li>
-<li><p><a class="reference internal" href="#swap-multimodal-ml-1m-dbbook-and-last-fm-2k" id="id25">SWAP multimodal ML-1M, DBbook, and Last.fm-2K</a></p></li>
+<li><p><a class="reference internal" href="#statistical-comparison" id="id26">Statistical Comparison</a></p></li>
+<li><p><a class="reference internal" href="#swap-multimodal-ml-1m-dbbook-and-last-fm-2k" id="id27">SWAP multimodal ML-1M, DBbook, and Last.fm-2K</a></p></li>
 </ul>
 </nav>
 <section id="compresso">
@@ -854,8 +863,32 @@ uses raw check-ins; the social graph is not downloaded.</p>
 </pre></div>
 </div>
 </section>
+<section id="retailrocket">
+<h3><a class="toc-backref" href="#id21" role="doc-backlink">Retailrocket</a><a class="headerlink" href="#retailrocket" title="Link to this heading"></a></h3>
+<p>For <code class="xref py py-class docutils literal notranslate"><span class="pre">compresso_recsys.datasets.RetailRocket</span></code>, credit Retail Rocket and
+link the <a class="reference external" href="https://www.kaggle.com/datasets/retailrocket/ecommerce-dataset">dataset page</a>, which states
+the licence and is the only authoritative source. There is no accompanying
+paper. State that the adapter uses <code class="docutils literal notranslate"><span class="pre">view</span></code> events only and retains repeats.</p>
+<p>Confirm the licence on that page before redistributing derived data or using it
+commercially; it is more restrictive than the CC-BY terms of several other
+adapters here.</p>
+</section>
+<section id="music4all-onion-otto-and-yambda">
+<h3><a class="toc-backref" href="#id22" role="doc-backlink">Music4All-Onion, OTTO and Yambda</a><a class="headerlink" href="#music4all-onion-otto-and-yambda" title="Link to this heading"></a></h3>
+<p>For <code class="xref py py-class docutils literal notranslate"><span class="pre">compresso_recsys.datasets.Music4AllOnion</span></code>, cite the CIKM 2022
+resource paper and link <a class="reference external" href="https://zenodo.org/records/6609677">the Zenodo record</a> (CC-BY 4.0). State that the adapter reads
+listening events only and that the 26 feature sets are not downloaded, and give
+the time window if one was used.</p>
+<p>For <code class="xref py py-class docutils literal notranslate"><span class="pre">compresso_recsys.datasets.OTTO</span></code>, credit OTTO and link the <a class="reference external" href="https://github.com/otto-de/recsys-dataset">dataset
+repository</a>. State that the adapter
+uses <code class="docutils literal notranslate"><span class="pre">clicks</span></code> only and that sessions, not users, are the rows.</p>
+<p>For <code class="xref py py-class docutils literal notranslate"><span class="pre">compresso_recsys.datasets.Yambda</span></code>, credit Yandex and link the
+<a class="reference external" href="https://huggingface.co/datasets/yandex/yambda">Hugging Face repository</a>
+(Apache 2.0). State the variant, whether <code class="docutils literal notranslate"><span class="pre">organic_only</span></code> was set, and that
+timestamps are relative to the start of the log and rounded to five seconds.</p>
+</section>
 <section id="additional-movie-and-book-descriptions">
-<h3><a class="toc-backref" href="#id21" role="doc-backlink">Additional Movie and Book Descriptions</a><a class="headerlink" href="#additional-movie-and-book-descriptions" title="Link to this heading"></a></h3>
+<h3><a class="toc-backref" href="#id23" role="doc-backlink">Additional Movie and Book Descriptions</a><a class="headerlink" href="#additional-movie-and-book-descriptions" title="Link to this heading"></a></h3>
 <p>The MovieLens and Goodbooks adapters also load generated descriptions from
 beeFormer. If those descriptions contribute to your experiment’s item features,
 cite beeFormer in addition to the original dataset:</p>
@@ -874,7 +907,7 @@ cite beeFormer in addition to the original dataset:</p>
 </section>
 </section>
 <section id="evaluation-protocol">
-<h2><a class="toc-backref" href="#id22" role="doc-backlink">Evaluation Protocol</a><a class="headerlink" href="#evaluation-protocol" title="Link to this heading"></a></h2>
+<h2><a class="toc-backref" href="#id24" role="doc-backlink">Evaluation Protocol</a><a class="headerlink" href="#evaluation-protocol" title="Link to this heading"></a></h2>
 <p>Held-out users are evaluated under strong generalization: each user’s history is
 split into a fold-in part the model sees and a held-out part it is scored
 against. <code class="docutils literal notranslate"><span class="pre">eval_holdout_frac</span></code> defaults to 0.2, matching the 80/20 split
@@ -884,7 +917,7 @@ Mult-VAE/Mult-DAE paper above.</p>
 Opting into five independent draws per user with <code class="docutils literal notranslate"><span class="pre">eval_draws=5</span></code> follows the
 ELSA line of work; cite the ELSA papers above when reporting under that protocol.</p>
 <section id="dataset-preprocessing">
-<h3><a class="toc-backref" href="#id23" role="doc-backlink">Dataset preprocessing</a><a class="headerlink" href="#dataset-preprocessing" title="Link to this heading"></a></h3>
+<h3><a class="toc-backref" href="#id25" role="doc-backlink">Dataset preprocessing</a><a class="headerlink" href="#dataset-preprocessing" title="Link to this heading"></a></h3>
 <p>Netflix and Taste Profile support/feedback defaults follow the Mult-VAE paper
 above. Steam’s every-review-as-feedback convention follows BERT4Rec, while
 Gowalla’s 10-interaction CF support defaults follow NGCF:</p>
@@ -918,7 +951,7 @@ The raw Gowalla adapter does not use NGCF/LightGCN’s published train/test file
 </section>
 </section>
 <section id="statistical-comparison">
-<h2><a class="toc-backref" href="#id24" role="doc-backlink">Statistical Comparison</a><a class="headerlink" href="#statistical-comparison" title="Link to this heading"></a></h2>
+<h2><a class="toc-backref" href="#id26" role="doc-backlink">Statistical Comparison</a><a class="headerlink" href="#statistical-comparison" title="Link to this heading"></a></h2>
 <p>If you report significance from <code class="xref py py-mod docutils literal notranslate"><span class="pre">compresso_recsys.stats</span></code>, cite the methods
 it implements. See <a class="reference internal" href="statistical-comparison.html"><span class="doc">Comparing Models Statistically</span></a> for what each one contributes
 and a ready-to-adapt methods paragraph.</p>
@@ -991,7 +1024,7 @@ so that <code class="docutils literal notranslate"><span class="pre">alpha</span
 </div>
 </section>
 <section id="swap-multimodal-ml-1m-dbbook-and-last-fm-2k">
-<span id="cite-swap-multimodal"></span><h2><a class="toc-backref" href="#id25" role="doc-backlink">SWAP multimodal ML-1M, DBbook, and Last.fm-2K</a><a class="headerlink" href="#swap-multimodal-ml-1m-dbbook-and-last-fm-2k" title="Link to this heading"></a></h2>
+<span id="cite-swap-multimodal"></span><h2><a class="toc-backref" href="#id27" role="doc-backlink">SWAP multimodal ML-1M, DBbook, and Last.fm-2K</a><a class="headerlink" href="#swap-multimodal-ml-1m-dbbook-and-last-fm-2k" title="Link to this heading"></a></h2>
 <p>For pretrained features, cite the resource paper and the versioned dataset.
 Continue citing MovieLens for ML-1M. For DBbook, this adapter uses the reconstructed
 interaction release described by SWAP, not a claim of retrieving the original

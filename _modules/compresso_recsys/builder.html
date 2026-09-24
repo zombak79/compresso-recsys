@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>compresso_recsys.builder &mdash; Compresso Recsys 0.3.6 documentation</title>
+  <title>compresso_recsys.builder &mdash; Compresso Recsys 0.3.7 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
 
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=ad4f125e"></script>
+      <script src="../../_static/documentation_options.js?v=16b39043"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -85,6 +85,7 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../datasets.html">Datasets</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../datasets.html#reading-the-default-tables">Reading the default tables</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../datasets.html#adapter-options">Adapter options</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../datasets.html#movielens-1m">MovieLens 1M</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../datasets.html#movielens-20m">MovieLens 20M</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../datasets.html#goodbooks-10k">Goodbooks-10k</a></li>
@@ -93,6 +94,10 @@
 <li class="toctree-l2"><a class="reference internal" href="../../datasets.html#netflix-prize">Netflix Prize</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../datasets.html#msd-taste-profile">MSD Taste Profile</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../datasets.html#gowalla">Gowalla</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../datasets.html#retailrocket">Retailrocket</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../datasets.html#music4all-onion">Music4All-Onion</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../datasets.html#otto">OTTO</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../datasets.html#yambda">Yambda</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../datasets.html#dbbook">DBbook</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../datasets.html#last-fm-2k">Last.fm-2K</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../datasets.html#using-item-embeddings">Using item embeddings</a></li>
@@ -212,6 +217,8 @@
 <li class="toctree-l3"><a class="reference internal" href="../../citing.html#netflix-prize">Netflix Prize</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../citing.html#msd-taste-profile">MSD / Taste Profile</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../citing.html#gowalla">Gowalla</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../citing.html#retailrocket">Retailrocket</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../citing.html#music4all-onion-otto-and-yambda">Music4All-Onion, OTTO and Yambda</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../citing.html#additional-movie-and-book-descriptions">Additional Movie and Book Descriptions</a></li>
 </ul>
 </li>
@@ -456,9 +463,13 @@
 <span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">argparse</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">collections.abc</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">inspect</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">random</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">types</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">typing</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
 
@@ -473,6 +484,7 @@
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.datasets</span><span class="w"> </span><span class="kn">import</span> <span class="n">AmazonReviews2023</span><span class="p">,</span> <span class="n">Goodbooks</span><span class="p">,</span> <span class="n">MovieLens1M</span><span class="p">,</span> <span class="n">MovieLens20M</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.datasets</span><span class="w"> </span><span class="kn">import</span> <span class="n">Steam</span><span class="p">,</span> <span class="n">NetflixPrize</span><span class="p">,</span> <span class="n">TasteProfile</span><span class="p">,</span> <span class="n">Gowalla</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.datasets</span><span class="w"> </span><span class="kn">import</span> <span class="n">RetailRocket</span><span class="p">,</span> <span class="n">Music4AllOnion</span><span class="p">,</span> <span class="n">OTTO</span><span class="p">,</span> <span class="n">Yambda</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.datasets</span><span class="w"> </span><span class="kn">import</span> <span class="n">DBbook</span><span class="p">,</span> <span class="n">LastFM2K</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.datasets._public</span><span class="w"> </span><span class="kn">import</span> <span class="n">PublicDataset</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.sequences</span><span class="w"> </span><span class="kn">import</span> <span class="n">ItemSequences</span>
@@ -501,6 +513,16 @@
     <span class="n">min_value_to_keep</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="mf">4.0</span>
     <span class="n">set_all_values_to</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span>
     <span class="n">min_entity_text_words</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">30</span>
+    <span class="c1">#: Adapter options this dataset is registered with, e.g. a sample fraction</span>
+    <span class="c1">#: for a source too large to hold whole. Anything the caller passes wins, so</span>
+    <span class="c1">#: a default here narrows what a bare build reads without taking the choice</span>
+    <span class="c1">#: away. OTTO and Music4All-Onion set one because their full logs do not fit</span>
+    <span class="c1">#: in memory as a DataFrame, so a bare build of either would fail rather</span>
+    <span class="c1">#: than produce the numbers the measured tables document.</span>
+    <span class="n">dataset_options</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>
+    <span class="c1">#: Width of each temporal target window. The split needs three of them to</span>
+    <span class="c1">#: fit inside the log, so a dataset whose history is shorter than three</span>
+    <span class="c1">#: times this cannot build a temporal split at all.</span>
     <span class="n">temporal_period_hours</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">DEFAULT_TEMPORAL_PERIOD_HOURS</span>
 
 
@@ -523,6 +545,51 @@
                            <span class="n">val_users</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span> <span class="n">test_users</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span> <span class="n">min_user_support</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
                            <span class="n">item_min_support</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">min_value_to_keep</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">min_entity_text_words</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
                            <span class="n">temporal_period_hours</span><span class="o">=</span><span class="mi">720</span><span class="p">),</span>
+    <span class="c1"># 4.5 months of history, so the 339-day global window cannot fit three</span>
+    <span class="c1"># target periods and the temporal split fails outright. Fourteen days</span>
+    <span class="c1"># spends 42 of those days on evaluation and leaves roughly 95 for training.</span>
+    <span class="s2">"retailrocket"</span><span class="p">:</span> <span class="n">DatasetSpec</span><span class="p">(</span><span class="n">RetailRocket</span><span class="p">,</span> <span class="s2">"artifacts/retailrocket/recsys_checkpoint.zip"</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span>
+                                <span class="n">val_users</span><span class="o">=</span><span class="mi">2500</span><span class="p">,</span> <span class="n">test_users</span><span class="o">=</span><span class="mi">5000</span><span class="p">,</span> <span class="n">min_user_support</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+                                <span class="n">item_min_support</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">min_value_to_keep</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">min_entity_text_words</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                                <span class="n">temporal_period_hours</span><span class="o">=</span><span class="mi">14</span> <span class="o">*</span> <span class="mi">24</span><span class="p">),</span>
+    <span class="c1"># A quarter of a billion listens does not fit in memory, and the cost is not</span>
+    <span class="c1"># the interactions frame -- at 43 bytes a row that is under two gigabytes --</span>
+    <span class="c1"># but the split payload built from it, which holds a Python list entry per</span>
+    <span class="c1"># event. One calendar year is 33.7M events. Window by time rather than by</span>
+    <span class="c1"># sampling rows: dropping random events destroys the adjacency any</span>
+    <span class="c1"># sequential claim rests on. Three 339-day windows do not fit in one year,</span>
+    <span class="c1"># so temporal uses 30 days, leaving nine months of training history.</span>
+    <span class="s2">"music4all-onion"</span><span class="p">:</span> <span class="n">DatasetSpec</span><span class="p">(</span><span class="n">Music4AllOnion</span><span class="p">,</span> <span class="s2">"artifacts/music4all-onion/recsys_checkpoint.zip"</span><span class="p">,</span>
+                                   <span class="n">seed</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span> <span class="n">val_users</span><span class="o">=</span><span class="mi">2500</span><span class="p">,</span> <span class="n">test_users</span><span class="o">=</span><span class="mi">5000</span><span class="p">,</span> <span class="n">min_user_support</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+                                   <span class="n">item_min_support</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">min_value_to_keep</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">min_entity_text_words</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                                   <span class="n">dataset_options</span><span class="o">=</span><span class="p">{</span><span class="s2">"start"</span><span class="p">:</span> <span class="s2">"2014-01-01"</span><span class="p">,</span> <span class="s2">"end"</span><span class="p">:</span> <span class="s2">"2015-01-01"</span><span class="p">},</span>
+                                   <span class="n">temporal_period_hours</span><span class="o">=</span><span class="mi">30</span> <span class="o">*</span> <span class="mi">24</span><span class="p">),</span>
+    <span class="c1"># 194M clicks does not fit either. A tenth of the sessions is 19.5M events,</span>
+    <span class="c1"># the largest of these three defaults -- kept because that cache already</span>
+    <span class="c1"># exists and rebuilding it means re-parsing 11 GB of JSON. Lower it to 0.05</span>
+    <span class="c1"># if the split payload proves too large. Sample whole sessions, never rows:</span>
+    <span class="c1"># a session cut in half is not a shorter session, it is a different one.</span>
+    <span class="c1"># Measured at this sample: 543,448 users over 360,552 items, so the 10,000</span>
+    <span class="c1"># hold-outs are comfortable. The log is only 672 hours long, so temporal</span>
+    <span class="c1"># uses two days -- six days of evaluation against twenty-two of history.</span>
+    <span class="s2">"otto"</span><span class="p">:</span> <span class="n">DatasetSpec</span><span class="p">(</span><span class="n">OTTO</span><span class="p">,</span> <span class="s2">"artifacts/otto/recsys_checkpoint.zip"</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span>
+                        <span class="n">val_users</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span> <span class="n">test_users</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span> <span class="n">min_user_support</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+                        <span class="n">item_min_support</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">min_value_to_keep</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">min_entity_text_words</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                        <span class="n">dataset_options</span><span class="o">=</span><span class="p">{</span><span class="s2">"session_sample"</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">},</span>
+                        <span class="n">temporal_period_hours</span><span class="o">=</span><span class="mi">2</span> <span class="o">*</span> <span class="mi">24</span><span class="p">),</span>
+    <span class="c1"># The smallest variant is still 46.5M listens, and the release ships no</span>
+    <span class="c1"># smaller one, so a fifth of the users -- 9.3M events -- is the default.</span>
+    <span class="c1"># Sample users rather than rows for the same reason OTTO samples sessions.</span>
+    <span class="c1"># Few users, very long histories: this sample measures 1,800 users over</span>
+    <span class="c1"># 149,971 items, which is why the hold-outs are hundreds rather than the</span>
+    <span class="c1"># thousands every other dataset can afford. Both fall under the 1,000-user</span>
+    <span class="c1"># mark the tables flag, and that is the dataset's shape, not a mistake.</span>
+    <span class="c1"># The log runs 7,222 hours, so temporal uses 30 days.</span>
+    <span class="s2">"yambda"</span><span class="p">:</span> <span class="n">DatasetSpec</span><span class="p">(</span><span class="n">Yambda</span><span class="p">,</span> <span class="s2">"artifacts/yambda/recsys_checkpoint.zip"</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span>
+                          <span class="n">val_users</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">test_users</span><span class="o">=</span><span class="mi">400</span><span class="p">,</span> <span class="n">min_user_support</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+                          <span class="n">item_min_support</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">min_value_to_keep</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">min_entity_text_words</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                          <span class="n">dataset_options</span><span class="o">=</span><span class="p">{</span><span class="s2">"user_sample"</span><span class="p">:</span> <span class="mf">0.2</span><span class="p">},</span>
+                          <span class="n">temporal_period_hours</span><span class="o">=</span><span class="mi">30</span> <span class="o">*</span> <span class="mi">24</span><span class="p">),</span>
     <span class="s2">"goodbooks"</span><span class="p">:</span> <span class="n">DatasetSpec</span><span class="p">(</span><span class="n">Goodbooks</span><span class="p">,</span> <span class="s2">"artifacts/goodbooks/recsys_checkpoint.zip"</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">val_users</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">test_users</span><span class="o">=</span><span class="mi">2500</span><span class="p">),</span>
     <span class="s2">"ml1m"</span><span class="p">:</span> <span class="n">DatasetSpec</span><span class="p">(</span><span class="n">MovieLens1M</span><span class="p">,</span> <span class="s2">"artifacts/ml1m/recsys_checkpoint.zip"</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span> <span class="n">val_users</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span> <span class="n">test_users</span><span class="o">=</span><span class="mi">1000</span><span class="p">),</span>
     <span class="s2">"ml20m"</span><span class="p">:</span> <span class="n">DatasetSpec</span><span class="p">(</span><span class="n">MovieLens20M</span><span class="p">,</span> <span class="s2">"artifacts/ml20m/recsys_checkpoint.zip"</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span> <span class="n">val_users</span><span class="o">=</span><span class="mi">2500</span><span class="p">,</span> <span class="n">test_users</span><span class="o">=</span><span class="mi">5000</span><span class="p">),</span>
@@ -630,8 +697,8 @@
         <span class="s2">"--temporal_period_hours"</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">"Width in hours of each train/validation/test temporal target window "</span>
-             <span class="s2">"(default: 720 for Gowalla, 8136 otherwise)."</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Width in hours of each train/validation/test temporal target window. "</span>
+             <span class="s2">"Defaults to the value the dataset is registered with."</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--min_source_items"</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--min_target_items"</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
@@ -640,6 +707,16 @@
         <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="s2">"Toys_and_Games"</span><span class="p">,</span>
         <span class="n">help</span><span class="o">=</span><span class="s2">"Amazon Reviews 2023 category, e.g. Toys_and_Games, Electronics, Clothing_Shoes_and_Jewelry."</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">"--dataset_option"</span><span class="p">,</span>
+        <span class="n">dest</span><span class="o">=</span><span class="s2">"dataset_options"</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">"append"</span><span class="p">,</span>
+        <span class="n">metavar</span><span class="o">=</span><span class="s2">"KEY=VALUE"</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"Adapter-specific option, repeatable. For example --dataset_option variant=500m "</span>
+             <span class="s2">"--dataset_option organic_only=true for yambda, or --dataset_option session_sample=0.1 "</span>
+             <span class="s2">"for otto. An unknown name lists the options the chosen dataset accepts."</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">"--metadata_text_fields"</span><span class="p">,</span>
@@ -675,6 +752,154 @@
     <span class="k">return</span> <span class="n">p</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
 
 
+<span class="c1">#: Adapter constructor arguments the builder already owns. They are configured</span>
+<span class="c1">#: through the dedicated flags above, so exposing them again as dataset options</span>
+<span class="c1">#: would let one build be told two different things.</span>
+<span class="n">_BUILDER_MANAGED_DATASET_OPTIONS</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">({</span>
+    <span class="s2">"self"</span><span class="p">,</span> <span class="s2">"data_dir"</span><span class="p">,</span> <span class="s2">"metadata_text_fields"</span><span class="p">,</span> <span class="s2">"min_entity_text_words"</span><span class="p">,</span>
+    <span class="s2">"show_progress"</span><span class="p">,</span> <span class="s2">"category"</span><span class="p">,</span> <span class="s2">"include_image_urls"</span><span class="p">,</span>
+<span class="p">})</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_dataset_option_names</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Adapter constructor arguments a caller may set for ``cls``."""</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">parameters</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="fm">__init__</span><span class="p">)</span><span class="o">.</span><span class="n">parameters</span>
+    <span class="k">except</span> <span class="p">(</span><span class="ne">TypeError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>  <span class="c1"># pragma: no cover - builtins have no signature</span>
+        <span class="k">return</span> <span class="p">[]</span>
+    <span class="k">return</span> <span class="p">[</span>
+        <span class="n">name</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">parameter</span> <span class="ow">in</span> <span class="n">parameters</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_BUILDER_MANAGED_DATASET_OPTIONS</span>
+        <span class="ow">and</span> <span class="n">parameter</span><span class="o">.</span><span class="n">kind</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="n">parameter</span><span class="o">.</span><span class="n">VAR_POSITIONAL</span><span class="p">,</span> <span class="n">parameter</span><span class="o">.</span><span class="n">VAR_KEYWORD</span><span class="p">)</span>
+    <span class="p">]</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_coerce_dataset_option</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">annotation</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Parse one command-line option value using the adapter's own annotation.</span>
+
+<span class="sd">    Only strings are converted, so a Python caller that already passes a float</span>
+<span class="sd">    or a tuple keeps exactly what it passed. The annotation is the adapter's, so</span>
+<span class="sd">    a new option becomes settable from the command line by being annotated</span>
+<span class="sd">    rather than by being registered anywhere here.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="n">annotation</span> <span class="ow">is</span> <span class="n">inspect</span><span class="o">.</span><span class="n">Parameter</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">value</span>
+    <span class="n">origin</span> <span class="o">=</span> <span class="n">typing</span><span class="o">.</span><span class="n">get_origin</span><span class="p">(</span><span class="n">annotation</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">origin</span> <span class="ow">in</span> <span class="p">(</span><span class="n">typing</span><span class="o">.</span><span class="n">Union</span><span class="p">,</span> <span class="n">types</span><span class="o">.</span><span class="n">UnionType</span><span class="p">):</span>
+        <span class="n">members</span> <span class="o">=</span> <span class="p">[</span><span class="n">arg</span> <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">typing</span><span class="o">.</span><span class="n">get_args</span><span class="p">(</span><span class="n">annotation</span><span class="p">)</span> <span class="k">if</span> <span class="n">arg</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">)]</span>
+        <span class="c1"># ``key=`` clears an optional option. Only the empty string means this,</span>
+        <span class="c1"># so the literal word "none" is still usable as a value.</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">members</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">typing</span><span class="o">.</span><span class="n">get_args</span><span class="p">(</span><span class="n">annotation</span><span class="p">))</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">value</span><span class="o">.</span><span class="n">strip</span><span class="p">():</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">_coerce_dataset_option</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">members</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="k">if</span> <span class="n">members</span> <span class="k">else</span> <span class="n">value</span>
+    <span class="k">if</span> <span class="p">(</span>
+        <span class="n">origin</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">origin</span><span class="p">,</span> <span class="nb">type</span><span class="p">)</span>
+        <span class="ow">and</span> <span class="ow">not</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">origin</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
+        <span class="ow">and</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">origin</span><span class="p">,</span> <span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Sequence</span><span class="p">)</span>
+    <span class="p">):</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">part</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">part</span> <span class="ow">in</span> <span class="n">value</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">","</span><span class="p">)</span> <span class="k">if</span> <span class="n">part</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+    <span class="k">if</span> <span class="n">annotation</span> <span class="ow">is</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="n">lowered</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">lowered</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">"true"</span><span class="p">,</span> <span class="s2">"1"</span><span class="p">,</span> <span class="s2">"yes"</span><span class="p">,</span> <span class="s2">"on"</span><span class="p">}:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="n">lowered</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">"false"</span><span class="p">,</span> <span class="s2">"0"</span><span class="p">,</span> <span class="s2">"no"</span><span class="p">,</span> <span class="s2">"off"</span><span class="p">}:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"expected true or false, got </span><span class="si">{</span><span class="n">value</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">annotation</span> <span class="ow">is</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">annotation</span> <span class="ow">is</span> <span class="nb">float</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">value</span>
+
+
+<span class="c1">#: What to pass to undo each registered option and read the whole source. The</span>
+<span class="c1">#: builder cannot infer this: "all of it" is ``1.0`` for a fraction but an</span>
+<span class="c1">#: absent bound for a window, and only the adapter knows which it has.</span>
+<span class="n">_FULL_SOURCE_OPTION</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"session_sample"</span><span class="p">:</span> <span class="s2">"1.0"</span><span class="p">,</span>
+    <span class="s2">"user_sample"</span><span class="p">:</span> <span class="s2">"1.0"</span><span class="p">,</span>
+    <span class="s2">"start"</span><span class="p">:</span> <span class="s2">""</span><span class="p">,</span>
+    <span class="s2">"end"</span><span class="p">:</span> <span class="s2">""</span><span class="p">,</span>
+<span class="p">}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_registered_subset_notice</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">dataset</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">caller_options</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Say so when a build silently reads a registered subset of its source.</span>
+
+<span class="sd">    Only the registered defaults the caller did not set are reported: an option</span>
+<span class="sd">    the caller set themselves is a deliberate choice and needs no warning, even</span>
+<span class="sd">    when its value equals the registered one. Without this a bare build of OTTO</span>
+<span class="sd">    looks exactly like a full one and quietly measures a tenth of the log.</span>
+<span class="sd">    """</span>
+    <span class="n">registered</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="s2">"dataset_options"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{}</span>
+    <span class="n">in_force</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="n">value</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">registered</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">caller_options</span><span class="p">}</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">in_force</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="n">settings</span> <span class="o">=</span> <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">=</span><span class="si">{</span><span class="n">value</span><span class="si">!r}</span><span class="s2">"</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">in_force</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span>
+    <span class="n">flags</span> <span class="o">=</span> <span class="s2">" "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">"--dataset_option </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">=</span><span class="si">{</span><span class="n">_FULL_SOURCE_OPTION</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span><span class="w"> </span><span class="s1">''</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
+                     <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">in_force</span><span class="p">))</span>
+    <span class="k">return</span> <span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">dataset</span><span class="si">}</span><span class="s2"> is reading a registered subset of its source, not the whole of it: "</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">settings</span><span class="si">}</span><span class="s2">. This is what the published default tables measure. "</span>
+            <span class="sa">f</span><span class="s2">"For everything, pass </span><span class="si">{</span><span class="n">flags</span><span class="si">}</span><span class="s2"> -- which needs substantially more memory."</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_dataset_options_for</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""The options to construct this dataset with: spec defaults, then the caller's.</span>
+
+<span class="sd">    Resolving both through the same validator means a typo in the registry is</span>
+<span class="sd">    caught exactly like a typo on the command line, and re-running it on an</span>
+<span class="sd">    already-resolved mapping is a no-op, so it does not matter whether the</span>
+<span class="sd">    caller reached _make_dataset through _resolve_args or built a namespace.</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="o">**</span><span class="n">_resolve_dataset_options</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="s2">"dataset_options"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)),</span>
+        <span class="o">**</span><span class="n">_resolve_dataset_options</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">"dataset_options"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)),</span>
+    <span class="p">}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_resolve_dataset_options</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">raw</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Validate adapter options and coerce the ones that arrived as strings.</span>
+
+<span class="sd">    Accepts either the mapping the Python API takes or the repeated</span>
+<span class="sd">    ``--dataset_option key=value`` strings argparse collects. An unknown name is</span>
+<span class="sd">    an error rather than a silently ignored keyword, because the failure it</span>
+<span class="sd">    replaces -- a build that quietly used the default variant -- is invisible in</span>
+<span class="sd">    the resulting checkpoint.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">raw</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{}</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">raw</span><span class="p">,</span> <span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Mapping</span><span class="p">):</span>
+        <span class="n">items</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">raw</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">items</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">raw</span><span class="p">:</span>
+            <span class="n">key</span><span class="p">,</span> <span class="n">separator</span><span class="p">,</span> <span class="n">value</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span><span class="o">.</span><span class="n">partition</span><span class="p">(</span><span class="s2">"="</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">separator</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">key</span><span class="o">.</span><span class="n">strip</span><span class="p">():</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"dataset options must be given as key=value, got </span><span class="si">{</span><span class="n">entry</span><span class="si">!r}</span><span class="s2">"</span>
+                <span class="p">)</span>
+            <span class="n">items</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">key</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span> <span class="n">value</span><span class="p">))</span>
+    <span class="n">allowed</span> <span class="o">=</span> <span class="n">_dataset_option_names</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">cls</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">hints</span> <span class="o">=</span> <span class="n">typing</span><span class="o">.</span><span class="n">get_type_hints</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="fm">__init__</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>  <span class="c1"># pragma: no cover - unresolvable annotations</span>
+        <span class="n">hints</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">resolved</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">items</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">allowed</span><span class="p">:</span>
+            <span class="n">choices</span> <span class="o">=</span> <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">allowed</span><span class="p">)</span> <span class="k">if</span> <span class="n">allowed</span> <span class="k">else</span> <span class="s2">"no options"</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"unknown dataset option </span><span class="si">{</span><span class="n">key</span><span class="si">!r}</span><span class="s2"> for dataset </span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">; "</span>
+                <span class="sa">f</span><span class="s2">"accepts: </span><span class="si">{</span><span class="n">choices</span><span class="si">}</span><span class="s2">"</span>
+            <span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">resolved</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">_coerce_dataset_option</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">hints</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">inspect</span><span class="o">.</span><span class="n">Parameter</span><span class="o">.</span><span class="n">empty</span><span class="p">))</span>
+        <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"invalid value for dataset option </span><span class="si">{</span><span class="n">key</span><span class="si">!r}</span><span class="s2">: </span><span class="si">{</span><span class="n">error</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">error</span>
+    <span class="k">return</span> <span class="n">resolved</span>
+
+
 <span class="k">def</span><span class="w"> </span><span class="nf">_build_args</span><span class="p">(</span>
     <span class="o">*</span><span class="p">,</span>
     <span class="n">dataset</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -706,6 +931,7 @@
     <span class="n">annotation_min_count</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
     <span class="n">show_progress</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">multimodal_features</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">dataset_options</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">:</span>
     <span class="k">if</span> <span class="n">dataset</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">DATASETS</span><span class="p">:</span>
         <span class="n">choices</span> <span class="o">=</span> <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">DATASETS</span><span class="p">))</span>
@@ -759,12 +985,20 @@
         <span class="n">annotation_source</span><span class="o">=</span><span class="n">annotation_source</span><span class="p">,</span>
         <span class="n">annotation_min_count</span><span class="o">=</span><span class="n">annotation_min_count</span><span class="p">,</span>
         <span class="n">show_progress</span><span class="o">=</span><span class="n">show_progress</span><span class="p">,</span>
+        <span class="n">dataset_options</span><span class="o">=</span><span class="n">dataset_options</span><span class="p">,</span>
     <span class="p">)</span>
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_resolve_args</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
     <span class="n">spec</span> <span class="o">=</span> <span class="n">DATASETS</span><span class="p">[</span><span class="n">args</span><span class="o">.</span><span class="n">dataset</span><span class="p">]</span>
     <span class="n">args</span><span class="o">.</span><span class="n">temporal_period_hours</span> <span class="o">=</span> <span class="n">_temporal_period_hours</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">dataset</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">temporal_period_hours</span><span class="p">)</span>
+    <span class="c1"># Normalised here rather than in _build_args because the console script</span>
+    <span class="c1"># builds its namespace straight from argparse and never calls that.</span>
+    <span class="n">caller_options</span> <span class="o">=</span> <span class="n">_resolve_dataset_options</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">"dataset_options"</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
+    <span class="n">args</span><span class="o">.</span><span class="n">dataset_options</span> <span class="o">=</span> <span class="n">_dataset_options_for</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+    <span class="n">notice</span> <span class="o">=</span> <span class="n">_registered_subset_notice</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">dataset</span><span class="p">,</span> <span class="n">caller_options</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">notice</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">"show_progress"</span><span class="p">,</span> <span class="kc">True</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"[compresso-recsys] </span><span class="si">{</span><span class="n">notice</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="n">flush</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">split_mode</span> <span class="o">==</span> <span class="s2">"official"</span> <span class="ow">and</span> <span class="n">args</span><span class="o">.</span><span class="n">dataset</span> <span class="o">!=</span> <span class="s2">"dbbook"</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"official split is supported only for dbbook"</span><span class="p">)</span>
     <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">"multimodal_features"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -808,10 +1042,14 @@
     <span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">fields</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">PublicDataset</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"--metadata_text_fields must contain at least one field"</span><span class="p">)</span>
+    <span class="c1"># Validated against this adapter's signature by _resolve_args, so an unknown</span>
+    <span class="c1"># name has already been rejected by the time it would become a TypeError.</span>
+    <span class="n">options</span> <span class="o">=</span> <span class="n">_dataset_options_for</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
     <span class="k">if</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">PublicDataset</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">spec</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">data_dir</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">data_dir</span><span class="p">,</span> <span class="n">metadata_text_fields</span><span class="o">=</span><span class="n">fields</span><span class="p">,</span>
                         <span class="n">min_entity_text_words</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">min_entity_text_words</span><span class="p">,</span>
-                        <span class="n">show_progress</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">"show_progress"</span><span class="p">,</span> <span class="kc">True</span><span class="p">))</span>
+                        <span class="n">show_progress</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">"show_progress"</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span>
+                        <span class="o">**</span><span class="n">options</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">spec</span><span class="o">.</span><span class="n">cls</span> <span class="ow">is</span> <span class="n">AmazonReviews2023</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">AmazonReviews2023</span><span class="p">(</span>
             <span class="n">data_dir</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">data_dir</span><span class="p">,</span>
@@ -820,11 +1058,13 @@
             <span class="n">min_entity_text_words</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">min_entity_text_words</span><span class="p">,</span>
             <span class="n">include_image_urls</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">"include_image_urls"</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
             <span class="n">show_progress</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">"show_progress"</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span>
+            <span class="o">**</span><span class="n">options</span><span class="p">,</span>
         <span class="p">)</span>
     <span class="k">return</span> <span class="n">spec</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span>
         <span class="n">data_dir</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">data_dir</span><span class="p">,</span>
         <span class="n">metadata_text_fields</span><span class="o">=</span><span class="n">fields</span><span class="p">,</span>
         <span class="n">min_entity_text_words</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">min_entity_text_words</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">options</span><span class="p">,</span>
     <span class="p">)</span>
 
 
@@ -2004,6 +2244,13 @@
                     <span class="s2">"annotation_source"</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">annotation_source</span><span class="p">,</span>
                     <span class="s2">"annotation_min_count"</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">annotation_min_count</span><span class="p">,</span>
                     <span class="s2">"amazon_category"</span><span class="p">:</span> <span class="n">args</span><span class="o">.</span><span class="n">amazon_category</span> <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">dataset</span> <span class="o">==</span> <span class="s2">"amazon2023"</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                    <span class="c1"># Which variant, sample or event filter produced this</span>
+                    <span class="c1"># checkpoint. Without it two checkpoints built from the same</span>
+                    <span class="c1"># dataset at different settings are indistinguishable.</span>
+                    <span class="s2">"dataset_options"</span><span class="p">:</span> <span class="p">{</span>
+                        <span class="n">key</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="k">else</span> <span class="n">value</span>
+                        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">"dataset_options"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{})</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                    <span class="p">},</span>
                     <span class="s2">"metadata_text_fields"</span><span class="p">:</span> <span class="p">(</span>
                         <span class="p">[</span><span class="n">field</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">args</span><span class="o">.</span><span class="n">metadata_text_fields</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">","</span><span class="p">)</span> <span class="k">if</span> <span class="n">field</span><span class="o">.</span><span class="n">strip</span><span class="p">()]</span>
                         <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">metadata_text_fields</span>
@@ -2060,11 +2307,14 @@
     <span class="n">annotation_min_count</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
     <span class="n">show_progress</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">multimodal_features</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">dataset_options</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Build a recommender-system split checkpoint and return its path.</span>
 
-<span class="sd">    ``temporal_period_hours=None`` uses 720 hours for Gowalla and 8136 for</span>
-<span class="sd">    other datasets. An explicit positive period overrides that default.</span>
+<span class="sd">    ``temporal_period_hours=None`` uses the period the dataset is registered</span>
+<span class="sd">    with: 336 hours for Retailrocket, 48 for OTTO, 720 for Gowalla, Yambda and</span>
+<span class="sd">    Music4All-Onion, and 8136 for every other dataset. An explicit positive</span>
+<span class="sd">    period overrides that default.</span>
 <span class="sd">    """</span>
     <span class="n">args</span> <span class="o">=</span> <span class="n">_build_args</span><span class="p">(</span>
         <span class="n">multimodal_features</span><span class="o">=</span><span class="n">multimodal_features</span><span class="p">,</span>
@@ -2096,6 +2346,7 @@
         <span class="n">annotation_source</span><span class="o">=</span><span class="n">annotation_source</span><span class="p">,</span>
         <span class="n">annotation_min_count</span><span class="o">=</span><span class="n">annotation_min_count</span><span class="p">,</span>
         <span class="n">show_progress</span><span class="o">=</span><span class="n">show_progress</span><span class="p">,</span>
+        <span class="n">dataset_options</span><span class="o">=</span><span class="n">dataset_options</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="k">return</span> <span class="n">_build_recsys_checkpoint_from_args</span><span class="p">(</span><span class="n">args</span><span class="p">)</span></div>
 

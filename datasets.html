@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Datasets &mdash; Compresso Recsys 0.3.6 documentation</title>
+  <title>Datasets &mdash; Compresso Recsys 0.3.7 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=ad4f125e"></script>
+      <script src="_static/documentation_options.js?v=16b39043"></script>
       <script src="_static/doctools.js?v=fd6eb6e6"></script>
       <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -88,6 +88,7 @@
 </li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Datasets</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#reading-the-default-tables">Reading the default tables</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#adapter-options">Adapter options</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#movielens-1m">MovieLens 1M</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#movielens-20m">MovieLens 20M</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#goodbooks-10k">Goodbooks-10k</a></li>
@@ -96,6 +97,10 @@
 <li class="toctree-l2"><a class="reference internal" href="#netflix-prize">Netflix Prize</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#msd-taste-profile">MSD Taste Profile</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#gowalla">Gowalla</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#retailrocket">Retailrocket</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#music4all-onion">Music4All-Onion</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#otto">OTTO</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#yambda">Yambda</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#dbbook">DBbook</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#last-fm-2k">Last.fm-2K</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#using-item-embeddings">Using item embeddings</a></li>
@@ -215,6 +220,8 @@
 <li class="toctree-l3"><a class="reference internal" href="citing.html#netflix-prize">Netflix Prize</a></li>
 <li class="toctree-l3"><a class="reference internal" href="citing.html#msd-taste-profile">MSD / Taste Profile</a></li>
 <li class="toctree-l3"><a class="reference internal" href="citing.html#gowalla">Gowalla</a></li>
+<li class="toctree-l3"><a class="reference internal" href="citing.html#retailrocket">Retailrocket</a></li>
+<li class="toctree-l3"><a class="reference internal" href="citing.html#music4all-onion-otto-and-yambda">Music4All-Onion, OTTO and Yambda</a></li>
 <li class="toctree-l3"><a class="reference internal" href="citing.html#additional-movie-and-book-descriptions">Additional Movie and Book Descriptions</a></li>
 </ul>
 </li>
@@ -515,6 +522,26 @@ for citations, <a class="reference internal" href="cli-reference.html"><span cla
 <td><p>None integrated</p></td>
 <td><p>Yes</p></td>
 </tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#dataset-retailrocket"><span class="std std-ref">Retailrocket</span></a></p></td>
+<td><p>Item IDs only</p></td>
+<td><p>None integrated</p></td>
+<td><p>Yes, millisecond precision</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#dataset-music4all-onion"><span class="std std-ref">Music4All-Onion</span></a></p></td>
+<td><p>Item IDs only</p></td>
+<td><p>None integrated</p></td>
+<td><p>Yes, second precision</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#dataset-otto"><span class="std std-ref">OTTO</span></a></p></td>
+<td><p>Item IDs only</p></td>
+<td><p>None integrated</p></td>
+<td><p>Yes, millisecond precision</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#dataset-yambda"><span class="std std-ref">Yambda</span></a></p></td>
+<td><p>Item IDs only</p></td>
+<td><p>None integrated</p></td>
+<td><p>Yes, 5-second bins, relative epoch</p></td>
+</tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#dataset-dbbook"><span class="std std-ref">DBbook</span></a></p></td>
 <td><p>Book titles and DBpedia mappings; optional abstract/cover features</p></td>
 <td><p>Text, image (SWAP)</p></td>
@@ -544,6 +571,142 @@ deduplicate repeated user/item pairs; ordered splits retain events.</p></li>
 See <a class="reference internal" href="dataset-sweep.html#dataset-default-table-details"><span class="std std-ref">Interpreting the documentation tables</span></a> for definitions, methodology, and
 the <a class="reference download internal" download="" href="_downloads/462446f2cb55224b6b93d2eff394a55d/dataset-default-measurements.json"><code class="xref download docutils literal notranslate"><span class="pre">non-Amazon</span> <span class="pre">measurement</span> <span class="pre">archive</span></code></a>.</p>
 </section>
+<section id="adapter-options">
+<span id="dataset-options"></span><h2>Adapter options<a class="headerlink" href="#adapter-options" title="Link to this heading"></a></h2>
+<p>Some adapters take arguments that change which rows they read: a release
+variant, a sample fraction, a time window, an event-type filter. Pass them to
+the constructor directly, or to <a class="reference internal" href="api/compresso_recsys.html#compresso_recsys.build_recsys_checkpoint" title="compresso_recsys.build_recsys_checkpoint"><code class="xref py py-func docutils literal notranslate"><span class="pre">build_recsys_checkpoint()</span></code></a>
+as <code class="docutils literal notranslate"><span class="pre">dataset_options</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cr</span><span class="o">.</span><span class="n">build_recsys_checkpoint</span><span class="p">(</span><span class="n">dataset</span><span class="o">=</span><span class="s2">"yambda"</span><span class="p">,</span>
+                           <span class="n">dataset_options</span><span class="o">=</span><span class="p">{</span><span class="s2">"variant"</span><span class="p">:</span> <span class="s2">"500m"</span><span class="p">,</span> <span class="s2">"organic_only"</span><span class="p">:</span> <span class="kc">True</span><span class="p">})</span>
+<span class="n">cr</span><span class="o">.</span><span class="n">build_recsys_checkpoint</span><span class="p">(</span><span class="n">dataset</span><span class="o">=</span><span class="s2">"otto"</span><span class="p">,</span> <span class="n">dataset_options</span><span class="o">=</span><span class="p">{</span><span class="s2">"session_sample"</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">})</span>
+</pre></div>
+</div>
+<p>From the command line, <code class="docutils literal notranslate"><span class="pre">--dataset_option</span></code> is repeatable and values are parsed
+using the adapter’s own annotations, so <code class="docutils literal notranslate"><span class="pre">0.1</span></code> arrives as a float and a
+comma-separated list as a tuple:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">compresso</span><span class="o">-</span><span class="n">recsys</span><span class="o">-</span><span class="n">build</span><span class="o">-</span><span class="n">checkpoint</span> <span class="o">--</span><span class="n">dataset</span> <span class="n">yambda</span> \
+    <span class="o">--</span><span class="n">dataset_option</span> <span class="n">variant</span><span class="o">=</span><span class="mi">500</span><span class="n">m</span> <span class="o">--</span><span class="n">dataset_option</span> <span class="n">organic_only</span><span class="o">=</span><span class="n">true</span>
+</pre></div>
+</div>
+<table class="docutils align-default" id="id2">
+<caption><span class="caption-text">Options by dataset</span><a class="headerlink" href="#id2" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 22.0%" />
+<col style="width: 22.0%" />
+<col style="width: 56.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Dataset</p></th>
+<th class="head"><p>Option</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="#dataset-retailrocket"><span class="std std-ref">Retailrocket</span></a></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">events</span></code></p></td>
+<td><p>Event types to keep, from <code class="docutils literal notranslate"><span class="pre">view</span></code>, <code class="docutils literal notranslate"><span class="pre">addtocart</span></code>, <code class="docutils literal notranslate"><span class="pre">transaction</span></code>.
+Default <code class="docutils literal notranslate"><span class="pre">(&quot;view&quot;,)</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#dataset-music4all-onion"><span class="std std-ref">Music4All-Onion</span></a></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">start</span></code>, <code class="docutils literal notranslate"><span class="pre">end</span></code></p></td>
+<td><p>Half-open time window, as timestamps. The builder registers
+<code class="docutils literal notranslate"><span class="pre">2014-01-01</span></code> to <code class="docutils literal notranslate"><span class="pre">2015-01-01</span></code>; unset means the whole log.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#dataset-otto"><span class="std std-ref">OTTO</span></a></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">session_sample</span></code></p></td>
+<td><p>Deterministic fraction of whole sessions in (0, 1]. The builder
+registers <code class="docutils literal notranslate"><span class="pre">0.1</span></code>; unset means every session.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#dataset-otto"><span class="std std-ref">OTTO</span></a></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">events</span></code></p></td>
+<td><p>Event types to keep, from <code class="docutils literal notranslate"><span class="pre">clicks</span></code>, <code class="docutils literal notranslate"><span class="pre">carts</span></code>, <code class="docutils literal notranslate"><span class="pre">orders</span></code>.
+Default <code class="docutils literal notranslate"><span class="pre">(&quot;clicks&quot;,)</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#dataset-yambda"><span class="std std-ref">Yambda</span></a></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">variant</span></code></p></td>
+<td><p>Release size, <code class="docutils literal notranslate"><span class="pre">&quot;50m&quot;</span></code> (default), <code class="docutils literal notranslate"><span class="pre">&quot;500m&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;5b&quot;</span></code>. Even the
+smallest needs <code class="docutils literal notranslate"><span class="pre">user_sample</span></code> to build on an ordinary machine.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#dataset-yambda"><span class="std std-ref">Yambda</span></a></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">user_sample</span></code></p></td>
+<td><p>Deterministic fraction of whole users in (0, 1]. The builder registers
+<code class="docutils literal notranslate"><span class="pre">0.2</span></code>; unset means every user.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#dataset-yambda"><span class="std std-ref">Yambda</span></a></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">organic_only</span></code></p></td>
+<td><p>Keep only events the user started themselves. Default <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p></td>
+</tr>
+</tbody>
+</table>
+<p>An unrecognised name is an error listing what the chosen dataset accepts, rather
+than a silently ignored keyword – a build that quietly used the default variant
+would be indistinguishable afterwards from one that did not. The resolved
+options are written to the checkpoint manifest as <code class="docutils literal notranslate"><span class="pre">dataset_options</span></code> for the
+same reason.</p>
+<p>A dataset can also be <em>registered</em> with default options, through
+<code class="docutils literal notranslate"><span class="pre">DatasetSpec.dataset_options</span></code> in <code class="xref py py-mod docutils literal notranslate"><span class="pre">compresso_recsys.builder</span></code>. Anything the
+caller passes wins over a registered default, and the two merge by key, so a
+default narrows what a bare build reads without taking the choice away.</p>
+<p>Three datasets set one, because a bare build of them exhausts memory on an
+ordinary machine. The interactions frame is not the problem – the canonical
+columns cost about 43 bytes a row, so even 46M events is under two gigabytes –
+but the split payload built from it holds a Python list entry per event, and
+that is what runs a 16 GB machine out of memory:</p>
+<table class="docutils align-default" id="id3">
+<caption><span class="caption-text">Registered defaults</span><a class="headerlink" href="#id3" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 26.0%" />
+<col style="width: 34.0%" />
+<col style="width: 40.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Dataset</p></th>
+<th class="head"><p>Registered default</p></th>
+<th class="head"><p>What it reduces</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="#dataset-otto"><span class="std std-ref">OTTO</span></a></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">session_sample=0.1</span></code></p></td>
+<td><p>194M clicks over 12.9M sessions to 19.5M over roughly 1.29M.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#dataset-music4all-onion"><span class="std std-ref">Music4All-Onion</span></a></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">start=&quot;2014-01-01&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">end=&quot;2015-01-01&quot;</span></code></p></td>
+<td><p>253M listens to 33.7M in one calendar year.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#dataset-yambda"><span class="std std-ref">Yambda</span></a></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">user_sample=0.2</span></code></p></td>
+<td><p>46.5M listens to roughly 9.3M; the release ships no smaller variant.</p></td>
+</tr>
+</tbody>
+</table>
+<p>All three keep whole histories rather than random events: OTTO samples entire
+sessions, Yambda whole users, and Music4All takes a contiguous window, because
+dropping random rows would destroy the adjacency any sequential claim rests on.
+Each sample is chosen by hashing the id, not by taking the first N, so it is
+stable across runs and machines.</p>
+<p>A build that falls back on one of these says so, and names the flags that undo
+it:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="n">compresso</span><span class="o">-</span><span class="n">recsys</span><span class="p">]</span> <span class="n">otto</span> <span class="ow">is</span> <span class="n">reading</span> <span class="n">a</span> <span class="n">registered</span> <span class="n">subset</span> <span class="n">of</span> <span class="n">its</span> <span class="n">source</span><span class="p">,</span> <span class="ow">not</span>
+<span class="n">the</span> <span class="n">whole</span> <span class="n">of</span> <span class="n">it</span><span class="p">:</span> <span class="n">session_sample</span><span class="o">=</span><span class="mf">0.1</span><span class="o">.</span> <span class="n">This</span> <span class="ow">is</span> <span class="n">what</span> <span class="n">the</span> <span class="n">published</span> <span class="n">default</span>
+<span class="n">tables</span> <span class="n">measure</span><span class="o">.</span> <span class="n">For</span> <span class="n">everything</span><span class="p">,</span> <span class="k">pass</span> <span class="o">--</span><span class="n">dataset_option</span> <span class="n">session_sample</span><span class="o">=</span><span class="mf">1.0</span>
+<span class="o">--</span> <span class="n">which</span> <span class="n">needs</span> <span class="n">substantially</span> <span class="n">more</span> <span class="n">memory</span><span class="o">.</span>
+</pre></div>
+</div>
+<p>An empty value clears an option, which is how a registered window is turned off
+from the command line: <code class="docutils literal notranslate"><span class="pre">--dataset_option</span> <span class="pre">start=</span> <span class="pre">--dataset_option</span> <span class="pre">end=</span></code>. Only
+an empty value means this, so <code class="docutils literal notranslate"><span class="pre">start=none</span></code> still passes the string. Setting an
+option yourself is taken as deliberate and is not warned about, and the notice
+is suppressed by <code class="docutils literal notranslate"><span class="pre">--no-show_progress</span></code>.</p>
+<p>Ask for the full source only when you have the memory for it, and be aware the
+measured tables then no longer describe what you built.</p>
+<p>Changing an option that selects rows also changes the adapter’s cached parquet
+key, and each selection is cached in its own file, so a new selection builds its
+own cache and switching back reuses the earlier one.
+Amazon’s category is not an adapter option; it has its own <code class="docutils literal notranslate"><span class="pre">amazon_category</span></code>
+argument, described under <a class="reference internal" href="#dataset-amazon2023"><span class="std std-ref">Amazon Reviews 2023</span></a>.</p>
+</section>
 <section id="movielens-1m">
 <span id="dataset-ml1m"></span><h2>MovieLens 1M<a class="headerlink" href="#movielens-1m" title="Link to this heading"></a></h2>
 <p><strong>Loading:</strong> <code class="docutils literal notranslate"><span class="pre">dataset=&quot;ml1m&quot;</span></code> downloads GroupLens ratings and beeFormer
@@ -554,8 +717,8 @@ commercial use requires permission. Cite the description/feature sources too.</p
 <p><strong>Defaults:</strong> Positive ratings and support filtering retain useful histories;
 the 30-word minimum selects descriptive metadata. The temporal default is
 poorly sized here: only <strong>91 training users</strong>.</p>
-<table class="docutils align-default" id="id2">
-<caption><span class="caption-text">Installed MovieLens 1M preprocessing and split defaults</span><a class="headerlink" href="#id2" title="Link to this table"></a></caption>
+<table class="docutils align-default" id="id4">
+<caption><span class="caption-text">Installed MovieLens 1M preprocessing and split defaults</span><a class="headerlink" href="#id4" title="Link to this table"></a></caption>
 <thead>
 <tr class="row-odd"><th class="head"><p>Dataset / preprocessing</p></th>
 <th class="head"><p>User split</p></th>
@@ -648,8 +811,8 @@ descriptions; user-tag annotations are optional. The same
 commercial use requires permission. Cite beeFormer when using its descriptions.</p>
 <p><strong>Defaults:</strong> MultVAE-style positive-feedback filtering, plus a 30-word text
 minimum. Holdout sizes are practical defaults, not the paper’s exact split.</p>
-<table class="docutils align-default" id="id3">
-<caption><span class="caption-text">Installed MovieLens 20M preprocessing and split defaults</span><a class="headerlink" href="#id3" title="Link to this table"></a></caption>
+<table class="docutils align-default" id="id5">
+<caption><span class="caption-text">Installed MovieLens 20M preprocessing and split defaults</span><a class="headerlink" href="#id5" title="Link to this table"></a></caption>
 <thead>
 <tr class="row-odd"><th class="head"><p>Dataset / preprocessing</p></th>
 <th class="head"><p>User split</p></th>
@@ -730,8 +893,8 @@ beeFormer descriptions; tag annotations are optional.</p>
 for the upstream release; cite the additional description source.</p>
 <p><strong>Defaults:</strong> Positive ratings, minimum interaction support, and 30-word metadata
 give a text-ready benchmark. No timestamps: user/item splits only.</p>
-<table class="docutils align-default" id="id4">
-<caption><span class="caption-text">Installed Goodbooks-10k preprocessing and split defaults</span><a class="headerlink" href="#id4" title="Link to this table"></a></caption>
+<table class="docutils align-default" id="id6">
+<caption><span class="caption-text">Installed Goodbooks-10k preprocessing and split defaults</span><a class="headerlink" href="#id6" title="Link to this table"></a></caption>
 <thead>
 <tr class="row-odd"><th class="head"><p>Dataset / preprocessing</p></th>
 <th class="head"><p>User split</p></th>
@@ -801,8 +964,8 @@ keep graphs manageable while preserving evaluation users; no sampling or text
 minimum. Text fields also vary by category. Small holdouts remain flagged (†).</p>
 <p>Details: <a class="reference internal" href="amazon-profiling.html"><span class="doc">Amazon default-setting audit</span></a>, <a class="reference internal" href="amazon-metadata.html"><span class="doc">Amazon text and image coverage</span></a>, and
 <a class="reference download internal" download="" href="_downloads/dcef876516dc7cb1b65edd01db647a58/amazon-default-profiles.json"><code class="xref download docutils literal notranslate"><span class="pre">measured</span> <span class="pre">profiles</span></code></a>.</p>
-<table class="docutils align-default" id="id5">
-<caption><span class="caption-text">Installed category-specific Amazon support defaults</span><a class="headerlink" href="#id5" title="Link to this table"></a></caption>
+<table class="docutils align-default" id="id7">
+<caption><span class="caption-text">Installed category-specific Amazon support defaults</span><a class="headerlink" href="#id7" title="Link to this table"></a></caption>
 <thead>
 <tr class="row-odd"><th class="head"><p>Category</p></th>
 <th class="head"><p>User split</p></th>
@@ -2408,8 +2571,8 @@ archives, then caches parsed interactions as Parquet.</p>
 <p><strong>Defaults:</strong> Every review, including negative ones, counts as feedback
 (BERT4Rec’s convention). Support filtering removes short histories; no text
 minimum, so missing metadata does not erase interactions.</p>
-<table class="docutils align-default" id="id6">
-<caption><span class="caption-text">Installed Steam preprocessing and split defaults</span><a class="headerlink" href="#id6" title="Link to this table"></a></caption>
+<table class="docutils align-default" id="id8">
+<caption><span class="caption-text">Installed Steam preprocessing and split defaults</span><a class="headerlink" href="#id8" title="Link to this table"></a></caption>
 <thead>
 <tr class="row-odd"><th class="head"><p>Dataset / preprocessing</p></th>
 <th class="head"><p>User split</p></th>
@@ -2491,8 +2654,8 @@ from Internet Archive, including dates and movie titles/years.</p>
 replace those terms.</p>
 <p><strong>Defaults:</strong> MultVAE-style positive-rating and support filtering.
 No text minimum: short movie titles remain usable metadata.</p>
-<table class="docutils align-default" id="id7">
-<caption><span class="caption-text">Installed Netflix Prize preprocessing and split defaults</span><a class="headerlink" href="#id7" title="Link to this table"></a></caption>
+<table class="docutils align-default" id="id9">
+<caption><span class="caption-text">Installed Netflix Prize preprocessing and split defaults</span><a class="headerlink" href="#id9" title="Link to this table"></a></caption>
 <thead>
 <tr class="row-odd"><th class="head"><p>Dataset / preprocessing</p></th>
 <th class="head"><p>User split</p></th>
@@ -2572,8 +2735,8 @@ play-count ZIP, not the full MSD audio features or metadata.</p>
 <p><strong>Terms:</strong> <a class="reference external" href="http://millionsongdataset.com/tasteprofile/">MSD / Echo Nest usage conditions</a> apply.</p>
 <p><strong>Defaults:</strong> MultVAE-style support (20 interactions per user, 200 per item)
 removes sparse tails; play counts become binary feedback. No timestamps or text.</p>
-<table class="docutils align-default" id="id8">
-<caption><span class="caption-text">Installed MSD Taste Profile preprocessing and split defaults</span><a class="headerlink" href="#id8" title="Link to this table"></a></caption>
+<table class="docutils align-default" id="id10">
+<caption><span class="caption-text">Installed MSD Taste Profile preprocessing and split defaults</span><a class="headerlink" href="#id10" title="Link to this table"></a></caption>
 <thead>
 <tr class="row-odd"><th class="head"><p>Dataset / preprocessing</p></th>
 <th class="head"><p>User split</p></th>
@@ -2638,10 +2801,11 @@ removes sparse tails; play counts become binary feedback. No timestamps or text.
 <p><strong>Loading:</strong> <code class="docutils literal notranslate"><span class="pre">dataset=&quot;gowalla&quot;</span></code> downloads raw SNAP check-ins and coordinates,
 not the social graph or pre-made LightGCN splits.</p>
 <p><strong>Terms:</strong> Retain <a class="reference external" href="https://snap.stanford.edu/data/loc-gowalla.html">SNAP’s source citation and usage information</a>.</p>
-<p><strong>Defaults:</strong> NGCF-style 10/10 support; 720-hour (30-day) temporal windows fit
-the available check-in history.</p>
-<table class="docutils align-default" id="id9">
-<caption><span class="caption-text">Installed Gowalla preprocessing and split defaults</span><a class="headerlink" href="#id9" title="Link to this table"></a></caption>
+<p><strong>Defaults:</strong> NGCF-style 10/10 support. The temporal window is 720 hours
+(30 days): three 339-day windows exceed the 626-day span, so the global default
+cannot build a temporal split here.</p>
+<table class="docutils align-default" id="id11">
+<caption><span class="caption-text">Installed Gowalla preprocessing and split defaults</span><a class="headerlink" href="#id11" title="Link to this table"></a></caption>
 <thead>
 <tr class="row-odd"><th class="head"><p>Dataset / preprocessing</p></th>
 <th class="head"><p>User split</p></th>
@@ -2714,6 +2878,345 @@ the available check-in history.</p>
 </tbody>
 </table>
 </section>
+<section id="retailrocket">
+<span id="dataset-retailrocket"></span><h2>Retailrocket<a class="headerlink" href="#retailrocket" title="Link to this heading"></a></h2>
+<p><strong>Loading:</strong> <code class="docutils literal notranslate"><span class="pre">dataset=&quot;retailrocket&quot;</span></code> reads <code class="docutils literal notranslate"><span class="pre">events.csv</span></code> from
+<code class="docutils literal notranslate"><span class="pre">data/retailrocket/</span></code>; this is a <strong>manual download</strong>, since Kaggle requires
+sign-in. It uses <code class="docutils literal notranslate"><span class="pre">view</span></code> events only, with repeats retained. There are item IDs
+only; item properties are hashed.</p>
+<p><strong>Terms:</strong> Follow the licence on the <a class="reference external" href="https://www.kaggle.com/datasets/retailrocket/ecommerce-dataset">Kaggle dataset page</a>; it is more
+restrictive than CC-BY.</p>
+<p><strong>Defaults:</strong> 5/5 support removes most one-view visitors, so report the
+surviving share. The log spans 4.5 months, so the temporal window is 336 hours
+and its hold-outs are small (†).</p>
+<table class="docutils align-default" id="id12">
+<caption><span class="caption-text">Installed Retailrocket preprocessing and split defaults</span><a class="headerlink" href="#id12" title="Link to this table"></a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Dataset / preprocessing</p></th>
+<th class="head"><p>User split</p></th>
+<th class="head"><p>Item split</p></th>
+<th class="head"><p>Leave-last-out</p></th>
+<th class="head"><p>Temporal</p></th>
+<th class="head"><p>Item metadata (union of measured splits)</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><div class="line-block">
+<div class="line">Retailrocket</div>
+<div class="line">All feedback</div>
+<div class="line">Min text: 0 words</div>
+<div class="line">Seed: 42</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">5/5</div>
+<div class="line">22,178 users</div>
+<div class="line">17,803 items</div>
+<div class="line">Train: 14,678 users</div>
+<div class="line">Val: 2,490 users</div>
+<div class="line">4,534 items / 0.00% cold</div>
+<div class="line">Test: 4,990 users</div>
+<div class="line">7,927 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">5/5</div>
+<div class="line">22,178 users</div>
+<div class="line">17,803 items</div>
+<div class="line">Train: 22,178 users</div>
+<div class="line">Val: 7,423 users</div>
+<div class="line">891 items / 100.00% cold</div>
+<div class="line">Test: 11,989 users</div>
+<div class="line">1,781 items / 100.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">5/5</div>
+<div class="line">60,112 users</div>
+<div class="line">34,185 items</div>
+<div class="line">Train: 60,112 users</div>
+<div class="line">Val: 60,112 users</div>
+<div class="line">24,289 items / 0.02% cold</div>
+<div class="line">Test: 60,112 users</div>
+<div class="line">24,282 items / 0.02% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">5/5</div>
+<div class="line">571 users</div>
+<div class="line">1,417 items</div>
+<div class="line">Train: 195 users</div>
+<div class="line">Val: 254 users †</div>
+<div class="line">713 items / 46.84% cold</div>
+<div class="line">Test: 319 users †</div>
+<div class="line">809 items / 59.70% cold</div>
+<div class="line">Window: 336 h</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">Union: 34,185 items</div>
+<div class="line">Image URLs: not exposed</div>
+<div class="line">≥10 words: 0 (0.00%)</div>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="music4all-onion">
+<span id="dataset-music4all-onion"></span><h2>Music4All-Onion<a class="headerlink" href="#music4all-onion" title="Link to this heading"></a></h2>
+<p><strong>Loading:</strong> <code class="docutils literal notranslate"><span class="pre">dataset=&quot;music4all-onion&quot;</span></code> downloads only the Last.fm listening
+events (2.2 GB); the release’s 26 feature sets are not fetched, so there are
+item IDs only.</p>
+<p><strong>Terms:</strong> <a class="reference external" href="https://zenodo.org/records/6609677">Zenodo record</a> under CC-BY 4.0;
+cite the CIKM 2022 paper.</p>
+<p><strong>Defaults:</strong> Registers the calendar-year window <code class="docutils literal notranslate"><span class="pre">start=&quot;2014-01-01&quot;</span></code> to
+<code class="docutils literal notranslate"><span class="pre">end=&quot;2015-01-01&quot;</span></code> (33.7M of 253M listens; see <a class="reference internal" href="#dataset-options"><span class="std std-ref">Adapter options</span></a>), with a
+720-hour temporal window. Replays are separate events, and seen items are
+excluded by default, so a replayed target is unreachable.</p>
+<table class="docutils align-default" id="id13">
+<caption><span class="caption-text">Installed Music4All-Onion preprocessing and split defaults</span><a class="headerlink" href="#id13" title="Link to this table"></a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Dataset / preprocessing</p></th>
+<th class="head"><p>User split</p></th>
+<th class="head"><p>Item split</p></th>
+<th class="head"><p>Leave-last-out</p></th>
+<th class="head"><p>Temporal</p></th>
+<th class="head"><p>Item metadata (union of measured splits)</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><div class="line-block">
+<div class="line">Music4All-Onion</div>
+<div class="line">All feedback</div>
+<div class="line">Min text: 0 words</div>
+<div class="line">Seed: 42</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">5/5</div>
+<div class="line">50,891 users</div>
+<div class="line">37,042 items</div>
+<div class="line">Train: 43,391 users</div>
+<div class="line">Val: 2,500 users</div>
+<div class="line">25,235 items / 0.00% cold</div>
+<div class="line">Test: 5,000 users</div>
+<div class="line">30,069 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">5/5</div>
+<div class="line">50,891 users</div>
+<div class="line">37,042 items</div>
+<div class="line">Train: 50,891 users</div>
+<div class="line">Val: 44,557 users</div>
+<div class="line">1,853 items / 100.00% cold</div>
+<div class="line">Test: 47,762 users</div>
+<div class="line">3,705 items / 100.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">5/5</div>
+<div class="line">51,556 users</div>
+<div class="line">37,633 items</div>
+<div class="line">Train: 51,556 users</div>
+<div class="line">Val: 51,556 users</div>
+<div class="line">18,768 items / 0.00% cold</div>
+<div class="line">Test: 51,556 users</div>
+<div class="line">18,820 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">5/5</div>
+<div class="line">36,603 users</div>
+<div class="line">36,885 items</div>
+<div class="line">Train: 31,434 users</div>
+<div class="line">Val: 31,002 users</div>
+<div class="line">35,886 items / 0.97% cold</div>
+<div class="line">Test: 30,369 users</div>
+<div class="line">35,998 items / 1.41% cold</div>
+<div class="line">Window: 720 h</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">Union: 37,633 items</div>
+<div class="line">Image URLs: not exposed</div>
+<div class="line">≥10 words: 0 (0.00%)</div>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="otto">
+<span id="dataset-otto"></span><h2>OTTO<a class="headerlink" href="#otto" title="Link to this heading"></a></h2>
+<p><strong>Loading:</strong> <code class="docutils literal notranslate"><span class="pre">dataset=&quot;otto&quot;</span></code> reads <code class="docutils literal notranslate"><span class="pre">train.jsonl</span></code> from <code class="docutils literal notranslate"><span class="pre">data/otto/</span></code>; this
+is a <strong>manual download</strong>, via <code class="docutils literal notranslate"><span class="pre">kaggle</span> <span class="pre">datasets</span> <span class="pre">download</span> <span class="pre">-d</span> <span class="pre">otto/recsys-dataset</span></code>.
+It uses <code class="docutils literal notranslate"><span class="pre">clicks</span></code> only. Rows are sessions, not users, and there is no item
+metadata.</p>
+<p><strong>Terms:</strong> Follow the <a class="reference external" href="https://github.com/otto-de/recsys-dataset">OTTO dataset repository’s</a> licence and attribution.</p>
+<p><strong>Defaults:</strong> Registers <code class="docutils literal notranslate"><span class="pre">session_sample=0.1</span></code> (19.5M of 194M clicks; see
+<a class="reference internal" href="#dataset-options"><span class="std std-ref">Adapter options</span></a>). The log spans four weeks, so the temporal window is
+48 hours.</p>
+<table class="docutils align-default" id="id14">
+<caption><span class="caption-text">Installed OTTO preprocessing and split defaults</span><a class="headerlink" href="#id14" title="Link to this table"></a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Dataset / preprocessing</p></th>
+<th class="head"><p>User split</p></th>
+<th class="head"><p>Item split</p></th>
+<th class="head"><p>Leave-last-out</p></th>
+<th class="head"><p>Temporal</p></th>
+<th class="head"><p>Item metadata (union of measured splits)</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><div class="line-block">
+<div class="line">OTTO</div>
+<div class="line">All feedback</div>
+<div class="line">Min text: 0 words</div>
+<div class="line">Seed: 42</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">5/5</div>
+<div class="line">543,448 users</div>
+<div class="line">360,552 items</div>
+<div class="line">Train: 523,448 users</div>
+<div class="line">Val: 10,000 users</div>
+<div class="line">30,944 items / 0.00% cold</div>
+<div class="line">Test: 10,000 users</div>
+<div class="line">30,523 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">5/5</div>
+<div class="line">543,448 users</div>
+<div class="line">360,552 items</div>
+<div class="line">Train: 543,442 users</div>
+<div class="line">Val: 258,344 users</div>
+<div class="line">18,028 items / 100.00% cold</div>
+<div class="line">Test: 369,270 users</div>
+<div class="line">36,056 items / 100.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">5/5</div>
+<div class="line">685,400 users</div>
+<div class="line">492,279 items</div>
+<div class="line">Train: 685,400 users</div>
+<div class="line">Val: 685,400 users</div>
+<div class="line">237,303 items / &lt;0.01% cold</div>
+<div class="line">Test: 685,400 users</div>
+<div class="line">236,350 items / &lt;0.01% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">5/5</div>
+<div class="line">206,515 users</div>
+<div class="line">177,762 items</div>
+<div class="line">Train: 95,460 users</div>
+<div class="line">Val: 96,159 users</div>
+<div class="line">105,789 items / 16.71% cold</div>
+<div class="line">Test: 110,922 users</div>
+<div class="line">126,742 items / 27.00% cold</div>
+<div class="line">Window: 48 h</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">Union: 492,279 items</div>
+<div class="line">Image URLs: not exposed</div>
+<div class="line">≥10 words: 0 (0.00%)</div>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="yambda">
+<span id="dataset-yambda"></span><h2>Yambda<a class="headerlink" href="#yambda" title="Link to this heading"></a></h2>
+<p><strong>Loading:</strong> <code class="docutils literal notranslate"><span class="pre">dataset=&quot;yambda&quot;</span></code> downloads the listens of one release variant
+(<code class="docutils literal notranslate"><span class="pre">&quot;50m&quot;</span></code> by default) from Hugging Face. There are item IDs only, and
+<code class="docutils literal notranslate"><span class="pre">organic_only=True</span></code> drops recommender-served events.</p>
+<p><strong>Terms:</strong> <a class="reference external" href="https://huggingface.co/datasets/yandex/yambda">Yambda on Hugging Face</a>
+under Apache 2.0.</p>
+<p><strong>Defaults:</strong> Registers <code class="docutils literal notranslate"><span class="pre">user_sample=0.2</span></code> (about 9.3M of 46.5M listens; see
+<a class="reference internal" href="#dataset-options"><span class="std std-ref">Adapter options</span></a>), with a 720-hour temporal window. Timestamps are
+relative to the log start and rounded to 5 s, so ties are expected. Only about
+1,800 users with long histories remain, so hold-outs are 200/400 (†).</p>
+<table class="docutils align-default" id="id15">
+<caption><span class="caption-text">Installed Yambda preprocessing and split defaults</span><a class="headerlink" href="#id15" title="Link to this table"></a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Dataset / preprocessing</p></th>
+<th class="head"><p>User split</p></th>
+<th class="head"><p>Item split</p></th>
+<th class="head"><p>Leave-last-out</p></th>
+<th class="head"><p>Temporal</p></th>
+<th class="head"><p>Item metadata (union of measured splits)</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><div class="line-block">
+<div class="line">Yambda</div>
+<div class="line">All feedback</div>
+<div class="line">Min text: 0 words</div>
+<div class="line">Seed: 42</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">5/5</div>
+<div class="line">1,797 users</div>
+<div class="line">84,967 items</div>
+<div class="line">Train: 1,197 users</div>
+<div class="line">Val: 200 users †</div>
+<div class="line">28,284 items / 0.00% cold</div>
+<div class="line">Test: 400 users †</div>
+<div class="line">39,609 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">5/5</div>
+<div class="line">1,797 users</div>
+<div class="line">84,967 items</div>
+<div class="line">Train: 1,797 users</div>
+<div class="line">Val: 1,756 users</div>
+<div class="line">4,249 items / 100.00% cold</div>
+<div class="line">Test: 1,789 users</div>
+<div class="line">8,497 items / 100.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">5/5</div>
+<div class="line">1,800 users</div>
+<div class="line">149,971 items</div>
+<div class="line">Train: 1,800 users</div>
+<div class="line">Val: 1,800 users</div>
+<div class="line">1,676 items / 0.00% cold</div>
+<div class="line">Test: 1,800 users</div>
+<div class="line">1,678 items / 0.00% cold</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">5/5</div>
+<div class="line">1,751 users</div>
+<div class="line">84,805 items</div>
+<div class="line">Train: 1,391 users</div>
+<div class="line">Val: 1,514 users</div>
+<div class="line">64,100 items / 11.85% cold</div>
+<div class="line">Test: 1,745 users</div>
+<div class="line">72,146 items / 21.05% cold</div>
+<div class="line">Window: 720 h</div>
+</div>
+</td>
+<td><div class="line-block">
+<div class="line">Union: 149,971 items</div>
+<div class="line">Image URLs: not exposed</div>
+<div class="line">≥10 words: 0 (0.00%)</div>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</section>
 <section id="dbbook">
 <span id="dataset-dbbook"></span><h2>DBbook<a class="headerlink" href="#dbbook" title="Link to this heading"></a></h2>
 <p><strong>Loading:</strong> <code class="docutils literal notranslate"><span class="pre">dataset=&quot;dbbook&quot;</span></code> downloads SWAP’s reconstructed interaction
@@ -2723,8 +3226,8 @@ original DBbook/DBpedia rights still apply.</p>
 <p><strong>Defaults:</strong> Keep positive feedback and sufficiently supported histories,
 without filtering short titles. <code class="docutils literal notranslate"><span class="pre">official</span></code> preserves the supplied test
 boundary; see <a class="reference internal" href="dataset-sweep.html#dbbook-official-protocol"><span class="std std-ref">DBbook official protocol</span></a> for validation details.</p>
-<table class="docutils align-default" id="id10">
-<caption><span class="caption-text">Installed DBbook preprocessing and split defaults</span><a class="headerlink" href="#id10" title="Link to this table"></a></caption>
+<table class="docutils align-default" id="id16">
+<caption><span class="caption-text">Installed DBbook preprocessing and split defaults</span><a class="headerlink" href="#id16" title="Link to this table"></a></caption>
 <thead>
 <tr class="row-odd"><th class="head"><p>Dataset / preprocessing</p></th>
 <th class="head"><p>User split</p></th>
@@ -2813,8 +3316,8 @@ Cite SWAP for its features.</p>
 <p><strong>Defaults:</strong> Binarize play counts, filter short histories, and retain short
 artist names. Tag-derived embeddings are <strong>interaction-derived</strong>, not independent
 content metadata.</p>
-<table class="docutils align-default" id="id11">
-<caption><span class="caption-text">Installed Last.fm-2K preprocessing and split defaults</span><a class="headerlink" href="#id11" title="Link to this table"></a></caption>
+<table class="docutils align-default" id="id17">
+<caption><span class="caption-text">Installed Last.fm-2K preprocessing and split defaults</span><a class="headerlink" href="#id17" title="Link to this table"></a></caption>
 <thead>
 <tr class="row-odd"><th class="head"><p>Dataset / preprocessing</p></th>
 <th class="head"><p>User split</p></th>
@@ -2891,8 +3394,8 @@ content metadata.</p>
 the interaction split. Other datasets use user-computed vectors in the same
 checkpoint format. See <a class="reference internal" href="examples.html#item-embedding-recipes"><span class="std std-ref">Using item embeddings</span></a> for import, storage, and
 missing-feature handling; original dataset restrictions still apply.</p>
-<table class="docutils align-default" id="id12">
-<caption><span class="caption-text">Precomputed feature names</span><a class="headerlink" href="#id12" title="Link to this table"></a></caption>
+<table class="docutils align-default" id="id18">
+<caption><span class="caption-text">Precomputed feature names</span><a class="headerlink" href="#id18" title="Link to this table"></a></caption>
 <thead>
 <tr class="row-odd"><th class="head"><p>Modality</p></th>
 <th class="head"><p>Feature names</p></th>

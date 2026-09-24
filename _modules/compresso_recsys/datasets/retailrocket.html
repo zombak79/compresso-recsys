@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>compresso_recsys.models.baselines &mdash; Compresso Recsys 0.3.7 documentation</title>
+  <title>compresso_recsys.datasets.retailrocket &mdash; Compresso Recsys 0.3.7 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
 
@@ -450,7 +450,7 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
-      <li class="breadcrumb-item active">compresso_recsys.models.baselines</li>
+      <li class="breadcrumb-item active">compresso_recsys.datasets.retailrocket</li>
       <li class="wy-breadcrumbs-aside">
       </li>
   </ul>
@@ -459,312 +459,150 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <h1>Source code for compresso_recsys.models.baselines</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+  <h1>Source code for compresso_recsys.datasets.retailrocket</h1><div class="highlight"><pre>
+<span></span><span class="sd">"""Retailrocket ecommerce behaviour log, downloaded by hand from Kaggle."""</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Hashable</span><span class="p">,</span> <span class="n">Sequence</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">hashlib</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Sequence</span>
 
-<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">scipy.sparse</span><span class="w"> </span><span class="kn">import</span> <span class="n">csr_matrix</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">compresso</span><span class="w"> </span><span class="kn">import</span> <span class="n">SRPTensor</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.models._ranking</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">mask_seen_numpy</span><span class="p">,</span>
-    <span class="n">rank_numpy_scores</span><span class="p">,</span>
-    <span class="n">validate_candidate_topk</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.models._validation</span><span class="w"> </span><span class="kn">import</span> <span class="n">canonical_csr</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.models.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseCollaborativeRecommender</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.models.identifiers</span><span class="w"> </span><span class="kn">import</span> <span class="n">ItemVocabulary</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">compresso_recsys.persistence</span><span class="w"> </span><span class="kn">import</span> <span class="n">ModelCheckpointReader</span><span class="p">,</span> <span class="n">ModelCheckpointWriter</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._download</span><span class="w"> </span><span class="kn">import</span> <span class="n">cached_interactions</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._public</span><span class="w"> </span><span class="kn">import</span> <span class="n">PublicDataset</span>
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
-    <span class="s2">"PopularityBaseline"</span><span class="p">,</span>
-    <span class="s2">"PopularityBaselineConfig"</span><span class="p">,</span>
-    <span class="s2">"RandomBaseline"</span><span class="p">,</span>
-    <span class="s2">"RandomBaselineConfig"</span><span class="p">,</span>
-<span class="p">]</span>
+<span class="c1">#: Every event type the log records.</span>
+<span class="n">EVENT_TYPES</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"view"</span><span class="p">,</span> <span class="s2">"addtocart"</span><span class="p">,</span> <span class="s2">"transaction"</span><span class="p">)</span>
 
-<span class="n">_UINT64_MASK</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">64</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+<span class="c1">#: Views are 96.7% of the log and are the click analogue every other adapter</span>
+<span class="c1">#: yields. The canonical schema has no event-type column, so keeping carts and</span>
+<span class="c1">#: transactions as well would not make the data richer -- it would make a</span>
+<span class="c1">#: purchase indistinguishable from a page view. Pass ``events`` to override that</span>
+<span class="c1">#: default when a purchase and a page view really are the same event to you.</span>
+<span class="n">KEPT_EVENTS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"view"</span><span class="p">,)</span>
+
+<span class="c1">#: The selection the caches numbered ``version=1`` were built with. Frozen on</span>
+<span class="c1">#: purpose: the cache key omits the event list whenever it equals this, so</span>
+<span class="c1">#: comparing against :data:`KEPT_EVENTS` instead would mean that changing the</span>
+<span class="c1">#: default silently reused parquet files built under the old one. Never edit</span>
+<span class="c1">#: this to follow a new default -- a new default must fall through to a hash.</span>
+<span class="n">_VERSION_1_EVENTS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"view"</span><span class="p">,)</span>
 
 
-<div class="viewcode-block" id="RandomBaselineConfig">
-<a class="viewcode-back" href="../../../api/models.html#compresso_recsys.models.RandomBaselineConfig">[docs]</a>
-<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="k">class</span><span class="w"> </span><span class="nc">RandomBaselineConfig</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Configuration for :class:`RandomBaseline`.</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_event_selection</span><span class="p">(</span><span class="n">events</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Normalise and check an event-type selection.</span>
 
-<span class="sd">    ``seed`` determines a stable pseudorandom ranking for each distinct source</span>
-<span class="sd">    history. Predictions are invariant to evaluation batch size and checkpoint</span>
-<span class="sd">    round trips.</span>
+<span class="sd">    Rejecting an unknown name matters more here than it looks: the filter is a</span>
+<span class="sd">    plain ``isin``, so a typo would not raise -- it would yield an empty log and</span>
+<span class="sd">    surface much later as a dataset with no interactions.</span>
+<span class="sd">    """</span>
+    <span class="n">selection</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">event</span><span class="p">)</span> <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">events</span><span class="p">))</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">selection</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"events must name at least one event type"</span><span class="p">)</span>
+    <span class="n">unknown</span> <span class="o">=</span> <span class="p">[</span><span class="n">event</span> <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">selection</span> <span class="k">if</span> <span class="n">event</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">EVENT_TYPES</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">unknown</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"unknown event types </span><span class="si">{</span><span class="n">unknown</span><span class="si">}</span><span class="s2">; choose from </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="n">EVENT_TYPES</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">selection</span>
+
+
+<div class="viewcode-block" id="RetailRocket">
+<a class="viewcode-back" href="../../../api/datasets.html#compresso_recsys.datasets.RetailRocket">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">RetailRocket</span><span class="p">(</span><span class="n">PublicDataset</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Visitor events over 4.5 months: 2.76M rows, 1.41M visitors, 235k items.</span>
+
+<span class="sd">    Repeated views of the same item are retained; they are most of what makes</span>
+<span class="sd">    this log a sequence rather than a set. Item properties are published as</span>
+<span class="sd">    hashed values, so there is no usable item text and the catalog carries no</span>
+<span class="sd">    metadata beyond the ids the events reference.</span>
+
+<span class="sd">    Sequences are short — under two events per visitor on average — so the</span>
+<span class="sd">    leave-last-out protocol, which needs four, keeps only a small and heavily</span>
+<span class="sd">    self-selected minority of visitors. Measure that share before reading</span>
+<span class="sd">    anything into a metric computed on it.</span>
 <span class="sd">    """</span>
 
-    <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s2">"retailrocket"</span>
+    <span class="n">source_page</span> <span class="o">=</span> <span class="s2">"https://www.kaggle.com/datasets/retailrocket/ecommerce-dataset"</span>
+    <span class="n">timestamp_precision</span> <span class="o">=</span> <span class="s2">"milliseconds"</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">seed</span><span class="p">,</span> <span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">))</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">seed</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">)</span>
+    <span class="c1">#: Kaggle serves the archive to signed-in users only, so there is no URL to</span>
+    <span class="c1">#: fetch. Only this member of the archive is read; the rest may stay zipped.</span>
+    <span class="n">events_file</span> <span class="o">=</span> <span class="s2">"events.csv"</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">data_dir</span><span class="o">=</span><span class="s2">"data"</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">events</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">KEPT_EVENTS</span><span class="p">,</span>
+        <span class="n">metadata_text_fields</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">min_entity_text_words</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">show_progress</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">events</span> <span class="o">=</span> <span class="n">_event_selection</span><span class="p">(</span><span class="n">events</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">data_dir</span><span class="p">,</span>
+            <span class="n">metadata_text_fields</span><span class="o">=</span><span class="n">metadata_text_fields</span><span class="p">,</span>
+            <span class="n">min_entity_text_words</span><span class="o">=</span><span class="n">min_entity_text_words</span><span class="p">,</span>
+            <span class="n">show_progress</span><span class="o">=</span><span class="n">show_progress</span><span class="p">,</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="RetailRocket.download">
+<a class="viewcode-back" href="../../../api/datasets.html#compresso_recsys.datasets.RetailRocket.download">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">download</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Check for the manually placed export rather than fetching anything.</span>
+
+<span class="sd">        Raising beats a warning here: ``prepare`` would otherwise continue and</span>
+<span class="sd">        fail inside the CSV reader, reporting a missing file instead of the</span>
+<span class="sd">        manual step that is actually required.</span>
+<span class="sd">        """</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">root</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">events_file</span><span class="p">)</span><span class="o">.</span><span class="n">is_file</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> cannot be downloaded automatically. Sign in at "</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">source_page</span><span class="si">}</span><span class="s2">, download ecommerce-dataset.zip, and extract "</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">events_file</span><span class="si">}</span><span class="s2"> to </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">root</span><span class="si">}</span><span class="s2">."</span>
+            <span class="p">)</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_frames</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">frame</span> <span class="ow">in</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">root</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">events_file</span><span class="p">,</span>
+            <span class="n">usecols</span><span class="o">=</span><span class="p">[</span><span class="s2">"timestamp"</span><span class="p">,</span> <span class="s2">"visitorid"</span><span class="p">,</span> <span class="s2">"event"</span><span class="p">,</span> <span class="s2">"itemid"</span><span class="p">],</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="p">{</span><span class="s2">"visitorid"</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="s2">"itemid"</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="s2">"event"</span><span class="p">:</span> <span class="nb">str</span><span class="p">},</span>
+            <span class="n">chunksize</span><span class="o">=</span><span class="mi">500_000</span><span class="p">,</span>
         <span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">"seed must be an integer"</span><span class="p">)</span></div>
-
-
-
-<div class="viewcode-block" id="PopularityBaselineConfig">
-<a class="viewcode-back" href="../../../api/models.html#compresso_recsys.models.PopularityBaselineConfig">[docs]</a>
-<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="k">class</span><span class="w"> </span><span class="nc">PopularityBaselineConfig</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Configuration for :class:`PopularityBaseline`.</span>
-
-<span class="sd">    When ``use_values`` is false, popularity counts users with a nonzero</span>
-<span class="sd">    interaction. When true, it sums the interaction values instead.</span>
-<span class="sd">    """</span>
-
-    <span class="n">use_values</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">use_values</span><span class="p">,</span> <span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">)):</span>
-            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">"use_values must be a boolean"</span><span class="p">)</span></div>
-
-
-
-<span class="k">class</span><span class="w"> </span><span class="nc">_FixedCatalogBaseline</span><span class="p">(</span><span class="n">BaseCollaborativeRecommender</span><span class="p">):</span>
-    <span class="n">n_items_</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span>
-
-    <span class="nd">@property</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">is_fitted</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_items_</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-
-    <span class="nd">@property</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">n_items</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_items_</span>
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">_prepare_catalog</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span>
-        <span class="n">interactions</span><span class="p">:</span> <span class="n">csr_matrix</span><span class="p">,</span>
-        <span class="n">item_ids</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Hashable</span><span class="p">]</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">csr_matrix</span><span class="p">,</span> <span class="n">ItemVocabulary</span><span class="p">]:</span>
-        <span class="n">interactions</span> <span class="o">=</span> <span class="n">canonical_csr</span><span class="p">(</span><span class="n">interactions</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"interactions"</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">interactions</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">interactions</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">"interactions must contain at least one user and one item"</span>
+            <span class="n">frame</span> <span class="o">=</span> <span class="n">frame</span><span class="p">[</span><span class="n">frame</span><span class="p">[</span><span class="s2">"event"</span><span class="p">]</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">events</span><span class="p">)]</span>
+            <span class="k">yield</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+                <span class="p">{</span>
+                    <span class="s2">"user_id"</span><span class="p">:</span> <span class="n">frame</span><span class="p">[</span><span class="s2">"visitorid"</span><span class="p">],</span>
+                    <span class="s2">"item_id"</span><span class="p">:</span> <span class="n">frame</span><span class="p">[</span><span class="s2">"itemid"</span><span class="p">],</span>
+                    <span class="s2">"value"</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>
+                    <span class="c1"># Integer milliseconds. unix_seconds() cannot read these:</span>
+                    <span class="c1"># pandas parses a bare integer as nanoseconds, which would</span>
+                    <span class="c1"># place every event in 1970 without raising.</span>
+                    <span class="s2">"timestamp"</span><span class="p">:</span> <span class="n">frame</span><span class="p">[</span><span class="s2">"timestamp"</span><span class="p">]</span> <span class="o">/</span> <span class="mf">1000.0</span><span class="p">,</span>
+                <span class="p">}</span>
             <span class="p">)</span>
-        <span class="n">vocabulary</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_item_vocabulary</span><span class="p">(</span>
-            <span class="n">item_ids</span><span class="p">,</span>
-            <span class="n">n_items</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">interactions</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_cache_version</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Cache key for the event selection.</span>
+
+<span class="sd">        The cache is keyed on the source file and this version, so a different</span>
+<span class="sd">        selection has to change the version or it would read the previous one's</span>
+<span class="sd">        parquet.</span>
+<span class="sd">        Only :data:`_VERSION_1_EVENTS` keeps the original key, so adding this</span>
+<span class="sd">        option did not invalidate caches built before it existed, and changing</span>
+<span class="sd">        the default later still rebuilds rather than reusing them.</span>
+<span class="sd">        """</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">events</span> <span class="o">==</span> <span class="n">_VERSION_1_EVENTS</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="sa">f</span><span class="s2">"1|events=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">events</span><span class="si">}</span><span class="s2">"</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()[:</span><span class="mi">8</span><span class="p">],</span> <span class="mi">16</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">prepare</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">download</span><span class="p">()</span>
+        <span class="n">interactions</span> <span class="o">=</span> <span class="n">cached_interactions</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">root</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">events_file</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_frames</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_cache_version</span><span class="p">(),</span>
         <span class="p">)</span>
-        <span class="k">return</span> <span class="n">interactions</span><span class="p">,</span> <span class="n">vocabulary</span>
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">_checkpoint_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reader</span><span class="p">:</span> <span class="n">ModelCheckpointReader</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-        <span class="n">state</span> <span class="o">=</span> <span class="n">reader</span><span class="o">.</span><span class="n">read_json</span><span class="p">(</span><span class="s2">"state/baseline.json"</span><span class="p">)</span>
-        <span class="n">n_items</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"n_items"</span><span class="p">)</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">n_items</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">n_items</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">or</span> <span class="n">n_items</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"baseline n_items must be a positive integer"</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">n_items</span>
-
-
-<div class="viewcode-block" id="RandomBaseline">
-<a class="viewcode-back" href="../../../api/models.html#compresso_recsys.models.RandomBaseline">[docs]</a>
-<span class="k">class</span><span class="w"> </span><span class="nc">RandomBaseline</span><span class="p">(</span><span class="n">_FixedCatalogBaseline</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Deterministic random-ranking baseline for a fixed item catalog."""</span>
-
-    <span class="n">checkpoint_type</span> <span class="o">=</span> <span class="s2">"random_baseline"</span>
-
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">RandomBaselineConfig</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span> <span class="o">=</span> <span class="n">config</span> <span class="k">if</span> <span class="n">config</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">RandomBaselineConfig</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">n_items_</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-
-<div class="viewcode-block" id="RandomBaseline.fit">
-<a class="viewcode-back" href="../../../api/models.html#compresso_recsys.models.RandomBaseline.fit">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">fit</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span>
-        <span class="n">interactions</span><span class="p">:</span> <span class="n">csr_matrix</span><span class="p">,</span>
-        <span class="o">*</span><span class="p">,</span>
-        <span class="n">item_ids</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Hashable</span><span class="p">]</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RandomBaseline</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Record the fitted catalog used by the random baseline."""</span>
-        <span class="n">interactions</span><span class="p">,</span> <span class="n">vocabulary</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_catalog</span><span class="p">(</span><span class="n">interactions</span><span class="p">,</span> <span class="n">item_ids</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">n_items_</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">interactions</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_publish_item_vocabulary</span><span class="p">(</span><span class="n">vocabulary</span><span class="p">)</span>
-        <span class="k">return</span> <span class="bp">self</span></div>
-
-
-    <span class="nd">@staticmethod</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">_history_key</span><span class="p">(</span><span class="n">indices</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-        <span class="n">value</span> <span class="o">=</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span> <span class="o">^</span> <span class="mh">0xCBF29CE484222325</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">_UINT64_MASK</span>
-        <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="n">indices</span><span class="o">.</span><span class="n">tolist</span><span class="p">():</span>
-            <span class="n">value</span> <span class="o">^=</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">index</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">_UINT64_MASK</span>
-            <span class="n">value</span> <span class="o">=</span> <span class="p">(</span><span class="n">value</span> <span class="o">*</span> <span class="mh">0x100000001B3</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">_UINT64_MASK</span>
-        <span class="k">return</span> <span class="n">value</span>
-
-    <span class="nd">@staticmethod</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">_random_scores</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">candidate_rows</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-        <span class="n">values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">candidate_rows</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint64</span><span class="p">)</span>
-        <span class="n">values</span> <span class="o">=</span> <span class="n">values</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">uint64</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
-        <span class="n">values</span> <span class="o">=</span> <span class="n">values</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">uint64</span><span class="p">(</span><span class="mh">0x9E3779B97F4A7C15</span><span class="p">)</span>
-        <span class="n">values</span> <span class="o">=</span> <span class="p">(</span><span class="n">values</span> <span class="o">^</span> <span class="p">(</span><span class="n">values</span> <span class="o">&gt;&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">uint64</span><span class="p">(</span><span class="mi">30</span><span class="p">)))</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">uint64</span><span class="p">(</span>
-            <span class="mh">0xBF58476D1CE4E5B9</span>
-        <span class="p">)</span>
-        <span class="n">values</span> <span class="o">=</span> <span class="p">(</span><span class="n">values</span> <span class="o">^</span> <span class="p">(</span><span class="n">values</span> <span class="o">&gt;&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">uint64</span><span class="p">(</span><span class="mi">27</span><span class="p">)))</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">uint64</span><span class="p">(</span>
-            <span class="mh">0x94D049BB133111EB</span>
-        <span class="p">)</span>
-        <span class="n">values</span> <span class="o">^=</span> <span class="n">values</span> <span class="o">&gt;&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">uint64</span><span class="p">(</span><span class="mi">31</span><span class="p">)</span>
-        <span class="k">return</span> <span class="p">(</span><span class="n">values</span> <span class="o">&gt;&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">uint64</span><span class="p">(</span><span class="mi">11</span><span class="p">))</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">53</span><span class="p">))</span>
-
-<div class="viewcode-block" id="RandomBaseline.predict_on_batch">
-<a class="viewcode-back" href="../../../api/models.html#compresso_recsys.models.RandomBaseline.predict_on_batch">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">predict_on_batch</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span>
-        <span class="n">source</span><span class="p">:</span> <span class="n">csr_matrix</span><span class="p">,</span>
-        <span class="o">*</span><span class="p">,</span>
-        <span class="n">k</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">exclude_seen</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-        <span class="n">candidate_ids</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Hashable</span><span class="p">]</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SRPTensor</span><span class="p">:</span>
-        <span class="n">source</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_source</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>
-        <span class="n">candidate_rows</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_candidate_rows</span><span class="p">(</span><span class="n">candidate_ids</span><span class="p">)</span>
-        <span class="n">validate_candidate_topk</span><span class="p">(</span>
-            <span class="n">source</span><span class="p">,</span>
-            <span class="n">candidate_rows</span><span class="p">,</span>
-            <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
-            <span class="n">exclude_seen</span><span class="o">=</span><span class="n">exclude_seen</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">scores</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">candidate_rows</span><span class="o">.</span><span class="n">size</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
-            <span class="n">key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_history_key</span><span class="p">(</span>
-                <span class="n">source</span><span class="o">.</span><span class="n">indices</span><span class="p">[</span><span class="n">source</span><span class="o">.</span><span class="n">indptr</span><span class="p">[</span><span class="n">row</span><span class="p">]</span> <span class="p">:</span> <span class="n">source</span><span class="o">.</span><span class="n">indptr</span><span class="p">[</span><span class="n">row</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]],</span>
-                <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">seed</span><span class="p">),</span>
-            <span class="p">)</span>
-            <span class="n">scores</span><span class="p">[</span><span class="n">row</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_random_scores</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">candidate_rows</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">exclude_seen</span><span class="p">:</span>
-            <span class="n">mask_seen_numpy</span><span class="p">(</span><span class="n">scores</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="n">candidate_rows</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">rank_numpy_scores</span><span class="p">(</span>
-            <span class="n">scores</span><span class="p">,</span>
-            <span class="n">candidate_rows</span><span class="o">=</span><span class="n">candidate_rows</span><span class="p">,</span>
-            <span class="n">shape</span><span class="o">=</span><span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
-            <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
-        <span class="p">)</span></div>
-
-
-    <span class="nd">@classmethod</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">_from_checkpoint_config</span><span class="p">(</span>
-        <span class="bp">cls</span><span class="p">,</span>
-        <span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
-        <span class="n">reader</span><span class="p">:</span> <span class="n">ModelCheckpointReader</span><span class="p">,</span>
-        <span class="o">*</span><span class="p">,</span>
-        <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RandomBaseline</span><span class="p">:</span>
-        <span class="k">del</span> <span class="n">device</span>
-        <span class="n">model</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="n">RandomBaselineConfig</span><span class="p">(</span><span class="o">**</span><span class="n">config</span><span class="p">))</span>
-        <span class="n">model</span><span class="o">.</span><span class="n">n_items_</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">_checkpoint_state</span><span class="p">(</span><span class="n">reader</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">model</span>
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">_save_checkpoint_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">writer</span><span class="p">:</span> <span class="n">ModelCheckpointWriter</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_items_</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-        <span class="n">writer</span><span class="o">.</span><span class="n">write_json</span><span class="p">(</span><span class="s2">"state/baseline.json"</span><span class="p">,</span> <span class="p">{</span><span class="s2">"n_items"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_items_</span><span class="p">})</span></div>
-
-
-
-<div class="viewcode-block" id="PopularityBaseline">
-<a class="viewcode-back" href="../../../api/models.html#compresso_recsys.models.PopularityBaseline">[docs]</a>
-<span class="k">class</span><span class="w"> </span><span class="nc">PopularityBaseline</span><span class="p">(</span><span class="n">_FixedCatalogBaseline</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Non-personalized baseline ranking items by training popularity."""</span>
-
-    <span class="n">checkpoint_type</span> <span class="o">=</span> <span class="s2">"popularity_baseline"</span>
-
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">PopularityBaselineConfig</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span> <span class="o">=</span> <span class="n">config</span> <span class="k">if</span> <span class="n">config</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">PopularityBaselineConfig</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">popularity_</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">n_items_</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-
-    <span class="nd">@property</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">is_fitted</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">popularity_</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-
-<div class="viewcode-block" id="PopularityBaseline.fit">
-<a class="viewcode-back" href="../../../api/models.html#compresso_recsys.models.PopularityBaseline.fit">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">fit</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span>
-        <span class="n">interactions</span><span class="p">:</span> <span class="n">csr_matrix</span><span class="p">,</span>
-        <span class="o">*</span><span class="p">,</span>
-        <span class="n">item_ids</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Hashable</span><span class="p">]</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PopularityBaseline</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Count item popularity in the fitted interaction matrix."""</span>
-        <span class="n">interactions</span><span class="p">,</span> <span class="n">vocabulary</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_catalog</span><span class="p">(</span><span class="n">interactions</span><span class="p">,</span> <span class="n">item_ids</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">interactions</span><span class="o">.</span><span class="n">data</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"interactions must contain nonnegative values"</span><span class="p">)</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cfg</span><span class="o">.</span><span class="n">use_values</span><span class="p">:</span>
-            <span class="n">popularity</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">interactions</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">popularity</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">interactions</span><span class="o">.</span><span class="n">getnnz</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
-        <span class="n">popularity</span> <span class="o">=</span> <span class="n">popularity</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">popularity_</span> <span class="o">=</span> <span class="n">popularity</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">n_items_</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">interactions</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_publish_item_vocabulary</span><span class="p">(</span><span class="n">vocabulary</span><span class="p">)</span>
-        <span class="k">return</span> <span class="bp">self</span></div>
-
-
-<div class="viewcode-block" id="PopularityBaseline.predict_on_batch">
-<a class="viewcode-back" href="../../../api/models.html#compresso_recsys.models.PopularityBaseline.predict_on_batch">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">predict_on_batch</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span>
-        <span class="n">source</span><span class="p">:</span> <span class="n">csr_matrix</span><span class="p">,</span>
-        <span class="o">*</span><span class="p">,</span>
-        <span class="n">k</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">exclude_seen</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-        <span class="n">candidate_ids</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Hashable</span><span class="p">]</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SRPTensor</span><span class="p">:</span>
-        <span class="n">source</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_source</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>
-        <span class="n">candidate_rows</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_candidate_rows</span><span class="p">(</span><span class="n">candidate_ids</span><span class="p">)</span>
-        <span class="n">validate_candidate_topk</span><span class="p">(</span>
-            <span class="n">source</span><span class="p">,</span>
-            <span class="n">candidate_rows</span><span class="p">,</span>
-            <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
-            <span class="n">exclude_seen</span><span class="o">=</span><span class="n">exclude_seen</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">popularity_</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-        <span class="n">scores</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">popularity_</span><span class="p">[</span><span class="n">candidate_rows</span><span class="p">],</span>
-            <span class="p">(</span><span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">candidate_rows</span><span class="o">.</span><span class="n">size</span><span class="p">),</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-        <span class="k">if</span> <span class="n">exclude_seen</span><span class="p">:</span>
-            <span class="n">mask_seen_numpy</span><span class="p">(</span><span class="n">scores</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="n">candidate_rows</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">rank_numpy_scores</span><span class="p">(</span>
-            <span class="n">scores</span><span class="p">,</span>
-            <span class="n">candidate_rows</span><span class="o">=</span><span class="n">candidate_rows</span><span class="p">,</span>
-            <span class="n">shape</span><span class="o">=</span><span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
-            <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
-        <span class="p">)</span></div>
-
-
-    <span class="nd">@classmethod</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">_from_checkpoint_config</span><span class="p">(</span>
-        <span class="bp">cls</span><span class="p">,</span>
-        <span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
-        <span class="n">reader</span><span class="p">:</span> <span class="n">ModelCheckpointReader</span><span class="p">,</span>
-        <span class="o">*</span><span class="p">,</span>
-        <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PopularityBaseline</span><span class="p">:</span>
-        <span class="k">del</span> <span class="n">device</span>
-        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">PopularityBaselineConfig</span><span class="p">(</span><span class="o">**</span><span class="n">config</span><span class="p">))</span>
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">_save_checkpoint_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">writer</span><span class="p">:</span> <span class="n">ModelCheckpointWriter</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">popularity_</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_items_</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-        <span class="n">writer</span><span class="o">.</span><span class="n">write_json</span><span class="p">(</span><span class="s2">"state/baseline.json"</span><span class="p">,</span> <span class="p">{</span><span class="s2">"n_items"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_items_</span><span class="p">})</span>
-        <span class="n">writer</span><span class="o">.</span><span class="n">write_numpy</span><span class="p">(</span><span class="s2">"state/popularity.npy"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">popularity_</span><span class="p">)</span>
-
-    <span class="k">def</span><span class="w"> </span><span class="nf">_load_checkpoint_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reader</span><span class="p">:</span> <span class="n">ModelCheckpointReader</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">n_items</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_state</span><span class="p">(</span><span class="n">reader</span><span class="p">)</span>
-        <span class="n">popularity</span> <span class="o">=</span> <span class="n">reader</span><span class="o">.</span><span class="n">read_numpy</span><span class="p">(</span><span class="s2">"state/popularity.npy"</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">popularity</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="n">n_items</span><span class="p">,)</span> <span class="ow">or</span> <span class="n">popularity</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">"popularity state must be a float64 vector with n_items entries"</span>
-            <span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">popularity</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">popularity</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"popularity state must contain finite nonnegative values"</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">n_items_</span> <span class="o">=</span> <span class="n">n_items</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">popularity_</span> <span class="o">=</span> <span class="n">popularity</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">finish</span><span class="p">(</span><span class="n">interactions</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">"item_id"</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="nb">str</span><span class="p">)}))</span></div>
 
 </pre></div>
 

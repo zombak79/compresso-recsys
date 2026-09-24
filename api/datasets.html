@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Datasets API &mdash; Compresso Recsys 0.3.6 documentation</title>
+  <title>Datasets API &mdash; Compresso Recsys 0.3.7 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
 
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=ad4f125e"></script>
+      <script src="../_static/documentation_options.js?v=16b39043"></script>
       <script src="../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
@@ -88,6 +88,7 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../datasets.html">Datasets</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../datasets.html#reading-the-default-tables">Reading the default tables</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../datasets.html#adapter-options">Adapter options</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../datasets.html#movielens-1m">MovieLens 1M</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../datasets.html#movielens-20m">MovieLens 20M</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../datasets.html#goodbooks-10k">Goodbooks-10k</a></li>
@@ -96,6 +97,10 @@
 <li class="toctree-l2"><a class="reference internal" href="../datasets.html#netflix-prize">Netflix Prize</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../datasets.html#msd-taste-profile">MSD Taste Profile</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../datasets.html#gowalla">Gowalla</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../datasets.html#retailrocket">Retailrocket</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../datasets.html#music4all-onion">Music4All-Onion</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../datasets.html#otto">OTTO</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../datasets.html#yambda">Yambda</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../datasets.html#dbbook">DBbook</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../datasets.html#last-fm-2k">Last.fm-2K</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../datasets.html#using-item-embeddings">Using item embeddings</a></li>
@@ -215,6 +220,8 @@
 <li class="toctree-l3"><a class="reference internal" href="../citing.html#netflix-prize">Netflix Prize</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../citing.html#msd-taste-profile">MSD / Taste Profile</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../citing.html#gowalla">Gowalla</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../citing.html#retailrocket">Retailrocket</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../citing.html#music4all-onion-otto-and-yambda">Music4All-Onion, OTTO and Yambda</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../citing.html#additional-movie-and-book-descriptions">Additional Movie and Book Descriptions</a></li>
 </ul>
 </li>
@@ -697,6 +704,199 @@ The social graph is not required or downloaded.</p>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>metadata_text_fields</strong> (<em>Iterable</em><em>[</em><em>str</em><em>] </em><em>| </em><em>None</em>)</p></li>
+<li><p><strong>min_entity_text_words</strong> (<em>int</em>)</p></li>
+<li><p><strong>show_progress</strong> (<em>bool</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">compresso_recsys.datasets.</span></span><span class="sig-name descname"><span class="pre">RetailRocket</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'data'</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">events</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('view',)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata_text_fields</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_entity_text_words</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_progress</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/datasets/retailrocket.html#RetailRocket"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Visitor events over 4.5 months: 2.76M rows, 1.41M visitors, 235k items.</p>
+<p>Repeated views of the same item are retained; they are most of what makes
+this log a sequence rather than a set. Item properties are published as
+hashed values, so there is no usable item text and the catalog carries no
+metadata beyond the ids the events reference.</p>
+<p>Sequences are short — under two events per visitor on average — so the
+leave-last-out protocol, which needs four, keeps only a small and heavily
+self-selected minority of visitors. Measure that share before reading
+anything into a metric computed on it.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>events</strong> (<em>Sequence</em><em>[</em><em>str</em><em>]</em>)</p></li>
+<li><p><strong>min_entity_text_words</strong> (<em>int</em>)</p></li>
+<li><p><strong>show_progress</strong> (<em>bool</em>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">events_file</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'events.csv'</span></span></dt>
+<dd><p>Kaggle serves the archive to signed-in users only, so there is no URL to
+fetch. Only this member of the archive is read; the rest may stay zipped.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">download</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/datasets/retailrocket.html#RetailRocket.download"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Check for the manually placed export rather than fetching anything.</p>
+<p>Raising beats a warning here: <code class="docutils literal notranslate"><span class="pre">prepare</span></code> would otherwise continue and
+fail inside the CSV reader, reporting a missing file instead of the
+manual step that is actually required.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">compresso_recsys.datasets.</span></span><span class="sig-name descname"><span class="pre">Music4AllOnion</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'data'</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata_text_fields</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_entity_text_words</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_progress</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/datasets/music4all_onion.html#Music4AllOnion"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>252,984,396 listening events by 119,140 users over 56,512 tracks.</p>
+<p>Heavy repeat consumption: a user replaying one track several times in a row
+is ordinary here, and those replays are retained as separate events. That
+makes this the one registered dataset where “predict the next listen” and
+“predict a <em>new</em> listen” are different questions, so report metrics split by
+whether the target already occurs in the history.</p>
+<p>The source file is 2.2 GB compressed and expands to a quarter of a billion
+rows, which does not fit in memory as a DataFrame on an ordinary machine.
+Pass <code class="docutils literal notranslate"><span class="pre">start</span></code> and <code class="docutils literal notranslate"><span class="pre">end</span></code> to take a time window. Window by time rather than
+by sampling rows: dropping random events destroys the adjacency that any
+sequential claim rests on, while a window leaves the surviving histories
+intact.</p>
+<p>Rows arrive newest-first within a user, which is the opposite of the
+chronological order every consumer wants. Nothing here re-sorts them –
+<code class="docutils literal notranslate"><span class="pre">leave_last_out</span></code> and the temporal split both sort by timestamp themselves,
+and rewriting the file order would destroy the only evidence available about
+how tied events were originally recorded.</p>
+<p>The release also ships 26 audio, video, lyric and metadata feature sets that
+this adapter does not download; the catalog carries item IDs only.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>start</strong> (<em>str</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>end</strong> (<em>str</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>min_entity_text_words</strong> (<em>int</em>)</p></li>
+<li><p><strong>show_progress</strong> (<em>bool</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">compresso_recsys.datasets.</span></span><span class="sig-name descname"><span class="pre">OTTO</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'data'</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">session_sample</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">events</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('clicks',)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata_text_fields</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_entity_text_words</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_progress</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/datasets/otto.html#OTTO"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Sessions with real boundaries: 12.9M sessions, 1.8M items, 216M events.</p>
+<p>Every other registered dataset either has no session structure or requires
+inferring one from inter-arrival gaps. Here the boundaries are recorded, so
+a session is a fact about the data rather than a threshold someone chose.</p>
+<p>Sessions are the rows, so <code class="docutils literal notranslate"><span class="pre">user_id</span></code> holds a session id. There is no
+identity linking one session to the next and no item metadata whatsoever –
+this dataset can support sequential work and nothing else.</p>
+<p>Parsing is a Python loop over nested JSON, which on the full file takes long
+enough to be worth doing once; the canonical columns are then cached as
+parquet and later runs skip it.</p>
+<p>The full log is around 194 million clicks, which does not fit in memory as a
+DataFrame on an ordinary machine. <code class="docutils literal notranslate"><span class="pre">session_sample</span></code> keeps a deterministic
+fraction of sessions, chosen by hashing the session id:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">OTTO</span><span class="p">(</span><span class="n">session_sample</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Sample sessions rather than rows or a time window. Dropping random events
+would destroy the adjacency inside a session, and a time window would cut
+sessions in half; keeping or dropping whole sessions leaves every surviving
+history exactly as it was. Hashing rather than taking the first N lines
+matters too, because the file is ordered by session id and the earliest ids
+are the longest-running sessions.</p>
+<p>The competition’s <code class="docutils literal notranslate"><span class="pre">test.jsonl</span></code> is its held-out split and is not read; this
+adapter builds its own splits from <code class="docutils literal notranslate"><span class="pre">train.jsonl</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>session_sample</strong> (<em>float</em><em> | </em><em>None</em>)</p></li>
+<li><p><strong>events</strong> (<em>Sequence</em><em>[</em><em>str</em><em>]</em>)</p></li>
+<li><p><strong>min_entity_text_words</strong> (<em>int</em>)</p></li>
+<li><p><strong>show_progress</strong> (<em>bool</em>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">download_command</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'kaggle</span> <span class="pre">datasets</span> <span class="pre">download</span> <span class="pre">-d</span> <span class="pre">otto/recsys-dataset'</span></span></dt>
+<dd><p>Kaggle serves both the competition and the standalone dataset to
+signed-in users only, so there is nothing to fetch over plain HTTP.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">download</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/datasets/otto.html#OTTO.download"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Check for the manually placed export rather than fetching anything.</p>
+<p>Raising beats warning: <code class="docutils literal notranslate"><span class="pre">prepare</span></code> would otherwise continue and report a
+missing file from inside the reader instead of the manual step that is
+actually required.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">compresso_recsys.datasets.</span></span><span class="sig-name descname"><span class="pre">Yambda</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'data'</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">variant</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'50m'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">organic_only</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">user_sample</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata_text_fields</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_entity_text_words</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_progress</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/compresso_recsys/datasets/yambda.html#Yambda"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Listening events with an <code class="docutils literal notranslate"><span class="pre">is_organic</span></code> flag on every row.</p>
+<p>That flag is the reason to reach for this dataset. Every other log here
+records what users did without recording how much of it the platform chose
+for them, so exposure bias can only be named as a caveat. Here it can be
+measured: <code class="docutils literal notranslate"><span class="pre">organic_only=True</span></code> keeps the events a user started themselves
+and drops the ones a recommender served.</p>
+<p><strong>Timestamps are seconds since the start of the log, not since 1970</strong>, and
+they are rounded to multiples of five. Both facts matter more than they
+look:</p>
+<ul class="simple">
+<li><p>The relative epoch is silent if assumed wrong – values around 2.6e7 parse
+as January 1970 without raising – so nothing here converts them, and the
+builder’s magnitude normalisation leaves numbers this small untouched.</p></li>
+<li><p>Five-second rounding creates ties <em>by construction</em>. A tie rate above zero
+here says nothing about the platform’s logging quality, unlike on a
+dataset recorded at second precision.</p></li>
+</ul>
+<p><code class="docutils literal notranslate"><span class="pre">variant</span></code> selects the release size: <code class="docutils literal notranslate"><span class="pre">&quot;50m&quot;</span></code> (the default), <code class="docutils literal notranslate"><span class="pre">&quot;500m&quot;</span></code> or
+<code class="docutils literal notranslate"><span class="pre">&quot;5b&quot;</span></code>, named for roughly that many interactions. None of them builds whole
+on an ordinary machine: even <code class="docutils literal notranslate"><span class="pre">&quot;50m&quot;</span></code> is 46.5M listens, which exhausts a
+16 GB machine. <code class="docutils literal notranslate"><span class="pre">user_sample</span></code> keeps a deterministic fraction of users,
+chosen by hashing the user id:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Yambda</span><span class="p">(</span><span class="n">user_sample</span><span class="o">=</span><span class="mf">0.2</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Sample users rather than rows, for the same reason OTTO samples sessions:
+dropping random events would destroy the adjacency inside a history, while
+keeping or dropping whole users leaves every surviving history exactly as it
+was. The larger two variants need a lower fraction again, or the memory to
+hold them. Each variant is cached under its own filename, so switching
+between them re-reads rather than reusing the previous one’s rows.</p>
+<p>The published files are sorted by <code class="docutils literal notranslate"><span class="pre">(uid,</span> <span class="pre">timestamp)</span></code>. Order within a tie is
+therefore whatever that sort produced, so the within-tie ascent diagnostic
+measures the sort rather than the data, and cannot be read the way it can on
+a dataset stored in its original write order.</p>
+<p>The release also carries likes, dislikes, unlikes, undislikes and audio
+embeddings. This adapter reads listens only: the canonical interaction schema
+has one event kind, and folding a dislike into the same column as a play
+would record the two as the same thing.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>variant</strong> (<em>str</em>)</p></li>
+<li><p><strong>organic_only</strong> (<em>bool</em>)</p></li>
+<li><p><strong>user_sample</strong> (<em>float</em><em> | </em><em>None</em>)</p></li>
 <li><p><strong>min_entity_text_words</strong> (<em>int</em>)</p></li>
 <li><p><strong>show_progress</strong> (<em>bool</em>)</p></li>
 </ul>
