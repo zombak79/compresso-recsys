@@ -1,3 +1,33 @@
+## [0.3.7] — 2026-09-24
+
+### Added
+
+- Retailrocket, Music4All-Onion, OTTO and Yambda adapters for timestamped
+  sequential data, available through the Python checkpoint builder and CLI.
+  All four expose item IDs only. Retailrocket and OTTO need a manual Kaggle
+  download; Music4All-Onion and Yambda download automatically. Retailrocket
+  and OTTO keep view/click events by default and take an `events` filter;
+  Yambda takes a release `variant` and `organic_only`. Each dataset is
+  registered with its own temporal window (336, 720, 48 and 720 hours), since
+  none of the logs is long enough for three 339-day windows.
+
+- Adapter options: `build_recsys_checkpoint(dataset_options=...)` and a
+  repeatable `--dataset_option KEY=VALUE` flag pass adapter-specific arguments
+  through the builder. Command-line values are parsed from the adapter's own
+  annotations. An unknown name is an error listing what the dataset accepts,
+  and the resolved options are written to the checkpoint manifest. A dataset
+  can be registered with default options: OTTO (`session_sample=0.1`),
+  Music4All-Onion (`start="2014-01-01"`, `end="2015-01-01"`) and Yambda
+  (`user_sample=0.2`) do, because a full build exhausts memory on an ordinary
+  machine. Samples keep whole sessions or users, chosen by hashing the id, and
+  a build that relies on a registered subset prints a notice naming the flags
+  that undo it. Options that select rows are folded into the parquet cache key.
+
+### Changed
+
+- Filtering interactions to the metadata catalog selects rows before copying,
+  rather than copying the whole frame first.
+
 ## [0.3.6] — 2026-09-22
 
 ### Added
@@ -66,28 +96,15 @@
 
 ### Changed
 
-- Consolidated dataset documentation into a single guide with one subsection
-  per dataset, distinguishing metadata modalities from precomputed embeddings
-  and documenting user-computed Amazon text/image features.
+- Tuned Amazon category support/text defaults; retain all ratings.
+- Default to one evaluation draw.
+- Unified dataset docs with measured tables, citations, and validation recipes.
 
-### Added
+### Fixed
 
-- Resumable dataset/split statistics sweep with dataset-level process workers,
-  per-worker thread limits, popularity by default, optional item-KNN, and
-  structured per-run results plus Markdown summaries.
-- Optional ID-aligned multimodal checkpoint features with presence masks and
-  provenance; SWAP ML-1M enrichment, DBbook and Last.fm-2K adapters, and a
-  DBbook supplied-test-boundary split with training-only validation holdout.
-- Dataset/model validation matrix with published EASE and MultDAE/VAE reference
-  scores, explicit protocol caveats, and runnable checkpoint/training recipes
-  that select on validation and report the held-out test metrics as JSON.
-- Steam, Netflix Prize, MSD Taste Profile, and raw Gowalla adapters, available
-  through the Python checkpoint builder and CLI. Downloads are cached atomically;
-  canonical interactions are parsed in chunks and cached as Parquet.
-- Steam game metadata and genre annotations for item cold-start checkpoints,
-  with review dates for leave-last-out and temporal splits. New adapters retain
-  items without descriptions by default and use dataset-specific support and
-  feedback thresholds; existing dataset defaults are preserved.
+- Sweep counts/sparsity, explicit `exclude_seen` reporting, and checkpoint reuse/recovery.
+- Gowalla's 720-hour temporal default and strict documentation builds.
+- Temporary GroupLens-only fallback for expired SSL certificates.
 
 ## [0.3.3] — 2026-09-04
 
