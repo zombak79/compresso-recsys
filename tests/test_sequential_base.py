@@ -7,7 +7,12 @@ keeps these tests about the plumbing rather than about an RNN.
 from __future__ import annotations
 
 import warnings
-from typing import get_overloads, get_type_hints
+from typing import get_type_hints
+
+try:  # typing.get_overloads is 3.11+; the package itself still supports 3.10.
+    from typing import get_overloads
+except ImportError:  # pragma: no cover - only taken on 3.10
+    get_overloads = None
 
 import numpy as np
 import pytest
@@ -162,6 +167,10 @@ def test_evaluate_recommender_accepts_sequences():
     assert result.target_fingerprint is not None
 
 
+@pytest.mark.skipif(
+    get_overloads is None,
+    reason="typing.get_overloads needs 3.11; the overloads it reads are unchanged",
+)
 def test_evaluate_recommender_advertises_both_source_contracts():
     contracts = [
         get_type_hints(candidate)
