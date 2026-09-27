@@ -18,11 +18,23 @@ project:
 
 .. code-block:: bibtex
 
-   @misc{compresso,
-     title  = {Compresso: A PyTorch Framework for Sparse Representation Learning},
-     author = {Van{\v{c}}ura, Vojt{\v{e}}ch and Giacomo Medda and Spi{\v{s}}{\'a}k, Martin and Ladislav Pe{\v{s}}ka},
-     year   = {2026},
-     url    = {https://github.com/zombak79/compresso}
+   @inproceedings{10.1145/3773078.3841254,
+      author = {Van{\v c}ura, Vojt{\v e}ch and Medda, Giacomo and Spi{\v s}{\'a}k, Martin and Pe{\v s}ka, Ladislav},
+      title = {COMPRESSO: Espresso-Style Sparse Representation Learning for Interpretable Recommender Systems},
+      year = {2026},
+      isbn = {9798400722844},
+      publisher = {Association for Computing Machinery},
+      address = {New York, NY, USA},
+      url = {https://doi.org/10.1145/3773078.3841254},
+      doi = {10.1145/3773078.3841254},
+      abstract = {Sparse representations can make recommender-system embeddings more compact and inspectable, but developing sparse-learning workflows typically requires substantial engineering around sparsification, training, pruning, storage, and analysis. We present Compresso, an open-source PyTorch framework that exposes this functionality through a simple and modular interface. Inspired by Italian espresso culture, where one orders a caff{\`e} while the barista handles the machinery, Compresso lets researchers focus on sparse models rather than infrastructure. The framework provides high-level sparse autoencoder training, reusable sparse tensor representations, differentiable top-k operators, sparse and masked neural parameters, pruning schedules, and composable clustering tools.},
+      booktitle = {Proceedings of the 20th ACM Conference on Recommender Systems},
+      pages = {1793–1795},
+      numpages = {3},
+      keywords = {Sparse Representations, Embedding Compression, Interpretability},
+      location = {
+      },
+      series = {RecSys '26}
    }
 
 EASE
