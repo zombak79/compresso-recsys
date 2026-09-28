@@ -15,6 +15,8 @@ from compresso_recsys.models import (
     ELSACompressionConfig,
     ELSAConfig,
     ELSATrainer,
+    Bert4RecConfig,
+    Bert4RecTrainer,
     ItemTokenizer,
     MultDAEConfig,
     MultDAETrainer,
@@ -335,6 +337,38 @@ def _fit_sasrec(
     return trainer.fit(_histories(n_items=5))
 
 
+def _fit_bert4rec(
+    *, show_progress: bool = True, logger=None, log_every_n_steps=1000
+):
+    trainer = Bert4RecTrainer(
+        Bert4RecConfig(
+            d_model=8,
+            n_blocks=1,
+            n_heads=2,
+            dropout=0.0,
+            att_dropout=0.0,
+            # The batcher below states the window, so the config has to name the
+            # same one: it sizes the positional table.
+            max_history_length=8,
+            epochs=EPOCHS,
+            batch_size=2,
+            lr=1e-2,
+            # The default of 10 would turn each history into ten samples and ten
+            # times the batches, which changes nothing about the bars.
+            duplication_factor=1,
+            show_progress=show_progress,
+            seed=5,
+            log_every_n_steps=log_every_n_steps,
+        ),
+        SequenceBatcher(
+            ItemTokenizer(3, special_tokens={"pad": 0, "mask": 1, "unk": 2}),
+            max_length=8,
+        ),
+        logger=logger,
+    )
+    return trainer.fit(_histories())
+
+
 TRAINERS = pytest.mark.parametrize(
     ("fit", "label", "trainer_class", "step"),
     [
@@ -346,6 +380,7 @@ TRAINERS = pytest.mark.parametrize(
         (_fit_simple_rnn, "SimpleRNN", SimpleRNNTrainer, "_train_step"),
         (_fit_simple_gpt, "SimpleGPT", SimpleGPTTrainer, "_train_step"),
         (_fit_sasrec, "SASRec", SASRecTrainer, "_train_step"),
+        (_fit_bert4rec, "Bert4Rec", Bert4RecTrainer, "_train_step"),
     ],
 )
 
@@ -758,6 +793,7 @@ def test_logger_replaces_evaluation_bar(bars, capsys):
 @pytest.mark.parametrize(
     "config",
     [
+        Bert4RecConfig,
         ELSAConfig,
         MultDAEConfig,
         MultVAEConfig,

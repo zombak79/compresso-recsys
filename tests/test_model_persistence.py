@@ -28,6 +28,8 @@ from compresso_recsys.models import (
     SequenceBatcher,
     SimpleGPTConfig,
     SimpleGPTTrainer,
+    Bert4RecConfig,
+    Bert4RecTrainer,
     SASRecConfig,
     SASRecTrainer,
     SimpleRNNConfig,
@@ -229,12 +231,21 @@ def test_job_logger_is_not_persisted(tmp_path, interactions):
     assert restored.cfg.log_every_n_steps == 7
 
 
-@pytest.mark.parametrize("kind", ["rnn", "gpt", "sasrec"])
+@pytest.mark.parametrize("kind", ["rnn", "gpt", "sasrec", "bert4rec"])
 def test_sequential_round_trip_preserves_vocabulary_and_context(tmp_path, kind):
     sequences = _sequence_data()
-    tokenizer = ItemTokenizer(
-        sequences.n_items,
-        item_ids=np.array([f"item-{i}" for i in range(sequences.n_items)]),
+    item_ids = np.array([f"item-{i}" for i in range(sequences.n_items)])
+    # BERT4Rec masks to train, so its vocabulary needs a [mask] entry that the
+    # other three have no use for.
+    special_tokens = (
+        {"pad": 0, "mask": 1, "unk": 2} if kind == "bert4rec" else None
+    )
+    tokenizer = (
+        ItemTokenizer(
+            sequences.n_items, item_ids=item_ids, special_tokens=special_tokens
+        )
+        if special_tokens is not None
+        else ItemTokenizer(sequences.n_items, item_ids=item_ids)
     )
     batcher = SequenceBatcher(tokenizer, max_length=3)
     if kind == "rnn":
@@ -266,6 +277,23 @@ def test_sequential_round_trip_preserves_vocabulary_and_context(tmp_path, kind):
             batcher,
         ).fit(sequences)
         model_class = SASRecTrainer
+    elif kind == "bert4rec":
+        model = Bert4RecTrainer(
+            Bert4RecConfig(
+                d_model=8,
+                n_blocks=1,
+                n_heads=2,
+                # As for SASRec: the batcher states a window, so the config has
+                # to name the same one.
+                max_history_length=3,
+                epochs=1,
+                batch_size=2,
+                duplication_factor=1,
+                show_progress=False,
+            ),
+            batcher,
+        ).fit(sequences)
+        model_class = Bert4RecTrainer
     else:
         model = SimpleGPTTrainer(
             SimpleGPTConfig(
@@ -507,8 +535,17 @@ def test_loading_defaults_to_cpu_even_if_saved_config_says_cuda(tmp_path):
         SimpleRNNTrainer(),
         SimpleGPTTrainer(),
         SASRecTrainer(),
+        Bert4RecTrainer(),
     ],
-    ids=["content", "elsa", "teaser-gd", "simple-rnn", "simple-gpt", "sasrec"],
+    ids=[
+        "content",
+        "elsa",
+        "teaser-gd",
+        "simple-rnn",
+        "simple-gpt",
+        "sasrec",
+        "bert4rec",
+    ],
 )
 def test_torch_backed_recommenders_share_the_to_contract(model):
     assert model.to("cpu") is model
