@@ -22,6 +22,8 @@ from compresso_recsys.models import (
     MultVAETrainer,
     SASRecConfig,
     SASRecTrainer,
+    SEMCoConfig,
+    SEMCoTrainer,
     SequenceBatcher,
     SimpleGPTConfig,
     SimpleGPTTrainer,
@@ -219,6 +221,30 @@ def _fit_teaser_gd(
     return trainer.fit(_interactions(), _item_features())
 
 
+def _fit_semco(*, show_progress: bool = True, logger=None, log_every_n_steps=1000):
+    trainer = SEMCoTrainer(
+        SEMCoConfig(
+            hidden_size=4,
+            emb_size=3,
+            epochs=EPOCHS,
+            # _interactions() has 16 nonzeros, so this divides evenly. A final
+            # batch of one pair would put a single row through BatchNorm, which
+            # raises in training mode.
+            batch_size=4,
+            lr=1e-2,
+            # softmax keeps this file free of the optional entmax dependency;
+            # the sparse projections are covered in test_semco.py.
+            objective="softmax",
+            temperature=0.2,
+            show_progress=show_progress,
+            seed=3,
+            log_every_n_steps=log_every_n_steps,
+        ),
+        logger=logger,
+    )
+    return trainer.fit(_interactions(), {"content": _item_features()})
+
+
 def _fit_mult_dae(
     *, show_progress: bool = True, logger=None, log_every_n_steps=1000
 ):
@@ -340,6 +366,7 @@ TRAINERS = pytest.mark.parametrize(
     [
         (_fit_elsa, "ELSA", ELSATrainer, "train_step"),
         (_fit_teaser_gd, "TEASERGD", TEASERGDTrainer, "_train_step"),
+        (_fit_semco, "SEMCo", SEMCoTrainer, "_train_step"),
         (_fit_mult_dae, "MultDAE", MultDAETrainer, "_train_step"),
         (_fit_mult_vae, "MultVAE", MultVAETrainer, "_train_step"),
         # The sequential trainers draw bars the same way and were untested.
@@ -532,6 +559,7 @@ def test_warning_promoted_to_error_still_does_not_abort_fit():
         (_fit_mult_dae, _interactions),
         (_fit_simple_gpt, _histories),
         (_fit_teaser_gd, _interactions),
+        (_fit_semco, _interactions),
     ],
 )
 def test_logger_replaces_prediction_bar(bars, fit, source):
