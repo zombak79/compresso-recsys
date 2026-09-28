@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "compresso-recsys"
-version = "0.3.7"
+version = "0.3.8"
 description = "Recommender-system experiments and checkpoint pipelines for Compresso"
 readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.10"
@@ -15,14 +15,16 @@ authors = [
     { name = "Giacomo Medda" },
     { name = "Martin Spisak" },
     { name = "Ladislav Peska" },
-    { name = "Mark Olieman" }
+    { name = "Mark Olieman" },
+    { name = "Gregor Meehan" }
 ]
 maintainers = [
     { name = "Vojtech Vancura" },
     { name = "Giacomo Medda" },
     { name = "Martin Spisak" },
     { name = "Ladislav Peska" },
-    { name = "Mark Olieman" }
+    { name = "Mark Olieman" },
+    { name = "Gregor Meehan" }
 ]
 keywords = [
     "recommender-systems",
@@ -62,9 +64,13 @@ datasets = [
 knn = [
     "scikit-learn>=1.4",
 ]
+semco = [
+    "entmax>=1.3",
+]
 test = [
     "pytest>=8.0",
     "scikit-learn>=1.4",
+    "entmax>=1.3",
 ]
 docs = [
     "sphinx>=8.0",

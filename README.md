@@ -119,7 +119,7 @@ cold-start examples, and defaults.
 - Calibrated Recall and nDCG defaults, with optional standard Recall,
   Precision, Hit Rate, MRR, and MAP at configurable cutoffs.
 - Batched EASE, ADMM and gradient-trained TEASER cold-start models, a
-  content-similarity cold-start baseline, dense ELSA, and lottery-ticket
+  content-similarity cold-start baseline, SEMCo, dense ELSA, and lottery-ticket
   compressed ELSA with streaming evaluation.
 - Random and popularity baselines, normalized user-user and item-item cosine
   KNN, and multinomial denoising and variational autoencoders (`MultDAE` and
@@ -157,7 +157,7 @@ https://zombak79.github.io/compresso-recsys/
 The full CLI parameter table, checkpoint split schema, and supported Amazon
 Reviews 2023 categories are maintained in the
 [Checkpoint CLI Reference](https://zombak79.github.io/compresso-recsys/cli-reference.html).
-Academic references and copy-ready BibTeX for EASE, TEASER, ELSA,
+Academic references and copy-ready BibTeX for EASE, TEASER, SEMCo, ELSA,
 large-scale ELSA, compressed ELSA, neighborhood models, Mult-DAE, and Mult-VAE are available in the
 [citation guide](https://zombak79.github.io/compresso-recsys/citing.html).
 The [implementing a recommender tutorial](https://zombak79.github.io/compresso-recsys/implementing-a-recommender.html)

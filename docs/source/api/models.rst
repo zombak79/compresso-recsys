@@ -1169,6 +1169,58 @@ See :doc:`../citing` for the original TEASER paper.
 .. autoclass:: compresso_recsys.models.TEASERGDTrainer
    :members:
 
+SEMCo
+~~~~~
+
+SEMCo learns the content encoder that ContentRecommender does without. A user
+profile is still the normalized sum of the embeddings of the items they
+interacted with, and candidates are still ranked by similarity to it, but the
+embeddings come from a trained encoder rather than from the raw features.
+Nothing is indexed by item, so a candidate is recommendable as soon as it is
+registered on the catalog, and an item held out of training may appear in a
+source history as well as among the candidates.
+
+``fit`` takes an interaction matrix and a mapping of modality name to feature
+matrix. Each modality gets its own ``Linear``/``BatchNorm``/``ReLU`` stack and
+an attention-weighted sum fuses them, so modalities of different widths are
+combined by a learned weighting rather than by concatenation. The mapping's
+iteration order fixes the encoder's stack order for the lifetime of the fit and
+is recorded in the checkpoint. ``train_item_indices`` restricts training to warm
+columns in the same way as TEASERGD.
+
+Training draws batches of interaction pairs and scores each user against the
+batch's own items (i.e. in-batch negatives). ``objective`` selects
+the projection: ``sparsemax`` and ``entmax15`` give the sparse Fenchel-Young
+losses the model is named for and need the optional ``entmax`` dependency,
+installed as ``compresso-recsys[semco]``, while ``softmax`` gives ordinary
+InfoNCE. ``temperature`` is objective-specific, around 6 to 20 for
+``sparsemax``, 1.5 to 5 for ``entmax15``, and 0.1 to 0.5 for ``softmax``.
+
+Each step encodes only the items the batch's users interacted with, so training
+cost follows batch history size rather than catalog size. Prediction always
+encodes the whole catalog at once and indexes the result, because the BatchNorm
+layers normalize by batch statistics; a prediction restricted with
+``candidate_ids`` therefore returns the same scores as a full-catalog one.
+Encoded catalog embeddings are cached by catalog version and invalidated when
+the catalog changes.
+
+SEMCo has no availability mask. Every supplied feature row is treated as
+present, so impute missing rows before fitting if the feature set has coverage
+gaps; :class:`compresso_recsys.models.MMConcatWrapper` handles this for the
+single-matrix models but is not reachable from a model that stores its own
+modalities.
+
+See :doc:`../citing` for the SEMCo paper.
+
+.. autoclass:: compresso_recsys.models.SEMCoConfig
+   :members:
+
+.. autoclass:: compresso_recsys.models.SEMCo
+   :members:
+
+.. autoclass:: compresso_recsys.models.SEMCoTrainer
+   :members:
+
 Sequential Models
 -----------------
 

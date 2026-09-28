@@ -31,6 +31,8 @@ from compresso_recsys.models import (
     SASRecConfig,
     SASRecTrainer,
     SimpleRNNConfig,
+    SEMCoConfig,
+    SEMCoTrainer,
     SimpleRNNTrainer,
     TEASER,
     TEASERConfig,
@@ -504,11 +506,20 @@ def test_loading_defaults_to_cpu_even_if_saved_config_says_cuda(tmp_path):
         ContentRecommender(),
         ELSATrainer(),
         TEASERGDTrainer(),
+        SEMCoTrainer(),
         SimpleRNNTrainer(),
         SimpleGPTTrainer(),
         SASRecTrainer(),
     ],
-    ids=["content", "elsa", "teaser-gd", "simple-rnn", "simple-gpt", "sasrec"],
+    ids=[
+        "content",
+        "elsa",
+        "teaser-gd",
+        "semco",
+        "simple-rnn",
+        "simple-gpt",
+        "sasrec",
+    ],
 )
 def test_torch_backed_recommenders_share_the_to_contract(model):
     assert model.to("cpu") is model

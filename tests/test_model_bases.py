@@ -9,8 +9,10 @@ from compresso import SRPTensor
 from compresso_recsys.models import (
     BaseColdStartRecommender,
     BaseCollaborativeRecommender,
+    BaseMultiModalRecommender,
     EASE,
     ELSATrainer,
+    SEMCoTrainer,
     TEASER,
     TEASERGDTrainer,
 )
@@ -175,4 +177,5 @@ def test_builtin_models_use_the_public_bases():
     assert isinstance(ELSATrainer(), BaseCollaborativeRecommender)
     assert isinstance(TEASER(), BaseColdStartRecommender)
     assert isinstance(TEASERGDTrainer(), BaseColdStartRecommender)
-
+    assert isinstance(SEMCoTrainer(), BaseMultiModalRecommender)
+    assert isinstance(SEMCoTrainer(), BaseColdStartRecommender)

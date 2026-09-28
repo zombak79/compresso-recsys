@@ -68,6 +68,7 @@ from .mult_vae import MultVAE, MultVAEConfig, MultVAETrainer
 from .teaser import TEASER, TEASERConfig
 from .teaser_gd import TEASERGD, TEASERGDConfig, TEASERGDTrainer
 from .mm_concat import MMConcatWrapper, MMConcatWrapperConfig
+from .semco import SEMCo, SEMCoConfig, SEMCoTrainer
 
 __all__ = [
     "BaseColdStartRecommender",
@@ -94,6 +95,9 @@ __all__ = [
     "SASRec",
     "SASRecConfig",
     "SASRecTrainer",
+    "SEMCo",
+    "SEMCoConfig",
+    "SEMCoTrainer",
     "SequenceBatcher",
     "SimpleBidirectionalTransformer",
     "SimpleBidirectionalTransformerConfig",
