@@ -1,3 +1,22 @@
+## [0.3.8] — 2026-09-27
+
+### Added
+
+- `SEMCo`, a purely content-based cold-start recommender that learns an item
+  encoder directly from interactions rather than aligning to pretrained
+  collaborative embeddings. Built on `BaseMultiModalRecommender`, so `fit`
+  takes a mapping of modality name to feature matrix and runs one
+  `Linear`/`BatchNorm`/`ReLU` stack per modality before fusing them with an
+  attention-weighted sum, which combines modalities of different widths by a
+  learned weighting instead of by concatenation. The objective is a sampled
+  Fenchel-Young loss over in-batch negatives with `sparsemax`, `entmax15` and
+  `softmax` variants; the two sparse projections need the optional `entmax`
+  dependency, installed as `compresso-recsys[semco]` and imported lazily with
+  an informative error. Each training step encodes only the items the batch's
+  users interacted with, so cost follows batch history size rather than
+  catalog size, while inference encodes the whole catalog at once because the
+  BatchNorm layers normalize by batch statistics.
+
 ## [0.3.7] — 2026-09-24
 
 ### Added

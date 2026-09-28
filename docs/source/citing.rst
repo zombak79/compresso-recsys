@@ -126,6 +126,21 @@ paper:
      doi={10.1145/3523227.3551470}
    }
 
+SEMCo
+-----
+
+For :class:`compresso_recsys.models.SEMCoTrainer`, cite the original SEMCo paper:
+
+.. code-block:: bibtex
+
+   @inproceedings{meehan2026sparse,
+    title={Sparse Contrastive Learning for Content-Based Cold Item Recommendation},
+    author={Meehan, Gregor and Pauwels, Johan},
+    booktitle={Proceedings of the 49th International ACM SIGIR Conference on Research and Development in Information Retrieval},
+    pages={3994--3999},
+    year={2026}
+  }
+
 ELSA
 ----
 
