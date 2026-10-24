@@ -6,7 +6,7 @@ import torch
 from scipy.sparse import csr_matrix
 
 from compresso_recsys.evaluation import evaluate_recommender
-from compresso_recsys.metrics import CalibratedRecall
+from compresso_recsys.metrics import NDCG, CalibratedRecall
 from compresso_recsys.models import (
     CLCRec,
     CLCRecConfig,
@@ -14,6 +14,7 @@ from compresso_recsys.models import (
     MMConcatWrapper,
     MMConcatWrapperConfig,
 )
+from compresso_recsys.training import EarlyStopping, Validation, _ValidationMonitor
 from compresso_recsys.models.clcrec.sampling import (
     NegativeSampler,
     sample_other_items,
@@ -95,8 +96,8 @@ def test_fit_validates_inputs(data):
         trainer.fit(interactions * 2, features)
     with pytest.raises(ValueError, match="outside train_item_indices"):
         trainer.fit(interactions, features, train_item_indices=np.arange(5))
-    with pytest.raises(NotImplementedError, match="training hook"):
-        trainer.fit(interactions, features, early_stopping=object())
+    with pytest.raises(ValueError, match="needs validation"):
+        trainer.fit(interactions, features, early_stopping=EarlyStopping("ndcg@5", 2))
 
 
 def test_prediction_contract(data):
@@ -424,3 +425,84 @@ def test_cuda_smoke(data):
     model = _fit(data, device="cuda", epochs=1)
     predictions = model.predict_on_batch(interactions[:4], k=3, user_ids=USER_IDS[:4])
     assert predictions.cols.device.type == "cuda"
+
+
+def _cold_targets() -> csr_matrix:
+    rows = np.arange(N_USERS)
+    return csr_matrix(
+        (
+            np.ones(N_USERS, dtype=np.float32),
+            (rows, N_WARM + rows % (N_ITEMS - N_WARM)),
+        ),
+        shape=(N_USERS, N_ITEMS),
+    )
+
+
+def test_validation_matches_post_hoc_evaluation_and_does_not_change_training(
+    data, tmp_path
+):
+    interactions, _ = data
+    validation = Validation(
+        interactions, _cold_targets(), [NDCG(10)], sample_ids=USER_IDS
+    )
+    plain = _fit(data, epochs=4)
+    model = CLCRecTrainer(_config(epochs=4)).fit(
+        interactions, data[1], user_ids=USER_IDS, validation=validation
+    )
+    for key, value in plain.module.state_dict().items():
+        torch.testing.assert_close(value, model.module.state_dict()[key])
+    values = [record["val_ndcg@10"] for record in model.history]
+    assert len(values) == 4 and len(set(values)) > 1
+    # The last validation used the final weights, not a candidate matrix cached
+    # at an earlier epoch: compare with a freshly loaded copy, which has no cache.
+    path = tmp_path / "validated.zip"
+    model.save(path)
+    post_hoc = evaluate_recommender(
+        CLCRecTrainer.load(path),
+        source=interactions,
+        targets=_cold_targets(),
+        metrics=[NDCG(10)],
+        sample_ids=USER_IDS,
+    )
+    assert values[-1] == pytest.approx(post_hoc.metrics["ndcg@10"])
+
+
+def test_early_stopping_restores_best_weights(data, monkeypatch):
+    interactions, features = data
+    scores = iter([0.1, 0.4, 0.2, 0.3, 0.9, 0.9])
+    states = []
+
+    def scripted(self):
+        # Score once, as a real validation would, so the candidate cache fills.
+        self.owner._is_fitted = True
+        self.owner.predict_on_batch(interactions[:3], k=4, user_ids=USER_IDS[:3])
+        self.owner._is_fitted = False
+        states.append(
+            {k: v.detach().clone() for k, v in self.owner.module.state_dict().items()}
+        )
+        return {"ndcg@10": next(scores)}
+
+    monkeypatch.setattr(_ValidationMonitor, "_evaluate", scripted)
+    model = CLCRecTrainer(_config(epochs=6)).fit(
+        interactions,
+        features,
+        user_ids=USER_IDS,
+        validation=Validation(interactions, _cold_targets(), [NDCG(10)]),
+        early_stopping=EarlyStopping("ndcg@10", patience=2),
+    )
+    assert len(model.history) == 4
+    assert model.best_["epoch"] == 2
+    for key, value in model.module.state_dict().items():
+        torch.testing.assert_close(value, states[1][key])
+    # Predictions use the restored weights, not a matrix cached before restore.
+    with torch.no_grad():
+        content = model.module.encoder(torch.from_numpy(features))
+    expected = content.clone()
+    expected[:N_WARM] = model.module.item_emb.weight
+    scores_now = model.predict_on_batch(
+        interactions[:3], k=4, exclude_seen=False, user_ids=USER_IDS[:3]
+    )
+    direct = model.module.user_emb.weight[:3] @ expected.T
+    torch.testing.assert_close(
+        scores_now.vals, torch.gather(direct, 1, scores_now.cols), rtol=1e-5, atol=1e-5
+    )

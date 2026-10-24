@@ -24,6 +24,7 @@ from compresso_recsys._reporting import (
     _format_duration,
 )
 from compresso_recsys.persistence import ModelCheckpointReader, ModelCheckpointWriter
+from compresso_recsys.training import EarlyStopping, Validation, _make_monitor
 from compresso_recsys.models.base.identified import _checked_user_ids
 from compresso_recsys.models.core.identifiers import canonical_item_ids
 from compresso_recsys.models.core.validation import canonical_csr
@@ -231,8 +232,8 @@ class CLCRecTrainer(BaseColdStartRecommender):
         user_ids: Sequence[Hashable] | np.ndarray | None = None,
         metadata: pd.DataFrame | None = None,
         feature_space_id: str | None = None,
-        validation: Any | None = None,
-        early_stopping: Any | None = None,
+        validation: Validation | None = None,
+        early_stopping: EarlyStopping | None = None,
         logger: Any | None = _INHERIT,
         show_progress: bool | None | _Inherit = _INHERIT,
     ) -> CLCRecTrainer:
@@ -243,12 +244,13 @@ class CLCRecTrainer(BaseColdStartRecommender):
         (the cold ones) are rankable straight after fitting. Only the
         ``train_item_indices`` columns (default: every column with an
         interaction) get ID embeddings and are used in training.
+
+        ``validation`` records ``val_*`` metrics in :attr:`history` after each
+        due epoch, and ``early_stopping`` stops on one of them and restores the
+        best weights (the paper stops on validation recall@10 with patience
+        10). Validation passes its ``sample_ids`` as user IDs, so they must be
+        the training user IDs of the validation rows.
         """
-        if validation is not None or early_stopping is not None:
-            raise NotImplementedError(
-                "validation and early stopping arrive with the shared training "
-                "hook (compresso_recsys.training)"
-            )
         reporter = self._reporter(logger, show_progress)
         interactions = canonical_csr(interactions, name="interactions")
         if interactions.shape[0] < 1 or interactions.shape[1] < 1:
@@ -338,11 +340,13 @@ class CLCRecTrainer(BaseColdStartRecommender):
         n_batches = -(-pair_items.size // batch_size)
         cold_users = int(np.sum(np.diff(training.indptr) == 0))
 
+        monitor = _make_monitor(self, validation, early_stopping)
         with TrainingProgress(
             reporter,
             label=self._fit_name,
             epochs=self.cfg.epochs,
             batches=n_batches,
+            monitor=monitor,
         ) as progress:
             progress.start(
                 f"{n_users} users | {train_indices.size} training items | "
@@ -383,7 +387,12 @@ class CLCRecTrainer(BaseColdStartRecommender):
                 )
                 record["users_without_interactions"] = float(cold_users)
                 self.history.append(record)
+                # Validation scores through the candidate cache, which the
+                # step just made stale.
+                self._candidate_cache = None
                 progress.epoch_done(record)
+            # Early stopping may have restored earlier weights.
+            self._candidate_cache = None
             self.module.eval()
             self._is_fitted = True
         return self
