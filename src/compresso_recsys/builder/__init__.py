@@ -21,63 +21,63 @@ from compresso_recsys.checkpoint import (
     save_recsys_split,
     update_checkpoint,
 )
-from compresso_recsys.checkpoint.io import _indices_to_csr
-from compresso_recsys.datasets import Steam, NetflixPrize, TasteProfile, Gowalla
+from compresso_recsys.checkpoint.io import _indices_to_csr as _indices_to_csr
+from compresso_recsys.datasets import Steam as Steam, NetflixPrize as NetflixPrize, TasteProfile as TasteProfile, Gowalla as Gowalla
 from compresso_recsys.datasets._public import PublicDataset
 
 # Re-exported because the flat module's namespace carried them and callers
 # read them from here -- examples/validation/amazon_profile.py does.
 from compresso_recsys.retrieval import (
-    LEAVE_LAST_OUT_MIN_HISTORY,
-    LEAVE_LAST_OUT_STAGES,
+    LEAVE_LAST_OUT_MIN_HISTORY as LEAVE_LAST_OUT_MIN_HISTORY,
+    LEAVE_LAST_OUT_STAGES as LEAVE_LAST_OUT_STAGES,
 )
 from compresso_recsys.builder.cli import (
     _build_args,
-    _metadata_text_fields_arg,
+    _metadata_text_fields_arg as _metadata_text_fields_arg,
     _resolve_args,
     parse_args,
 )
 from compresso_recsys.builder.features import (
     _build_entity_tag_matrix,
-    _build_genre_tag_matrix,
-    _build_goodbooks_user_tag_matrix,
-    _build_ml20m_user_tag_matrix,
-    _to_sparse_matrix_for_items,
-    _to_sparse_matrix_for_items_with_users,
+    _build_genre_tag_matrix as _build_genre_tag_matrix,
+    _build_goodbooks_user_tag_matrix as _build_goodbooks_user_tag_matrix,
+    _build_ml20m_user_tag_matrix as _build_ml20m_user_tag_matrix,
+    _to_sparse_matrix_for_items as _to_sparse_matrix_for_items,
+    _to_sparse_matrix_for_items_with_users as _to_sparse_matrix_for_items_with_users,
 )
 from compresso_recsys.builder.options import (
-    _BUILDER_MANAGED_DATASET_OPTIONS,
-    _FULL_SOURCE_OPTION,
-    _coerce_dataset_option,
-    _dataset_option_names,
-    _dataset_options_for,
-    _registered_subset_notice,
-    _resolve_dataset_options,
+    _BUILDER_MANAGED_DATASET_OPTIONS as _BUILDER_MANAGED_DATASET_OPTIONS,
+    _FULL_SOURCE_OPTION as _FULL_SOURCE_OPTION,
+    _coerce_dataset_option as _coerce_dataset_option,
+    _dataset_option_names as _dataset_option_names,
+    _dataset_options_for as _dataset_options_for,
+    _registered_subset_notice as _registered_subset_notice,
+    _resolve_dataset_options as _resolve_dataset_options,
 )
 from compresso_recsys.builder.progress import _CheckpointProgress
 from compresso_recsys.builder.specs import (
     DATASETS,
-    DEFAULT_TEMPORAL_PERIOD_HOURS,
+    DEFAULT_TEMPORAL_PERIOD_HOURS as DEFAULT_TEMPORAL_PERIOD_HOURS,
     DatasetSpec,
     _make_dataset,
-    _temporal_period_hours,
+    _temporal_period_hours as _temporal_period_hours,
 )
 from compresso_recsys.builder.splits.basic import (
     _build_item_split,
     _build_leave_last_out_split,
     _build_official_split,
     _build_user_split,
-    _split_item_ids_random,
+    _split_item_ids_random as _split_item_ids_random,
 )
 from compresso_recsys.builder.splits.temporal import (
     _build_temporal_split,
-    _build_temporal_stage,
-    _csr_row_indices,
-    _filter_temporal_pair,
-    _matrix_from_temporal_codes,
-    _sequences_from_temporal_codes,
-    _temporal_user_upper_bound,
-    _timestamps_in_seconds,
+    _build_temporal_stage as _build_temporal_stage,
+    _csr_row_indices as _csr_row_indices,
+    _filter_temporal_pair as _filter_temporal_pair,
+    _matrix_from_temporal_codes as _matrix_from_temporal_codes,
+    _sequences_from_temporal_codes as _sequences_from_temporal_codes,
+    _temporal_user_upper_bound as _temporal_user_upper_bound,
+    _timestamps_in_seconds as _timestamps_in_seconds,
 )
 
 __all__ = ["build_recsys_checkpoint", "DATASETS", "DatasetSpec", "parse_args"]

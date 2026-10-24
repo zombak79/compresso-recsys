@@ -27,12 +27,12 @@ may legitimately also be a target.
 # schedule implementation by identity off the module.
 
 from compresso_recsys.models.simple_bidirectional.config import (
-    OptimizerName,
+    OptimizerName as OptimizerName,
     SimpleBidirectionalTransformerConfig,
 )
 from compresso_recsys.models.simple_bidirectional.model import (
-    BidirectionalBlock,
-    BidirectionalSelfAttention,
+    BidirectionalBlock as BidirectionalBlock,
+    BidirectionalSelfAttention as BidirectionalSelfAttention,
     SimpleBidirectionalTransformer,
 )
 from compresso_recsys.models.simple_bidirectional.trainer import (

@@ -4,10 +4,10 @@ The closed-form sibling lives in :mod:`compresso_recsys.models.teaser`.
 """
 
 from compresso_recsys.models.teaser_gd.config import (
-    EncoderInit,
-    OptimizerName,
+    EncoderInit as EncoderInit,
+    OptimizerName as OptimizerName,
     TEASERGDConfig,
-    TEASERGDLoss,
+    TEASERGDLoss as TEASERGDLoss,
 )
 from compresso_recsys.models.teaser_gd.model import (
     TEASERGD,

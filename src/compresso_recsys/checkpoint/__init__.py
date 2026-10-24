@@ -12,7 +12,7 @@ one before it -- which are cheap here and expensive to discover after training.
 """
 
 from compresso_recsys.checkpoint.manifest import (
-    MANIFEST_NAME,
+    MANIFEST_NAME as MANIFEST_NAME,
     load_json,
     load_manifest,
     read_checkpoint,
@@ -22,13 +22,13 @@ from compresso_recsys.checkpoint.manifest import (
     update_stage_manifest,
 )
 from compresso_recsys.checkpoint.split import (
-    SPLIT_DIR,
+    SPLIT_DIR as SPLIT_DIR,
     load_recsys_split,
     save_recsys_split,
 )
 from compresso_recsys.checkpoint.clusters import (
-    CLUSTER_GRAPH_NAME,
-    CLUSTERING_DIR,
+    CLUSTER_GRAPH_NAME as CLUSTER_GRAPH_NAME,
+    CLUSTERING_DIR as CLUSTERING_DIR,
     load_cluster_graph_stage,
     save_cluster_graph_stage,
 )

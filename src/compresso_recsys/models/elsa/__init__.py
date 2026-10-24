@@ -1,12 +1,12 @@
 """Scalable linear shallow autoencoder with normalized item embeddings."""
 
 from compresso_recsys.models.elsa.config import (
-    CompressionScoreMode,
+    CompressionScoreMode as CompressionScoreMode,
     ELSACompressionConfig,
     ELSAConfig,
-    OptimizerName,
-    SparseFinetuneBackend,
-    SparseInferenceBackend,
+    OptimizerName as OptimizerName,
+    SparseFinetuneBackend as SparseFinetuneBackend,
+    SparseInferenceBackend as SparseInferenceBackend,
 )
 from compresso_recsys.models.elsa.model import (
     CompressedELSA,

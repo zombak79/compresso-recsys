@@ -577,7 +577,7 @@ def test_forced_rewind_uses_logger_without_writing_stdout(
             self.lines.append(message)
 
     logger = RecordingLogger()
-    trainer = _compressed_trainer(
+    _compressed_trainer(
         epochs=1,
         logger=logger,
         compression=ELSACompressionConfig(

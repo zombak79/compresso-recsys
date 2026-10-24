@@ -15,15 +15,15 @@ from compresso_recsys.models.base.protocols import (
 # the flat module: cold_start asks for _accepts_reporting_keywords.
 from compresso_recsys.models.base.identified import (
     BaseIdentifiedRecommender,
-    _MODEL_NAME,
-    _MODELS_DIR,
-    _accepts_reporting_keywords,
-    _embedded_model_path,
-    _unwrapped_module,
+    _MODEL_NAME as _MODEL_NAME,
+    _MODELS_DIR as _MODELS_DIR,
+    _accepts_reporting_keywords as _accepts_reporting_keywords,
+    _embedded_model_path as _embedded_model_path,
+    _unwrapped_module as _unwrapped_module,
 )
 from compresso_recsys.models.base.persistable import (
     BasePersistableRecommender,
-    _PersistableT,
+    _PersistableT as _PersistableT,
 )
 from compresso_recsys.models.base.collaborative import BaseCollaborativeRecommender
 from compresso_recsys.models.base.sequential import BaseSequentialRecommender

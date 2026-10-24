@@ -9,7 +9,6 @@ from compresso_recsys.builder import (
     DEFAULT_TEMPORAL_PERIOD_HOURS,
     _build_args,
     _build_temporal_split,
-    _resolve_args,
     _timestamps_in_seconds,
 )
 from compresso_recsys.checkpoint import load_recsys_split, save_recsys_split

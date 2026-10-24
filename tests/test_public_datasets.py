@@ -74,7 +74,7 @@ def test_steam_explicit_text_filter_and_cache_invalidation(tmp_path):
 
 @pytest.mark.parametrize("mode", ["user_split", "item_split", "leave_last_out", "temporal"])
 def test_steam_builds_checkpoint_with_metadata_and_all_split_modes(tmp_path, mode):
-    ds = steam_fixture(tmp_path)
+    steam_fixture(tmp_path)
     path = build_recsys_checkpoint(
         dataset="steam", data_dir=tmp_path, checkpoint_path=str(tmp_path / f"{mode}.zip"),
         split_mode=mode, val_users=2, test_users=2, val_items=2, test_items=2,

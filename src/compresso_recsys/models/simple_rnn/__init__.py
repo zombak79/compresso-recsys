@@ -40,8 +40,8 @@ and sampled softmax are also absent.
 # schedule implementation by identity off the module.
 
 from compresso_recsys.models.simple_rnn.config import (
-    OptimizerName,
-    RNNType,
+    OptimizerName as OptimizerName,
+    RNNType as RNNType,
     SimpleRNNConfig,
 )
 from compresso_recsys.models.simple_rnn.model import (

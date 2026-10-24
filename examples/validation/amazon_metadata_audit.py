@@ -17,7 +17,6 @@ from pathlib import Path
 import re
 
 import numpy as np
-import pandas as pd
 import pyarrow.parquet as pq
 
 from compresso_recsys.datasets.amazon2023 import AmazonReviews2023, DEFAULT_TEXT_FIELDS

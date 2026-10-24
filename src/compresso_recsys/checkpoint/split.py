@@ -174,7 +174,6 @@ def save_recsys_split(
     if data_dir.exists():
         shutil.rmtree(data_dir)
     data_dir.mkdir(parents=True, exist_ok=True)
-    n_items = len(item_ids)
     train_item_ids = np.asarray(
         item_ids if train_item_ids is None else train_item_ids
     ).astype(str)

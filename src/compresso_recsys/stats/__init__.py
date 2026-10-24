@@ -60,11 +60,11 @@ with a different seed. Report seed variation separately.
 """
 
 from compresso_recsys.stats.results import (
-    Alternative,
+    Alternative as Alternative,
     ComparisonReport,
-    Correction,
+    Correction as Correction,
     PairwiseComparison,
-    TestMethod,
+    TestMethod as TestMethod,
 )
 from compresso_recsys.stats.compare import compare_models, compare_pair
 

@@ -52,15 +52,15 @@ absent.
 # schedule implementation by identity off the module.
 
 from compresso_recsys.models.simple_gpt.config import (
-    OptimizerName,
+    OptimizerName as OptimizerName,
     SimpleGPTConfig,
     TransformerConfig,
 )
 from compresso_recsys.models.simple_gpt.model import (
-    Block,
-    CausalSelfAttention,
-    LayerNorm,
-    MLP,
+    Block as Block,
+    CausalSelfAttention as CausalSelfAttention,
+    LayerNorm as LayerNorm,
+    MLP as MLP,
     SimpleGPT,
 )
 from compresso_recsys.models.simple_gpt.trainer import (
