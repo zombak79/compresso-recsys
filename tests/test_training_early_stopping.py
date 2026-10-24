@@ -198,3 +198,36 @@ def test_teaser_gd_scores_mid_fit(data):
     model.fit(x, features, validation=_validation(data),
               early_stopping=EarlyStopping("ndcg@5", patience=2))
     _assert_real_validation(model, 3)
+
+
+def test_elsa_scores_mid_fit_and_stops(data):
+    from compresso_recsys.models import ELSAConfig, ELSATrainer
+
+    def elsa():
+        return ELSATrainer(ELSAConfig(latent_dim=8, epochs=6, batch_size=16, show_progress=False, seed=0))
+
+    real = elsa().fit(data[0], validation=_validation(data),
+                      early_stopping=EarlyStopping("ndcg@5", patience=2))
+    _assert_real_validation(real, 6)
+    plain = elsa().fit(data[0])
+    validated = elsa().fit(data[0], validation=_validation(data))
+    for key, value in plain._checkpoint_module().state_dict().items():
+        torch.testing.assert_close(validated._checkpoint_module().state_dict()[key], value)
+
+
+def test_elsa_restores_the_best_weights(data, monkeypatch):
+    from compresso_recsys.models import ELSAConfig, ELSATrainer
+
+    scores = iter([0.1, 0.4, 0.2, 0.3])
+    states = []
+
+    def fake(self):
+        states.append({k: v.detach().clone() for k, v in self.owner._checkpoint_module().state_dict().items()})
+        return {"ndcg@5": next(scores)}
+
+    monkeypatch.setattr(_ValidationMonitor, "_evaluate", fake)
+    model = ELSATrainer(ELSAConfig(latent_dim=8, epochs=6, batch_size=16, show_progress=False, seed=0))
+    model.fit(data[0], validation=_validation(data), early_stopping=EarlyStopping("ndcg@5", patience=2))
+    assert len(model.history) == 4 and model.best_["epoch"] == 2
+    for key, value in model._checkpoint_module().state_dict().items():
+        torch.testing.assert_close(value, states[1][key])

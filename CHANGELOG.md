@@ -48,12 +48,13 @@
   compact (metrics-as-columns) layout, and p-values on the Monte Carlo floor
   printed as upper bounds rather than bare numbers. No new dependency.
 - Validation during training and early stopping: `fit(..., validation=Validation(...),
-  early_stopping=EarlyStopping(metric, patience))` on MultDAE, MultVAE, SASRec,
-  SimpleGPT, SimpleRNN, SimpleBidirectionalTransformer and TEASER-GD. Validation
+  early_stopping=EarlyStopping(metric, patience))` on ELSA (dense), MultDAE,
+  MultVAE, SASRec, SimpleGPT, SimpleRNN, SimpleBidirectionalTransformer and
+  TEASER-GD. Validation
   goes through `evaluate_recommender`, writes `val_*` keys into the training
   history and draws no random numbers; early stopping treats the configured
   epochs as a maximum, restores the best weights by default and records them in
-  `trainer.best_`. ELSA and BERT4Rec run their own loops and follow later.
+  `trainer.best_`. BERT4Rec keeps its own loop and its fixed published budget.
 - `CONTRIBUTING.md` (development setup, supported versions, how to add a model,
   dataset or metric), issue templates, `CITATION.cff`, BibTeX for
   compresso-recsys in the citation guide, and a dataset licences page.

@@ -1,9 +1,8 @@
 Training API
 ============
 
-Validation between epochs and early stopping on it, for the trainers that run
-their epochs through the shared progress loop: ``MultDAETrainer``,
-``MultVAETrainer``, ``SASRecTrainer``, ``SimpleGPTTrainer``,
+Validation between epochs and early stopping on it, for ``ELSATrainer``,
+``MultDAETrainer``, ``MultVAETrainer``, ``SASRecTrainer``, ``SimpleGPTTrainer``,
 ``SimpleRNNTrainer``, ``SimpleBidirectionalTransformerTrainer`` and
 ``TEASERGDTrainer``. Each accepts ``validation=`` and ``early_stopping=`` in
 ``fit``::
@@ -24,8 +23,8 @@ numbers, so a run with validation but without early stopping trains exactly as
 one without validation. Learning-rate schedules that span the configured epochs
 are not shortened when a run stops early.
 
-``ELSATrainer`` and ``Bert4RecTrainer`` run their own epoch loops and do not
-accept these arguments yet.
+``ELSATrainer`` accepts them for dense ELSA; a compressed fit refuses them.
+``Bert4RecTrainer`` runs its own epoch loop and does not accept them.
 
 .. autoclass:: compresso_recsys.training.Validation
 

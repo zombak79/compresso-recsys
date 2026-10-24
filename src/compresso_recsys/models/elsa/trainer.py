@@ -19,6 +19,7 @@ from compresso_recsys._reporting import (
     _format_duration,
 )
 from compresso_recsys.persistence import ModelCheckpointReader, ModelCheckpointWriter
+from compresso_recsys.training import EarlyStopping, Validation, _make_monitor, _ValidationMonitor
 from compresso_recsys.models.core.batching import (
     InteractionBatchSampler,
 )
@@ -334,6 +335,7 @@ class ELSATrainer(BaseCollaborativeRecommender):
         *,
         phase: str | None,
         reporter: _Reporter,
+        monitor: _ValidationMonitor | None = None,
     ) -> None:
         self._set_lr(float(self.cfg.lr))
         assert self.optimizer is not None
@@ -367,6 +369,8 @@ class ELSATrainer(BaseCollaborativeRecommender):
                 if phase is not None:
                     record["phase"] = phase
                 self.history.append(record)
+                if monitor is not None:
+                    monitor.after_epoch(epoch, record, is_last=epoch == self.cfg.epochs)
                 reporter.epoch(
                     f"epoch {epoch}/{self.cfg.epochs}",
                     record,
@@ -382,6 +386,8 @@ class ELSATrainer(BaseCollaborativeRecommender):
                     )
                 if scheduler is not None:
                     scheduler.step()
+                if monitor is not None and monitor.stop:
+                    break
         finally:
             if batch_bar is not None:
                 batch_bar.close()
@@ -493,8 +499,17 @@ class ELSATrainer(BaseCollaborativeRecommender):
         item_ids: Sequence[Hashable] | np.ndarray | None = None,
         logger: Any | None = _INHERIT,
         show_progress: bool | None | _Inherit = _INHERIT,
+        validation: Validation | None = None,
+        early_stopping: EarlyStopping | None = None,
     ) -> ELSATrainer:
-        """Fit dense ELSA or search and fine-tune a compressed ELSA ticket."""
+        """Fit dense ELSA or search and fine-tune a compressed ELSA ticket.
+
+        ``validation`` and ``early_stopping`` (see :mod:`compresso_recsys.training`)
+        apply to dense ELSA; a compressed fit refuses them.
+        """
+        if self.cfg.compression is not None and (validation is not None or early_stopping is not None):
+            raise ValueError("validation and early_stopping are not supported for compressed ELSA")
+        monitor = _make_monitor(self, validation, early_stopping)
         reporter = self._reporter(logger, show_progress)
         interactions = canonical_csr(interactions, name="interactions")
         if interactions.shape[0] < 1 or interactions.shape[1] < 1:
@@ -521,7 +536,7 @@ class ELSATrainer(BaseCollaborativeRecommender):
             f"{self.cfg.batch_size} | {self.cfg.epochs} epochs | device {self.device}"
         )
         if self.cfg.compression is None:
-            self._fit_fixed_epochs(dataset, phase=None, reporter=reporter)
+            self._fit_fixed_epochs(dataset, phase=None, reporter=reporter, monitor=monitor)
         else:
             if not isinstance(self.elsa, CompressedELSA):
                 raise RuntimeError("compressed ELSA model was not built")
@@ -546,6 +561,7 @@ class ELSATrainer(BaseCollaborativeRecommender):
         reporter.log(
             f"fit finished: {_format_duration(time.monotonic() - fit_started)} total | "
             f"{len(self.history)} epochs recorded"
+            + ("" if self.best_ is None else f" | best epoch {self.best_['epoch']}")
         )
         return self
 
