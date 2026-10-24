@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - "release/**"
   workflow_dispatch:
 
 concurrency:
@@ -16,7 +17,7 @@ permissions:
 
 jobs:
   pytest:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     # 3.13 runs ahead of support; its failures are reported but do not fail the workflow.
     continue-on-error: ${{ matrix.experimental }}
@@ -68,7 +69,7 @@ jobs:
           if-no-files-found: ignore
 
   lint:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
