@@ -55,6 +55,9 @@
   history and draws no random numbers; early stopping treats the configured
   epochs as a maximum, restores the best weights by default and records them in
   `trainer.best_`. BERT4Rec keeps its own loop and its fixed published budget.
+- `examples/interop/`: evaluating models from other libraries (implicit's ALS,
+  WarpRec's SASRec) through `evaluate_recommender` and `compare_models` with a
+  short adapter each.
 - `stats.adjust_p_values` (Holm or Bonferroni over a family assembled
   elsewhere) and `models.batching.normalized_mse` are public. The statistics
   guide documents that p-values are deterministic and order-independent: a
