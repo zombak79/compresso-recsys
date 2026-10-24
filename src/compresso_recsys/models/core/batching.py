@@ -52,7 +52,13 @@ def normalized_mse(
     predictions: torch.Tensor,
     targets: torch.Tensor,
 ) -> torch.Tensor:
-    """Mean squared distance between row-normalized predictions and targets."""
+    """Mean squared distance between row-normalized predictions and targets.
+
+    The training objective of ELSA and of TEASER-GD's default loss. Both
+    arguments are L2-normalised per row before the squared distance, so the
+    loss compares directions only: scaling a row of predictions leaves it
+    unchanged. It equals ``2 - 2 * cosine`` averaged over rows.
+    """
     predictions = F.normalize(predictions, dim=-1)
     targets = F.normalize(targets, dim=-1)
     return (predictions - targets).square().sum(dim=-1).mean()

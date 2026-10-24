@@ -831,6 +831,40 @@ correction. Nominating one primary metric in advance and reporting the rest
 descriptively costs nothing and pre-empts the accusation that you tested until
 something worked.
 
+**A family assembled elsewhere.** When the hypotheses come from several
+``compare_pair`` calls, or partly from another tool, adjust them together with
+:func:`~compresso_recsys.stats.adjust_p_values`, the same procedure
+``compare_models`` applies:
+
+.. code-block:: python
+
+   from compresso_recsys.stats import adjust_p_values, compare_pair
+
+   pairs = [("EASE", "MultVAE"), ("EASE", "SASRec")]
+   raw = [compare_pair(results[a], results[b], metric="ndcg@100",
+                       baseline_name=a, candidate_name=b).p_value for a, b in pairs]
+   raw.append(0.004)                      # one hypothesis tested outside compresso-recsys
+   adjusted = adjust_p_values(raw, method="holm")
+
+``random_state``: reproducible and order-independent
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+With an integer ``random_state`` (default ``0``) every number is deterministic.
+More than that, each hypothesis draws its resamples from streams derived from
+``(random_state, metric, sorted model names)``, not from a position in a shared
+stream. So the difference, the interval and the unadjusted p-value of a pair:
+
+* are the same whether the pair is compared alone with ``compare_pair`` or inside
+  any ``compare_models`` family;
+* do not change when models or metrics are added, removed or reordered;
+* are identical, up to sign, with the two models swapped.
+
+Only the adjusted p-values depend on the family, as they must. Re-running a
+comparison with one more model therefore leaves every existing row of the table
+in place except its adjusted column. ``random_state=None`` draws fresh entropy
+for a nondeterministic run; hypotheses within that call still use separate
+streams.
+
 .. _stats-repeated-rows:
 
 When one user owns several rows

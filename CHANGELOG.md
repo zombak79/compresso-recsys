@@ -55,6 +55,10 @@
   history and draws no random numbers; early stopping treats the configured
   epochs as a maximum, restores the best weights by default and records them in
   `trainer.best_`. BERT4Rec keeps its own loop and its fixed published budget.
+- `stats.adjust_p_values` (Holm or Bonferroni over a family assembled
+  elsewhere) and `models.batching.normalized_mse` are public. The statistics
+  guide documents that p-values are deterministic and order-independent: a
+  pair gives the same result alone and in any `compare_models` family.
 - "Adding a metric" guide, and `MeanAtCutoffsMetric`, the public base for
   metrics that average a per-row value at cutoffs (previously the private
   `_MeanAtCutoffsMetric`, still available under that name). The guide's code

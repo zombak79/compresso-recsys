@@ -5,6 +5,7 @@ from __future__ import annotations
 import warnings
 from collections.abc import Callable, Mapping, Sequence
 from contextlib import contextmanager
+from typing import Literal
 
 import numpy as np
 
@@ -85,6 +86,42 @@ def _progress(enabled: bool, total: int, desc: str):
     finally:
         bar.n = bar.total
         bar.close()
+
+
+def adjust_p_values(p_values, *, method: Literal["holm", "bonferroni"] = "holm") -> np.ndarray:
+    """Family-wise adjustment of a family of p-values (Holm or Bonferroni).
+
+    The same adjustment :func:`compare_models` applies across its hypotheses,
+    for a family assembled elsewhere: several ``compare_pair`` calls, or
+    comparisons from another tool. Holm (1979) controls the family-wise error
+    rate like Bonferroni and is uniformly more powerful, so it is the default.
+
+    Parameters
+    ----------
+    p_values:
+        One-dimensional array-like of p-values in ``[0, 1]``, one per hypothesis.
+    method:
+        ``"holm"`` (step-down) or ``"bonferroni"``.
+
+    Returns
+    -------
+    numpy.ndarray
+        Adjusted p-values in the input order, capped at 1. Compare them with
+        your alpha directly.
+
+    Examples
+    --------
+    >>> adjust_p_values([0.01, 0.04, 0.03])
+    array([0.03, 0.06, 0.06])
+    """
+    values = np.asarray(p_values, dtype=np.float64)
+    if values.ndim != 1:
+        raise ValueError(f"p_values must be one-dimensional, got shape {values.shape}")
+    if not np.all(np.isfinite(values)) or np.any((values < 0) | (values > 1)):
+        raise ValueError("p_values must be finite and within [0, 1]")
+    if method not in ("holm", "bonferroni"):
+        raise ValueError(f"method must be 'holm' or 'bonferroni', got {method!r}")
+    return _adjust(values, method)
 
 
 def _adjust(p_values: np.ndarray, correction: Correction) -> np.ndarray:
@@ -300,6 +337,12 @@ def compare_pair(
     candidate. No multiplicity correction is applied: a single comparison is a
     single hypothesis, and ``adjusted_p_value`` equals ``p_value``. Use
     :func:`compare_models` when testing more than one hypothesis together.
+
+    With an integer ``random_state`` the result is deterministic, and it is the
+    same number :func:`compare_models` reports for this pair and metric in any
+    family and any order: the resampling streams are derived from
+    ``(random_state, metric, sorted model names)``, not drawn in sequence.
+    ``random_state=None`` gives a nondeterministic run.
     """
     _validate_common(
         confidence_level=confidence_level,
@@ -364,6 +407,13 @@ def compare_models(
     The correction spans every pair and metric produced by the call, so calling
     this once with three metrics is not the same as calling it three times: the
     family is what the call generates.
+
+    With an integer ``random_state`` the unadjusted p-values and intervals are
+    deterministic and order-independent: each hypothesis draws from streams
+    derived from ``(random_state, metric, sorted model names)``, so a pair's
+    result does not depend on what else is in the family or in what order, and
+    equals :func:`compare_pair` on the same pair. Only the adjusted p-values
+    depend on the family, by design.
 
     ``show_progress`` draws a bar when tqdm is installed. Cost is linear in
     units and in the number of hypotheses -- roughly a second per hypothesis

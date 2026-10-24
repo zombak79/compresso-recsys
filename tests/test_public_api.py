@@ -56,6 +56,7 @@ def test_top_level_public_api_is_intentional():
         # 0.4.0: the evaluation, comparison and model entry points, so a script
         # needs one import.
         "evaluate_recommender",
+        "adjust_p_values",
         "compare_models",
         "compare_pair",
         "EarlyStopping",
@@ -178,6 +179,7 @@ def test_submodule_public_apis_are_intentional():
         stats: {
             "ComparisonReport",
             "PairwiseComparison",
+            "adjust_p_values",
             "compare_models",
             "compare_pair",
         },
@@ -198,6 +200,7 @@ def test_submodule_public_apis_are_intentional():
             "InteractionBatch",
             "InteractionBatchSampler",
             "dense_training_target",
+            "normalized_mse",
         },
         persistence: {
             "MODEL_CHECKPOINT_FORMAT",

@@ -4,10 +4,12 @@ from .core.batching import (
     InteractionBatch,
     InteractionBatchSampler,
     dense_training_target,
+    normalized_mse,
 )
 
 __all__ = [
     "InteractionBatch",
     "InteractionBatchSampler",
     "dense_training_target",
+    "normalized_mse",
 ]

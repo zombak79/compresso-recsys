@@ -66,11 +66,12 @@ from compresso_recsys.stats.results import (
     PairwiseComparison,
     TestMethod as TestMethod,
 )
-from compresso_recsys.stats.compare import compare_models, compare_pair
+from compresso_recsys.stats.compare import adjust_p_values, compare_models, compare_pair
 
 __all__ = [
     "ComparisonReport",
     "PairwiseComparison",
+    "adjust_p_values",
     "compare_models",
     "compare_pair",
 ]
