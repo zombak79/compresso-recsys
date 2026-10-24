@@ -318,6 +318,14 @@ def test_catalogue_block_end_to_end(runner, catalogue_setup, monkeypatch, capsys
         assert {r["candidate"] for r in records} == {"TEASER", "TEASER-GD"}
     meta = json.loads((out / "meta.json").read_text())
     assert meta["protocol"]["Cp"]["models"]["TEASER-GD"]["epochs"].startswith("max 3 epochs")
+    share = meta["cold_share"]["toy-temporal"]
+    n_items = N_WARM + N_VAL_COLD + N_TEST_COLD
+    assert share["catalogue_items_vs_training"] == {"cold": N_VAL_COLD + N_TEST_COLD, "total": n_items,
+                                                    "share": round((N_VAL_COLD + N_TEST_COLD) / n_items, 4)}
+    assert share["catalogue_items_new_in_stage"]["cold"] == N_TEST_COLD
+    assert (share["target_interactions_vs_training"]["cold"]
+            == teaser["cold_share"]["target_interactions"]["cold"])
+    assert share["target_interactions_new_in_stage"]["cold"] <= share["target_interactions_vs_training"]["cold"]
     assert meta["n_resamples"] == 99
     manifest = json.loads((out / "MANIFEST.json").read_text())
     assert manifest["scrub"]["flagged"] == []

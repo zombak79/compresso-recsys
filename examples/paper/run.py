@@ -878,6 +878,39 @@ def train(args, config: dict) -> int:
         handler.close()
 
 
+def cold_share_explicit(split: dict) -> dict:
+    """Test-stage cold share under both definitions, with explicit keys.
+
+    ``*_vs_training``: items absent from the training window, which is what the
+    models face (they are fit once on the training window, never refit).
+    ``*_new_in_stage``: items first supported in the test window. Each value is
+    ``{"cold", "total", "share"}``.
+    """
+    data = catalogue_inputs(split)
+    test = data["phases"]["test"]
+    catalogue = test["catalogues"]["full"]
+    per_item = np.diff(test["targets"].tocsc().indptr)
+    warm = np.zeros(data["item_ids"].size, dtype=bool)
+    warm[data["warm"]] = True
+    new = np.zeros(data["item_ids"].size, dtype=bool)
+    new[test["catalogues"]["cold"]] = True
+    in_catalogue = np.zeros(data["item_ids"].size, dtype=bool)
+    in_catalogue[catalogue] = True
+    targeted = per_item > 0
+
+    def entry(cold_count: int, total: int) -> dict:
+        return {"cold": cold_count, "total": total, "share": round(cold_count / total, 4) if total else None}
+
+    out = {}
+    for suffix, cold in (("vs_training", ~warm), ("new_in_stage", new)):
+        out[f"catalogue_items_{suffix}"] = entry(int((cold & in_catalogue).sum()), int(in_catalogue.sum()))
+        out[f"target_items_{suffix}"] = entry(int((cold & targeted).sum()), int(targeted.sum()))
+        out[f"target_interactions_{suffix}"] = entry(int(per_item[cold].sum()), int(per_item.sum()))
+    out["definition"] = ("vs_training: not seen in the training window (models are not refit on validation "
+                         "data); new_in_stage: first supported in the test window")
+    return out
+
+
 def cold_share(data: dict) -> dict:
     """The three cold-share definitions of benchmark-plan.md, for the test phase."""
     test = data["phases"]["test"]
@@ -1147,6 +1180,18 @@ def compare(args, config: dict) -> int:
                 markdown.append(f"## {dataset} ({catalogue})\n\n{report.to_markdown()}\n")
             if markdown:
                 (out / "summary" / block_name / f"{dataset}.md").write_text("\n".join(markdown))
+    cold_shares = {}
+    for block_name, block in config["blocks"].items():
+        if block["mode"] != "catalogue":
+            continue
+        for dataset in block["datasets"]:
+            path = checkpoint_path(config, block_name, dataset)
+            if path.exists():
+                split, _ = load_split(path)
+                cold_shares[dataset] = cold_share_explicit(split)
+                write_json(out / "summary" / block_name / f"{dataset}.cold_share.json", cold_shares[dataset])
+            else:
+                print(f"{block_name}/{dataset}: checkpoint not found, cold share not written", file=sys.stderr)
     results = list(out.glob("runs/**/result.json"))
     meta = {
         "commit": os.environ.get("CR_SOURCE_COMMIT"),
@@ -1162,6 +1207,7 @@ def compare(args, config: dict) -> int:
                       "paired bootstrap CIs, paired randomization test, Holm over each file's models and metrics",
         "protocol_note": PROTOCOL_NOTE,
         "protocol": protocol_description(config),
+        "cold_share": cold_shares,
     }
     write_json(out / "meta.json", meta)
     leaks = write_manifest(out)
