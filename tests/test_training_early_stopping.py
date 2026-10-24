@@ -231,3 +231,30 @@ def test_elsa_restores_the_best_weights(data, monkeypatch):
     assert len(model.history) == 4 and model.best_["epoch"] == 2
     for key, value in model._checkpoint_module().state_dict().items():
         torch.testing.assert_close(value, states[1][key])
+
+
+@pytest.mark.parametrize("family", ["elsa", "multvae", "teaser_gd"])
+def test_best_validation_equals_a_post_hoc_evaluation_after_restore(data, family):
+    """No model may score from a cache built on weights other than the restored ones."""
+    from compresso_recsys.evaluation import evaluate_recommender
+    from compresso_recsys.models import ELSAConfig, ELSATrainer
+
+    x, targets = data
+    validation = _validation(data)
+    stop = EarlyStopping("ndcg@5", patience=2)
+    if family == "elsa":
+        model = ELSATrainer(ELSAConfig(latent_dim=8, epochs=5, batch_size=16, show_progress=False, seed=0))
+        model.fit(x, validation=validation, early_stopping=stop)
+    elif family == "multvae":
+        model = MultVAETrainer(MultVAEConfig(latent_dim=8, hidden_dim=16, epochs=5, batch_size=16,
+                                             show_progress=False, seed=0))
+        model.fit(x, validation=validation, early_stopping=stop)
+    else:
+        features = np.random.default_rng(1).random((N_ITEMS, 4)).astype(np.float32)
+        model = TEASERGDTrainer(TEASERGDConfig(epochs=5, batch_size=8, max_output=4, lr=0.01,
+                                               show_progress=False, include_popularity=False,
+                                               coefficient_regularization_samples=16, seed=3))
+        model.fit(x, features, validation=validation, early_stopping=stop)
+    post_hoc = evaluate_recommender(model, source=x, targets=targets, metrics=[NDCG(5)],
+                                    sample_ids=np.arange(N_USERS))
+    assert post_hoc.metrics["ndcg@5"] == pytest.approx(model.best_["val_ndcg@5"], abs=1e-6)
