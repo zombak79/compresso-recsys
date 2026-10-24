@@ -407,11 +407,14 @@ def catalogue_inputs(split: dict) -> dict:
     x_train = split["x_train"]
     if x_train.shape[1] != item_ids.size:
         x_train = _to_global(x_train, np.asarray(split["train_item_ids"]), position)
+    x_train, repeats = _binary(x_train)
+    binarized = {"x_train": repeats}
     phases = {}
     for phase in ("val", "test"):
         phase_ids = np.asarray(split[f"{phase}_item_ids"])
         source = _to_global(split[f"{phase}_source_matrix"], phase_ids, position) @ diags(keep)
         source.eliminate_zeros()
+        source, binarized[f"{phase}_source"] = _binary(source)
         targets = _to_global(split[f"{phase}_target_matrix"], phase_ids, position)
         full = np.array(sorted(position[item] for item in phase_ids.tolist()), dtype=np.int64)
         phases[phase] = {
@@ -422,7 +425,23 @@ def catalogue_inputs(split: dict) -> dict:
                 "cold": np.asarray(split[f"{phase}_cold_item_indices"], dtype=np.int64),
             },
         }
-    return {"item_ids": item_ids, "warm": warm, "x_train": x_train.tocsr(), "phases": phases}
+    return {"item_ids": item_ids, "warm": warm, "x_train": x_train.tocsr(), "phases": phases,
+            "binarized": binarized}
+
+
+def _binary(matrix):
+    """Implicit binary interactions, and how many entries a repeat had pushed above 1.
+
+    Temporal splits keep repeat events (a second review of the same game), which
+    sum to 2 or more. The feature models require binary input, and every model of
+    a comparison must see the same data, so catalogue blocks binarise for all.
+    """
+    matrix = matrix.tocsr(copy=True)
+    matrix.sum_duplicates()
+    matrix.eliminate_zeros()
+    changed = int(np.count_nonzero(matrix.data != 1))
+    matrix.data = np.ones_like(matrix.data, dtype=np.float32)
+    return matrix, changed
 
 
 # --------------------------------------------------------------------------- results layout
@@ -836,6 +855,7 @@ def train(args, config: dict) -> int:
         }
         if catalogue_mode:
             payload["cold_share"] = cold_share(data)
+            payload["binarized_entries"] = data["binarized"]
         write_json(result_path, payload)
         mark("done")
         return 0

@@ -243,10 +243,12 @@ def catalogue_setup(tmp_path_factory):
     warm = np.arange(N_WARM)
     val_catalogue = np.arange(N_WARM + N_VAL_COLD)
     x_train, _ = _rows(rng, 200, warm, 6, N_WARM)
+    x_train.data[:3] = 2.0  # repeat events, as a temporal split keeps them
     phases = {}
     for phase, catalogue in (("val", val_catalogue), ("test", np.arange(n_items))):
         source, source_indices = _rows(rng, 60, warm, 5, catalogue.size)
         targets, target_indices = _rows(rng, 60, catalogue, 2, catalogue.size)
+        source.data[:2] = 2.0
         phases[phase] = {"source": source, "targets": targets,
                          "source_indices": source_indices, "target_indices": target_indices}
     root = tmp_path_factory.mktemp("split")
@@ -307,6 +309,8 @@ def test_catalogue_block_end_to_end(runner, catalogue_setup, monkeypatch, capsys
     ease = json.loads((out / "runs/Cp/toy-temporal/EASE/s0/result.json").read_text())
     for key in ("test__warm", "test__mixed"):  # every model saw the same histories
         assert ease["evaluation"][key]["source_fingerprint"] == teaser["evaluation"][key]["source_fingerprint"]
+    # Repeats were binarised for every model; TEASER and TEASER-GD refuse non-binary input.
+    assert teaser["binarized_entries"] == {"x_train": 3, "val_source": 2, "test_source": 2}
     gd = json.loads((out / "runs/Cp/toy-temporal/TEASER-GD/s0/result.json").read_text())
     assert gd["training"]["best"] is not None and "val_ndcg@100" in gd["training"]["history"][0]
     for name in ("toy__warm", "toy__mixed"):
