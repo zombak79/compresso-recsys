@@ -232,3 +232,58 @@ def test_embedding_evaluator_handles_no_users(embedding_fixture):
         "n_units": 0,
         "debug": [],
     }
+
+
+def test_holdout_sample_ids_group_rows_into_units(embedding_fixture):
+    embeddings, source, targets = embedding_fixture
+
+    # Rows 0 and 2 are two draws of the same user.
+    result = evaluate_item_embeddings_with_holdout(
+        item_embeddings=embeddings,
+        source_indices=source,
+        target_indices=targets,
+        k=3,
+        sample_ids=np.array(["u1", "u2", "u1"]),
+    )
+
+    assert result.n_rows == 3
+    assert result.n_units == 2
+    assert result.sample_ids.tolist() == ["u1", "u2", "u1"]
+
+
+def test_holdout_sample_ids_must_match_rows(embedding_fixture):
+    embeddings, source, targets = embedding_fixture
+
+    with pytest.raises(ValueError, match="one entry per row"):
+        evaluate_item_embeddings_with_holdout(
+            item_embeddings=embeddings,
+            source_indices=source,
+            target_indices=targets,
+            k=3,
+            sample_ids=np.array(["u1", "u2"]),
+        )
+
+
+def test_repeated_eval_draws_count_each_user_once():
+    from compresso_recsys.retrieval import evaluate_item_embeddings
+
+    item_ids = pd.Index([f"i{i}" for i in range(8)])
+    rng = np.random.default_rng(0)
+    embeddings = rng.normal(size=(8, 4)).astype(np.float32)
+    interactions = pd.DataFrame(
+        [{"user_id": f"u{u}", "item_id": f"i{i}"} for u in range(6) for i in range(u % 3, u % 3 + 6)]
+    )
+
+    result = evaluate_item_embeddings(
+        train_item_ids=item_ids,
+        item_embeddings=embeddings,
+        eval_interactions=interactions,
+        k=3,
+        eval_draws=2,
+        eval_holdout_frac=0.5,
+        min_user_support=2,
+    )
+
+    # Two draws per user: twice the rows, but each user is one unit.
+    assert result.n_rows == 2 * 6
+    assert result.n_units == 6

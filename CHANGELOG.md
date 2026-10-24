@@ -45,6 +45,15 @@
 - The source distribution contains only the package, README, licence and
   citation file.
 
+### Fixed
+
+- `evaluate_item_embeddings` (and `evaluate_item_embeddings_with_holdout`
+  through a new `sample_ids=` argument) now passes the holdout's user ids to
+  the evaluator. Previously every row was its own unit, so with
+  `eval_draws > 1` repeated draws of one user counted as independent users in
+  `compare_models`, giving confidence intervals that were too narrow. Results
+  with `eval_draws=1` are unchanged.
+
 ## [0.3.7] — 2026-09-24
 
 ### Added

@@ -136,6 +136,9 @@ def evaluate_item_embeddings(
         item_embeddings=item_embeddings,
         source_indices=holdout["source_indices"],  # type: ignore[arg-type]
         target_indices=holdout["target_indices"],  # type: ignore[arg-type]
+        # One user id per row, tiled once per draw, so repeated draws of a user
+        # stay one resampling unit in compare_models.
+        sample_ids=holdout["user_ids"],
         k=k,
         score_batch_size=score_batch_size,
         metrics=metrics,
@@ -156,15 +159,26 @@ def evaluate_item_embeddings_with_holdout(
     debug: bool = False,
     debug_users: int = 5,
     show_progress: bool = False,
+    sample_ids: Sequence[Any] | np.ndarray | None = None,
 ) -> dict[str, Any]:
     """Evaluate item embeddings against a precomputed source/target holdout.
 
     Predictions are generated and evaluated one batch at a time. Supplying
     ``metrics`` allows multiple cutoffs to reuse the same ranked predictions
     and target-hit tensor.
+
+    ``sample_ids`` gives the user behind each row, e.g. a holdout's
+    ``user_ids``. Rows sharing an id are one unit when results are compared,
+    which is what keeps repeated holdout draws of the same user from being
+    counted as independent observations. Without it each row is its own unit.
     """
     if len(source_indices) != len(target_indices):
         raise ValueError("source_indices and target_indices must have same length")
+    if sample_ids is not None and len(sample_ids) != len(source_indices):
+        raise ValueError(
+            f"sample_ids must have one entry per row: got {len(sample_ids)} for "
+            f"{len(source_indices)} rows"
+        )
     if item_embeddings.ndim != 2:
         raise ValueError("item_embeddings must be a 2D array")
     if k < 1:
@@ -205,5 +219,9 @@ def evaluate_item_embeddings_with_holdout(
         show_progress=show_progress,
         desc=f"evaluate@{k}",
     ):
-        evaluator.update(predictions, targets[start:end])
+        evaluator.update(
+            predictions,
+            targets[start:end],
+            sample_ids=None if sample_ids is None else sample_ids[start:end],
+        )
     return evaluator.compute()
