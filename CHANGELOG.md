@@ -1,3 +1,17 @@
+## [Unreleased]
+
+### Added
+
+- `Bert4Rec`, `Bert4RecConfig` and `Bert4RecTrainer`: BERT4Rec (Sun et al., CIKM
+  2019) as a faithful port of the published architecture and Cloze objective,
+  trained on `ItemSequences` and evaluated through the shared
+  `evaluate_recommender` path like every other sequential model. The
+  configuration records a provenance per field. A reproduction notebook on
+  MovieLens 1M (leave-last-out) records one complete run: HR@10 0.6965 and
+  NDCG@10 0.4805 against 100 popularity-sampled negatives (paper: 0.6970 /
+  0.4818), labelled an adapted benchmark because the epoch budget is derived
+  from the reference's step count.
+
 ## [0.3.7] — 2026-09-24
 
 ### Added
