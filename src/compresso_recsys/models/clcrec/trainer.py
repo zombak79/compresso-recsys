@@ -24,10 +24,8 @@ from compresso_recsys._reporting import (
     _format_duration,
 )
 from compresso_recsys.persistence import ModelCheckpointReader, ModelCheckpointWriter
-from compresso_recsys.models.core.identifiers import (
-    ItemVocabulary,
-    canonical_item_ids,
-)
+from compresso_recsys.models.base.identified import _checked_user_ids
+from compresso_recsys.models.core.identifiers import canonical_item_ids
 from compresso_recsys.models.core.validation import canonical_csr
 from compresso_recsys.models.core.catalog import (
     CandidateCatalog,
@@ -107,84 +105,11 @@ class CLCRecTrainer(BaseColdStartRecommender):
         self.n_features_: int | None = None
         self._source_to_train: np.ndarray | None = None
         self._candidate_cache: tuple[int, torch.Tensor] | None = None
-        self._user_vocabulary: ItemVocabulary | None = None
         self._is_fitted = False
 
     @property
     def is_fitted(self) -> bool:
         return self._is_fitted
-
-    # -- User identity ------------------------------------------------------
-    # STUB until the user-identity plumbing lands on release/0.4.0
-    # (CR-Notes/audit/user-identity-channel.md §4); these move to
-    # BaseIdentifiedRecommender and are deleted here, not merged.
-
-    def _set_user_ids(
-        self,
-        user_ids: Sequence[Hashable] | np.ndarray | None,
-        n_rows: int,
-    ) -> None:
-        if user_ids is None:
-            self._user_vocabulary = ItemVocabulary.positional(n_rows)
-            return
-        vocabulary = ItemVocabulary.from_ids(user_ids, name="user_ids")
-        if vocabulary.n_items != n_rows:
-            raise ValueError(
-                f"user_ids has {vocabulary.n_items} entries, but interactions "
-                f"has {n_rows} rows"
-            )
-        self._user_vocabulary = vocabulary
-
-    @property
-    def user_ids(self) -> np.ndarray | None:
-        vocabulary = self._user_vocabulary
-        return None if vocabulary is None else vocabulary.item_ids
-
-    def _user_rows(
-        self,
-        user_ids: Sequence[Hashable] | np.ndarray,
-    ) -> tuple[np.ndarray, np.ndarray]:
-        assert self._user_vocabulary is not None
-        lookup = self._user_vocabulary.id_to_row
-        values = np.asarray(user_ids, dtype=object).tolist()
-        rows = np.fromiter(
-            (lookup.get(value, -1) for value in values),
-            dtype=np.int64,
-            count=len(values),
-        )
-        return rows, rows >= 0
-
-    def _resolve_user_rows(
-        self,
-        user_ids: Sequence[Hashable] | np.ndarray | None,
-        n_rows: int,
-    ) -> tuple[np.ndarray, np.ndarray]:
-        if user_ids is None:
-            rows = np.full(n_rows, -1, dtype=np.int64)
-            known = np.zeros(n_rows, dtype=bool)
-        else:
-            if len(user_ids) != n_rows:
-                raise ValueError(
-                    f"user_ids has {len(user_ids)} entries for {n_rows} source rows"
-                )
-            rows, known = self._user_rows(user_ids)
-        policy = getattr(self.cfg, "unknown_users", "error")
-        if policy == "error" and not known.all():
-            unknown = (
-                ["<no user_ids>"]
-                if user_ids is None
-                else [
-                    value
-                    for value, flag in zip(
-                        np.asarray(user_ids, dtype=object).tolist(), known
-                    )
-                    if not flag
-                ]
-            )
-            raise KeyError(
-                f"unknown user IDs {unknown[:5]!r} under unknown_users='error'"
-            )
-        return rows, known
 
     # -- Persistence ---------------------------------------------------------
 
@@ -230,9 +155,6 @@ class CLCRecTrainer(BaseColdStartRecommender):
                 "history": self.history,
             },
         )
-        # STUB: the identity plumbing writes this from the base class.
-        assert self._user_vocabulary is not None
-        writer.write_item_ids("identity/user_ids.json", self._user_vocabulary.item_ids)
         self.candidates._save_checkpoint(writer)
 
     def _load_checkpoint_state(self, reader: ModelCheckpointReader) -> None:
@@ -249,10 +171,6 @@ class CLCRecTrainer(BaseColdStartRecommender):
         if not isinstance(history, list):
             raise ValueError("CLCRec training history must be a list")
         self.history = list(history)
-        self._user_vocabulary = ItemVocabulary.from_ids(
-            reader.read_item_ids("identity/user_ids.json"),
-            name="user_ids",
-        )
         self._source_to_train = self._train_row_map(
             self.n_items_,
             self.train_item_indices_,
@@ -791,47 +709,6 @@ class CLCRecTrainer(BaseColdStartRecommender):
             user_ids=user_ids,
         )
 
-    def _predict_identified(
-        self,
-        source: csr_matrix,
-        *,
-        k: int,
-        exclude_seen: bool,
-        candidate_ids: np.ndarray,
-        user_ids: Sequence[Hashable] | np.ndarray | None = None,
-    ) -> SRPTensor:
-        if not isinstance(source, csr_matrix):
-            raise TypeError("cold-start recommendations require a CSR source")
-        return self.predict(
-            source,
-            k=k,
-            exclude_seen=exclude_seen,
-            candidate_ids=candidate_ids,
-            user_ids=user_ids,
-        )
-
-    def _predict_identified_with_reporting(
-        self,
-        source: csr_matrix,
-        *,
-        k: int,
-        exclude_seen: bool,
-        candidate_ids: np.ndarray,
-        reporter: Any,
-        user_ids: Sequence[Hashable] | np.ndarray | None = None,
-    ) -> SRPTensor:
-        if not isinstance(source, csr_matrix):
-            raise TypeError("cold-start recommendations require a CSR source")
-        return self.predict(
-            source,
-            k=k,
-            exclude_seen=exclude_seen,
-            candidate_ids=candidate_ids,
-            user_ids=user_ids,
-            logger=reporter,
-            show_progress=_INHERIT,
-        )
-
     def predict(
         self,
         source: csr_matrix,
@@ -853,10 +730,7 @@ class CLCRecTrainer(BaseColdStartRecommender):
         source = self._prepare_source(source)
         if batch_size < 1:
             raise ValueError("batch_size must be >= 1")
-        if user_ids is not None and len(user_ids) != source.shape[0]:
-            raise ValueError(
-                f"user_ids has {len(user_ids)} entries for {source.shape[0]} rows"
-            )
+        user_ids = _checked_user_ids(user_ids, source.shape[0])
         selection = self.candidates.resolve_selection(candidate_ids)
         candidates = self._candidate_matrix(selection)
         columns: list[torch.Tensor] = []

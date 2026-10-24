@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import inspect
-
 import numpy as np
 import pytest
 import torch
@@ -308,8 +306,6 @@ def test_streaming_evaluation_with_user_ids(data):
         ),
         shape=(N_USERS, N_ITEMS),
     )
-    if "user_ids" not in inspect.signature(evaluate_recommender).parameters:
-        pytest.skip("user-identity plumbing not on this branch yet")
     passed = evaluate_recommender(
         model,
         source=interactions,
@@ -389,6 +385,18 @@ def test_mm_concat_handles_missing_modalities(data, missing, tmp_path):
     assert wrapper.inner_model.module.n_features == N_FEATURES + 5
     predictions = wrapper.predict_on_batch(interactions[:4], k=5, user_ids=USER_IDS[:4])
     assert predictions.shape == (4, N_ITEMS)
+    # The wrapper declares user identity from its inner model, so the
+    # evaluator's default user_ids="sample_ids" reaches CLCRec.
+    assert wrapper.accepts_user_ids is True
+    evaluated = evaluate_recommender(
+        wrapper,
+        source=interactions,
+        targets=interactions,
+        metrics=[CalibratedRecall(5)],
+        sample_ids=USER_IDS,
+        exclude_seen=False,
+    )
+    assert evaluated.metadata["user_identity"] == "passed"
     path = tmp_path / "wrapped.zip"
     wrapper.save(path)
     loaded = MMConcatWrapper.load(path)
