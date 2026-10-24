@@ -19,6 +19,10 @@
   network access disabled, a coverage report, and a pyflakes lint gate.
 - A test that pins the on-disk layout of model checkpoints per model type, so a
   format change cannot land unnoticed.
+- `ComparisonReport.summary()`, `to_latex()` and `to_markdown()`: compact views
+  with every row oriented against the reference, booktabs output in a long or a
+  compact (metrics-as-columns) layout, and p-values on the Monte Carlo floor
+  printed as upper bounds rather than bare numbers. No new dependency.
 - `CONTRIBUTING.md` (development setup, supported versions, how to add a model,
   dataset or metric), issue templates, `CITATION.cff`, BibTeX for
   compresso-recsys in the citation guide, and a dataset licences page.

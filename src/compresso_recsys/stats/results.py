@@ -117,6 +117,46 @@ class ComparisonReport:
             columns=list(_FRAME_COLUMNS),
         )
 
+    def summary(self, *, reference: str | None = None, metrics=None, models=None) -> "pd.DataFrame":
+        """The columns a reader needs, one row per (candidate, metric).
+
+        Rows are oriented as ``candidate - reference``; a pair tested the other
+        way round is flipped. ``reference`` defaults to the report's own.
+        ``p_floored`` marks corrected p-values that are only upper bounds
+        because the raw Monte Carlo p sits on its floor ``1/(B+1)``.
+        """
+        from compresso_recsys.stats.formatting import summary
+
+        return summary(self, reference=reference, metrics=metrics, models=models)
+
+    def to_latex(self, *, layout: str = "long", reference: str | None = None, metrics=None,
+                 models=None, metric_labels=None, digits: int = 4, floor_style: str = "bound",
+                 marker: str = "triangle", caption: str | None = None, label: str | None = None,
+                 table_env: bool = True) -> str:
+        """A booktabs table, without any templating dependency.
+
+        ``layout="long"`` gives one row per (candidate, metric) with the mean,
+        the difference to the reference, its confidence interval and the
+        corrected p-value; ``"compact"`` puts metrics in columns and marks
+        significant differences. The caption states the test, ``B``, the
+        correction and its family size. Floored p-values print as upper bounds
+        (``floor_style="bound"``) or, with ``"raw"``, as the unadjusted floor.
+        Needs ``booktabs`` and, for the default markers, ``amssymb``.
+        """
+        from compresso_recsys.stats.formatting import to_latex
+
+        return to_latex(self, layout=layout, reference=reference, metrics=metrics, models=models,
+                        metric_labels=metric_labels, digits=digits, floor_style=floor_style,
+                        marker=marker, caption=caption, label=label, table_env=table_env)
+
+    def to_markdown(self, *, reference: str | None = None, metrics=None, models=None,
+                    digits: int = 4, floor_style: str = "bound") -> str:
+        """The long layout as a Markdown table, with a one-line legend."""
+        from compresso_recsys.stats.formatting import to_markdown
+
+        return to_markdown(self, reference=reference, metrics=metrics, models=models,
+                           digits=digits, floor_style=floor_style)
+
 
 _FRAME_COLUMNS = (
     "metric",

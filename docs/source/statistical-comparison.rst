@@ -386,6 +386,35 @@ A negative difference that is not significant reads ``inconclusive``, not
 ``worse``. The sign of an estimate you cannot distinguish from noise is not
 information, and a table that prints a direction for it invites a misreading.
 
+
+Tables for papers and reports
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``to_frame()`` keeps all 24 columns. For a paper or a notebook, three views keep
+only what a reader needs, with every row oriented as *candidate minus
+reference* (a pair tested the other way round is flipped):
+
+.. code-block:: python
+
+   report.summary()                          # DataFrame: means, difference, CI, adjusted p, direction
+   print(report.to_latex(models=["ItemKNN", "Pop"]))       # booktabs, one row per model and metric
+   print(report.to_latex(layout="compact"))  # metrics as columns, best in bold, markers for significance
+   print(report.to_markdown())
+
+The LaTeX caption states the test, the number of resamples, the correction and
+the size of the family it ran over, so a table never loses the context its
+p-values depend on. The output needs ``booktabs`` and, for the default
+triangle markers, ``amssymb`` (``marker="dagger"`` avoids it). No templating
+library is required.
+
+**The Monte Carlo floor.** With ``B`` resamples a randomization test cannot
+return a raw p below ``1/(B+1)``. When it does sit on that floor, the
+Holm-corrected value is only an upper bound, so the tables print it as
+``≤ 4·10⁻⁴`` (rounded up) instead of a bare number. A reader who sees every row
+at the floor should take it as a cue to raise ``n_resamples``, and the
+formatters warn when that happens. ``summary()`` marks such rows in its
+``p_floored`` column. The paired *t*-test has no floor.
+
 .. _stats-traps:
 
 Five traps
