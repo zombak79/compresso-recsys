@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 import time
 from collections.abc import Mapping, Sequence
 from typing import Any, overload
@@ -22,7 +23,7 @@ from compresso_recsys.evaluation.arrays import (
     _slice_srp_rows,
 )
 from compresso_recsys.evaluation.matching import MatchBackend, _match_predictions
-from compresso_recsys.evaluation.results import EvaluationResult, _TargetFingerprint
+from compresso_recsys.evaluation.results import EvaluationResult, _SourceFingerprint, _TargetFingerprint
 
 
 class RankingEvaluator:
@@ -363,6 +364,7 @@ def evaluate_recommender(
     targets: csr_matrix,
     metrics: Sequence[RankingMetric],
     sample_ids: Sequence[Any] | np.ndarray | None = None,
+    exclude_seen: bool | None = None,
     collect_per_user: bool = True,
     metadata: Mapping[str, Any] | None = None,
     batch_size: int = 1024,
@@ -385,6 +387,7 @@ def evaluate_recommender(
     targets: csr_matrix,
     metrics: Sequence[RankingMetric],
     sample_ids: Sequence[Any] | np.ndarray | None = None,
+    exclude_seen: bool | None = None,
     collect_per_user: bool = True,
     metadata: Mapping[str, Any] | None = None,
     batch_size: int = 1024,
@@ -406,6 +409,7 @@ def evaluate_recommender(
     targets: csr_matrix,
     metrics: Sequence[RankingMetric],
     sample_ids: Sequence[Any] | np.ndarray | None = None,
+    exclude_seen: bool | None = None,
     collect_per_user: bool = True,
     metadata: Mapping[str, Any] | None = None,
     batch_size: int = 1024,
@@ -432,7 +436,21 @@ def evaluate_recommender(
     agree with ``targets``; nothing downstream of ``predict_on_batch`` knows or
     cares which was given, which is why sequential and matrix models can be
     compared against each other with no statistics-side changes.
+
+    ``exclude_seen`` fixes whether items already in a row's history may be
+    recommended. ``None`` (the default) leaves it to the model, as before; a
+    bool is passed to every ``predict_on_batch`` call. The choice is recorded in
+    ``result.protocol`` and :func:`~compresso_recsys.stats.compare_models`
+    refuses to pair two results that set it differently, because the numbers
+    then answer different questions. Set it explicitly whenever results will be
+    compared across models whose defaults may differ.
+
+    The result also carries a ``source_fingerprint`` over the histories given to
+    the model (as item sets, so CSR and sequence inputs of the same histories
+    agree), which comparison checks alongside the target fingerprint.
     """
+    if exclude_seen is not None and not isinstance(exclude_seen, bool):
+        raise TypeError(f"exclude_seen must be True, False or None, got {exclude_seen!r}")
     if not isinstance(model, (Recommender, SequentialRecommender)):
         raise TypeError("model must implement predict_on_batch(source, *, k)")
     batches = _as_row_batches(source)
@@ -456,6 +474,7 @@ def evaluate_recommender(
         debug_users=debug_users,
     )
     resolved_ids = _canonical_sample_ids(sample_ids, n_rows=batches.n_rows)
+    source_fingerprint = _SourceFingerprint()
     starts = range(0, batches.n_rows, batch_size)
     reporter = _Reporter(
         logger,
@@ -478,10 +497,14 @@ def evaluate_recommender(
         start=1,
     ):
         end = min(start + batch_size, batches.n_rows)
-        predictions = model.predict_on_batch(
-            batches.take_rows(start, end),
-            k=evaluator.required_k,
-        )
+        batch = batches.take_rows(start, end)
+        source_fingerprint.update(batch)
+        if exclude_seen is None:
+            predictions = model.predict_on_batch(batch, k=evaluator.required_k)
+        else:
+            predictions = model.predict_on_batch(
+                batch, k=evaluator.required_k, exclude_seen=exclude_seen,
+            )
         evaluator.update(
             predictions,
             targets[start:end],
@@ -495,7 +518,11 @@ def evaluate_recommender(
                 steps,
                 started,
             )
-    result = evaluator.compute()
+    result = dataclasses.replace(
+        evaluator.compute(),
+        source_fingerprint=source_fingerprint.digest(),
+        protocol={"exclude_seen": "model default" if exclude_seen is None else exclude_seen},
+    )
     reporter.log(
         f"evaluate recommender@{evaluator.required_k} finished: "
         f"{_format_duration(time.monotonic() - started)} total | "

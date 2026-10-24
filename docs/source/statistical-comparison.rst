@@ -56,14 +56,28 @@ Evaluate every model on identical users and targets, then compare:
    )
    print(report.to_frame().to_string(index=False))
 
-Two requirements, both enforced rather than assumed:
+Four requirements, all enforced rather than assumed:
 
 * **The same users, in the same order.** Comparison is *paired*: each user is
   compared against themselves under the other model. Passing ``sample_ids``
   makes that explicit, and mismatched or reordered identifiers raise an error
   instead of quietly comparing different people.
+* **The same targets and the same histories.** Every result carries a
+  fingerprint of its target matrix and of the source histories the model was
+  given (as item sets, so a matrix model and a sequential model fed the same
+  histories still pair). Comparing results whose targets or sources differ
+  raises an error.
+* **The same protocol.** ``evaluate_recommender(..., exclude_seen=...)`` records
+  whether already-seen items could be recommended. Two results that set it
+  differently answer different questions and are refused. Leave it unset only
+  when every model compared shares the same default.
 * **Per-user values retained.** They are collected by default. A result
   evaluated with ``collect_per_user=False`` cannot be compared.
+
+The fingerprints prove both models were *given* the same inputs. They cannot
+prove a model *used* them. An adapter that ignores the history it is passed,
+for instance by scoring training users by row position, still pairs cleanly,
+so check third-party wrappers on a known case before trusting a comparison.
 
 For a single hypothesis, use :func:`~compresso_recsys.stats.compare_pair`.
 

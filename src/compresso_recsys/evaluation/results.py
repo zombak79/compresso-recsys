@@ -69,6 +69,60 @@ class _TargetFingerprint:
         return final.hexdigest()
 
 
+class _SourceFingerprint:
+    """Digest of the histories a model was given, whatever their representation.
+
+    The target fingerprint proves two results scored the same users against the
+    same relevant items; it says nothing about what the models were *shown*.
+    Two runs with identical targets but different fold-in histories, or a
+    history from another split, would otherwise pair silently.
+
+    The digest covers each row's **set** of history items: order and repeats are
+    ignored, so a ``csr_matrix`` and an
+    :class:`~compresso_recsys.sequences.ItemSequences` holding the same histories
+    agree, which is what lets a matrix model and a sequential model be compared.
+    It accumulates per batch in global row order with the same batch-size
+    independence as :class:`_TargetFingerprint`.
+    """
+
+    __slots__ = ("_row_lengths", "_indices", "_n_columns", "_n_rows")
+
+    def __init__(self) -> None:
+        self._row_lengths = hashlib.blake2b(digest_size=16)
+        self._indices = hashlib.blake2b(digest_size=16)
+        self._n_columns: int | None = None
+        self._n_rows = 0
+
+    def update(self, batch: Any) -> None:
+        """Fold one source batch (CSR or ItemSequences) in, in global row order."""
+        if isinstance(batch, csr_matrix):
+            rows = batch.copy()
+            n_columns = int(batch.shape[1])
+        else:  # ItemSequences: values/indptr over n_items catalog indices
+            n_columns = int(batch.n_items)
+            values = np.asarray(batch.values)
+            rows = csr_matrix(
+                (np.ones(values.shape[0], dtype=np.int8), values, np.asarray(batch.indptr)),
+                shape=(int(batch.n_rows), n_columns),
+            )
+        rows.sum_duplicates()
+        rows.eliminate_zeros()
+        rows.sort_indices()
+        if self._n_columns is None:
+            self._n_columns = n_columns
+        self._row_lengths.update(np.diff(rows.indptr).astype("<u8").tobytes())
+        self._indices.update(rows.indices.astype("<i8", copy=False).tobytes())
+        self._n_rows += int(rows.shape[0])
+
+    def digest(self) -> str:
+        final = hashlib.blake2b(digest_size=16)
+        final.update(int(self._n_columns or 0).to_bytes(8, "big"))
+        final.update(self._n_rows.to_bytes(8, "big"))
+        final.update(self._row_lengths.digest())
+        final.update(self._indices.digest())
+        return final.hexdigest()
+
+
 @dataclass(eq=False)
 class EvaluationResult(Mapping[str, Any]):
     """Aggregate metrics plus the per-user observations behind them.
@@ -104,6 +158,14 @@ class EvaluationResult(Mapping[str, Any]):
     # relevant items. ``None`` for results built by hand rather than by an
     # evaluator; comparison warns rather than failing in that case.
     target_fingerprint: str | None = None
+    # Identifies the histories the model was given (see _SourceFingerprint), so
+    # comparison can refuse results whose models saw different sources. ``None``
+    # where no model was run, e.g. evaluate_ranked_predictions.
+    source_fingerprint: str | None = None
+    # How the predictions were produced, e.g. {"exclude_seen": True}. A value of
+    # "model default" means the evaluator did not set it. Comparison refuses to
+    # pair two results that set the same option to different values.
+    protocol: dict[str, Any] | None = None
 
     def __post_init__(self) -> None:
         for key, value in self.metrics.items():

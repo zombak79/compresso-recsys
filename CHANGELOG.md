@@ -19,6 +19,13 @@
   network access disabled, a coverage report, and a pyflakes lint gate.
 - A test that pins the on-disk layout of model checkpoints per model type, so a
   format change cannot land unnoticed.
+- `evaluate_recommender(..., exclude_seen=None)`: fixes whether already-seen
+  items may be recommended for every model compared (`None` keeps each
+  model's default). The choice is recorded in `EvaluationResult.protocol`.
+- `EvaluationResult.source_fingerprint`: a digest of the histories the model was
+  given, as item sets so matrix and sequence inputs of the same histories
+  agree. `compare_models` now refuses to pair results whose sources differ or
+  that set `exclude_seen` differently, alongside the existing target check.
 - `ComparisonReport.summary()`, `to_latex()` and `to_markdown()`: compact views
   with every row oriented against the reference, booktabs output in a long or a
   compact (metrics-as-columns) layout, and p-values on the Monte Carlo floor

@@ -94,6 +94,32 @@ def _paired_values(
             "items. Re-evaluate both models against the same targets."
         )
 
+    # Same targets do not mean the models were shown the same histories: a
+    # different fold-in draw or another split's sources score the same targets
+    # from different inputs. Checked only when both results carry a source
+    # fingerprint; results built without a model (evaluate_ranked_predictions)
+    # have none and are not refused for it.
+    left_source = getattr(baseline, "source_fingerprint", None)
+    right_source = getattr(candidate, "source_fingerprint", None)
+    if left_source is not None and right_source is not None and left_source != right_source:
+        raise ValueError(
+            f"{baseline_name} and {candidate_name} were given different source "
+            "histories. Their targets match, but the models saw different inputs, "
+            "so per-user differences would mix the models with the inputs. "
+            "Re-evaluate both on the same source rows."
+        )
+    left_protocol = getattr(baseline, "protocol", None) or {}
+    right_protocol = getattr(candidate, "protocol", None) or {}
+    for option in sorted(set(left_protocol) & set(right_protocol)):
+        a, b = left_protocol[option], right_protocol[option]
+        if a != b and "model default" not in (a, b):
+            raise ValueError(
+                f"{baseline_name} was evaluated with {option}={a!r} and "
+                f"{candidate_name} with {option}={b!r}. The two numbers answer "
+                "different questions, so they cannot be paired. Evaluate both "
+                f"with the same {option}."
+            )
+
     x = np.asarray(baseline.per_user[metric], dtype=np.float64)
     y = np.asarray(candidate.per_user[metric], dtype=np.float64)
     if x.shape != y.shape:
