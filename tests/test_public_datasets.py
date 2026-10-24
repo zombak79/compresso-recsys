@@ -615,7 +615,7 @@ def test_yambda_holds_out_fewer_users_than_its_sample_retains():
 
 def test_a_registered_subset_says_so_and_names_the_way_out(capsys):
     _resolve_args(_build_args(dataset="otto"))
-    notice = capsys.readouterr().out
+    notice = capsys.readouterr().err
     assert "reading a registered subset" in notice
     assert "session_sample=0.1" in notice
     assert "--dataset_option session_sample=1.0" in notice
@@ -623,25 +623,27 @@ def test_a_registered_subset_says_so_and_names_the_way_out(capsys):
 
 def test_a_windowed_default_names_both_bounds_to_clear(capsys):
     _resolve_args(_build_args(dataset="music4all-onion"))
-    notice = capsys.readouterr().out
+    notice = capsys.readouterr().err
     assert "--dataset_option end= --dataset_option start=" in notice
 
 
 @pytest.mark.parametrize("dataset", ["retailrocket", "ml1m", "gowalla"])
 def test_datasets_that_read_everything_stay_quiet(capsys, dataset):
     _resolve_args(_build_args(dataset=dataset))
-    assert "registered subset" not in capsys.readouterr().out
+    assert "registered subset" not in capsys.readouterr().err
 
 
 def test_choosing_the_sample_yourself_is_not_warned_about(capsys):
     # An explicit choice is deliberate; only an unnoticed default needs saying.
     _resolve_args(_build_args(dataset="otto", dataset_options={"session_sample": 0.5}))
-    assert "registered subset" not in capsys.readouterr().out
+    assert "registered subset" not in capsys.readouterr().err
 
 
 def test_a_quiet_build_does_not_print_the_notice(capsys):
     _resolve_args(_build_args(dataset="otto", show_progress=False))
-    assert capsys.readouterr().out == ""
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err == ""
 
 
 def test_an_empty_command_line_value_clears_an_optional_option():
@@ -691,12 +693,12 @@ def test_passing_the_registered_value_yourself_is_not_warned_about(capsys):
     # Deliberate even when it matches the default: the key was set, so the
     # caller already knows which subset they are reading.
     _resolve_args(_build_args(dataset="otto", dataset_options={"session_sample": 0.1}))
-    assert "registered subset" not in capsys.readouterr().out
+    assert "registered subset" not in capsys.readouterr().err
 
 
 def test_setting_one_bound_still_reports_the_other(capsys):
     _resolve_args(_build_args(dataset="music4all-onion", dataset_options={"end": "2014-06-01"}))
-    notice = capsys.readouterr().out
+    notice = capsys.readouterr().err
     assert "start='2014-01-01'" in notice
     assert "--dataset_option start=" in notice
     assert "--dataset_option end=" not in notice

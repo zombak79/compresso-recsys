@@ -366,7 +366,7 @@ class AmazonReviews2023(RecSysDataset):
                 total = int(total_raw) if total_raw and total_raw.isdigit() else size
                 progress = None
                 if self.show_progress:
-                    print(f"Downloading {destination.name}...", flush=True)
+                    print(f"Downloading {destination.name}...", file=sys.stderr, flush=True)
                     try:
                         from tqdm import tqdm
                     except Exception:  # pragma: no cover - optional dependency
@@ -428,7 +428,7 @@ class AmazonReviews2023(RecSysDataset):
             except Exception as e:
                 errors.append(e)
                 if self.show_progress:
-                    print(f"Falling back to alternate Amazon source after: {e}", flush=True)
+                    print(f"Falling back to alternate Amazon source after: {e}", file=sys.stderr, flush=True)
         raise RuntimeError(f"Failed to load Amazon Reviews 2023 config {config!r}") from errors[-1]
 
     load_source_dataframe = _load_hf_dataframe

@@ -55,6 +55,11 @@
 - `import compresso_recsys` is now lazy (PEP 562): it loads no submodule, and
   each top-level name imports its module on first use. A script that only
   builds datasets or reads a checkpoint no longer loads PyTorch or the models.
+- Progress and download messages from the checkpoint builder and the dataset
+  adapters (`[compresso-recsys] …`, `Downloading …`, the registered-subset
+  notice) are written to stderr instead of stdout, so a script's own output is
+  no longer interleaved with them. With `annotation_source="none"` the builder
+  now reports "Skipping annotations" instead of "Building annotations".
 - `tqdm` is now a declared dependency (it was already used for progress bars).
 - Python 3.13 and 3.14 classifiers removed until CI covers them; the
   supported-versions policy is in `CONTRIBUTING.md`.

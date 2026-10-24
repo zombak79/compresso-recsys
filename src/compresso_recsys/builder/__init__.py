@@ -150,7 +150,7 @@ def _build_recsys_checkpoint_from_args(args) -> Path:
         val_item_count = int(len(val_cold_item_indices)) if val_cold_item_indices is not None else 0
         test_item_count = int(len(test_cold_item_indices)) if test_cold_item_indices is not None else 0
 
-        progress.step("Building annotations")
+        progress.step("Skipping annotations" if args.annotation_source == "none" else "Building annotations")
         entity_tag_matrix, tag_names, annotation_name = _build_entity_tag_matrix(args, ds, item_ids)
 
         progress.step("Loading item metadata")

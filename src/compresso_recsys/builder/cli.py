@@ -7,6 +7,7 @@ does not mean scrolling past the stage that consumes it.
 from __future__ import annotations
 
 import argparse
+import sys
 import warnings
 from typing import Any
 
@@ -210,7 +211,7 @@ def _resolve_args(args):
     args.dataset_options = _dataset_options_for(spec, args)
     notice = _registered_subset_notice(spec, args.dataset, caller_options)
     if notice is not None and getattr(args, "show_progress", True):
-        print(f"[compresso-recsys] {notice}", flush=True)
+        print(f"[compresso-recsys] {notice}", file=sys.stderr, flush=True)
     if args.split_mode == "official" and args.dataset != "dbbook":
         raise ValueError("official split is supported only for dbbook")
     if getattr(args, "multimodal_features", None) is not None:

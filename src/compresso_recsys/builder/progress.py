@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 from typing import Any
 
 
@@ -33,7 +34,7 @@ class _CheckpointProgress:
         if not self.enabled:
             return
         if self.bar is None:
-            print(f"[compresso-recsys] {message}", flush=True)
+            print(f"[compresso-recsys] {message}", file=sys.stderr, flush=True)
             return
         if self.current:
             self.bar.update(1)
@@ -45,6 +46,6 @@ class _CheckpointProgress:
         if not self.enabled:
             return
         if self.bar is None:
-            print(f"[compresso-recsys] {message}", flush=True)
+            print(f"[compresso-recsys] {message}", file=sys.stderr, flush=True)
             return
         self.bar.set_description_str(message)

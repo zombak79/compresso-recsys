@@ -5,6 +5,7 @@ import ast
 import gzip
 import json
 import os
+import sys
 import tempfile
 from pathlib import Path
 from urllib.request import urlopen
@@ -23,7 +24,7 @@ def download(url: str, path: Path, *, show_progress: bool = True, opener=None) -
     try:
         with os.fdopen(fd, "wb") as out, (opener or urlopen)(url, timeout=60) as response:
             if show_progress:
-                print(f"Downloading {url} to {path}", flush=True)
+                print(f"Downloading {url} to {path}", file=sys.stderr, flush=True)
             expected = response.headers.get("Content-Length")
             received = 0
             while block := response.read(1024 * 1024):
@@ -31,7 +32,7 @@ def download(url: str, path: Path, *, show_progress: bool = True, opener=None) -
                 received += len(block)
                 if show_progress and received % (64 * 1024 * 1024) == 0:
                     total = f" / {int(expected) / 1024**2:.0f} MiB" if expected else ""
-                    print(f"  {received / 1024**2:.0f} MiB{total}", flush=True)
+                    print(f"  {received / 1024**2:.0f} MiB{total}", file=sys.stderr, flush=True)
             if expected is not None and received != int(expected):
                 raise OSError(f"Incomplete download of {url}: {received}/{expected} bytes")
         os.replace(temporary, path)
