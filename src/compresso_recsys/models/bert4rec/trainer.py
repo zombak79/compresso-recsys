@@ -45,7 +45,7 @@ from compresso_recsys._reporting import (
     _resolve_reporter,
 )
 from compresso_recsys.models.base import BaseSequentialRecommender
-from compresso_recsys.models.identifiers import ItemVocabulary
+from compresso_recsys.models.core.identifiers import ItemVocabulary
 from compresso_recsys.models.sequence_batching import SequenceBatcher
 from compresso_recsys.models.tokenizer import ItemTokenizer
 from compresso_recsys.persistence import (

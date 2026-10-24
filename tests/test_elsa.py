@@ -22,10 +22,8 @@ from compresso_recsys.models import (
     ELSATrainer,
     Recommender,
 )
-from compresso_recsys.models.elsa import (
-    _dense_training_target,
-    _ELSAInteractionDataset,
-)
+from compresso_recsys.models.elsa.config import _dense_training_target
+from compresso_recsys.models.elsa.trainer import _ELSAInteractionDataset
 
 
 @pytest.fixture

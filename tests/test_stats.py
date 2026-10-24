@@ -9,10 +9,10 @@ from compresso_recsys.evaluation import EvaluationResult
 from compresso_recsys.stats import (
     ComparisonReport,
     PairwiseComparison,
-    _adjust,
     compare_models,
     compare_pair,
 )
+from compresso_recsys.stats.compare import _adjust
 
 N = 400
 METRIC = "ndcg@20"
@@ -453,7 +453,7 @@ def test_randomization_and_bootstrap_tests_agree():
 
 def test_centered_bootstrap_is_a_shift_of_the_ordinary_bootstrap():
     """The identity that lets the bootstrap test skip a second resampling pass."""
-    from compresso_recsys.stats import _bootstrap_means
+    from compresso_recsys.stats.resampling import _bootstrap_means
 
     rng = np.random.default_rng(14)
     d = rng.normal(0.02, 0.2, 500)
@@ -609,7 +609,7 @@ def test_significance_uses_the_adjusted_p_value():
 
 def test_significance_rejects_at_exactly_alpha():
     """Monte Carlo p-values are discrete, so equality with alpha is attainable."""
-    from compresso_recsys.stats import _with_adjusted
+    from compresso_recsys.stats.compare import _with_adjusted
 
     rng = np.random.default_rng(21)
     base = rng.random(N)
@@ -661,7 +661,7 @@ def test_compare_models_needs_at_least_two_models():
 
 
 def test_to_frame_has_one_row_per_hypothesis_in_a_fixed_order():
-    from compresso_recsys.stats import _FRAME_COLUMNS
+    from compresso_recsys.stats.results import _FRAME_COLUMNS
 
     report = compare_models(
         _three_models(), metrics=["ndcg@20", "recall@20"], reference="ELSA",
@@ -679,7 +679,7 @@ def test_to_frame_has_one_row_per_hypothesis_in_a_fixed_order():
 
 
 def test_pairwise_comparison_to_dict_round_trips_the_frame_columns():
-    from compresso_recsys.stats import _FRAME_COLUMNS
+    from compresso_recsys.stats.results import _FRAME_COLUMNS
 
     rng = np.random.default_rng(22)
     base = rng.random(N)
@@ -1364,9 +1364,9 @@ def test_show_progress_does_not_change_any_result():
 @pytest.mark.parametrize("test_method", ["randomization", "bootstrap", "t"])
 def test_progress_advances_exactly_one_per_hypothesis(test_method):
     """Fractional within a hypothesis, exactly whole across it, every method."""
-    from compresso_recsys.stats import (
-        _compare_arrays, _hypothesis_streams, _paired_values,
-    )
+    from compresso_recsys.stats.compare import _compare_arrays
+    from compresso_recsys.stats.resampling import _hypothesis_streams
+    from compresso_recsys.stats.units import _paired_values
 
     models = _two_models()
     x, y, units = _paired_values(

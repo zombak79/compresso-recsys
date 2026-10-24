@@ -8,12 +8,12 @@ import torch
 from scipy.sparse import csr_matrix
 
 from compresso import SRPTensor
-from compresso_recsys.models._ranking import (
+from compresso_recsys.models.core.ranking import (
     mask_seen_numpy,
     rank_numpy_scores,
     validate_candidate_topk,
 )
-from compresso_recsys.models._validation import canonical_csr
+from compresso_recsys.models.core.validation import canonical_csr
 from compresso_recsys.models.base import BaseCollaborativeRecommender
 from compresso_recsys.persistence import ModelCheckpointReader, ModelCheckpointWriter
 

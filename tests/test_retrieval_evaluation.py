@@ -9,10 +9,10 @@ import torch
 
 from compresso_recsys.metrics import CalibratedRecall, NDCG
 from compresso_recsys.retrieval import (
-    _iter_topk_predictions,
     build_leave_last_out_holdout,
     evaluate_item_embeddings_with_holdout,
 )
+from compresso_recsys.retrieval.embeddings import _iter_topk_predictions
 
 
 def test_leave_last_out_holdout_exposes_the_staged_api():
@@ -230,6 +230,5 @@ def test_embedding_evaluator_handles_no_users(embedding_fixture):
         "ndcg@3": 0.0,
         "n_scored_rows": 0,
         "n_units": 0,
-        "n_units": 0.0,
         "debug": [],
     }

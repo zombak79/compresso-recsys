@@ -139,7 +139,7 @@ def _toy_matrix(rows=40, cols=25, density=0.4, seed=7):
 
 
 def test_eval_draws_stacks_one_row_per_user_per_draw():
-    from compresso_recsys.retrieval import _build_eval_draws
+    from compresso_recsys.retrieval.holdout import _build_eval_draws
 
     x = _toy_matrix()
 
@@ -152,7 +152,7 @@ def test_eval_draws_stacks_one_row_per_user_per_draw():
 
 def test_eval_draws_are_independent_samples_not_a_partition():
     """They overlap by design, so the draw count has no 1/frac ceiling."""
-    from compresso_recsys.retrieval import _build_eval_draws
+    from compresso_recsys.retrieval.holdout import _build_eval_draws
 
     x = _toy_matrix()
     n = x.shape[0]
@@ -169,7 +169,7 @@ def test_eval_draws_are_independent_samples_not_a_partition():
 
 def test_eval_holdout_frac_is_honoured():
     """It used to be accepted and ignored, always holding out 20%."""
-    from compresso_recsys.retrieval import _sample_holdout_indices
+    from compresso_recsys.retrieval.holdout import _sample_holdout_indices
 
     row = csr_matrix(np.ones((1, 50), dtype=np.float32))
 
@@ -179,7 +179,7 @@ def test_eval_holdout_frac_is_honoured():
 
 
 def test_a_user_always_contributes_at_least_one_target():
-    from compresso_recsys.retrieval import _sample_holdout_indices
+    from compresso_recsys.retrieval.holdout import _sample_holdout_indices
 
     row = csr_matrix(np.ones((1, 3), dtype=np.float32))
 
@@ -491,7 +491,8 @@ def test_a_checkpoint_written_before_the_rename_still_reads_correctly(tmp_path):
     older checkpoint — and for ``leave_last_out`` and ``item_split``, where all
     three phases share one catalog, nothing downstream could notice.
     """
-    from compresso_recsys.checkpoint import SPLIT_DIR, load_recsys_split
+    from compresso_recsys.checkpoint import load_recsys_split
+    from compresso_recsys.checkpoint.split import SPLIT_DIR
 
     item_ids = np.asarray(["a", "b", "c", "d"])
     matrix = csr_matrix(np.ones((2, 4), dtype=np.float32))
@@ -526,7 +527,8 @@ def test_a_checkpoint_written_before_the_rename_still_reads_correctly(tmp_path):
 
 def test_a_new_name_wins_over_a_stale_old_one(tmp_path):
     """Both present means the old file is a leftover, not the truth."""
-    from compresso_recsys.checkpoint import SPLIT_DIR, load_recsys_split
+    from compresso_recsys.checkpoint import load_recsys_split
+    from compresso_recsys.checkpoint.split import SPLIT_DIR
 
     matrix = csr_matrix(np.ones((2, 4), dtype=np.float32))
     save_recsys_split(

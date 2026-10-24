@@ -335,7 +335,7 @@ def main():
     project = Path(__file__).resolve().parents[2]
     code = [Path(__file__).resolve(), project / "examples/validation/amazon_evaluation_details.py",
             project / "examples/validation/amazon_profile.py", project / "examples/validation/dataset_sweep.py",
-            project / "src/compresso_recsys/builder.py", project / "src/compresso_recsys/retrieval.py",
+            *sorted((project / "src/compresso_recsys/builder").rglob("*.py")), *sorted((project / "src/compresso_recsys/retrieval").rglob("*.py")),
             project / "src/compresso_recsys/multimodal.py",
             project / "src/compresso_recsys/sequences.py", *sorted((project / "src/compresso_recsys/datasets").glob("*.py"))]
     archive = {"schema_version": 1, "measured_at_utc": datetime.now(timezone.utc).isoformat(),

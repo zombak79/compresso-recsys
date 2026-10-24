@@ -690,6 +690,12 @@ def test_invalid_schedule_configuration_is_refused(kwargs, message):
 
 def test_both_sequential_trainers_share_one_schedule_implementation():
     """Two copies of this curve would be a difference nobody intended."""
-    from compresso_recsys.models import simple_gpt, simple_rnn
+    from compresso_recsys.models.core import schedule
+    from compresso_recsys.models.simple_bidirectional import trainer as bidirectional
+    from compresso_recsys.models.simple_gpt import trainer as gpt
+    from compresso_recsys.models.simple_rnn import trainer as rnn
 
-    assert simple_rnn.build_scheduler is simple_gpt.build_scheduler
+    # Naming the shared module makes the claim stronger than comparing the
+    # trainers to each other: two copies could agree and still both be wrong.
+    for trainer in (rnn, gpt, bidirectional):
+        assert trainer.build_scheduler is schedule.build_scheduler
