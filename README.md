@@ -122,7 +122,7 @@ cold-start examples, and defaults.
 - Batched EASE, ADMM and gradient-trained TEASER cold-start models, a
   content-similarity cold-start baseline, dense ELSA, and lottery-ticket
   compressed ELSA with streaming evaluation.
-- Random and popularity baselines, normalized user-user and item-item cosine
+- Random and popularity baselines, user-user and item-item cosine
   KNN, and multinomial denoising and variational autoencoders (`MultDAE` and
   `MultVAE`).
 - Sequential recommenders over chronological histories: `SimpleRNN`, a recurrent

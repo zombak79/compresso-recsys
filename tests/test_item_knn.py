@@ -84,7 +84,7 @@ def test_failed_item_knn_refit_preserves_state(interactions):
 
 
 def test_item_knn_uses_normalized_target_neighborhood_scores(interactions):
-    model = ItemKNNRecommender(ItemKNNConfig(n_neighbors=3)).fit(interactions)
+    model = ItemKNNRecommender(ItemKNNConfig(n_neighbors=3, normalize_scores=True)).fit(interactions)
     source = csr_matrix(np.array([[1, 0, 0, 0, 0]], dtype=np.float32))
 
     predictions = model.predict_on_batch(
@@ -134,10 +134,9 @@ def test_item_knn_config_validation():
         ItemKNNConfig(n_jobs=0)
 
 
-def test_item_knn_without_normalization_scores_by_weighted_sum(interactions):
-    model = ItemKNNRecommender(
-        ItemKNNConfig(n_neighbors=3, normalize_scores=False)
-    ).fit(interactions)
+def test_item_knn_scores_by_weighted_sum_by_default(interactions):
+    assert ItemKNNConfig().normalize_scores is False
+    model = ItemKNNRecommender(ItemKNNConfig(n_neighbors=3)).fit(interactions)
     source = csr_matrix(np.array([[1, 0, 0, 0, 0]], dtype=np.float32))
 
     predictions = model.predict_on_batch(source, k=interactions.shape[1], exclude_seen=False)
@@ -167,7 +166,7 @@ def test_item_knn_checkpoints_without_the_flag_load_as_normalized(tmp_path, inte
     import json
     import zipfile
 
-    model = ItemKNNRecommender(ItemKNNConfig(n_neighbors=3)).fit(interactions)
+    model = ItemKNNRecommender(ItemKNNConfig(n_neighbors=3, normalize_scores=True)).fit(interactions)
     path = tmp_path / "knn.zip"
     model.save(path)
     # Rewrite config.json as a pre-0.4.0 checkpoint would have it.

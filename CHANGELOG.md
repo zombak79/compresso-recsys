@@ -29,11 +29,9 @@
 - The evaluation, comparison, metric and model entry points are importable from
   the top level (`cr.EASE`, `cr.evaluate_recommender`, `cr.compare_models`,
   `cr.NDCG`, …), so a script needs one import.
-- `ItemKNNConfig(normalize_scores=...)`. `True` (the default, unchanged) divides
-  each candidate's score by its neighbourhood's total similarity, the
-  rating-prediction convention; `False` gives the plain weighted sum usual for
-  top-N ranking, which scored markedly higher on MovieLens 1M. Checkpoints
-  written before the option existed load as normalised.
+- `ItemKNNConfig(normalize_scores=...)` selects between the plain weighted sum
+  of neighbour similarities (top-N item-kNN) and the per-candidate normalised
+  average (the rating-prediction convention).
 - `ComparisonReport.summary()`, `to_latex()` and `to_markdown()`: compact views
   with every row oriented against the reference, booktabs output in a long or a
   compact (metrics-as-columns) layout, and p-values on the Monte Carlo floor
@@ -68,6 +66,13 @@
 - `tqdm` is now a declared dependency (it was already used for progress bars).
 - Python 3.13 and 3.14 classifiers removed until CI covers them; the
   supported-versions policy is in `CONTRIBUTING.md`.
+- **Behaviour change: `ItemKNNRecommender` no longer normalises scores by
+  default** (`normalize_scores=False`). Dividing each candidate's score by its
+  neighbourhood's total similarity penalised candidates with dense, strong
+  neighbourhoods; on MovieLens 1M (strong generalisation, k=100) the plain
+  weighted sum raised nDCG@100 from 0.329 to 0.380. Pass
+  `ItemKNNConfig(normalize_scores=True)` for the previous scores. Checkpoints
+  saved before 0.4.0 keep normalised scoring when loaded.
 - Development status is Beta.
 - The source distribution contains only the package, README, licence and
   citation file.

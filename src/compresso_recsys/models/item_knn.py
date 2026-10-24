@@ -30,15 +30,16 @@ class ItemKNNConfig:
     of that candidate's neighbourhood, i.e. a weighted *average* over the
     neighbours found in the history. That is the rating-prediction convention;
     for top-N ranking it penalises candidates with dense, strong neighbourhoods
-    (mostly popular items). ``False`` gives the plain weighted *sum*, the usual
-    top-N item-kNN. On MovieLens 1M (strong generalisation, k=100) switching it
-    off raised nDCG@100 from 0.329 to 0.380.
+    (mostly popular items). ``False`` (the default since 0.4.0) gives the plain
+    weighted *sum*, the usual top-N item-kNN. On MovieLens 1M (strong
+    generalisation, k=100) it raised nDCG@100 from 0.329 to 0.380. Checkpoints
+    saved before 0.4.0 keep their normalised scoring when loaded.
     """
 
     n_neighbors: int = 100
     dtype: ItemKNNDataType = "float32"
     n_jobs: int | None = None
-    normalize_scores: bool = True
+    normalize_scores: bool = False
 
     def __post_init__(self) -> None:
         if isinstance(self.n_neighbors, (bool, np.bool_)) or not isinstance(
