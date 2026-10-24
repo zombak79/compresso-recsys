@@ -1,7 +1,11 @@
 from __future__ import annotations
 
 import json
+import tempfile
+import zipfile
+from contextlib import contextmanager
 from dataclasses import dataclass
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -513,7 +517,7 @@ def test_loading_defaults_to_cpu_even_if_saved_config_says_cuda(tmp_path):
     ).fit(_sequence_data())
     path = tmp_path / "cuda-config.ckpt"
     model.save(path)
-    with update_checkpoint(path) as root:
+    with _edit_model_archive(path) as root:
         config_path = root / "config.json"
         config = json.loads(config_path.read_text(encoding="utf-8"))
         config["device"] = "cuda"
@@ -669,7 +673,7 @@ def test_loading_through_the_wrong_class_is_refused(tmp_path, interactions):
 def test_an_unknown_checkpoint_format_is_refused(tmp_path, interactions):
     path = tmp_path / "ease.ckpt"
     EASE().fit(interactions).save(path)
-    with update_checkpoint(path) as root:
+    with _edit_model_archive(path) as root:
         manifest_path = root / "manifest.json"
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         manifest["format"] = "some.other.format"
@@ -700,3 +704,19 @@ def test_warm_catalog_adapter_is_rebuilt_instead_of_persisted(interactions):
     )
 
     assert not hasattr(adapter, "save")
+
+
+@contextmanager
+def _edit_model_archive(path):
+    """Extract a model archive, let the test tamper with it, and zip it back.
+
+    ``update_checkpoint`` is for data checkpoints and refuses a model archive.
+    """
+    with tempfile.TemporaryDirectory() as tmpdir:
+        root = Path(tmpdir)
+        with zipfile.ZipFile(path) as archive:
+            archive.extractall(root)
+        yield root
+        with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+            for file in sorted(p for p in root.rglob("*") if p.is_file()):
+                archive.write(file, file.relative_to(root).as_posix())

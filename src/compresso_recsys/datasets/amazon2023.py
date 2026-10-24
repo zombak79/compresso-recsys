@@ -424,6 +424,9 @@ class AmazonReviews2023(RecSysDataset):
                     if not local_path.exists():
                         self._download_file(source["url"], local_path, size=source.get("size"))
                     frames.append(self._read_source(local_path, source["kind"]))
+                read = self.__dict__.setdefault("_sources_read", {})
+                for source in group:
+                    read[self.root / source["local_path"]] = source["url"]
                 return pd.concat(frames, ignore_index=True) if len(frames) > 1 else frames[0]
             except Exception as e:
                 errors.append(e)
@@ -432,6 +435,11 @@ class AmazonReviews2023(RecSysDataset):
         raise RuntimeError(f"Failed to load Amazon Reviews 2023 config {config!r}") from errors[-1]
 
     load_source_dataframe = _load_hf_dataframe
+
+    def source_files(self) -> list[tuple[Path, str | None]]:
+        """The rating and metadata files actually read, from whichever mirror served them."""
+        read = self.__dict__.get("_sources_read", {})
+        return sorted(read.items()) if read else super().source_files()
 
     def load_timestamp_splits_with_history(self) -> dict[str, pd.DataFrame]:
         """Load McAuley's timestamp split with per-row history fields."""

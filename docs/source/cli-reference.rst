@@ -196,6 +196,31 @@ Depending on the split mode, the checkpoint also stores partition ids:
 Validation/test source-target rows also have aligned ``val_eval_user_ids.npy``
 and ``test_eval_user_ids.npy`` when user identifiers are available.
 
+Checkpoint Manifest and Provenance
+----------------------------------
+
+``manifest.json`` (format ``compresso.recsys.zip``, version 2 since 0.4) records,
+next to each stage's metadata:
+
+- ``provenance.<stage>``: when the stage was written, the compresso-recsys version,
+  the git commit when run from a checkout, Python, the platform family, and the
+  versions of torch, numpy, scipy, pandas, pyarrow and compresso-pytorch. No
+  hostname or path is recorded.
+- ``stages.data.build``: the resolved build arguments, without local paths.
+- ``stages.data.sources``: name, size, SHA-256 and URL of each raw input file the
+  adapter read. Hashes are cached next to the source as ``<file>.sha256.json``.
+- ``stages.data.content_sha256``: a digest of ``data/`` and ``embeddings/``. ZIP
+  bytes differ between two identical builds; this digest does not, so it is what
+  shows that a rebuild matches. Adding a model or a clustering stage leaves it
+  unchanged.
+
+``cr.load_provenance(root)`` returns these fields (``None`` for a version 1
+checkpoint). Reading a checkpoint checks ``format`` and ``version``: a model
+archive or a newer format raises ``CheckpointFormatError`` instead of failing
+later, and ``update_checkpoint`` never rewrites a version it does not know.
+Writing into a version 1 checkpoint upgrades it and records ``upgraded_from``.
+Members with absolute paths or ``..`` are refused on extraction.
+
 Builder Parameters
 ------------------
 

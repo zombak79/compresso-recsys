@@ -317,3 +317,26 @@ def test_catalogue_block_end_to_end(runner, catalogue_setup, monkeypatch, capsys
     assert meta["n_resamples"] == 99
     manifest = json.loads((out / "MANIFEST.json").read_text())
     assert manifest["scrub"]["flagged"] == []
+
+
+def test_verify_checkpoints_matches_content_not_zip_bytes(runner, setup, tmp_path):
+    config, checkpoints, _ = setup
+    previous = tmp_path / "previous"
+    previous.mkdir()
+    # Same content, different ZIP bytes (entries re-packed in reverse order).
+    with zipfile.ZipFile(checkpoints / "toy.zip") as source, zipfile.ZipFile(previous / "toy.zip", "w") as copy:
+        for name in reversed(source.namelist()):
+            copy.writestr(name, source.read(name))
+    out = tmp_path / "results"
+    assert runner.main(["train", "--config", str(config), "--block", "B", "--dataset", "toy-llo", "--model", "Pop",
+                        "--seed", "0", "--out", str(out), "--device", "cpu"]) == 0
+    args = ["verify-checkpoints", "--config", str(config), "--previous", str(previous), "--out", str(out)]
+    assert runner.main(args) == 0
+    row = json.loads((out / "provenance" / "checkpoints.json").read_text())["checkpoints"][0]
+    assert row["content_matches_previous"] and row["previous"]["sha256"] != row["sha256"]
+
+    with zipfile.ZipFile(checkpoints / "toy.zip") as source, zipfile.ZipFile(previous / "toy.zip", "w") as copy:
+        for name in source.namelist():
+            copy.writestr(name, source.read(name))
+        copy.writestr("data/extra.txt", b"a file the current build does not have")
+    assert runner.main(args) == runner.SPEC_MISMATCH

@@ -163,8 +163,9 @@ encoders as listed in :doc:`datasets`.
 Integrity of downloads
 ----------------------
 
-Only the SWAP feature archives are verified by checksum today. Interaction
-downloads are checked for size, not content. A planned checkpoint manifest records
-each source file's SHA-256, so a build can be compared with a published one.
+Only the SWAP feature archives are verified against a published checksum.
+Interaction downloads are checked for size, not content, but every checkpoint
+built since 0.4 records each raw source file's size and SHA-256 in its manifest
+(``cr.load_provenance``), so a build can be compared with a published one.
 Taste Profile is fetched over plain HTTP, and MovieLens uses a temporary fallback
 for GroupLens's expired TLS certificate (:doc:`datasets`).

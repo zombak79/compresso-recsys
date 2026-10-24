@@ -55,6 +55,11 @@
   history and draws no random numbers; early stopping treats the configured
   epochs as a maximum, restores the best weights by default and records them in
   `trainer.best_`. BERT4Rec keeps its own loop and its fixed published budget.
+- Data-checkpoint manifest version 2: per-stage provenance (library, git
+  commit, Python and package versions; never a hostname), the resolved build
+  arguments, SHA-256 of every raw source file, and `content_sha256`, a digest of
+  the checkpoint's data that is identical across rebuilds. `load_provenance`
+  reads it. Checkpoints still load in 0.3.x, which ignores the new keys.
 - `examples/paper/`: the benchmark runner of the ECIR 2027 resource paper
   (`list`, `train`, `select`, `compare`), its configuration, and a minutes-long
   ML-1M smoke configuration that writes every output file.
@@ -100,6 +105,11 @@
   citation file.
 
 ### Fixed
+
+- Data checkpoints are extracted with the same unsafe-path check as model
+  archives, and their `format` and `version` are validated on read, so a model
+  archive or a newer format fails with `CheckpointFormatError` instead of a
+  confusing error later; `update_checkpoint` never downgrades a newer version.
 
 - `evaluate_item_embeddings` (and `evaluate_item_embeddings_with_holdout`
   through a new `sample_ids=` argument) now passes the holdout's user ids to

@@ -17,6 +17,8 @@ import pandas as pd
 from scipy.sparse import csr_matrix, load_npz, save_npz
 import torch
 
+from compresso_recsys._zipsafe import safe_extract
+
 MODEL_CHECKPOINT_FORMAT = "compresso.recsys.model"
 MODEL_CHECKPOINT_VERSION = 1
 MODEL_MANIFEST_NAME = "manifest.json"
@@ -131,13 +133,7 @@ def _extract_zip(source: Path, root: Path) -> None:
     if not zipfile.is_zipfile(source):
         raise ValueError(f"model checkpoint is not a ZIP archive: {source}")
     with zipfile.ZipFile(source, "r") as archive:
-        for member in archive.infolist():
-            path = PurePosixPath(member.filename)
-            if path.is_absolute() or ".." in path.parts:
-                raise ValueError(
-                    f"model checkpoint contains an unsafe path: {member.filename!r}"
-                )
-        archive.extractall(root)
+        safe_extract(archive, root, kind="model checkpoint")
 
 
 class _ModelCheckpointFiles:

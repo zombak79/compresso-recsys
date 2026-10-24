@@ -48,6 +48,41 @@ class RecSysDataset:
         assert self._interactions is not None
         return self._interactions.copy()
 
+    # Files under ``root`` that are the library's own caches, not inputs.
+    _CACHE_SUFFIXES = (".interactions.parquet", ".part", ".tmp", ".sha256.json")
+
+    def _known_urls(self) -> dict[str, str]:
+        """File name -> download URL, from the adapter's ``*url`` class attributes."""
+        from urllib.parse import urlparse
+
+        urls = {}
+        for attribute in dir(type(self)):
+            if not attribute.endswith("url"):
+                continue
+            value = getattr(type(self), attribute, None)
+            if isinstance(value, str) and value.startswith(("http://", "https://")):
+                urls[Path(urlparse(value).path).name] = value
+        return urls
+
+    def source_files(self) -> list[tuple[Path, str | None]]:
+        """The raw input files this dataset read, with their download URLs where known.
+
+        The default lists regular files directly under ``root``, without the
+        library's cache artefacts or extracted directories. Adapters that read
+        from subdirectories override it.
+        """
+        urls = self._known_urls()
+        files = []
+        for path in sorted(self.root.iterdir()) if self.root.is_dir() else ():
+            if not path.is_file() or path.name.startswith("."):
+                continue
+            if path.name.endswith(self._CACHE_SUFFIXES) or (
+                path.suffix == ".json" and path.name.endswith(".interactions.json")
+            ):
+                continue
+            files.append((path, urls.get(path.name)))
+        return files
+
     def get_item_metadata(self) -> pd.DataFrame:
         if self._item_metadata is None:
             self.prepare()

@@ -38,7 +38,9 @@ def test_top_level_public_api_is_intentional():
         "ModelCheckpointWriter",
         "RecSysDataset",
         "SplitBundle",
+        "CheckpointFormatError",
         "load_cluster_graph_stage",
+        "load_provenance",
         "load_item_sequences",
         "load_json",
         "load_manifest",
@@ -135,6 +137,8 @@ def test_model_and_retrieval_helpers_are_not_top_level_exports():
 def test_submodule_public_apis_are_intentional():
     expected_by_module = {
         checkpoint: {
+            "CheckpointFormatError",
+            "load_provenance",
             "update_checkpoint",
             "read_checkpoint",
             "load_manifest",

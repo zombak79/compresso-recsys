@@ -21,7 +21,9 @@ from typing import TYPE_CHECKING, Any
 _EXPORTS: dict[str, str] = {}
 for _module, _names in {
     "checkpoint": (
+        "CheckpointFormatError",
         "load_cluster_graph_stage",
+        "load_provenance",
         "load_json",
         "load_manifest",
         "load_recsys_split",
@@ -142,7 +144,9 @@ def __dir__() -> list[str]:
 if TYPE_CHECKING:  # pragma: no cover - static analysers and IDEs see the real names
     from .builder import build_recsys_checkpoint as build_recsys_checkpoint
     from .checkpoint import (
+        CheckpointFormatError as CheckpointFormatError,
         load_cluster_graph_stage as load_cluster_graph_stage,
+        load_provenance as load_provenance,
         load_json as load_json,
         load_manifest as load_manifest,
         load_recsys_split as load_recsys_split,

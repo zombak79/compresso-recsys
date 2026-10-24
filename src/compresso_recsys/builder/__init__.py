@@ -18,6 +18,8 @@ from typing import Any
 import numpy as np
 
 from compresso_recsys.checkpoint import (
+    load_manifest,
+    save_manifest,
     save_recsys_split,
     update_checkpoint,
 )
@@ -280,7 +282,34 @@ def _build_recsys_checkpoint_from_args(args) -> Path:
                     root, dataset=args.dataset, features=args.multimodal_features,
                     data_dir=args.data_dir, show_progress=getattr(args, "show_progress", True),
                 )
+            _record_build_provenance(root, args, ds)
     return Path(args.checkpoint_path)
+
+
+# Arguments that say where things live on this machine rather than what was built.
+_LOCAL_ARGS = frozenset({"data_dir", "checkpoint_path", "show_progress"})
+
+
+def _json_value(value):
+    if isinstance(value, (str, int, float, bool)) or value is None:
+        return value
+    if isinstance(value, (list, tuple)):
+        return [_json_value(item) for item in value]
+    if isinstance(value, dict):
+        return {str(key): _json_value(item) for key, item in value.items()}
+    return str(value)
+
+
+def _record_build_provenance(root: Path, args, ds) -> None:
+    """Add the resolved build arguments and raw-source hashes to the data stage (manifest v2)."""
+    from compresso_recsys._provenance import source_records
+
+    manifest = load_manifest(root)
+    data = manifest["stages"]["data"]
+    data["build"] = {key: _json_value(value) for key, value in sorted(vars(args).items())
+                     if key not in _LOCAL_ARGS and not key.startswith("_")}
+    data["sources"] = source_records(ds.source_files()) if hasattr(ds, "source_files") else None
+    save_manifest(root, manifest)
 
 
 def build_recsys_checkpoint(

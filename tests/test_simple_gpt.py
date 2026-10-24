@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -754,10 +755,13 @@ def test_saving_an_unfitted_trainer_is_refused(tmp_path):
 def test_an_unknown_format_is_refused(tmp_path):
     path = tmp_path / "gpt.pt"
     _fitted_on_cycle(epochs=1).save(path)
-    from compresso_recsys.checkpoint import update_checkpoint
     import json
+    import sys
 
-    with update_checkpoint(path) as root:
+    sys.path.insert(0, str(Path(__file__).parent))
+    from test_model_persistence import _edit_model_archive
+
+    with _edit_model_archive(path) as root:
         manifest_path = root / "manifest.json"
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         manifest["version"] = 99

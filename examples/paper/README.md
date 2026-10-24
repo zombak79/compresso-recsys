@@ -53,6 +53,13 @@ python examples/paper/run.py compare --config examples/paper/ecir2027.toml --out
 - **Scrub check:** `compare` checks every text file for this machine's hostname, the user name and the home path. Hits are listed under `scrub.flagged` in `MANIFEST.json`.
 - **Protocol in meta.json:** `compare` writes each block's selection rule, grids and epoch rule (`max N epochs, … patience P`, or a fixed budget) to `meta.json`, for the captions.
 
+## Checkpoint provenance
+
+- **What `result.json` records:** the checkpoint's manifest version, its provenance (build arguments, raw-source hashes, environment) and `content_sha256`. The digest is computed for version 1 checkpoints too.
+- **After a rebuild,** `verify-checkpoints --previous DIR` compares the content of the checkpoints earlier runs used with the current ones.
+  - It writes `provenance/checkpoints.json`.
+  - It exits 2 if any content differs, or if a run used a file that is neither.
+
 ## Guarantees
 
 - **Idempotent:** `train` skips a run whose `result.json` has the same spec. It exits with code 2 when the spec differs.

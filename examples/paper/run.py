@@ -314,15 +314,37 @@ def verify_checkpoint(path: Path) -> tuple[str, str]:
     return digest, "not listed in SHA256SUMS"
 
 
-def load_split(path: Path, feature_names: list[str] = ()) -> tuple[dict, dict]:
-    """The split, and the requested checkpoint feature spaces aligned to its item IDs."""
+def load_split(path: Path, feature_names: list[str] = (), *, info: dict | None = None) -> tuple[dict, dict]:
+    """The split, and the requested checkpoint feature spaces aligned to its item IDs.
+
+    ``info``, when given, receives the checkpoint's provenance (``None`` values
+    for a version 1 checkpoint) and its content digest, which is computed here
+    for any version so results can be matched to a later rebuild.
+    """
     import compresso_recsys as cr
 
     with cr.read_checkpoint(path) as root:
         split = cr.load_recsys_split(root)
         features = {name: cr.load_item_embeddings(root, name, item_ids=split["item_ids"]) for name in feature_names}
+        if info is not None:
+            info.update(checkpoint_provenance(root))
     return split, {name: {"embeddings": f["embeddings"], "available": np.asarray(f["available"], dtype=bool)}
                    for name, f in features.items()}
+
+
+def checkpoint_provenance(root: Path) -> dict:
+    from compresso_recsys import load_provenance
+    from compresso_recsys._provenance import content_sha256
+
+    record = load_provenance(root)
+    return {
+        "manifest_version": record["version"],
+        "content_sha256": content_sha256(root),
+        "recorded_content_sha256": record["content_sha256"],
+        "build": record["build"],
+        "sources": record["sources"],
+        "provenance": record["provenance"],
+    }
 
 
 def encoded_features_path(out: Path, dataset: str, encoder: str) -> Path:
@@ -574,6 +596,54 @@ def encode(args, config: dict) -> int:
     return 0
 
 
+# --------------------------------------------------------------------------- verify-checkpoints
+
+
+def verify_checkpoints(args, config: dict) -> int:
+    """Match the checkpoints results were computed on to rebuilt (manifest v2) ones.
+
+    For each checkpoint the config names, compares the content digest of the
+    checkpoint in ``--previous`` (what earlier runs used) with the one now in the
+    checkpoint directory, and checks that every run's recorded ZIP SHA-256 is
+    the previous or the current file. Writes ``provenance/checkpoints.json``.
+    Exits 2 when any content differs: those results do not inherit the rebuild's
+    provenance.
+    """
+    recorded: dict[str, set[str]] = {}
+    for path in args.out.glob("runs/**/result.json"):
+        checkpoint = json.loads(path.read_text())["checkpoint"]
+        recorded.setdefault(checkpoint["name"], set()).add(checkpoint["sha256"])
+    names = sorted({dataset["checkpoint"] for block in config["blocks"].values() for dataset in block["datasets"].values()})
+    rows, mismatched = [], []
+    for name in names:
+        current = Path(config["paths"]["checkpoints"]) / name
+        previous = args.previous / name if args.previous else None
+        if not current.exists():
+            continue
+        row = {"name": name, "sha256": sha256_file(current)}
+        load_split(current, info=row)
+        if previous is not None and previous.exists():
+            before: dict = {}
+            load_split(previous, info=before)
+            row["previous"] = {"sha256": sha256_file(previous), "manifest_version": before["manifest_version"],
+                               "content_sha256": before["content_sha256"]}
+            row["content_matches_previous"] = before["content_sha256"] == row["content_sha256"]
+            if not row["content_matches_previous"]:
+                mismatched.append(name)
+        known = {row["sha256"]} | ({row["previous"]["sha256"]} if "previous" in row else set())
+        row["runs_on_unknown_file"] = sorted(recorded.get(name, set()) - known)
+        if row["runs_on_unknown_file"]:
+            mismatched.append(name)
+        rows.append(row)
+    write_json(args.out / "provenance" / "checkpoints.json", {"checkpoints": rows})
+    for row in rows:
+        state = ("content matches" if row.get("content_matches_previous") else
+                 "CONTENT DIFFERS" if "previous" in row else "no previous file")
+        print(f"{row['name']}: v{row['manifest_version']}, {state}"
+              + (f", runs on unknown files: {row['runs_on_unknown_file']}" if row["runs_on_unknown_file"] else ""))
+    return SPEC_MISMATCH if mismatched else 0
+
+
 # --------------------------------------------------------------------------- train
 
 
@@ -641,7 +711,8 @@ def train(args, config: dict) -> int:
         checkpoint_sha256, checkpoint_check = verify_checkpoint(ckpt)
         feature_names = list(params.get("features", ())) if KINDS[kind]["input"] == "features" else []
         encoded = catalogue_mode and "encoder" in block_cfg
-        split, features = load_split(ckpt, [] if encoded else feature_names)
+        checkpoint_info: dict = {}
+        split, features = load_split(ckpt, [] if encoded else feature_names, info=checkpoint_info)
         if encoded:
             vectors = load_encoded_features(args.out, args.dataset, block_cfg["encoder"], np.asarray(split["item_ids"]))
             features = {name: vectors for name in feature_names}
@@ -757,7 +828,8 @@ def train(args, config: dict) -> int:
                 "fit_seconds": round(fit_seconds, 2),
                 "history": history if isinstance(history, list) else None,
             },
-            "checkpoint": {"name": ckpt.name, "sha256": checkpoint_sha256, "check": checkpoint_check},
+            "checkpoint": {"name": ckpt.name, "sha256": checkpoint_sha256, "check": checkpoint_check,
+                           **checkpoint_info},
             "env": environment(),
             "phases_s": phases,
             "finished_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -891,7 +963,7 @@ def _tier(path: Path, root: Path) -> str:
         return "git"
     if rel.name == "result.json" and path.stat().st_size < GIT_TIER_MAX_BYTES:
         return "git"
-    if rel.parts[0] == "features" and rel.suffix == ".json":
+    if rel.parts[0] in ("features", "provenance") and rel.suffix == ".json":
         return "git"
     return "archive"
 
@@ -1069,7 +1141,7 @@ def compare(args, config: dict) -> int:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     commands = parser.add_subparsers(dest="command", required=True)
-    for name in ("train", "select", "compare", "list", "encode"):
+    for name in ("train", "select", "compare", "list", "encode", "verify-checkpoints"):
         sub = commands.add_parser(name)
         sub.add_argument("--config", type=Path, required=True)
         if name in ("train", "select", "encode"):
@@ -1084,6 +1156,9 @@ def main(argv: list[str] | None = None) -> int:
             sub.add_argument("--device", help="override the device (default: cuda when available for GPU models)")
         if name in ("train", "list"):
             sub.add_argument("--max-epochs", type=int, help="cap every epoch budget (smoke tests)")
+        if name == "verify-checkpoints":
+            sub.add_argument("--previous", type=Path,
+                             help="directory with the checkpoints earlier runs used (e.g. the v1 builds)")
         if name == "list":
             sub.add_argument("--stage", choices=("grid", "seeds"), required=True)
             sub.add_argument("--device", choices=("gpu", "cpu"))
@@ -1093,7 +1168,8 @@ def main(argv: list[str] | None = None) -> int:
             sub.add_argument("--out", type=Path, required=True)
     args = parser.parse_args(argv)
     config = load_config(args.config)
-    commands_by_name = {"train": train, "select": select, "compare": compare, "list": list_commands, "encode": encode}
+    commands_by_name = {"train": train, "select": select, "compare": compare, "list": list_commands,
+                        "encode": encode, "verify-checkpoints": verify_checkpoints}
     try:
         return commands_by_name[args.command](args, config)
     except SpecMismatch as error:

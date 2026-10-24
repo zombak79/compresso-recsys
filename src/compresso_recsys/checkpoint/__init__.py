@@ -13,7 +13,9 @@ one before it -- which are cheap here and expensive to discover after training.
 
 from compresso_recsys.checkpoint.manifest import (
     MANIFEST_NAME as MANIFEST_NAME,
+    CheckpointFormatError,
     load_json,
+    load_provenance,
     load_manifest,
     read_checkpoint,
     save_json,
@@ -34,6 +36,8 @@ from compresso_recsys.checkpoint.clusters import (
 )
 
 __all__ = [
+    "CheckpointFormatError",
+    "load_provenance",
     "update_checkpoint",
     "read_checkpoint",
     "load_manifest",
