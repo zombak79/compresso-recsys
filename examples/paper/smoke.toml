@@ -5,7 +5,7 @@
 seeds = [0, 1]
 eval_batch_size = 1024
 placeholder = true
-note = "smoke run: ML-1M leave-last-out, Pop/EASE/ItemKNN + MultVAE (2 epochs, early stopping); not a result"
+note = "smoke run: ML-1M leave-last-out, Pop/EASE/ItemKNN + MultVAE (max 2 epochs + patience 1, selected on validation); not a result"
 
 [paths]
 checkpoints = "${CR_CKPT}"

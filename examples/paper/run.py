@@ -3,6 +3,7 @@
 One ``train`` call is one (block, dataset, model, seed, grid point)::
 
     python examples/paper/run.py list    --config examples/paper/ecir2027.toml --stage grid [--device gpu|cpu]
+    python examples/paper/run.py encode  --config ... --block Cp --dataset steam-temporal --out $RESULTS
     python examples/paper/run.py train   --config ... --block B --dataset ml1m-llo --model EASE --seed 0 --grid-trial 1 --out $RESULTS
     python examples/paper/run.py select  --config ... --block B --dataset ml1m-llo --model EASE --out $RESULTS
     python examples/paper/run.py list    --config ... --stage seeds --out $RESULTS
@@ -17,6 +18,7 @@ once per run and only read back by ``compare``. See README.md for the layout.
 from __future__ import annotations
 
 import argparse
+import getpass
 import hashlib
 import itertools
 import json
@@ -48,6 +50,13 @@ TABLE_METRICS = ("calibrated_recall@20", "ndcg@100")
 GIT_TIER_MAX_BYTES = 50_000
 # Fixed for every run so all results of one dataset pair up in compare_models.
 EXCLUDE_SEEN = True
+PROTOCOL_NOTE = (
+    "Hyperparameters and, for trainers, the number of epochs are selected on validation: "
+    "trainers run up to max_epochs and stop after `patience` validations without improvement, "
+    "restoring the best epoch (max epochs + patience, selected on validation). SASRec on ML-1M "
+    "and BERT4Rec keep fixed published budgets. Deterministic models run once; stochastic models "
+    "rerun the selected configuration with further seeds. Statistics use the seed-0 per-user values."
+)
 
 
 class SpecMismatch(Exception):
@@ -71,9 +80,14 @@ def load_config(path: Path) -> dict[str, Any]:
     with path.open("rb") as stream:
         config = _expand(tomllib.load(stream))
     for block_name, block in config["blocks"].items():
+        block.setdefault("mode", "standard")
+        if block["mode"] not in ("standard", "catalogue"):
+            raise ValueError(f"blocks.{block_name}: mode must be 'standard' or 'catalogue'")
         for model_name, model in block["models"].items():
             if model["kind"] not in KINDS:
                 raise ValueError(f"blocks.{block_name}.models.{model_name}: unknown kind {model['kind']!r}")
+            if KINDS[model["kind"]]["input"] == "features" and block["mode"] != "catalogue":
+                raise ValueError(f"blocks.{block_name}.models.{model_name}: feature models need a catalogue block")
     return config
 
 
@@ -98,10 +112,21 @@ def model_spec(config: dict, block: str, dataset: str, model: str) -> dict:
         "params": {**base.get("params", {}), **override.get("params", {})},
         "grid": {**base.get("grid", {}), **override.get("grid", {})},
         "training": {**base.get("training", {}), **override.get("training", {})},
+        "catalogues": catalogues_for(block_cfg, base),
     }
     if "datasets" in base and dataset not in base["datasets"]:
         raise SystemExit(f"model {model} does not run on {dataset} in block {block}")
     return spec
+
+
+def catalogues_for(block_cfg: dict, model_cfg: dict) -> list[str]:
+    """The catalogues a model is scored in: warm-only models never enter a cold-only catalogue."""
+    if block_cfg["mode"] != "catalogue":
+        return ["all"]
+    names = list(model_cfg.get("catalogues", block_cfg["catalogues"]))
+    if KINDS[model_cfg["kind"]]["input"] != "features":
+        names = [name for name in names if name != "cold"]
+    return names
 
 
 def models_for(config: dict, block: str, dataset: str) -> list[str]:
@@ -117,6 +142,16 @@ def grid_points(spec: dict) -> list[dict]:
 
 def seeds_for(config: dict, spec: dict) -> list[int]:
     return [0] if KINDS[spec["kind"]]["deterministic"] else list(config["run"]["seeds"])
+
+
+def outputs_for(block_cfg: dict, dataset: str) -> dict[str, str]:
+    """catalogue -> output path without extension, e.g. {"all": "table/ml1m-llo"}."""
+    dataset_cfg = block_cfg["datasets"][dataset]
+    if "outputs" in dataset_cfg:
+        return dict(dataset_cfg["outputs"])
+    if "table" in dataset_cfg:
+        return {"all": f"table/{dataset_cfg['table']}"}
+    return {}
 
 
 # --------------------------------------------------------------------------- models
@@ -135,6 +170,26 @@ def _selection_metric(name: str):
     if match is None:
         raise ValueError(f"unsupported selection metric {name!r}")
     return {"ndcg": NDCG, "recall": Recall, "calibrated_recall": CalibratedRecall}[match[1]](int(match[2]))
+
+
+# input: what the model trains on ("matrix", "sequence", or item "features" plus the matrix).
+# early_stopping: whether fit accepts validation= and early_stopping=.
+KINDS: dict[str, dict[str, Any]] = {
+    "popularity": {"deterministic": True, "device": "cpu", "input": "matrix", "epochs": False},
+    "ease": {"deterministic": True, "device": "cpu", "input": "matrix", "epochs": False},
+    "itemknn": {"deterministic": True, "device": "cpu", "input": "matrix", "epochs": False},
+    "elsa": {"deterministic": False, "device": "gpu", "input": "matrix", "epochs": True, "early_stopping": True},
+    "multvae": {"deterministic": False, "device": "gpu", "input": "matrix", "epochs": True, "early_stopping": True},
+    "multdae": {"deterministic": False, "device": "gpu", "input": "matrix", "epochs": True, "early_stopping": True},
+    "sasrec": {"deterministic": False, "device": "gpu", "input": "sequence", "epochs": True, "early_stopping": True},
+    "bert4rec": {"deterministic": False, "device": "gpu", "input": "sequence", "epochs": True, "early_stopping": False},
+    "content": {"deterministic": True, "device": "cpu", "input": "features", "epochs": False},
+    "teaser": {"deterministic": True, "device": "cpu", "input": "features", "epochs": False},
+    "teaser_gd": {"deterministic": False, "device": "gpu", "input": "features", "epochs": True, "early_stopping": True},
+}
+
+# Keys of a feature model's params that configure the wrapper rather than the inner model.
+_WRAPPER_KEYS = ("features", "weights", "normalize", "missing")
 
 
 def _build(kind: str, params: dict, *, seed: int, device: str, epochs: int | None):
@@ -157,20 +212,28 @@ def _build(kind: str, params: dict, *, seed: int, device: str, epochs: int | Non
         return cr.SASRecTrainer(cr.SASRecConfig(**trainer, epochs=epochs, **params))
     if kind == "bert4rec":
         return cr.Bert4RecTrainer(cr.Bert4RecConfig(**trainer, epochs=epochs, **params))
-    raise ValueError(kind)
-
-
-# input: what the model trains and scores on. early_stopping: whether fit accepts the hook.
-KINDS: dict[str, dict[str, Any]] = {
-    "popularity": {"deterministic": True, "device": "cpu", "input": "matrix", "epochs": False},
-    "ease": {"deterministic": True, "device": "cpu", "input": "matrix", "epochs": False},
-    "itemknn": {"deterministic": True, "device": "cpu", "input": "matrix", "epochs": False},
-    "elsa": {"deterministic": False, "device": "gpu", "input": "matrix", "epochs": True, "early_stopping": True},
-    "multvae": {"deterministic": False, "device": "gpu", "input": "matrix", "epochs": True, "early_stopping": True},
-    "multdae": {"deterministic": False, "device": "gpu", "input": "matrix", "epochs": True, "early_stopping": True},
-    "sasrec": {"deterministic": False, "device": "gpu", "input": "sequence", "epochs": True, "early_stopping": True},
-    "bert4rec": {"deterministic": False, "device": "gpu", "input": "sequence", "epochs": True, "early_stopping": False},
-}
+    # Feature models go through MMConcatWrapper, also for one feature space: it imputes
+    # missing rows with the training mean and L2-normalises each block the same way.
+    wrapper = {key: params[key] for key in _WRAPPER_KEYS if key in params}
+    inner = {key: value for key, value in params.items() if key not in _WRAPPER_KEYS}
+    weights = wrapper.get("weights")
+    if isinstance(weights, list):  # one weight per feature space, in the order of `features`
+        weights = dict(zip(wrapper["features"], map(float, weights), strict=True))
+    if "l2" in inner:  # one value for both TEASER penalties, as in the grid
+        inner["l2_coefficients"] = inner["l2_encoder"] = inner.pop("l2")
+    if kind == "content":
+        model, model_config = cr.ContentRecommender, cr.ContentRecommenderConfig(**inner)
+    elif kind == "teaser":
+        model, model_config = cr.TEASER, cr.TEASERConfig(**inner)
+    elif kind == "teaser_gd":
+        model, model_config = cr.TEASERGDTrainer, cr.TEASERGDConfig(**trainer, epochs=epochs, **inner)
+    else:
+        raise ValueError(kind)
+    return cr.MMConcatWrapper(cr.MMConcatWrapperConfig(
+        model=model, model_config=model_config, modalities=list(wrapper["features"]),
+        missing=wrapper.get("missing", "mean"), normalize=wrapper.get("normalize", True),
+        weights=weights, extra_modalities="ignore",
+    ))
 
 
 def _epochs(kind: str, training: dict, params: dict, split: dict, max_epochs: int | None) -> int | None:
@@ -191,6 +254,34 @@ def _epochs(kind: str, training: dict, params: dict, split: dict, max_epochs: in
     return min(epochs, max_epochs) if max_epochs else epochs
 
 
+class WarmOnly:
+    """A model fitted on the training items, scored in a larger catalogue.
+
+    It gets the same global-width histories as every other model of the block,
+    so the source fingerprints pair in ``compare_models``; it reads the training
+    columns and maps its ranked items to catalogue positions. Cold candidates
+    are valid targets that it can never emit.
+    """
+
+    def __init__(self, model, warm_columns: np.ndarray, catalogue_columns: np.ndarray, n_global: int) -> None:
+        position = np.full(n_global, -1, dtype=np.int64)
+        position[catalogue_columns] = np.arange(catalogue_columns.size)
+        self.to_catalogue = position[warm_columns]
+        if np.any(self.to_catalogue < 0):
+            raise ValueError("every training item must be in the catalogue a warm-only model is scored in")
+        self.model = model
+        self.warm_columns = warm_columns
+        self.n_items = int(catalogue_columns.size)
+
+    def predict_on_batch(self, source, *, k: int, **kwargs):
+        import torch
+        from compresso import SRPTensor
+
+        ranked = self.model.predict_on_batch(source[:, self.warm_columns].tocsr(), k=k, **kwargs)
+        cols = torch.from_numpy(self.to_catalogue)[ranked.cols.cpu()]
+        return SRPTensor(cols=cols, vals=ranked.vals.cpu(), shape=(source.shape[0], self.n_items))
+
+
 # --------------------------------------------------------------------------- data
 
 
@@ -209,7 +300,7 @@ def checkpoint_path(config: dict, block: str, dataset: str) -> Path:
 def verify_checkpoint(path: Path) -> tuple[str, str]:
     """The checkpoint's sha256 and how it was checked; a mismatch with SHA256SUMS is a spec mismatch."""
     if not path.exists():
-        raise FileNotFoundError(f"checkpoint {path} does not exist")
+        raise FileNotFoundError(f"checkpoint {path.name} does not exist in the checkpoint directory")
     digest = sha256_file(path)
     sums = path.parent / "SHA256SUMS"
     if not sums.exists():
@@ -223,11 +314,33 @@ def verify_checkpoint(path: Path) -> tuple[str, str]:
     return digest, "not listed in SHA256SUMS"
 
 
-def load_split(path: Path) -> dict:
+def load_split(path: Path, feature_names: list[str] = ()) -> tuple[dict, dict]:
+    """The split, and the requested checkpoint feature spaces aligned to its item IDs."""
     import compresso_recsys as cr
 
     with cr.read_checkpoint(path) as root:
-        return cr.load_recsys_split(root)
+        split = cr.load_recsys_split(root)
+        features = {name: cr.load_item_embeddings(root, name, item_ids=split["item_ids"]) for name in feature_names}
+    return split, {name: {"embeddings": f["embeddings"], "available": np.asarray(f["available"], dtype=bool)}
+                   for name, f in features.items()}
+
+
+def encoded_features_path(out: Path, dataset: str, encoder: str) -> Path:
+    return out / "features" / dataset / f"{encoder.replace('/', '__')}.npz"
+
+
+def load_encoded_features(out: Path, dataset: str, encoder: str, item_ids: np.ndarray) -> dict:
+    path = encoded_features_path(out, dataset, encoder)
+    if not path.exists():
+        raise FileNotFoundError(f"{path.relative_to(out)} is missing: run encode first")
+    with np.load(path, allow_pickle=False) as stored:
+        position = {item: row for row, item in enumerate(stored["item_ids"].tolist())}
+        rows = np.array([position.get(item, -1) for item in item_ids.tolist()])
+        embeddings = np.zeros((item_ids.size, stored["embeddings"].shape[1]), dtype=np.float32)
+        available = rows >= 0
+        embeddings[available] = stored["embeddings"][rows[available]]
+        available[available] &= stored["available"][rows[available]]
+    return {"embeddings": embeddings, "available": available}
 
 
 def phase_inputs(split: dict, phase: str, kind: str) -> dict:
@@ -236,10 +349,58 @@ def phase_inputs(split: dict, phase: str, kind: str) -> dict:
     if source is None:
         raise ValueError(f"the checkpoint has no {source_key}; {kind} needs a split mode with sequences")
     targets = split[f"{phase}_target_matrix"]
+    return {"source": source, "targets": targets, "sample_ids": _sample_ids(split, phase, targets.shape[0])}
+
+
+def _sample_ids(split: dict, phase: str, n_rows: int) -> np.ndarray:
     sample_ids = split.get(f"{phase}_eval_user_ids")
-    if sample_ids is None:
-        sample_ids = np.arange(targets.shape[0])
-    return {"source": source, "targets": targets, "sample_ids": np.asarray(sample_ids)}
+    return np.arange(n_rows) if sample_ids is None else np.asarray(sample_ids)
+
+
+def _to_global(matrix, phase_item_ids: np.ndarray, position: dict):
+    """Reindex a matrix whose columns follow a phase catalogue to the checkpoint's item IDs."""
+    from scipy.sparse import csr_matrix
+
+    matrix = matrix.tocsr()
+    columns = np.array([position[item] for item in phase_item_ids.tolist()], dtype=np.int64)
+    return csr_matrix((matrix.data, columns[matrix.indices], matrix.indptr),
+                      shape=(matrix.shape[0], len(position)))
+
+
+def catalogue_inputs(split: dict) -> dict:
+    """Global-width inputs for a catalogue block.
+
+    Columns follow the checkpoint's ``item_ids``. Histories keep only training
+    items: an item a model never trained on cannot be encoded, and every model
+    must see the same histories for the comparison to pair. Catalogues are
+    column index arrays into the same space.
+    """
+    from scipy.sparse import diags
+
+    item_ids = np.asarray(split["item_ids"])
+    position = {item: column for column, item in enumerate(item_ids.tolist())}
+    warm = np.asarray(split["warm_item_indices"], dtype=np.int64)
+    keep = np.zeros(item_ids.size, dtype=np.float32)
+    keep[warm] = 1.0
+    x_train = split["x_train"]
+    if x_train.shape[1] != item_ids.size:
+        x_train = _to_global(x_train, np.asarray(split["train_item_ids"]), position)
+    phases = {}
+    for phase in ("val", "test"):
+        phase_ids = np.asarray(split[f"{phase}_item_ids"])
+        source = _to_global(split[f"{phase}_source_matrix"], phase_ids, position) @ diags(keep)
+        source.eliminate_zeros()
+        targets = _to_global(split[f"{phase}_target_matrix"], phase_ids, position)
+        full = np.array(sorted(position[item] for item in phase_ids.tolist()), dtype=np.int64)
+        phases[phase] = {
+            "source": source.tocsr(), "targets": targets,
+            "sample_ids": _sample_ids(split, phase, targets.shape[0]),
+            "catalogues": {
+                "warm": warm, "full": full, "mixed": full,
+                "cold": np.asarray(split[f"{phase}_cold_item_indices"], dtype=np.int64),
+            },
+        }
+    return {"item_ids": item_ids, "warm": warm, "x_train": x_train.tocsr(), "phases": phases}
 
 
 # --------------------------------------------------------------------------- results layout
@@ -275,9 +436,18 @@ def spec_digest(spec: dict) -> str:
     return hashlib.sha256(json.dumps(spec, sort_keys=True, default=_json_default).encode()).hexdigest()
 
 
+def host_label() -> str:
+    """How results name the machine: CR_HOST_LABEL, else a digest. Hostnames never reach the results."""
+    label = os.environ.get("CR_HOST_LABEL")
+    if label:
+        return re.sub(r"[^A-Za-z0-9_.-]", "-", label)
+    return "host-" + hashlib.sha256(socket.gethostname().encode()).hexdigest()[:8]
+
+
 def environment() -> dict:
     versions = {}
-    for name in ("compresso-recsys", "compresso-pytorch", "torch", "numpy", "scipy", "pandas"):
+    for name in ("compresso-recsys", "compresso-pytorch", "torch", "numpy", "scipy", "pandas",
+                 "sentence-transformers"):
         try:
             versions[name] = importlib_metadata.version(name)
         except importlib_metadata.PackageNotFoundError:
@@ -292,8 +462,8 @@ def environment() -> dict:
     except ImportError:
         pass
     return {
-        "host": socket.gethostname(),
-        "platform": platform.platform(),
+        "host": host_label(),
+        "platform": f"{platform.system()} {platform.machine()}",
         "python": sys.version.split()[0],
         "packages": versions,
         "gpu": gpu,
@@ -304,16 +474,17 @@ def environment() -> dict:
 
 
 def record_host_environment(out: Path) -> None:
-    host = socket.gethostname().split(".")[0]
-    freeze = out / "env" / f"{host}-pip-freeze.txt"
+    label = host_label()
+    freeze = out / "env" / f"{label}-pip-freeze.txt"
     if not freeze.exists():
-        lines = sorted(f"{d.metadata['Name']}=={d.version}" for d in importlib_metadata.distributions())
+        lines = sorted({f"{d.metadata['Name']}=={d.version}" for d in importlib_metadata.distributions()})
         freeze.parent.mkdir(parents=True, exist_ok=True)
         freeze.write_text("\n".join(lines) + "\n")
-    smi = out / "env" / f"{host}-nvidia-smi.txt"
+    smi = out / "env" / f"{label}-nvidia-smi.txt"
     if not smi.exists():
         try:
-            text = subprocess.run(["nvidia-smi"], capture_output=True, text=True, timeout=30).stdout
+            text = subprocess.run(["nvidia-smi", "--query-gpu=name,driver_version,memory.total",
+                                   "--format=csv"], capture_output=True, text=True, timeout=30).stdout
         except (OSError, subprocess.SubprocessError):
             text = ""
         if text:
@@ -333,12 +504,15 @@ def _evaluation_record(result) -> dict:
     }
 
 
-def load_evaluation(directory: Path, phase: str = "test", catalogue: str | None = None):
+def evaluation_key(phase: str, catalogue: str) -> str:
+    return phase if catalogue == "all" else f"{phase}__{catalogue}"
+
+
+def load_evaluation(directory: Path, key: str = "test"):
     """Rebuild the EvaluationResult a run wrote, for compare_models."""
     from compresso_recsys.evaluation import EvaluationResult
 
     result = json.loads((directory / "result.json").read_text())
-    key = phase if catalogue is None else f"{phase}__{catalogue}"
     record = result["evaluation"][key]
     with np.load(directory / "per_user.npz", allow_pickle=False) as arrays:
         prefix = f"{key}/"
@@ -351,6 +525,53 @@ def load_evaluation(directory: Path, phase: str = "test", catalogue: str | None 
         metadata=record["metadata"], target_fingerprint=record["target_fingerprint"],
         source_fingerprint=record["source_fingerprint"], protocol=record["protocol"],
     )
+
+
+# --------------------------------------------------------------------------- encode
+
+
+def encode(args, config: dict) -> int:
+    """Encode the checkpoint's item text with the block's sentence encoder (Block C′ features)."""
+    block_cfg = _block(config, args.block)
+    encoder = block_cfg.get("encoder")
+    if encoder is None:
+        raise SystemExit(f"block {args.block} has no encoder")
+    path = encoded_features_path(args.out, args.dataset, encoder)
+    ckpt = checkpoint_path(config, args.block, args.dataset)
+    checkpoint_sha256, _ = verify_checkpoint(ckpt)
+    sidecar = path.with_suffix(".json")
+    if sidecar.exists():
+        existing = json.loads(sidecar.read_text())
+        if existing["checkpoint_sha256"] == checkpoint_sha256 and existing["encoder"] == encoder:
+            print(f"skip: {path.relative_to(args.out)} exists for this checkpoint")
+            return 0
+        raise SpecMismatch(f"{sidecar.relative_to(args.out)} was encoded from another checkpoint or encoder")
+    import torch
+    from sentence_transformers import SentenceTransformer
+
+    split, _ = load_split(ckpt)
+    metadata = split["entity_metadata"]
+    if metadata is None or "entity_text" not in metadata:
+        raise SystemExit(f"{ckpt.name} has no entity_text to encode")
+    text = metadata.set_index("item_id")["entity_text"].reindex(split["item_ids"]).fillna("").astype(str)
+    available = text.str.strip().str.len().to_numpy() > 0
+    device = args.device or ("cuda" if torch.cuda.is_available() else "cpu")
+    model = SentenceTransformer(encoder, device=device)
+    started = time.time()
+    embeddings = model.encode(text.tolist(), batch_size=256, normalize_embeddings=True,
+                              convert_to_numpy=True, show_progress_bar=False).astype(np.float32)
+    embeddings[~available] = 0.0
+    path.parent.mkdir(parents=True, exist_ok=True)
+    np.savez_compressed(path, item_ids=np.asarray(split["item_ids"]).astype(str), embeddings=embeddings,
+                        available=available)
+    write_json(sidecar, {
+        "encoder": encoder, "text_column": "entity_text", "normalized": True,
+        "items": int(available.size), "items_with_text": int(available.sum()),
+        "dimensions": int(embeddings.shape[1]), "checkpoint": ckpt.name, "checkpoint_sha256": checkpoint_sha256,
+        "seconds": round(time.time() - started, 1), "env": environment(), "sha256": sha256_file(path),
+    })
+    print(f"{path.relative_to(args.out)}: {available.sum()}/{available.size} items with text")
+    return 0
 
 
 # --------------------------------------------------------------------------- train
@@ -371,36 +592,42 @@ def train(args, config: dict) -> int:
         raise SystemExit(f"{args.model} runs seeds {seeds_for(config, spec_cfg)}, not {args.seed}")
     params = {**spec_cfg["params"], **points[trial or 0]}
     block_cfg = _block(config, args.block)
+    catalogue_mode = block_cfg["mode"] == "catalogue"
+    selection_key = evaluation_key("val", block_cfg.get("selection_catalogue", "all") if catalogue_mode else "all")
     ckpt = checkpoint_path(config, args.block, args.dataset)
     out = run_dir(args.out, args.block, args.dataset, args.model, args.seed, trial)
 
     spec = {
         "block": args.block, "dataset": args.dataset, "model": args.model, "kind": kind,
         "seed": args.seed, "trial": trial, "params": params, "training": spec_cfg["training"],
-        "selection_metric": block_cfg["selection"], "checkpoint": ckpt.name,
+        "selection_metric": block_cfg["selection"], "selection_key": selection_key,
+        "catalogues": spec_cfg["catalogues"], "checkpoint": ckpt.name,
         "exclude_seen": EXCLUDE_SEEN, "max_epochs_override": args.max_epochs,
     }
+    if KINDS[kind]["input"] == "features" and "encoder" in block_cfg:
+        spec["encoder"] = block_cfg["encoder"]
     digest = spec_digest(spec)
     result_path = out / "result.json"
     if result_path.exists():
         existing = json.loads(result_path.read_text())
         if existing.get("spec_sha256") == digest:
-            print(f"skip: {result_path} exists with the same spec")
+            print(f"skip: {result_path.relative_to(args.out)} exists with the same spec")
             return 0
-        raise SpecMismatch(f"{result_path} exists with a different spec; move it away or fix the config")
+        raise SpecMismatch(f"{result_path.relative_to(args.out)} exists with a different spec; "
+                           "move it away or fix the config")
 
     out.mkdir(parents=True, exist_ok=True)
     record_host_environment(args.out)
     logger = logging.getLogger(f"cr-paper.{args.block}.{args.dataset}.{args.model}.s{args.seed}")
     logger.setLevel(logging.INFO)
+    logger.propagate = False
     handler = logging.FileHandler(out / "train.log")
     handler.setFormatter(logging.Formatter("%(asctime)s %(message)s"))
     console = logging.StreamHandler(sys.stdout)
     logger.addHandler(handler)
     logger.addHandler(console)
-    logger.propagate = False
     started = time.time()
-    status = {"spec": spec, "phase": "started", "started_unix": started, "host": socket.gethostname()}
+    status = {"spec": spec, "phase": "started", "started_unix": started, "host": host_label()}
     write_json(out / "status.json", status)
     phases: dict[str, float] = {}
 
@@ -412,7 +639,12 @@ def train(args, config: dict) -> int:
 
     try:
         checkpoint_sha256, checkpoint_check = verify_checkpoint(ckpt)
-        split = load_split(ckpt)
+        feature_names = list(params.get("features", ())) if KINDS[kind]["input"] == "features" else []
+        encoded = catalogue_mode and "encoder" in block_cfg
+        split, features = load_split(ckpt, [] if encoded else feature_names)
+        if encoded:
+            vectors = load_encoded_features(args.out, args.dataset, block_cfg["encoder"], np.asarray(split["item_ids"]))
+            features = {name: vectors for name in feature_names}
         mark("loaded")
         import torch
 
@@ -421,16 +653,43 @@ def train(args, config: dict) -> int:
         np.random.seed(args.seed)
         epochs = _epochs(kind, spec_cfg["training"], params, split, args.max_epochs)
         model = _build(kind, params, seed=args.seed, device=device, epochs=epochs)
+        batch_size = int(config["run"].get("eval_batch_size", 1024))
+        data = catalogue_inputs(split) if catalogue_mode else None
+
+        # What the model trains on, and what in-training validation scores.
+        fit_args: tuple = ()
         fit_kwargs: dict[str, Any] = {}
+        if not catalogue_mode:
+            fit_args = (split["x_train_sequences"] if KINDS[kind]["input"] == "sequence" else split["x_train"],)
+            fit_kwargs["item_ids"] = split["train_item_ids"]
+            val = phase_inputs(split, "val", kind)
+            val_source, val_targets, val_ids = val["source"], val["targets"], val["sample_ids"]
+        elif KINDS[kind]["input"] == "features":
+            matrices = {name: features[name]["embeddings"] for name in feature_names}
+            masks = {name: features[name]["available"] for name in feature_names}
+            if kind != "content":
+                fit_args = (data["x_train"],)
+                fit_kwargs["train_item_indices"] = data["warm"]
+            fit_kwargs.update(item_features=matrices, item_ids=data["item_ids"], modality_masks=masks)
+            # The fitted catalogue is every checkpoint item, so validation scores the full catalogue.
+            val = data["phases"]["val"]
+            val_source, val_targets, val_ids = val["source"], val["targets"], val["sample_ids"]
+        else:
+            warm = data["warm"]
+            fit_args = (data["x_train"][:, warm].tocsr(),)
+            fit_kwargs["item_ids"] = data["item_ids"][warm]
+            # A warm-only model validates on the training items, the only ones it can rank.
+            val = data["phases"]["val"]
+            val_source, val_targets, val_ids = val["source"][:, warm].tocsr(), val["targets"][:, warm].tocsr(), val["sample_ids"]
+
         training = spec_cfg["training"]
         if KINDS[kind].get("early_stopping"):
             from compresso_recsys.training import EarlyStopping, Validation
 
-            val = phase_inputs(split, "val", kind)
             fit_kwargs["validation"] = Validation(
-                val["source"], val["targets"], [_selection_metric(block_cfg["selection"])],
-                sample_ids=val["sample_ids"], every=int(training.get("every", 1)),
-                batch_size=int(config["run"].get("eval_batch_size", 1024)), exclude_seen=EXCLUDE_SEEN,
+                val_source, val_targets, [_selection_metric(block_cfg["selection"])],
+                sample_ids=val_ids, every=int(training.get("every", 1)),
+                batch_size=batch_size, exclude_seen=EXCLUDE_SEEN,
             )
             if "patience" in training:
                 fit_kwargs["early_stopping"] = EarlyStopping(
@@ -439,9 +698,8 @@ def train(args, config: dict) -> int:
                 )
         if KINDS[kind]["epochs"]:
             fit_kwargs["logger"] = logger
-        train_input = split["x_train_sequences"] if KINDS[kind]["input"] == "sequence" else split["x_train"]
         fit_started = time.time()
-        model.fit(train_input, item_ids=split["train_item_ids"], **fit_kwargs)
+        model.fit(*fit_args, **fit_kwargs)
         fit_seconds = time.time() - fit_started
         mark("fitted")
 
@@ -449,41 +707,63 @@ def train(args, config: dict) -> int:
 
         evaluation, arrays = {}, {}
         for phase in ("val", "test"):
-            inputs = phase_inputs(split, phase, kind)
-            phase_started = time.time()
-            result = evaluate_recommender(
-                model, source=inputs["source"], targets=inputs["targets"], metrics=_metrics(),
-                sample_ids=inputs["sample_ids"], exclude_seen=EXCLUDE_SEEN,
-                batch_size=int(config["run"].get("eval_batch_size", 1024)),
-            )
-            evaluation[phase] = {**_evaluation_record(result), "seconds": round(time.time() - phase_started, 2)}
-            if phase == "test":
-                arrays[f"{phase}/sample_ids"] = np.asarray(result.sample_ids)
-                for name, values in result.per_user.items():
-                    arrays[f"{phase}/{name}"] = np.asarray(values)
-            mark(f"evaluated_{phase}")
+            for catalogue in spec_cfg["catalogues"]:
+                key = evaluation_key(phase, catalogue)
+                if not catalogue_mode:
+                    inputs = phase_inputs(split, phase, kind)
+                    scorer, source, targets = model, inputs["source"], inputs["targets"]
+                    sample_ids = inputs["sample_ids"]
+                else:
+                    inputs = data["phases"][phase]
+                    columns = inputs["catalogues"][catalogue]
+                    source, sample_ids = inputs["source"], inputs["sample_ids"]
+                    targets = inputs["targets"][:, columns].tocsr()
+                    if KINDS[kind]["input"] == "features":
+                        model.build_candidates(
+                            item_ids=data["item_ids"][columns],
+                            item_features={name: matrices[name][columns] for name in feature_names},
+                            modality_masks={name: masks[name][columns] for name in feature_names},
+                        )
+                        scorer = model
+                    else:
+                        scorer = WarmOnly(model, data["warm"], columns, data["item_ids"].size)
+                phase_started = time.time()
+                result = evaluate_recommender(
+                    scorer, source=source, targets=targets, metrics=_metrics(),
+                    sample_ids=sample_ids, exclude_seen=EXCLUDE_SEEN, batch_size=batch_size,
+                )
+                evaluation[key] = {**_evaluation_record(result), "seconds": round(time.time() - phase_started, 2),
+                                   "catalogue_items": int(targets.shape[1])}
+                if phase == "test":
+                    arrays[f"{key}/sample_ids"] = np.asarray(result.sample_ids)
+                    for name, values in result.per_user.items():
+                        arrays[f"{key}/{name}"] = np.asarray(values)
+                mark(f"evaluated_{key}")
         np.savez_compressed(out / "per_user.npz", **arrays)
 
-        history = getattr(model, "history", None)
+        trained = getattr(model, "inner_model", model)
+        history = getattr(trained, "history", None)
         payload = {
             "spec": spec,
             "spec_sha256": digest,
-            "selection": {"metric": block_cfg["selection"],
-                          "validation": evaluation["val"]["metrics"][block_cfg["selection"]]},
+            "selection": {"metric": block_cfg["selection"], "key": selection_key,
+                          "validation": evaluation[selection_key]["metrics"][block_cfg["selection"]]},
             "evaluation": evaluation,
             "training": {
                 "device": device,
                 "epochs_budget": epochs,
                 "epochs_trained": len(history) if isinstance(history, list) else None,
-                "best": getattr(model, "best_", None),
+                "best": getattr(trained, "best_", None),
                 "fit_seconds": round(fit_seconds, 2),
                 "history": history if isinstance(history, list) else None,
             },
-            "checkpoint": {"path": str(ckpt), "sha256": checkpoint_sha256, "check": checkpoint_check},
+            "checkpoint": {"name": ckpt.name, "sha256": checkpoint_sha256, "check": checkpoint_check},
             "env": environment(),
             "phases_s": phases,
             "finished_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         }
+        if catalogue_mode:
+            payload["cold_share"] = cold_share(data)
         write_json(result_path, payload)
         mark("done")
         return 0
@@ -499,6 +779,22 @@ def train(args, config: dict) -> int:
         logger.removeHandler(handler)
         logger.removeHandler(console)
         handler.close()
+
+
+def cold_share(data: dict) -> dict:
+    """The three cold-share definitions of benchmark-plan.md, for the test phase."""
+    test = data["phases"]["test"]
+    warm = np.zeros(data["item_ids"].size, dtype=bool)
+    warm[data["warm"]] = True
+    catalogue = test["catalogues"]["full"]
+    targets = test["targets"].tocsc()
+    target_items = np.flatnonzero(np.diff(targets.indptr) > 0)
+    per_item = np.diff(targets.indptr)
+    return {
+        "catalogue_items": {"cold": int((~warm[catalogue]).sum()), "total": int(catalogue.size)},
+        "target_items": {"cold": int((~warm[target_items]).sum()), "total": int(target_items.size)},
+        "target_interactions": {"cold": int(per_item[~warm].sum()), "total": int(per_item.sum())},
+    }
 
 
 # --------------------------------------------------------------------------- select
@@ -529,7 +825,7 @@ def select(args, config: dict) -> int:
             best_trial, best_score = trial, score
     payload = {
         "block": args.block, "dataset": args.dataset, "model": args.model,
-        "metric": metric, "split": "val", "trial": best_trial,
+        "metric": metric, "key": found[0][1]["selection"]["key"], "trial": best_trial,
         "params": {**spec_cfg["params"], **points[best_trial or 0]}, "validation": best_score,
         "epochs_trained": dict(found)[best_trial]["training"]["epochs_trained"],
         "trials": [{"trial": t, "params": points[t or 0], "validation": r["selection"]["validation"],
@@ -547,7 +843,7 @@ def selected_trial(out: Path, config: dict, block: str, dataset: str, model: str
         return None
     path = out / "selection" / block / dataset / model / "selected.json"
     if not path.exists():
-        raise FileNotFoundError(f"{path} is missing: run select first")
+        raise FileNotFoundError(f"{path.relative_to(out)} is missing: run select first")
     return json.loads(path.read_text())["trial"]
 
 
@@ -595,17 +891,47 @@ def _tier(path: Path, root: Path) -> str:
         return "git"
     if rel.name == "result.json" and path.stat().st_size < GIT_TIER_MAX_BYTES:
         return "git"
+    if rel.parts[0] == "features" and rel.suffix == ".json":
+        return "git"
     return "archive"
 
 
-def write_manifest(root: Path) -> None:
+def _identifying_strings() -> list[str]:
+    """What must never be published: this machine's names, the user, and the home path."""
+    names = {socket.gethostname(), socket.gethostname().split(".")[0], getpass.getuser(), str(Path.home())}
+    return sorted(name for name in names if len(name) >= 3)
+
+
+def scrub_check(root: Path, files: list[dict]) -> list[str]:
+    """Paths of published text files that name this machine, user or home directory."""
+    patterns = [re.compile(rf"(?<![A-Za-z0-9]){re.escape(name)}(?![A-Za-z0-9])") for name in _identifying_strings()]
+    leaks = []
+    for entry in files:
+        path = root / entry["path"]
+        if path.suffix not in (".json", ".txt", ".md", ".log"):
+            continue
+        text = path.read_text(errors="replace")
+        if any(pattern.search(text) for pattern in patterns):
+            leaks.append(entry["path"])
+    return leaks
+
+
+def write_manifest(root: Path) -> list[str]:
     files = []
     for path in sorted(root.rglob("*")):
-        if not path.is_file() or path.name in ("MANIFEST.json",) or path.suffix == ".tmp":
+        if not path.is_file() or path.name == "MANIFEST.json" or path.suffix == ".tmp":
             continue
         files.append({"path": str(path.relative_to(root)), "bytes": path.stat().st_size,
                       "sha256": sha256_file(path), "tier": _tier(path, root)})
-    write_json(root / "MANIFEST.json", {"files": files})
+    leaks = scrub_check(root, files)
+    for entry in files:
+        entry["identifying"] = entry["path"] in leaks
+    write_json(root / "MANIFEST.json", {
+        "files": files,
+        "scrub": {"checked_for": "this host's name, the user name and the home path",
+                  "flagged": leaks},
+    })
+    return leaks
 
 
 def _summary(out: Path, config: dict, block: str, dataset: str) -> dict:
@@ -621,71 +947,119 @@ def _summary(out: Path, config: dict, block: str, dataset: str) -> dict:
             path = run_dir(out, block, dataset, model, seed, trial) / "result.json"
             if path.exists():
                 result = json.loads(path.read_text())
-                seeds[seed] = {"test": result["evaluation"]["test"]["metrics"],
-                               "val": result["evaluation"]["val"]["metrics"],
+                seeds[seed] = {"evaluation": {key: record["metrics"] for key, record in result["evaluation"].items()},
                                "epochs_trained": result["training"]["epochs_trained"],
+                               "best_epoch": (result["training"]["best"] or {}).get("epoch"),
                                "fit_seconds": result["training"]["fit_seconds"]}
         if not seeds:
             continue
-        names = sorted(next(iter(seeds.values()))["test"])
-        values = {name: [s["test"][name] for s in seeds.values()] for name in names}
+        keys = sorted(next(iter(seeds.values()))["evaluation"])
+        mean, sd = {}, {}
+        for key in keys:
+            names = sorted(next(iter(seeds.values()))["evaluation"][key])
+            values = {name: [s["evaluation"][key][name] for s in seeds.values()] for name in names}
+            mean[key] = {n: float(np.mean(v)) for n, v in values.items()}
+            sd[key] = {n: float(np.std(v, ddof=1)) if len(v) > 1 else None for n, v in values.items()}
         rows[model] = {
             "trial": trial,
             "params": {**spec["params"], **grid_points(spec)[trial or 0]},
+            "training": spec["training"],
             "deterministic": KINDS[spec["kind"]]["deterministic"],
+            "catalogues": spec["catalogues"],
             "seeds": seeds,
-            "test_mean": {n: float(np.mean(v)) for n, v in values.items()},
-            "test_sd": {n: float(np.std(v, ddof=1)) if len(v) > 1 else None for n, v in values.items()},
+            "mean": mean,
+            "sd": sd,
             "n_seeds": len(seeds),
         }
     return rows
+
+
+def protocol_description(config: dict) -> dict:
+    """Per block: selection, and each model's grid and epoch rule, for the paper's captions."""
+    blocks = {}
+    for block_name, block in config["blocks"].items():
+        models = {}
+        for model_name, model in block["models"].items():
+            training = model.get("training", {})
+            if "patience" in training:
+                rule = (f"max {training['max_epochs']} epochs, validate every {training.get('every', 1)}, "
+                        f"patience {training['patience']}, best epoch restored")
+            elif "target_steps" in training:
+                rule = f"fixed budget of {training['target_steps']} steps"
+            elif "epochs" in training:
+                rule = f"fixed budget of {training['epochs']} epochs (validation logged)"
+            else:
+                rule = "closed form / single pass"
+            models[model_name] = {"kind": model["kind"], "params": model.get("params", {}),
+                                  "grid": model.get("grid", {}), "training": training, "epochs": rule,
+                                  "seeds": [0] if KINDS[model["kind"]]["deterministic"] else config["run"]["seeds"],
+                                  "overrides": model.get("overrides", {})}
+        blocks[block_name] = {
+            "datasets": {name: dataset["checkpoint"] for name, dataset in block["datasets"].items()},
+            "selection": block["selection"],
+            "selection_catalogue": block.get("selection_catalogue") if block["mode"] == "catalogue" else None,
+            "catalogues": block.get("catalogues") if block["mode"] == "catalogue" else None,
+            "reference": block.get("reference", "EASE"),
+            "encoder": block.get("encoder"),
+            "models": models,
+        }
+    return blocks
 
 
 def compare(args, config: dict) -> int:
     from compresso_recsys.stats import compare_models
 
     out = args.out
-    stats_cfg = config.get("statistics", {})
+    n_resamples = int(config.get("statistics", {}).get("n_resamples", 9_999))
     written = []
     for block_name, block in config["blocks"].items():
-        for dataset, dataset_cfg in block["datasets"].items():
+        for dataset in block["datasets"]:
             summary = _summary(out, config, block_name, dataset)
             if not summary:
                 continue
             write_json(out / "summary" / block_name / f"{dataset}.json", summary)
-            target = dataset_cfg.get("table") or dataset_cfg.get("casestudy")
-            if target is None:
-                continue
-            # The comparison uses the seed-0 per-user vectors of each model's selected configuration.
-            results = {}
-            for model in summary:
-                directory = run_dir(out, block_name, dataset, model, 0, summary[model]["trial"])
-                results[model] = load_evaluation(directory)
-            reference = block.get("reference", "EASE")
-            if reference not in results or len(results) < 2:
-                print(f"{block_name}/{dataset}: needs the reference {reference} and one more model; skipped",
-                      file=sys.stderr)
-                continue
-            report = compare_models(
-                results, metrics=list(TABLE_METRICS), reference=reference,
-                n_resamples=int(stats_cfg.get("n_resamples", 9_999)), random_state=0,
-            )
-            folder = "table" if "table" in dataset_cfg else "casestudy"
-            path = out / folder / f"{target}.json"
-            write_json(path, report.to_frame().to_dict(orient="records"))
-            written.append(str(path.relative_to(out)))
-            (out / "summary" / block_name / f"{dataset}.md").write_text(report.to_markdown() + "\n")
+            markdown = []
+            for catalogue, target in outputs_for(block, dataset).items():
+                key = evaluation_key("test", catalogue)
+                # The comparison uses the seed-0 per-user values of each model's selected configuration.
+                results = {
+                    model: load_evaluation(run_dir(out, block_name, dataset, model, 0, row["trial"]), key)
+                    for model, row in summary.items() if catalogue in row["catalogues"]
+                }
+                reference = block.get("reference", "EASE")
+                if reference not in results or len(results) < 2:
+                    print(f"{block_name}/{dataset}/{catalogue}: needs the reference {reference} and one more "
+                          "model; skipped", file=sys.stderr)
+                    continue
+                report = compare_models(results, metrics=list(TABLE_METRICS), reference=reference,
+                                        n_resamples=n_resamples, random_state=0)
+                path = out / f"{target}.json"
+                write_json(path, report.to_frame().to_dict(orient="records"))
+                written.append(str(path.relative_to(out)))
+                markdown.append(f"## {dataset} ({catalogue})\n\n{report.to_markdown()}\n")
+            if markdown:
+                (out / "summary" / block_name / f"{dataset}.md").write_text("\n".join(markdown))
+    results = list(out.glob("runs/**/result.json"))
     meta = {
         "commit": os.environ.get("CR_SOURCE_COMMIT"),
         "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "hosts": sorted({json.loads(p.read_text())["env"]["host"] for p in out.glob("runs/**/result.json")}),
+        "hosts": sorted({json.loads(p.read_text())["env"]["host"] for p in results}),
+        "gpus": sorted({(json.loads(p.read_text())["env"]["gpu"] or {}).get("name", "cpu") for p in results}),
         "note": config["run"].get("note", ""),
-        "config": str(args.config),
         "placeholder": bool(config["run"].get("placeholder", False)),
+        "n_resamples": n_resamples,
+        "exclude_seen": EXCLUDE_SEEN,
+        "table_metrics": list(TABLE_METRICS),
+        "statistics": "compare_models on the seed-0 per-user values of each model's selected configuration; "
+                      "paired bootstrap CIs, paired randomization test, Holm over each file's models and metrics",
+        "protocol_note": PROTOCOL_NOTE,
+        "protocol": protocol_description(config),
     }
     write_json(out / "meta.json", meta)
-    write_manifest(out)
+    leaks = write_manifest(out)
     print("\n".join(written) or "nothing to compare yet")
+    if leaks:
+        print("identifying strings found (see MANIFEST.json scrub.flagged): " + ", ".join(leaks), file=sys.stderr)
     return 0
 
 
@@ -695,16 +1069,18 @@ def compare(args, config: dict) -> int:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     commands = parser.add_subparsers(dest="command", required=True)
-    for name in ("train", "select", "compare", "list"):
+    for name in ("train", "select", "compare", "list", "encode"):
         sub = commands.add_parser(name)
         sub.add_argument("--config", type=Path, required=True)
-        if name in ("train", "select"):
+        if name in ("train", "select", "encode"):
             sub.add_argument("--block", required=True)
             sub.add_argument("--dataset", required=True)
+        if name in ("train", "select"):
             sub.add_argument("--model", required=True)
         if name == "train":
             sub.add_argument("--seed", type=int, required=True)
             sub.add_argument("--grid-trial", type=int)
+        if name in ("train", "encode"):
             sub.add_argument("--device", help="override the device (default: cuda when available for GPU models)")
         if name in ("train", "list"):
             sub.add_argument("--max-epochs", type=int, help="cap every epoch budget (smoke tests)")
@@ -717,8 +1093,9 @@ def main(argv: list[str] | None = None) -> int:
             sub.add_argument("--out", type=Path, required=True)
     args = parser.parse_args(argv)
     config = load_config(args.config)
+    commands_by_name = {"train": train, "select": select, "compare": compare, "list": list_commands, "encode": encode}
     try:
-        return {"train": train, "select": select, "compare": compare, "list": list_commands}[args.command](args, config)
+        return commands_by_name[args.command](args, config)
     except SpecMismatch as error:
         print(f"spec mismatch: {error}", file=sys.stderr)
         return SPEC_MISMATCH

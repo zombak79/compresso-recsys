@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import sys
 import zipfile
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -178,3 +180,140 @@ def test_grid_models_need_a_trial_and_deterministic_models_one_seed(runner, setu
         runner.main(_train_args(config, tmp_path, "EASE"))
     with pytest.raises(SystemExit, match="runs seeds"):
         runner.main(_train_args(config, tmp_path, "Pop", seed=1))
+
+
+# --------------------------------------------------------------------------- catalogue blocks
+
+CATALOGUE_CONFIG = """
+[run]
+seeds = [0, 1]
+eval_batch_size = 64
+
+[paths]
+checkpoints = "{checkpoints}"
+
+[statistics]
+n_resamples = 99
+
+[blocks.Cp]
+mode = "catalogue"
+catalogues = ["warm", "mixed"]
+selection = "ndcg@100"
+selection_catalogue = "mixed"
+reference = "EASE"
+encoder = "stub/encoder"
+
+[blocks.Cp.datasets.toy-temporal]
+checkpoint = "toy-temporal.zip"
+outputs = {{ warm = "casestudy/toy__warm", mixed = "casestudy/toy__mixed" }}
+
+[blocks.Cp.models.EASE]
+kind = "ease"
+
+[blocks.Cp.models.TEASER]
+kind = "teaser"
+params = {{ features = ["text"], l2 = 0.1 }}
+
+[blocks.Cp.models.TEASER-GD]
+kind = "teaser_gd"
+params = {{ features = ["text"], batch_size = 64, coefficient_regularization_samples = 16 }}
+training = {{ max_epochs = 3, every = 1, patience = 1 }}
+"""
+
+N_WARM, N_VAL_COLD, N_TEST_COLD = 110, 10, 10
+
+
+def _rows(rng, n_rows, columns, per_row, width):
+    """``n_rows`` rows of ``per_row`` distinct items drawn from ``columns``, ``width`` columns wide."""
+    from scipy.sparse import csr_matrix
+
+    indices = [np.sort(rng.choice(columns, size=per_row, replace=False)) for _ in range(n_rows)]
+    indptr = np.concatenate([[0], np.cumsum([len(i) for i in indices])])
+    matrix = csr_matrix((np.ones(indptr[-1], dtype=np.float32), np.concatenate(indices), indptr),
+                        shape=(n_rows, width))
+    return matrix, indices
+
+
+@pytest.fixture(scope="module")
+def catalogue_setup(tmp_path_factory):
+    """A temporal-style split: training items are a prefix, each later stage appends cold items."""
+    rng = np.random.default_rng(0)
+    n_items = N_WARM + N_VAL_COLD + N_TEST_COLD
+    item_ids = np.array([f"i{i:03d}" for i in range(n_items)])
+    warm = np.arange(N_WARM)
+    val_catalogue = np.arange(N_WARM + N_VAL_COLD)
+    x_train, _ = _rows(rng, 200, warm, 6, N_WARM)
+    phases = {}
+    for phase, catalogue in (("val", val_catalogue), ("test", np.arange(n_items))):
+        source, source_indices = _rows(rng, 60, warm, 5, catalogue.size)
+        targets, target_indices = _rows(rng, 60, catalogue, 2, catalogue.size)
+        phases[phase] = {"source": source, "targets": targets,
+                         "source_indices": source_indices, "target_indices": target_indices}
+    root = tmp_path_factory.mktemp("split")
+    save_recsys_split(
+        root, item_ids=item_ids, x_train=x_train,
+        train_item_ids=item_ids[:N_WARM], val_item_ids=item_ids[val_catalogue], test_item_ids=item_ids,
+        val_source_indices=phases["val"]["source_indices"], val_target_indices=phases["val"]["target_indices"],
+        test_source_indices=phases["test"]["source_indices"], test_target_indices=phases["test"]["target_indices"],
+        val_source_matrix=phases["val"]["source"], val_target_matrix=phases["val"]["targets"],
+        test_source_matrix=phases["test"]["source"], test_target_matrix=phases["test"]["targets"],
+        warm_item_indices=warm, val_cold_item_indices=np.arange(N_WARM, N_WARM + N_VAL_COLD),
+        test_cold_item_indices=np.arange(N_WARM + N_VAL_COLD, n_items),
+        entity_metadata=pd.DataFrame({"item_id": item_ids, "entity_text": [f"item {i}" for i in range(n_items)]}),
+    )
+    checkpoints = tmp_path_factory.mktemp("checkpoints")
+    with zipfile.ZipFile(checkpoints / "toy-temporal.zip", "w") as archive:
+        for path in sorted(root.rglob("*")):
+            if path.is_file():
+                archive.write(path, path.relative_to(root))
+    config = tmp_path_factory.mktemp("config") / "toy-catalogue.toml"
+    config.write_text(CATALOGUE_CONFIG.format(checkpoints=checkpoints))
+    return config, tmp_path_factory.mktemp("results")
+
+
+class _StubEncoder:
+    """Stands in for sentence_transformers.SentenceTransformer: no download, fixed vectors."""
+
+    def __init__(self, name, device=None):
+        self.name = name
+
+    def encode(self, texts, **kwargs):
+        rng = np.random.default_rng(len(texts))
+        vectors = rng.standard_normal((len(texts), 8)).astype(np.float32)
+        return vectors / np.linalg.norm(vectors, axis=1, keepdims=True)
+
+
+def test_catalogue_block_end_to_end(runner, catalogue_setup, monkeypatch, capsys):
+    import types
+
+    config, out = catalogue_setup
+    monkeypatch.setitem(sys.modules, "sentence_transformers", types.SimpleNamespace(SentenceTransformer=_StubEncoder))
+    base = ["--config", str(config), "--block", "Cp", "--dataset", "toy-temporal", "--out", str(out)]
+    assert runner.main(["encode", *base]) == 0
+    assert runner.main(["encode", *base]) == 0  # idempotent
+    for model in ("EASE", "TEASER", "TEASER-GD"):
+        assert runner.main(["train", *base, "--model", model, "--seed", "0", "--device", "cpu"]) == 0
+        assert runner.main(["select", *base, "--model", model]) == 0
+    assert runner.main(["train", *base, "--model", "TEASER-GD", "--seed", "1", "--device", "cpu"]) == 0
+    capsys.readouterr()
+    assert runner.main(["compare", "--config", str(config), "--out", str(out)]) == 0
+
+    teaser = json.loads((out / "runs/Cp/toy-temporal/TEASER/s0/result.json").read_text())
+    sizes = {key: record["catalogue_items"] for key, record in teaser["evaluation"].items()}
+    assert sizes == {"val__warm": N_WARM, "val__mixed": N_WARM + N_VAL_COLD,
+                     "test__warm": N_WARM, "test__mixed": N_WARM + N_VAL_COLD + N_TEST_COLD}
+    assert teaser["cold_share"]["catalogue_items"] == {"cold": N_VAL_COLD + N_TEST_COLD,
+                                                       "total": N_WARM + N_VAL_COLD + N_TEST_COLD}
+    ease = json.loads((out / "runs/Cp/toy-temporal/EASE/s0/result.json").read_text())
+    for key in ("test__warm", "test__mixed"):  # every model saw the same histories
+        assert ease["evaluation"][key]["source_fingerprint"] == teaser["evaluation"][key]["source_fingerprint"]
+    gd = json.loads((out / "runs/Cp/toy-temporal/TEASER-GD/s0/result.json").read_text())
+    assert gd["training"]["best"] is not None and "val_ndcg@100" in gd["training"]["history"][0]
+    for name in ("toy__warm", "toy__mixed"):
+        records = json.loads((out / "casestudy" / f"{name}.json").read_text())
+        assert {r["candidate"] for r in records} == {"TEASER", "TEASER-GD"}
+    meta = json.loads((out / "meta.json").read_text())
+    assert meta["protocol"]["Cp"]["models"]["TEASER-GD"]["epochs"].startswith("max 3 epochs")
+    assert meta["n_resamples"] == 99
+    manifest = json.loads((out / "MANIFEST.json").read_text())
+    assert manifest["scrub"]["flagged"] == []

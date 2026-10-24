@@ -8,6 +8,7 @@ are not results.
 
 ```bash
 export CR_CKPT=/path/to/checkpoints RESULTS=/path/to/results
+python examples/paper/run.py encode  --config examples/paper/ecir2027.toml --block Cp --dataset steam-temporal --out $RESULTS   # once per C′ dataset
 python examples/paper/run.py list    --config examples/paper/ecir2027.toml --stage grid [--device gpu|cpu] > grid.txt
 # run every line of grid.txt (any order, any host; each line is one fit)
 python examples/paper/run.py select  --config examples/paper/ecir2027.toml --block B --dataset ml1m-llo --model EASE --out $RESULTS
@@ -33,6 +34,24 @@ python examples/paper/run.py compare --config examples/paper/ecir2027.toml --out
   - It writes `table/<key>.json` (`ComparisonReport.to_frame()` records).
   - It writes `summary/<block>/<dataset>.json` with the mean and sd over seeds.
   - It also writes `meta.json` and `MANIFEST.json`, where every file is tagged tier `git` or `archive`.
+
+## Catalogue blocks (C, C′)
+
+- **Catalogues per fit:** every model is fitted once and scored in each of the block's catalogues.
+  - Block C: `cold`, the phase's cold items; `full`, every item.
+  - Block C′: `warm`, the training items; `mixed`, the phase's whole stage catalogue.
+- **Shared histories:** columns follow the checkpoint's item IDs, and histories keep only training items, so every model sees the same histories and the results pair.
+- **Feature models** (Content, TEASER, TEASER-GD, through `MMConcatWrapper`) fit on the whole catalogue with the training items marked. They are then pointed at each catalogue with `build_candidates`.
+  - In-training validation therefore scores the full catalogue.
+- **Warm-only models** (EASE, Pop) rank training items only. They are scored in the full and mixed catalogues, never in the cold one.
+- **Cold share:** `result.json` records `cold_share` under the three definitions: catalogue items, target items and target interactions.
+- **Encoded features:** `encode` writes C′ text features once per dataset under `features/`. It uses the block's sentence encoder on the checkpoint's `entity_text`.
+
+## Hosts and publication
+
+- **Host names:** results name machines by `CR_HOST_LABEL` (for example `ostrava-h100`), or by a digest of the hostname, never by the hostname itself. `result.json` records the checkpoint's file name, not its path.
+- **Scrub check:** `compare` checks every text file for this machine's hostname, the user name and the home path. Hits are listed under `scrub.flagged` in `MANIFEST.json`.
+- **Protocol in meta.json:** `compare` writes each block's selection rule, grids and epoch rule (`max N epochs, … patience P`, or a fixed budget) to `meta.json`, for the captions.
 
 ## Guarantees
 

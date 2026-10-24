@@ -122,3 +122,83 @@ training = { max_epochs = 200, every = 5, patience = 4 }
 kind = "bert4rec"          # Sun et al.'s Beauty settings; BERT4Rec has no early-stopping hook
 params = { max_history_length = 50, mask_proportion = 0.6, max_predictions = 30 }
 training = { target_steps = 400000 }
+
+# --------------------------------------------------------------------------- Block C
+# Item cold start, ML-1M item split with the packaged SWAP features. Every model is
+# scored in two catalogues from one fit: "cold" (the phase's cold items only) and
+# "full" (every item; the targets are cold). Histories hold training items only.
+# Reported in prose; TEASER is the reference because EASE cannot score cold items.
+
+[blocks.C]
+mode = "catalogue"
+catalogues = ["cold", "full"]
+selection = "ndcg@100"
+selection_catalogue = "full"
+reference = "TEASER"
+datasets = { "ml1m-item" = { checkpoint = "ml1m-item_split-swap.zip", outputs = { cold = "table/ml1m-cold", full = "table/ml1m-full" } } }
+
+[blocks.C.models.TEASER]
+kind = "teaser"
+grid = { features = [["text/mpnet"], ["image/vit_cls"]], l2 = [0.01, 0.05, 0.2, 1.0] }
+
+[blocks.C.models.Content]
+kind = "content"
+grid = { features = [["text/minilm"], ["text/mpnet"], ["image/vit_cls"]] }
+
+[blocks.C.models.MMConcat-TEASER]
+kind = "teaser"
+params = { features = ["text/mpnet", "image/vit_cls"] }
+grid = { weights = [[1.0, 1.0], [1.0, 0.5]], l2 = [0.01, 0.05, 0.2, 1.0] }
+
+[blocks.C.models.TEASER-GD]
+kind = "teaser_gd"
+params = { lr = 0.001 }
+grid = { features = [["text/mpnet"], ["image/vit_cls"]] }
+training = { max_epochs = 100, every = 1, patience = 10 }
+
+[blocks.C.models.EASE]
+kind = "ease"              # warm-only ceiling: a row in the full catalogue only
+params = { dtype = "float64" }
+grid = { l2 = [100, 200, 500, 1000] }
+
+# --------------------------------------------------------------------------- Block C′
+# Case study (D14): temporal splits with a mixed warm/cold catalogue. "warm" restricts
+# candidates and targets to training items; "mixed" is the full stage catalogue.
+# Item text is encoded once per dataset with `run.py encode`.
+
+[blocks.Cp]
+mode = "catalogue"
+catalogues = ["warm", "mixed"]
+selection = "ndcg@100"
+selection_catalogue = "mixed"
+reference = "EASE"
+encoder = "sentence-transformers/all-MiniLM-L6-v2"
+
+[blocks.Cp.datasets.steam-temporal]
+checkpoint = "steam-temporal.zip"
+outputs = { warm = "casestudy/steam-temporal__warm", mixed = "casestudy/steam-temporal__mixed" }
+
+[blocks.Cp.datasets.amazon-toys]
+checkpoint = "amazon-toys-temporal.zip"
+outputs = { warm = "casestudy/amazon-toys__warm", mixed = "casestudy/amazon-toys__mixed" }
+
+[blocks.Cp.models.Pop]
+kind = "popularity"
+
+[blocks.Cp.models.EASE]
+kind = "ease"
+grid = { l2 = [100, 200, 500, 1000] }
+
+[blocks.Cp.models.Content]
+kind = "content"
+params = { features = ["text"] }
+
+[blocks.Cp.models.TEASER]
+kind = "teaser"
+params = { features = ["text"] }
+grid = { l2 = [0.01, 0.05, 0.2, 1.0] }
+
+[blocks.Cp.models.TEASER-GD]
+kind = "teaser_gd"
+params = { features = ["text"], lr = 0.001 }
+training = { max_epochs = 100, every = 1, patience = 10 }
