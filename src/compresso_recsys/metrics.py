@@ -13,6 +13,7 @@ __all__ = [
     "HitRate",
     "MAP",
     "MRR",
+    "MeanAtCutoffsMetric",
     "NDCG",
     "Precision",
     "Recall",
@@ -100,7 +101,15 @@ class RankingMetric(ABC):
         """Return aggregated metric values."""
 
 
-class _MeanAtCutoffsMetric(RankingMetric):
+class MeanAtCutoffsMetric(RankingMetric):
+    """Base for metrics that average a per-row value at one or more cutoffs.
+
+    A subclass sets ``result_prefix`` and implements :meth:`batch_values`; the
+    base handles cutoffs, result keys (``<prefix>@<k>``), accumulation, rows
+    without targets, and the per-row values that paired comparison needs. See
+    :doc:`/adding-a-metric`.
+    """
+
     result_prefix: str
 
     def __init__(self, cutoffs: int | Sequence[int]) -> None:
@@ -147,10 +156,21 @@ class _MeanAtCutoffsMetric(RankingMetric):
 
     @abstractmethod
     def batch_values(self, batch: RankingBatch) -> torch.Tensor:
-        """Return per-row values with shape ``(rows, len(cutoffs))``."""
+        """Return per-row values with shape ``(rows, len(cutoffs))``.
+
+        Column ``i`` is the value at ``self.cutoffs[i]``. Rows whose
+        ``batch.target_counts`` is zero are dropped from the mean by the base,
+        but still need a finite value here, so guard every denominator.
+        ``batch.hits[row, rank]`` is True when the item at that rank is
+        relevant; ``batch.predictions.cols`` holds the ranked item columns.
+        """
 
 
-class CalibratedRecall(_MeanAtCutoffsMetric):
+# The name the base had before it was public.
+_MeanAtCutoffsMetric = MeanAtCutoffsMetric
+
+
+class CalibratedRecall(MeanAtCutoffsMetric):
     """Recall normalized by ``min(k, number of relevant targets)``.
 
     Reported as ``calibrated_recall@k``. The truncated denominator mirrors the
@@ -175,7 +195,7 @@ class CalibratedRecall(_MeanAtCutoffsMetric):
         return hits_at_k / denominators
 
 
-class Recall(_MeanAtCutoffsMetric):
+class Recall(MeanAtCutoffsMetric):
     """Recall normalized by the total number of relevant targets.
 
     Reported as ``recall@k``. This is the usual definition, so it is the one to
@@ -197,7 +217,7 @@ class Recall(_MeanAtCutoffsMetric):
         return hits_at_k / batch.target_counts[:, None].clamp_min(1)
 
 
-class Precision(_MeanAtCutoffsMetric):
+class Precision(MeanAtCutoffsMetric):
     """Fraction of the top-k predictions that are relevant."""
 
     result_prefix = "precision"
@@ -218,7 +238,7 @@ class Precision(_MeanAtCutoffsMetric):
         return hits_at_k / cutoffs
 
 
-class HitRate(_MeanAtCutoffsMetric):
+class HitRate(MeanAtCutoffsMetric):
     """Whether at least one relevant item occurs in the top-k predictions."""
 
     result_prefix = "hit_rate"
@@ -234,7 +254,7 @@ class HitRate(_MeanAtCutoffsMetric):
         return (hits_at_k > 0).to(torch.float32)
 
 
-class MRR(_MeanAtCutoffsMetric):
+class MRR(MeanAtCutoffsMetric):
     """Mean reciprocal rank of the first relevant prediction up to each cutoff."""
 
     result_prefix = "mrr"
@@ -256,7 +276,7 @@ class MRR(_MeanAtCutoffsMetric):
         return reciprocal_rank_curve.index_select(dim=1, index=cutoff_indices)
 
 
-class MAP(_MeanAtCutoffsMetric):
+class MAP(MeanAtCutoffsMetric):
     """Mean average precision with binary relevance at each cutoff."""
 
     result_prefix = "map"
@@ -285,7 +305,7 @@ class MAP(_MeanAtCutoffsMetric):
         return precision_sums / denominators
 
 
-class NDCG(_MeanAtCutoffsMetric):
+class NDCG(MeanAtCutoffsMetric):
     """Binary-relevance normalized discounted cumulative gain."""
 
     result_prefix = "ndcg"

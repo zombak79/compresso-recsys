@@ -26,6 +26,7 @@ is imported as ``compresso_recsys``.
    licenses
    bring-your-own-dataset
    implementing-a-recommender
+   adding-a-metric
    multimodal-concat-wrapper
    reproducing-sasrec-results-on-ml1m
    reproducing-bert4rec-results-on-ml1m

@@ -187,6 +187,7 @@ def test_submodule_public_apis_are_intentional():
             "HitRate",
             "MAP",
             "MRR",
+            "MeanAtCutoffsMetric",
             "NDCG",
             "Precision",
             "Recall",

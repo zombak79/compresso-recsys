@@ -55,6 +55,10 @@
   history and draws no random numbers; early stopping treats the configured
   epochs as a maximum, restores the best weights by default and records them in
   `trainer.best_`. BERT4Rec keeps its own loop and its fixed published budget.
+- "Adding a metric" guide, and `MeanAtCutoffsMetric`, the public base for
+  metrics that average a per-row value at cutoffs (previously the private
+  `_MeanAtCutoffsMetric`, still available under that name). The guide's code
+  runs in the test suite.
 - Data-checkpoint manifest version 2: per-stage provenance (library, git
   commit, Python and package versions; never a hostname), the resolved build
   arguments, SHA-256 of every raw source file, and `content_sha256`, a digest of
