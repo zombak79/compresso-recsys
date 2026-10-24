@@ -322,6 +322,15 @@ def test_catalogue_block_end_to_end(runner, catalogue_setup, monkeypatch, capsys
     manifest = json.loads((out / "MANIFEST.json").read_text())
     assert manifest["scrub"]["flagged"] == []
 
+    # A result from before binarisation is a spec mismatch for train and blocks compare.
+    path = out / "runs/Cp/toy-temporal/EASE/s0/result.json"
+    record = json.loads(path.read_text())
+    record["spec"].pop("binary_interactions")
+    record["spec_sha256"] = runner.spec_digest(record["spec"])
+    path.write_text(json.dumps(record))
+    assert runner.main(["train", *base, "--model", "EASE", "--seed", "0", "--device", "cpu"]) == runner.SPEC_MISMATCH
+    assert runner.main(["compare", "--config", str(config), "--out", str(out)]) == runner.SPEC_MISMATCH
+
 
 def test_verify_checkpoints_matches_content_not_zip_bytes(runner, setup, tmp_path):
     config, checkpoints, _ = setup

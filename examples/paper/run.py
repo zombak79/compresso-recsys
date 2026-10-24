@@ -695,6 +695,11 @@ def train(args, config: dict) -> int:
     }
     if KINDS[kind]["input"] == "features" and "encoder" in block_cfg:
         spec["encoder"] = block_cfg["encoder"]
+    if catalogue_mode:
+        # Since 7fa8d57 catalogue blocks binarise training data and histories. A
+        # result computed before that may have seen repeat counts; making it part
+        # of the spec turns such a result into a spec mismatch rather than a skip.
+        spec["binary_interactions"] = True
     digest = spec_digest(spec)
     result_path = out / "result.json"
     if result_path.exists():
@@ -1103,6 +1108,17 @@ def compare(args, config: dict) -> int:
 
     out = args.out
     n_resamples = int(config.get("statistics", {}).get("n_resamples", 9_999))
+    stale = [
+        str(path.relative_to(out))
+        for block_name, block in config["blocks"].items() if block["mode"] == "catalogue"
+        for path in sorted((out / "runs" / block_name).glob("**/result.json"))
+        if not json.loads(path.read_text())["spec"].get("binary_interactions")
+    ]
+    if stale:
+        raise SpecMismatch(
+            "catalogue-block results computed before interactions were binarised (7fa8d57) cannot be "
+            "compared with later ones; move them aside and rerun: " + ", ".join(stale)
+        )
     written = []
     for block_name, block in config["blocks"].items():
         for dataset in block["datasets"]:
