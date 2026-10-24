@@ -302,7 +302,10 @@ def test_streaming_evaluation_with_user_ids(data):
     interactions, _ = data
     model = _fit(data)
     targets = csr_matrix(
-        (np.ones(N_USERS, dtype=np.float32), (np.arange(N_USERS), 18 + np.arange(N_USERS) % 6)),
+        (
+            np.ones(N_USERS, dtype=np.float32),
+            (np.arange(N_USERS), 18 + np.arange(N_USERS) % 6),
+        ),
         shape=(N_USERS, N_ITEMS),
     )
     if "user_ids" not in inspect.signature(evaluate_recommender).parameters:
@@ -356,9 +359,7 @@ def test_same_seed_is_deterministic(data):
     other = _fit(data, re_n_negatives=3, seed=1)
     for name, value in first.module.state_dict().items():
         torch.testing.assert_close(value, second.module.state_dict()[name])
-    assert not torch.equal(
-        first.module.user_emb.weight, other.module.user_emb.weight
-    )
+    assert not torch.equal(first.module.user_emb.weight, other.module.user_emb.weight)
     left = first.predict_on_batch(interactions, k=5, user_ids=USER_IDS)
     right = second.predict_on_batch(interactions, k=5, user_ids=USER_IDS)
     torch.testing.assert_close(left.cols, right.cols)

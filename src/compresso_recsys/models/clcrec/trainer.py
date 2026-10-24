@@ -293,7 +293,9 @@ class CLCRecTrainer(BaseColdStartRecommender):
     def _reset_optimizer(self) -> None:
         if self.module is None:
             raise RuntimeError("trainer must be built before creating optimizer")
-        self.optimizer = torch.optim.Adam(self.module.parameters(), lr=float(self.cfg.lr))
+        self.optimizer = torch.optim.Adam(
+            self.module.parameters(), lr=float(self.cfg.lr)
+        )
 
     @staticmethod
     def _train_row_map(n_items: int, train_indices: np.ndarray) -> np.ndarray:
@@ -559,9 +561,11 @@ class CLCRecTrainer(BaseColdStartRecommender):
         )
 
         l2 = (z_users.square().sum() + z_items.square().sum()) / users.size
-        l2 = l2 + sum(
-            parameter.square().sum() for parameter in module.encoder.parameters()
-        ) / n_batches
+        l2 = (
+            l2
+            + sum(parameter.square().sum() for parameter in module.encoder.parameters())
+            / n_batches
+        )
         loss = cfg.re_weight * re + (1.0 - cfg.re_weight) * ui + cfg.l2_weight * l2
         loss.backward()
         self.optimizer.step()
