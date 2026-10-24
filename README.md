@@ -1,5 +1,6 @@
 # Compresso Recsys
 
+[![Tests](https://github.com/zombak79/compresso-recsys/actions/workflows/test.yml/badge.svg)](https://github.com/zombak79/compresso-recsys/actions/workflows/test.yml)
 [![PyPI](https://img.shields.io/pypi/v/compresso-recsys.svg)](https://pypi.org/project/compresso-recsys/)
 [![Python](https://img.shields.io/pypi/pyversions/compresso-recsys.svg)](https://pypi.org/project/compresso-recsys/)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
@@ -171,6 +172,20 @@ Build the docs locally:
 pip install -e ".[docs]"
 sphinx-build -b html docs/source docs/build/html
 ```
+
+## Citing
+
+If you use compresso-recsys in research, cite it as described in
+[`CITATION.cff`](CITATION.cff) (GitHub's "Cite this repository" button reads it)
+and in the [citation guide](https://zombak79.github.io/compresso-recsys/citing.html),
+which also lists the papers behind each model and dataset. Dataset licences and
+terms of use are summarised in the
+[licences page](https://zombak79.github.io/compresso-recsys/licenses.html).
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the development setup, the supported
+Python and PyTorch versions, and how to add a model, dataset or metric.
 
 ## License
 

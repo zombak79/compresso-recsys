@@ -1,0 +1,7 @@
+# The sdist ships the package, its metadata and citation file only. Tests,
+# docs and examples live in the repository, not in the distribution.
+include CITATION.cff
+prune tests
+prune docs
+prune examples
+global-exclude *.py[cod]

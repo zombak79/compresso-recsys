@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "compresso-recsys"
-version = "0.3.7"
+version = "0.4.0.dev0"
 description = "Recommender-system experiments and checkpoint pipelines for Compresso"
 readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.10"
@@ -35,7 +35,7 @@ keywords = [
     "machine-learning",
 ]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
     "Operating System :: OS Independent",
@@ -43,8 +43,6 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.13",
-    "Programming Language :: Python :: 3.14",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
@@ -55,6 +53,7 @@ dependencies = [
     "pandas>=2.0",
     "scipy>=1.11",
     "pyarrow>=14.0",
+    "tqdm>=4.60",
 ]
 
 [project.optional-dependencies]

@@ -1,4 +1,4 @@
-## [Unreleased]
+## [0.4.0] — Unreleased
 
 ### Added
 
@@ -11,6 +11,39 @@
   NDCG@10 0.4805 against 100 popularity-sampled negatives (paper: 0.6970 /
   0.4818), labelled an adapted benchmark because the epoch budget is derived
   from the reference's step count.
+- Dataset options for public adapters (`dataset_options=` in
+  `build_recsys_checkpoint`, repeatable `--dataset_option KEY=VALUE` on the
+  command line) and the Retailrocket, Music4All-Onion, OTTO and Yambda
+  registrations from 0.3.7, now in the reorganised `builder` package.
+- Continuous integration: tests on Python 3.10–3.12 (3.13 allowed to fail) with
+  network access disabled, a coverage report, and a pyflakes lint gate.
+- A test that pins the on-disk layout of model checkpoints per model type, so a
+  format change cannot land unnoticed.
+- `CONTRIBUTING.md` (development setup, supported versions, how to add a model,
+  dataset or metric), issue templates, `CITATION.cff`, BibTeX for
+  compresso-recsys in the citation guide, and a dataset licences page.
+
+### Changed
+
+- **Modules reorganised into packages by role.** `builder`, `checkpoint`,
+  `evaluation`, `stats`, `retrieval` and the large models (`elsa`, `mult_dae`,
+  `mult_vae`, `sasrec`, `simple_gpt`, `simple_rnn`, `simple_bidirectional`,
+  `teaser`, `teaser_gd`, `mm_concat`) are now packages, and shared model
+  infrastructure lives under `models.core` and `models.base`. Every public
+  name keeps its import path. `models.identifiers`, `models.cold_start` and
+  `models.multimodal` remain as re-export modules. **Private modules moved**
+  (`models._batching`, `models._ranking`, `models._validation`,
+  `models._schedule`, `models._autoencoder_batching` are now under
+  `models.core`); code importing them must update its imports.
+- Shared trainer code (progress reporting, batcher handling, checkpoint
+  trainer state, seen-item masking) moved into the recommender bases. Model
+  behaviour and checkpoint layouts are unchanged.
+- `tqdm` is now a declared dependency (it was already used for progress bars).
+- Python 3.13 and 3.14 classifiers removed until CI covers them; the
+  supported-versions policy is in `CONTRIBUTING.md`.
+- Development status is Beta.
+- The source distribution contains only the package, README, licence and
+  citation file.
 
 ## [0.3.7] — 2026-09-24
 
