@@ -26,6 +26,9 @@
   given, as item sets so matrix and sequence inputs of the same histories
   agree. `compare_models` now refuses to pair results whose sources differ or
   that set `exclude_seen` differently, alongside the existing target check.
+- The evaluation, comparison, metric and model entry points are importable from
+  the top level (`cr.EASE`, `cr.evaluate_recommender`, `cr.compare_models`,
+  `cr.NDCG`, …), so a script needs one import.
 - `ComparisonReport.summary()`, `to_latex()` and `to_markdown()`: compact views
   with every row oriented against the reference, booktabs output in a long or a
   compact (metrics-as-columns) layout, and p-values on the Monte Carlo floor
@@ -49,6 +52,9 @@
 - Shared trainer code (progress reporting, batcher handling, checkpoint
   trainer state, seen-item masking) moved into the recommender bases. Model
   behaviour and checkpoint layouts are unchanged.
+- `import compresso_recsys` is now lazy (PEP 562): it loads no submodule, and
+  each top-level name imports its module on first use. A script that only
+  builds datasets or reads a checkpoint no longer loads PyTorch or the models.
 - `tqdm` is now a declared dependency (it was already used for progress bars).
 - Python 3.13 and 3.14 classifiers removed until CI covers them; the
   supported-versions policy is in `CONTRIBUTING.md`.

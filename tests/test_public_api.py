@@ -50,11 +50,57 @@ def test_top_level_public_api_is_intentional():
         "save_recsys_split",
         "update_checkpoint",
         "update_stage_manifest",
+        # 0.4.0: the evaluation, comparison and model entry points, so a script
+        # needs one import.
+        "evaluate_recommender",
+        "compare_models",
+        "compare_pair",
+        "CalibratedRecall", "HitRate", "MAP", "MRR", "NDCG", "Precision", "Recall",
+        "PopularityBaseline", "PopularityBaselineConfig", "RandomBaseline", "RandomBaselineConfig",
+        "EASE", "EASEConfig", "ItemKNNRecommender", "ItemKNNConfig",
+        "UserKNNRecommender", "UserKNNConfig",
+        "ELSATrainer", "ELSAConfig", "ELSACompressionConfig",
+        "MultDAETrainer", "MultDAEConfig", "MultVAETrainer", "MultVAEConfig",
+        "SASRecTrainer", "SASRecConfig", "Bert4RecTrainer", "Bert4RecConfig",
+        "SimpleGPTTrainer", "SimpleGPTConfig", "SimpleRNNTrainer", "SimpleRNNConfig",
+        "SimpleBidirectionalTransformerTrainer", "SimpleBidirectionalTransformerConfig",
+        "ContentRecommender", "ContentRecommenderConfig", "TEASER", "TEASERConfig",
+        "TEASERGDTrainer", "TEASERGDConfig", "MMConcatWrapper", "MMConcatWrapperConfig",
     }
 
     assert set(cr.__all__) == expected
     for name in expected:
         assert hasattr(cr, name)
+
+
+def test_top_level_names_are_the_submodule_objects():
+    assert cr.EASE is models.EASE
+    assert cr.compare_models is stats.compare_models
+    assert cr.evaluate_recommender is evaluation.evaluate_recommender
+    assert cr.NDCG is metrics.NDCG
+    assert cr.read_checkpoint is checkpoint.read_checkpoint
+    assert cr.models is models  # submodules are reachable as attributes too
+    assert set(cr.__all__) <= set(dir(cr))
+
+
+def test_unknown_top_level_names_raise_attribute_error():
+    import pytest
+
+    with pytest.raises(AttributeError, match="has no attribute 'no_such_name'"):
+        cr.no_such_name  # noqa: B018
+
+
+def test_importing_the_package_loads_no_submodule():
+    import subprocess
+    import sys
+
+    code = (
+        "import sys, compresso_recsys as cr\n"
+        "loaded = sorted(m for m in sys.modules if m.startswith('compresso_recsys.'))\n"
+        "print(loaded, 'torch' in sys.modules)\n"
+    )
+    out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=True)
+    assert out.stdout.strip() == "[] False"
 
 
 def test_model_and_retrieval_helpers_are_not_top_level_exports():
