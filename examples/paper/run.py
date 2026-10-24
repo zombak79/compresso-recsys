@@ -865,11 +865,11 @@ def train(args, config: dict) -> int:
         mark("done")
         return 0
     except SpecMismatch:
-        status.update(phase="spec_mismatch", error=traceback.format_exc())
+        status.update(phase="spec_mismatch", error=scrubbed(traceback.format_exc()))
         write_json(out / "status.json", status)
         raise
     except BaseException:
-        status.update(phase="failed", error=traceback.format_exc())
+        status.update(phase="failed", error=scrubbed(traceback.format_exc()))
         write_json(out / "status.json", status)
         raise
     finally:
@@ -1032,18 +1032,45 @@ def _identifying_strings() -> list[str]:
     return sorted(name for name in names if len(name) >= 3)
 
 
+def _host_labels(root: Path) -> set[str]:
+    """The public host labels results carry: chosen to be published, so never a leak themselves."""
+    labels = {host_label()}
+    for path in root.glob("runs/**/result.json"):
+        labels.add(json.loads(path.read_text())["env"]["host"])
+    for path in (root / "env").glob("*-pip-freeze.txt"):
+        labels.add(path.name[: -len("-pip-freeze.txt")])
+    return {label for label in labels if label}
+
+
 def scrub_check(root: Path, files: list[dict]) -> list[str]:
-    """Paths of published text files that name this machine, user or home directory."""
+    """Paths of published text files that name this machine, user or home directory.
+
+    Public host labels are removed before matching, so a label such as
+    ``ostrava-h100`` on a node named ``h100`` is not reported, while the bare
+    hostname still is.
+    """
     patterns = [re.compile(rf"(?<![A-Za-z0-9]){re.escape(name)}(?![A-Za-z0-9])") for name in _identifying_strings()]
+    labels = sorted(_host_labels(root), key=len, reverse=True)
     leaks = []
     for entry in files:
         path = root / entry["path"]
         if path.suffix not in (".json", ".txt", ".md", ".log"):
             continue
         text = path.read_text(errors="replace")
+        for label in labels:
+            text = text.replace(label, " ")
         if any(pattern.search(text) for pattern in patterns):
             leaks.append(entry["path"])
     return leaks
+
+
+def scrubbed(text: str) -> str:
+    """A traceback or log line with this machine's home path, user and hostname replaced."""
+    text = text.replace(str(Path.home()), "~")
+    for name in _identifying_strings():
+        if name != str(Path.home()):
+            text = re.sub(rf"(?<![A-Za-z0-9]){re.escape(name)}(?![A-Za-z0-9])", "<redacted>", text)
+    return text
 
 
 def write_manifest(root: Path) -> list[str]:

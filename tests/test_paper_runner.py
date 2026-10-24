@@ -361,3 +361,17 @@ def test_verify_checkpoints_matches_content_not_zip_bytes(runner, setup, tmp_pat
             copy.writestr(name, source.read(name))
         copy.writestr("data/extra.txt", b"a file the current build does not have")
     assert runner.main(args) == runner.SPEC_MISMATCH
+
+
+def test_scrub_check_exempts_host_labels_but_not_the_hostname(runner, tmp_path, monkeypatch):
+    monkeypatch.setattr(runner, "_identifying_strings", lambda: ["h100", "someuser", "/home/someuser"])
+    monkeypatch.setenv("CR_HOST_LABEL", "ostrava-h100")
+    (tmp_path / "env").mkdir()
+    (tmp_path / "env" / "ostrava-h100-pip-freeze.txt").write_text("numpy==2.0\n")
+    (tmp_path / "labelled.json").write_text('{"host": "ostrava-h100"}')
+    (tmp_path / "bare.json").write_text('{"node": "h100"}')
+    (tmp_path / "path.json").write_text('{"error": "File /home/someuser/x.py"}')
+    files = [{"path": p} for p in ("labelled.json", "bare.json", "path.json", "env/ostrava-h100-pip-freeze.txt")]
+    assert sorted(runner.scrub_check(tmp_path, files)) == ["bare.json", "path.json"]
+    cleaned = runner.scrubbed('File "/home/someuser/x.py" on h100')
+    assert "someuser" not in cleaned and "h100" not in cleaned and "x.py" in cleaned
