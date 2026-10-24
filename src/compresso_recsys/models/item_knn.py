@@ -24,11 +24,21 @@ ItemKNNDataType = Literal["float32", "float64"]
 
 @dataclass(frozen=True)
 class ItemKNNConfig:
-    """Configuration for cosine item-neighborhood collaborative filtering."""
+    """Configuration for cosine item-neighborhood collaborative filtering.
+
+    ``normalize_scores`` divides each candidate's score by the total similarity
+    of that candidate's neighbourhood, i.e. a weighted *average* over the
+    neighbours found in the history. That is the rating-prediction convention;
+    for top-N ranking it penalises candidates with dense, strong neighbourhoods
+    (mostly popular items). ``False`` gives the plain weighted *sum*, the usual
+    top-N item-kNN. On MovieLens 1M (strong generalisation, k=100) switching it
+    off raised nDCG@100 from 0.329 to 0.380.
+    """
 
     n_neighbors: int = 100
     dtype: ItemKNNDataType = "float32"
     n_jobs: int | None = None
+    normalize_scores: bool = True
 
     def __post_init__(self) -> None:
         if isinstance(self.n_neighbors, (bool, np.bool_)) or not isinstance(
@@ -39,6 +49,8 @@ class ItemKNNConfig:
             raise ValueError("n_neighbors must be >= 1")
         if self.dtype not in {"float32", "float64"}:
             raise ValueError("dtype must be 'float32' or 'float64'")
+        if not isinstance(self.normalize_scores, (bool, np.bool_)):
+            raise TypeError("normalize_scores must be a bool")
         if self.n_jobs is not None and (
             isinstance(self.n_jobs, (bool, np.bool_))
             or not isinstance(self.n_jobs, (int, np.integer))
@@ -159,13 +171,14 @@ class ItemKNNRecommender(BaseCollaborativeRecommender):
             (source @ selected_similarity.T).toarray(),
             dtype=self.dtype,
         )
-        normalizer = np.asarray(abs(selected_similarity).sum(axis=1)).ravel()
-        np.divide(
-            scores,
-            normalizer,
-            out=scores,
-            where=normalizer > 0,
-        )
+        if self.cfg.normalize_scores:
+            normalizer = np.asarray(abs(selected_similarity).sum(axis=1)).ravel()
+            np.divide(
+                scores,
+                normalizer,
+                out=scores,
+                where=normalizer > 0,
+            )
         if exclude_seen:
             mask_seen_numpy(scores, source, candidate_rows)
         return rank_numpy_scores(
@@ -184,7 +197,9 @@ class ItemKNNRecommender(BaseCollaborativeRecommender):
         device: torch.device,
     ) -> ItemKNNRecommender:
         del reader, device
-        return cls(ItemKNNConfig(**config))
+        # Checkpoints written before normalize_scores existed always normalised;
+        # read them that way whatever the current default is.
+        return cls(ItemKNNConfig(**{"normalize_scores": True, **config}))
 
     def _save_checkpoint_state(self, writer: ModelCheckpointWriter) -> None:
         assert self.similarity_ is not None

@@ -29,6 +29,11 @@
 - The evaluation, comparison, metric and model entry points are importable from
   the top level (`cr.EASE`, `cr.evaluate_recommender`, `cr.compare_models`,
   `cr.NDCG`, …), so a script needs one import.
+- `ItemKNNConfig(normalize_scores=...)`. `True` (the default, unchanged) divides
+  each candidate's score by its neighbourhood's total similarity, the
+  rating-prediction convention; `False` gives the plain weighted sum usual for
+  top-N ranking, which scored markedly higher on MovieLens 1M. Checkpoints
+  written before the option existed load as normalised.
 - `ComparisonReport.summary()`, `to_latex()` and `to_markdown()`: compact views
   with every row oriented against the reference, booktabs output in a long or a
   compact (metrics-as-columns) layout, and p-values on the Monte Carlo floor

@@ -132,3 +132,60 @@ def test_item_knn_config_validation():
         ItemKNNConfig(dtype="float16")  # type: ignore[arg-type]
     with pytest.raises(ValueError, match="n_jobs"):
         ItemKNNConfig(n_jobs=0)
+
+
+def test_item_knn_without_normalization_scores_by_weighted_sum(interactions):
+    model = ItemKNNRecommender(
+        ItemKNNConfig(n_neighbors=3, normalize_scores=False)
+    ).fit(interactions)
+    source = csr_matrix(np.array([[1, 0, 0, 0, 0]], dtype=np.float32))
+
+    predictions = model.predict_on_batch(source, k=interactions.shape[1], exclude_seen=False)
+
+    expected = model.similarity_[:, 0].toarray().ravel().astype(np.float32)
+    actual = np.empty_like(expected)
+    actual[predictions.cols[0].numpy()] = predictions.vals[0].numpy()
+    np.testing.assert_allclose(actual, expected, atol=1e-7)
+
+
+def test_item_knn_normalization_flag_round_trips(tmp_path, interactions):
+    model = ItemKNNRecommender(
+        ItemKNNConfig(n_neighbors=3, normalize_scores=False)
+    ).fit(interactions)
+    path = tmp_path / "knn.zip"
+    model.save(path)
+
+    restored = ItemKNNRecommender.load(path)
+
+    assert restored.cfg.normalize_scores is False
+    before = model.predict_on_batch(interactions[:2], k=2)
+    after = restored.predict_on_batch(interactions[:2], k=2)
+    torch.testing.assert_close(after.vals, before.vals)
+
+
+def test_item_knn_checkpoints_without_the_flag_load_as_normalized(tmp_path, interactions):
+    import json
+    import zipfile
+
+    model = ItemKNNRecommender(ItemKNNConfig(n_neighbors=3)).fit(interactions)
+    path = tmp_path / "knn.zip"
+    model.save(path)
+    # Rewrite config.json as a pre-0.4.0 checkpoint would have it.
+    legacy = tmp_path / "legacy.zip"
+    with zipfile.ZipFile(path) as src, zipfile.ZipFile(legacy, "w") as dst:
+        for item in src.infolist():
+            data = src.read(item.filename)
+            if item.filename == "config.json":
+                config = json.loads(data)
+                config.pop("normalize_scores")
+                data = json.dumps(config).encode()
+            dst.writestr(item, data)
+
+    restored = ItemKNNRecommender.load(legacy)
+
+    assert restored.cfg.normalize_scores is True
+
+
+def test_item_knn_normalize_scores_must_be_bool():
+    with pytest.raises(TypeError, match="normalize_scores"):
+        ItemKNNConfig(normalize_scores="yes")  # type: ignore[arg-type]
