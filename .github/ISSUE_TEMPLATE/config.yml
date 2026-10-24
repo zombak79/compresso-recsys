@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Documentation
+    url: https://zombak79.github.io/compresso-recsys/
+    about: Tutorials, dataset guide, and API reference.

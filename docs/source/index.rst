@@ -23,6 +23,7 @@ is imported as ``compresso_recsys``.
 
    examples
    datasets
+   licenses
    bring-your-own-dataset
    implementing-a-recommender
    multimodal-concat-wrapper
