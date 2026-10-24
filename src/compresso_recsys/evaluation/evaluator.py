@@ -5,7 +5,7 @@ from __future__ import annotations
 import dataclasses
 import time
 from collections.abc import Mapping, Sequence
-from typing import Any, overload
+from typing import Any, Literal, overload
 
 import numpy as np
 import torch
@@ -365,6 +365,7 @@ def evaluate_recommender(
     metrics: Sequence[RankingMetric] | None = None,
     sample_ids: Sequence[Any] | np.ndarray | None = None,
     exclude_seen: bool | None = None,
+    user_ids: Sequence[Any] | np.ndarray | None | Literal["sample_ids"] = "sample_ids",
     collect_per_user: bool = True,
     metadata: Mapping[str, Any] | None = None,
     batch_size: int = 1024,
@@ -388,6 +389,7 @@ def evaluate_recommender(
     metrics: Sequence[RankingMetric] | None = None,
     sample_ids: Sequence[Any] | np.ndarray | None = None,
     exclude_seen: bool | None = None,
+    user_ids: Sequence[Any] | np.ndarray | None | Literal["sample_ids"] = "sample_ids",
     collect_per_user: bool = True,
     metadata: Mapping[str, Any] | None = None,
     batch_size: int = 1024,
@@ -410,6 +412,7 @@ def evaluate_recommender(
     metrics: Sequence[RankingMetric] | None = None,
     sample_ids: Sequence[Any] | np.ndarray | None = None,
     exclude_seen: bool | None = None,
+    user_ids: Sequence[Any] | np.ndarray | None | Literal["sample_ids"] = "sample_ids",
     collect_per_user: bool = True,
     metadata: Mapping[str, Any] | None = None,
     batch_size: int = 1024,
@@ -449,6 +452,14 @@ def evaluate_recommender(
     then answer different questions. Set it explicitly whenever results will be
     compared across models whose defaults may differ.
 
+    ``user_ids`` only matters for models that declare ``accepts_user_ids``
+    (models with a learned embedding per training user). For them the default
+    passes ``sample_ids`` batch by batch as ``predict_on_batch(..., user_ids=)``;
+    an explicit array (one id per row) is passed instead, and ``None`` passes
+    ``user_ids=None`` so the model applies its unknown-user policy to every row.
+    Other models are called exactly as before. ``result.metadata`` records
+    ``"user_identity"`` as ``"passed"`` or ``"none"`` for declaring models.
+
     The result also carries a ``source_fingerprint`` over the histories given to
     the model (as item sets, so CSR and sequence inputs of the same histories
     agree), which comparison checks alongside the target fingerprint.
@@ -480,6 +491,24 @@ def evaluate_recommender(
         debug_users=debug_users,
     )
     resolved_ids = _canonical_sample_ids(sample_ids, n_rows=batches.n_rows)
+    identity = getattr(model, "accepts_user_ids", False) is True
+    if not identity:
+        identity_ids = None
+    elif isinstance(user_ids, str) and user_ids == "sample_ids":
+        if resolved_ids is None:
+            raise ValueError(
+                f"{type(model).__name__} uses user identity: pass sample_ids= "
+                "(the evaluation's user ids) or user_ids="
+            )
+        identity_ids = resolved_ids
+    elif user_ids is None:
+        identity_ids = None
+    else:
+        identity_ids = np.asarray(list(user_ids), dtype=object)
+        if identity_ids.ndim != 1 or identity_ids.shape[0] != batches.n_rows:
+            raise ValueError(
+                f"user_ids must have one entry per source row ({batches.n_rows})"
+            )
     source_fingerprint = _SourceFingerprint()
     starts = range(0, batches.n_rows, batch_size)
     reporter = _Reporter(
@@ -505,12 +534,10 @@ def evaluate_recommender(
         end = min(start + batch_size, batches.n_rows)
         batch = batches.take_rows(start, end)
         source_fingerprint.update(batch)
-        if exclude_seen is None:
-            predictions = model.predict_on_batch(batch, k=evaluator.required_k)
-        else:
-            predictions = model.predict_on_batch(
-                batch, k=evaluator.required_k, exclude_seen=exclude_seen,
-            )
+        call: dict[str, Any] = {} if exclude_seen is None else {"exclude_seen": exclude_seen}
+        if identity:
+            call["user_ids"] = None if identity_ids is None else identity_ids[start:end]
+        predictions = model.predict_on_batch(batch, k=evaluator.required_k, **call)
         evaluator.update(
             predictions,
             targets[start:end],
@@ -529,6 +556,8 @@ def evaluate_recommender(
         source_fingerprint=source_fingerprint.digest(),
         protocol={"exclude_seen": "model default" if exclude_seen is None else exclude_seen},
     )
+    if identity:
+        result.metadata["user_identity"] = "none" if identity_ids is None else "passed"
     reporter.log(
         f"evaluate recommender@{evaluator.required_k} finished: "
         f"{_format_duration(time.monotonic() - started)} total | "

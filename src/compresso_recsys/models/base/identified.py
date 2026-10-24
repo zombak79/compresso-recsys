@@ -9,6 +9,7 @@ from pathlib import Path
 import re
 from typing import (
     Any,
+    ClassVar,
     Hashable,
     Literal,
     Sequence,
@@ -68,13 +69,56 @@ def _accepts_reporting_keywords(method: Any) -> bool:
     return {"logger", "show_progress"} <= names
 
 
+def _hashable(value: Any) -> bool:
+    try:
+        hash(value)
+    except TypeError:
+        return False
+    return True
+
+
+def _checked_user_ids(user_ids: Any, n_rows: int) -> np.ndarray | None:
+    """``None`` or an object array with exactly one user id per source row."""
+    if user_ids is None:
+        return None
+    if isinstance(user_ids, (str, bytes)):
+        raise TypeError("user_ids must be a sequence of user ids, one per row")
+    values = np.asarray(list(user_ids), dtype=object)
+    if values.ndim != 1 or values.shape[0] != int(n_rows):
+        raise ValueError(
+            f"user_ids must have one entry per source row: got "
+            f"{values.shape[0] if values.ndim == 1 else values.shape} for {n_rows} rows"
+        )
+    return values
+
+
+def _user_id_kwargs(user_ids: np.ndarray | None, start: int, stop: int) -> dict[str, Any]:
+    """Keyword arguments carrying one batch's user ids, or none at all.
+
+    Models that never declared ``accepts_user_ids`` keep receiving exactly the
+    call they always did.
+    """
+    return {} if user_ids is None else {"user_ids": user_ids[start:stop]}
+
+
 class BaseIdentifiedRecommender(ABC):
     """Shared production-facing recommendation workflow.
 
     Histories and candidate filters enter as stable IDs. Source-specific bases
     turn the mapped rows into a CSR matrix or :class:`ItemSequences`; concrete
     models only need to apply the selected candidates before their top-k.
+
+    **User identity.** A model whose scores depend on *which* training user a
+    row belongs to (a learned user embedding) sets ``accepts_user_ids = True``.
+    Its ``predict_on_batch`` and ``_predict_identified`` then accept
+    ``user_ids=``, ``evaluate_recommender`` passes the evaluation's sample ids
+    by default, and ``recommend(user_ids=...)`` forwards them. ``fit`` calls
+    :meth:`_set_user_ids`; prediction maps ids with :meth:`_resolve_user_rows`,
+    which applies the model's ``cfg.unknown_users`` policy (``"error"`` or
+    ``"fold_in"``). Wrappers declare it dynamically from the model they wrap.
     """
+
+    accepts_user_ids: ClassVar[bool] = False
 
     def _fixed_vocabulary(self) -> ItemVocabulary:
         vocabulary = getattr(self, "_item_vocabulary", None)
@@ -150,6 +194,9 @@ class BaseIdentifiedRecommender(ABC):
     ) -> None:
         source, _ = self._recommend_vocabularies()
         writer.write_item_ids("identity/source_item_ids.json", source.item_ids)
+        users = getattr(self, "_user_vocabulary", None)
+        if users is not None:
+            writer.write_item_ids("identity/user_ids.json", users.item_ids)
 
     def _load_checkpoint_common_state(
         self,
@@ -158,6 +205,81 @@ class BaseIdentifiedRecommender(ABC):
         self._restore_source_item_ids(
             reader.read_item_ids("identity/source_item_ids.json")
         )
+        if reader.exists("identity/user_ids.json"):
+            self._user_vocabulary = ItemVocabulary.from_ids(
+                reader.read_item_ids("identity/user_ids.json"), name="user_ids",
+            )
+
+    # -- user identity (only used by models that set accepts_user_ids) -------
+
+    def _set_user_ids(self, user_ids: Any, n_rows: int) -> None:
+        """Record the training users, one id per training row.
+
+        ``None`` identifies users by row position. Ids must be unique and
+        hashable, exactly like item ids.
+        """
+        if user_ids is None:
+            self._user_vocabulary = ItemVocabulary.positional(int(n_rows))
+            return
+        vocabulary = ItemVocabulary.from_ids(user_ids, name="user_ids")
+        if vocabulary.n_items != int(n_rows):
+            raise ValueError(
+                f"user_ids has {vocabulary.n_items} entries but the training "
+                f"data has {n_rows} rows"
+            )
+        self._user_vocabulary = vocabulary
+
+    @property
+    def user_ids(self) -> np.ndarray | None:
+        """Training user ids, or ``None`` for a model without a user vocabulary."""
+        users = getattr(self, "_user_vocabulary", None)
+        return None if users is None else users.item_ids
+
+    def _user_rows(self, user_ids: Any) -> tuple[np.ndarray, np.ndarray]:
+        """Training rows for ``user_ids``: ``(rows, known)``, with row -1 when unknown."""
+        users = getattr(self, "_user_vocabulary", None)
+        if users is None:
+            raise RuntimeError(f"{type(self).__name__} has no user vocabulary; call fit first")
+        ids = np.asarray(list(user_ids), dtype=object)
+        lookup = users.id_to_row
+        rows = np.fromiter(
+            (lookup.get(user, -1) if _hashable(user) else -1 for user in ids.tolist()),
+            dtype=np.int64,
+            count=ids.shape[0],
+        )
+        return rows, rows >= 0
+
+    def _resolve_user_rows(self, user_ids: Any, n_rows: int) -> tuple[np.ndarray, np.ndarray]:
+        """Apply the unknown-user policy: ``(rows, known)`` or a ``KeyError``.
+
+        ``user_ids=None`` makes every row unknown, which is what a pure fold-in
+        evaluation asks for. With ``cfg.unknown_users == "error"`` (the default)
+        any unknown id raises, naming up to five of them.
+        """
+        if user_ids is None:
+            rows = np.full(int(n_rows), -1, dtype=np.int64)
+            known = np.zeros(int(n_rows), dtype=bool)
+        else:
+            if len(user_ids) != int(n_rows):
+                raise ValueError(
+                    f"user_ids has {len(user_ids)} entries for {n_rows} source rows"
+                )
+            rows, known = self._user_rows(user_ids)
+        policy = getattr(getattr(self, "cfg", None), "unknown_users", "error")
+        if policy not in {"error", "fold_in"}:
+            raise ValueError(f"unknown_users must be 'error' or 'fold_in', got {policy!r}")
+        if policy == "error" and not known.all():
+            if user_ids is None:
+                raise KeyError(
+                    f"{type(self).__name__} needs user ids (unknown_users='error'); "
+                    "pass user_ids or set unknown_users='fold_in'"
+                )
+            missing = [user_ids[i] for i in np.flatnonzero(~known)[:5]]
+            raise KeyError(
+                f"{int((~known).sum())} user id(s) not seen in training, e.g. {missing}; "
+                "unknown_users='error' (set 'fold_in' to estimate them from their history)"
+            )
+        return rows, known
 
     @abstractmethod
     def _recommendation_source(
@@ -187,6 +309,7 @@ class BaseIdentifiedRecommender(ABC):
         exclude_seen: bool,
         candidate_ids: np.ndarray,
         reporter: _Reporter,
+        user_ids: np.ndarray | None = None,
     ) -> SRPTensor:
         """Reporting-aware prediction hook with a legacy-compatible fallback."""
         del reporter
@@ -195,6 +318,7 @@ class BaseIdentifiedRecommender(ABC):
             k=k,
             exclude_seen=exclude_seen,
             candidate_ids=candidate_ids,
+            **({} if user_ids is None else {"user_ids": user_ids}),
         )
 
     def _candidate_rows(
@@ -275,12 +399,17 @@ class BaseIdentifiedRecommender(ABC):
         on_insufficient: Literal["truncate", "raise"] = "truncate",
         logger: Any | None = _INHERIT,
         show_progress: bool | None | _Inherit = _INHERIT,
+        user_ids: Sequence[Hashable] | np.ndarray | None = None,
     ) -> Recommendations:
         """Recommend up to ``k`` item IDs for each item-ID history.
 
         ``logger`` and ``show_progress`` override prediction reporting for this
         call. Passing ``logger=None`` makes the request quiet even when the
         recommender has a constructor logger.
+
+        ``user_ids`` (one per history) is accepted only by models that declare
+        ``accepts_user_ids``; any other model raises ``TypeError`` rather than
+        ignoring it.
         """
         if isinstance(k, (bool, np.bool_)) or not isinstance(k, (int, np.integer)):
             raise TypeError("k must be an integer")
@@ -299,6 +428,11 @@ class BaseIdentifiedRecommender(ABC):
             raise TypeError(
                 "histories must be a sequence of item-ID sequences"
             ) from error
+        if user_ids is not None and getattr(self, "accepts_user_ids", False) is not True:
+            raise TypeError(
+                f"{type(self).__name__} does not use user identity; drop user_ids"
+            )
+        user_values = _checked_user_ids(user_ids, len(history_values))
 
         reporter = self._prediction_reporter(logger, show_progress)
         reporting_override = logger is not _INHERIT or not (
@@ -371,12 +505,16 @@ class BaseIdentifiedRecommender(ABC):
                 [rows[row] for row in batch_rows],
                 vocabulary=source_vocabulary,
             )
+            identity = (
+                {} if user_values is None else {"user_ids": user_values[batch_rows]}
+            )
             if not use_reporting_path:
                 predictions = self._predict_identified(
                     source,
                     k=count,
                     exclude_seen=exclude_seen,
                     candidate_ids=selected_ids,
+                    **identity,
                 )
             else:
                 predictions = self._predict_identified_with_reporting(
@@ -385,6 +523,7 @@ class BaseIdentifiedRecommender(ABC):
                     exclude_seen=exclude_seen,
                     candidate_ids=selected_ids,
                     reporter=reporter,
+                    **identity,
                 )
             if (
                 predictions.rows != batch_rows.size

@@ -26,6 +26,7 @@ from scipy.sparse import csr_matrix, isspmatrix_csr
 from compresso import SRPTensor
 from compresso_recsys._reporting import _INHERIT, _Inherit, _Reporter, _format_duration
 from compresso_recsys.models.core.validation import canonical_csr
+from compresso_recsys.models.base.identified import _checked_user_ids, _user_id_kwargs
 from compresso_recsys.models.base import (
     BasePersistableRecommender,
     Recommender,
@@ -182,6 +183,7 @@ class BaseColdStartRecommender(BasePersistableRecommender):
         k: int,
         exclude_seen: bool,
         candidate_ids: np.ndarray,
+        user_ids: np.ndarray | None = None,
     ) -> SRPTensor:
         if not isinstance(source, csr_matrix):
             raise TypeError("cold-start recommendations require a CSR source")
@@ -190,6 +192,7 @@ class BaseColdStartRecommender(BasePersistableRecommender):
             k=k,
             exclude_seen=exclude_seen,
             candidate_ids=candidate_ids,
+            **({} if user_ids is None else {"user_ids": user_ids}),
         )
 
     def _predict_identified_with_reporting(
@@ -200,6 +203,7 @@ class BaseColdStartRecommender(BasePersistableRecommender):
         exclude_seen: bool,
         candidate_ids: np.ndarray,
         reporter: _Reporter,
+        user_ids: np.ndarray | None = None,
     ) -> SRPTensor:
         if not isinstance(source, csr_matrix):
             raise TypeError("cold-start recommendations require a CSR source")
@@ -213,6 +217,7 @@ class BaseColdStartRecommender(BasePersistableRecommender):
             candidate_ids=candidate_ids,
             logger=reporter,
             show_progress=_INHERIT,
+            **({} if user_ids is None else {"user_ids": user_ids}),
         )
 
     @property
@@ -266,12 +271,14 @@ class BaseColdStartRecommender(BasePersistableRecommender):
         candidate_ids: Sequence[Hashable] | np.ndarray | None = None,
         logger: Any | None = _INHERIT,
         show_progress: bool | None | _Inherit = _INHERIT,
+        user_ids: Sequence[Hashable] | np.ndarray | None = None,
     ) -> SRPTensor:
         """Predict all source rows by repeatedly calling ``predict_on_batch``."""
         reporter = self._prediction_reporter(logger, show_progress)
         source = self._prepare_source(source)
         if batch_size < 1:
             raise ValueError("batch_size must be >= 1")
+        user_ids = _checked_user_ids(user_ids, source.shape[0])
         catalog = self.candidates.snapshot()
         selected_items = (
             catalog.n_items
@@ -303,6 +310,7 @@ class BaseColdStartRecommender(BasePersistableRecommender):
                 k=k,
                 exclude_seen=exclude_seen,
                 candidate_ids=candidate_ids,
+                **_user_id_kwargs(user_ids, start, start + batch_size),
             )
             if result.cols_total != catalog.n_items:
                 raise ValueError(
@@ -325,6 +333,7 @@ class BaseColdStartRecommender(BasePersistableRecommender):
                 k=k,
                 exclude_seen=exclude_seen,
                 candidate_ids=candidate_ids,
+                **_user_id_kwargs(user_ids, 0, 0),
             )
         else:
             prediction = SRPTensor(

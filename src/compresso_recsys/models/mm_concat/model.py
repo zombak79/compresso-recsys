@@ -125,6 +125,11 @@ class MMConcatWrapper(BaseMultiModalRecommender):
         return self.inner_model.candidates
 
     @property
+    def accepts_user_ids(self) -> bool:  # type: ignore[override]
+        """Whether the wrapped model uses user identity; calls are forwarded as is."""
+        return getattr(self.inner_model, "accepts_user_ids", False) is True
+
+    @property
     def device(self) -> torch.device:
         """The current inner model's device, when the inner model exposes one."""
         return self.inner_model.device

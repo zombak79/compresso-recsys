@@ -35,7 +35,11 @@ from compresso_recsys.persistence import (
 from compresso_recsys.sequences import ItemSequences
 from compresso_recsys.models.core.identifiers import ItemVocabulary
 from compresso_recsys.models.core.tokenizer import ItemTokenizer
-from compresso_recsys.models.base.identified import _accepts_reporting_keywords
+from compresso_recsys.models.base.identified import (
+    _accepts_reporting_keywords,
+    _checked_user_ids,
+    _user_id_kwargs,
+)
 from compresso_recsys.models.base.persistable import BasePersistableRecommender
 
 
@@ -105,6 +109,7 @@ class BaseSequentialRecommender(BasePersistableRecommender):
         k: int,
         exclude_seen: bool,
         candidate_ids: np.ndarray,
+        user_ids: np.ndarray | None = None,
     ) -> SRPTensor:
         if not isinstance(source, ItemSequences):
             raise TypeError(
@@ -115,6 +120,7 @@ class BaseSequentialRecommender(BasePersistableRecommender):
             k=k,
             exclude_seen=exclude_seen,
             candidate_ids=candidate_ids,
+            **({} if user_ids is None else {"user_ids": user_ids}),
         )
 
     def _predict_identified_with_reporting(
@@ -125,6 +131,7 @@ class BaseSequentialRecommender(BasePersistableRecommender):
         exclude_seen: bool,
         candidate_ids: np.ndarray,
         reporter: _Reporter,
+        user_ids: np.ndarray | None = None,
     ) -> SRPTensor:
         if not isinstance(source, ItemSequences):
             raise TypeError(
@@ -140,6 +147,7 @@ class BaseSequentialRecommender(BasePersistableRecommender):
             candidate_ids=candidate_ids,
             logger=reporter,
             show_progress=_INHERIT,
+            **({} if user_ids is None else {"user_ids": user_ids}),
         )
 
     def _prepare_source(self, source: ItemSequences) -> ItemSequences:
@@ -193,12 +201,14 @@ class BaseSequentialRecommender(BasePersistableRecommender):
         candidate_ids: Sequence[Hashable] | np.ndarray | None = None,
         logger: Any | None = _INHERIT,
         show_progress: bool | None | _Inherit = _INHERIT,
+        user_ids: Sequence[Hashable] | np.ndarray | None = None,
     ) -> SRPTensor:
         """Predict all histories by repeatedly calling ``predict_on_batch``."""
         reporter = self._prediction_reporter(logger, show_progress)
         source = self._prepare_source(source)
         if batch_size < 1:
             raise ValueError("batch_size must be >= 1")
+        user_ids = _checked_user_ids(user_ids, source.n_rows)
         candidate_count = int(self._candidate_rows(candidate_ids).size)
         if not 1 <= int(k) <= candidate_count:
             raise ValueError(f"k must be in [1, {candidate_count}], got {k}")
@@ -225,6 +235,7 @@ class BaseSequentialRecommender(BasePersistableRecommender):
                 if candidate_ids is None
                 else {"candidate_ids": candidate_ids}
             )
+            kwargs.update(_user_id_kwargs(user_ids, start, start + batch_size))
             result = self.predict_on_batch(
                 source.take_rows(start, start + batch_size),
                 k=k,
@@ -252,6 +263,7 @@ class BaseSequentialRecommender(BasePersistableRecommender):
                 if candidate_ids is None
                 else {"candidate_ids": candidate_ids}
             )
+            kwargs.update(_user_id_kwargs(user_ids, 0, 0))
             prediction = self.predict_on_batch(
                 source,
                 k=k,

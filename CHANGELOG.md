@@ -35,6 +35,14 @@
 - `ItemKNNConfig(normalize_scores=...)` selects between the plain weighted sum
   of neighbour similarities (top-N item-kNN) and the per-candidate normalised
   average (the rating-prediction convention).
+- A user-identity channel for models with a learned embedding per training
+  user. A model sets `accepts_user_ids = True`; `evaluate_recommender` then
+  passes the evaluation's `sample_ids` as `predict_on_batch(..., user_ids=)`
+  (or explicit ids, or `None` for pure fold-in), `recommend(user_ids=...)`
+  forwards them, and the base class provides a persisted user vocabulary and
+  an unknown-user policy (`cfg.unknown_users`: `"error"` or `"fold_in"`).
+  `WarmCatalogAdapter` and `MMConcatWrapper` declare it from the model they
+  wrap. Models that do not declare it are called exactly as before.
 - `ComparisonReport.summary()`, `to_latex()` and `to_markdown()`: compact views
   with every row oriented against the reference, booktabs output in a long or a
   compact (metrics-as-columns) layout, and p-values on the Monte Carlo floor

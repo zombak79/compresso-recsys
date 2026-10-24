@@ -186,6 +186,11 @@ class WarmCatalogAdapter(BaseIdentifiedRecommender):
             )
         return self.model._recommendation_source(rows, vocabulary=vocabulary)
 
+    @property
+    def accepts_user_ids(self) -> bool:  # type: ignore[override]
+        """Whether the wrapped model uses user identity; ids are forwarded to it."""
+        return getattr(self.model, "accepts_user_ids", False) is True
+
     def _predict_identified(
         self,
         source: csr_matrix | ItemSequences,
@@ -193,6 +198,7 @@ class WarmCatalogAdapter(BaseIdentifiedRecommender):
         k: int,
         exclude_seen: bool,
         candidate_ids: np.ndarray,
+        user_ids: np.ndarray | None = None,
     ) -> SRPTensor:
         if not isinstance(self.model, BaseIdentifiedRecommender):
             raise TypeError(
@@ -206,6 +212,7 @@ class WarmCatalogAdapter(BaseIdentifiedRecommender):
             k=k,
             exclude_seen=exclude_seen,
             candidate_ids=candidate_ids,
+            **({} if user_ids is None else {"user_ids": user_ids}),
         )
         n_rows = source.shape[0] if isinstance(source, csr_matrix) else source.n_rows
         return self._remap_predictions(predictions, n_rows=n_rows)
@@ -218,6 +225,7 @@ class WarmCatalogAdapter(BaseIdentifiedRecommender):
         exclude_seen: bool,
         candidate_ids: np.ndarray,
         reporter: _Reporter,
+        user_ids: np.ndarray | None = None,
     ) -> SRPTensor:
         if not isinstance(self.model, BaseIdentifiedRecommender):
             raise TypeError(
@@ -232,6 +240,7 @@ class WarmCatalogAdapter(BaseIdentifiedRecommender):
             exclude_seen=exclude_seen,
             candidate_ids=candidate_ids,
             reporter=reporter,
+            **({} if user_ids is None else {"user_ids": user_ids}),
         )
         n_rows = source.shape[0] if isinstance(source, csr_matrix) else source.n_rows
         return self._remap_predictions(predictions, n_rows=n_rows)
@@ -307,6 +316,7 @@ class WarmCatalogAdapter(BaseIdentifiedRecommender):
         k: int,
         exclude_seen: bool = True,
         candidate_ids: Sequence[Hashable] | np.ndarray | None = None,
+        user_ids: Sequence[Hashable] | np.ndarray | None = None,
     ) -> SRPTensor:
         """Predict warm items and express their columns in the full catalog."""
         if isinstance(source, ItemSequences):
@@ -337,6 +347,8 @@ class WarmCatalogAdapter(BaseIdentifiedRecommender):
             if candidate_ids is None
             else {"candidate_ids": candidate_ids}
         )
+        if user_ids is not None:
+            kwargs["user_ids"] = user_ids
         predictions = self.model.predict_on_batch(
             source,
             k=k,
