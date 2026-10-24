@@ -37,6 +37,7 @@ is imported as ``compresso_recsys``.
    implementing-a-recommender
    adding-a-metric
    multimodal-concat-wrapper
+   clcrec
    reproducing-sasrec-results-on-ml1m
    reproducing-bert4rec-results-on-ml1m
    

@@ -174,6 +174,22 @@ paper:
      doi={10.1145/3523227.3551470}
    }
 
+CLCRec
+------
+
+For :class:`compresso_recsys.models.CLCRecTrainer`, cite the CLCRec paper:
+
+.. code-block:: bibtex
+
+   @inproceedings{wei2021contrastive,
+     title={Contrastive Learning for Cold-Start Recommendation},
+     author={Wei, Yinwei and Wang, Xiang and Li, Qi and Nie, Liqiang and Li, Yan and Li, Xuanping and Chua, Tat-Seng},
+     booktitle={Proceedings of the 29th ACM International Conference on Multimedia},
+     pages={5382--5390},
+     year={2021},
+     doi={10.1145/3474085.3475665}
+   }
+
 ELSA
 ----
 

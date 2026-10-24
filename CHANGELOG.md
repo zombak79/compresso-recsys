@@ -11,6 +11,15 @@
   NDCG@10 0.4805 against 100 popularity-sampled negatives (paper: 0.6970 /
   0.4818), labelled an adapted benchmark because the epoch budget is derived
   from the reference's step count.
+- `CLCRec`, `CLCRecConfig` and `CLCRecTrainer`: CLCRec (Wei et al., ACM MM
+  2021), a contrastive cold-start model with the paper's MF encoder,
+  implemented from the paper alone. It learns user and item ID embeddings and
+  a feature encoder; warm candidates are scored by ID embedding and cold ones
+  by content, and candidates added after fitting are scored without
+  retraining. It is the first model that declares `accepts_user_ids`:
+  evaluation passes each row's user ID, and `unknown_users="fold_in"` handles
+  histories of users unseen in training. Works inside `MMConcatWrapper` for
+  multimodal features.
 - Dataset options for public adapters (`dataset_options=` in
   `build_recsys_checkpoint`, repeatable `--dataset_option KEY=VALUE` on the
   command line) and the Retailrocket, Music4All-Onion, OTTO and Yambda
