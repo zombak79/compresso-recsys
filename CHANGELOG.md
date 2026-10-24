@@ -55,6 +55,9 @@
   history and draws no random numbers; early stopping treats the configured
   epochs as a maximum, restores the best weights by default and records them in
   `trainer.best_`. BERT4Rec keeps its own loop and its fixed published budget.
+- `examples/paper/`: the benchmark runner of the ECIR 2027 resource paper
+  (`list`, `train`, `select`, `compare`), its configuration, and a minutes-long
+  ML-1M smoke configuration that writes every output file.
 - `CONTRIBUTING.md` (development setup, supported versions, how to add a model,
   dataset or metric), issue templates, `CITATION.cff`, BibTeX for
   compresso-recsys in the citation guide, and a dataset licences page.

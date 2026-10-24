@@ -1,0 +1,180 @@
+"""The paper benchmark runner (examples/paper/run.py), end to end on a synthetic split."""
+
+from __future__ import annotations
+
+import importlib.util
+import json
+import zipfile
+from pathlib import Path
+
+import pandas as pd
+import pytest
+
+try:
+    import tomllib  # noqa: F401
+except ModuleNotFoundError:  # Python 3.10: the runner reads its config with tomli
+    pytest.importorskip("tomli")
+
+from compresso_recsys.builder import _build_args, _build_leave_last_out_split
+from compresso_recsys.checkpoint import save_recsys_split
+
+RUNNER = Path(__file__).parents[1] / "examples" / "paper" / "run.py"
+SEQUENCE_KEYS = ("x_train_sequences", "train_source_sequences", "val_source_sequences", "test_source_sequences")
+# The table metrics go up to ndcg@100, so the catalogue needs more than 100 items.
+N_USERS, N_ITEMS, HISTORY = 300, 120, 8
+
+
+def _events() -> pd.DataFrame:
+    """User ``u`` reads ``HISTORY`` consecutive items of a cycle, starting at ``u % N_ITEMS``."""
+    return pd.DataFrame(
+        [
+            {"user_id": f"u{user:04d}", "item_id": f"i{(user + step) % N_ITEMS:03d}",
+             "value": 1.0, "timestamp": 1_000_000 + step * 90_000}
+            for user in range(N_USERS)
+            for step in range(HISTORY)
+        ]
+    )
+
+CONFIG = """
+[run]
+seeds = [0, 1]
+eval_batch_size = 64
+
+[paths]
+checkpoints = "{checkpoints}"
+
+[statistics]
+n_resamples = 99
+
+[blocks.B]
+selection = "ndcg@20"
+reference = "EASE"
+datasets = {{ "toy-llo" = {{ checkpoint = "toy.zip", table = "toy-llo" }} }}
+
+[blocks.B.models.Pop]
+kind = "popularity"
+
+[blocks.B.models.EASE]
+kind = "ease"
+grid = {{ l2 = [1.0, 10.0] }}
+
+[blocks.B.models.MultVAE]
+kind = "multvae"
+params = {{ latent_dim = 8, hidden_dim = 16, batch_size = 32 }}
+training = {{ max_epochs = 3, every = 1, patience = 1 }}
+
+[blocks.B.models.SASRec]
+kind = "sasrec"
+params = {{ d_model = 16, max_history_length = 10, batch_size = 32 }}
+training = {{ epochs = 2, every = 1 }}
+"""
+
+
+@pytest.fixture(scope="module")
+def runner():
+    spec = importlib.util.spec_from_file_location("paper_run", RUNNER)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+@pytest.fixture(scope="module")
+def setup(tmp_path_factory):
+    payload = _build_leave_last_out_split(
+        _build_args(dataset="goodbooks", split_mode="leave_last_out"), _events()
+    )
+    root = tmp_path_factory.mktemp("split")
+    save_recsys_split(
+        root,
+        item_ids=payload["item_ids"],
+        x_train=payload["x_train"],
+        train_source_matrix=payload["train_source_matrix"],
+        train_target_matrix=payload["train_target_matrix"],
+        val_source_indices=payload["val_holdout"]["source_indices"],
+        val_target_indices=payload["val_holdout"]["target_indices"],
+        test_source_indices=payload["test_holdout"]["source_indices"],
+        test_target_indices=payload["test_holdout"]["target_indices"],
+        **{key: payload[key] for key in SEQUENCE_KEYS},
+    )
+    checkpoints = tmp_path_factory.mktemp("checkpoints")
+    with zipfile.ZipFile(checkpoints / "toy.zip", "w") as archive:
+        for path in sorted(root.rglob("*")):
+            if path.is_file():
+                archive.write(path, path.relative_to(root))
+    config = tmp_path_factory.mktemp("config") / "toy.toml"
+    config.write_text(CONFIG.format(checkpoints=checkpoints))
+    return config, checkpoints, tmp_path_factory.mktemp("results")
+
+
+def _train_args(config, out, model, seed=0, trial=None):
+    args = ["train", "--config", str(config), "--block", "B", "--dataset", "toy-llo",
+            "--model", model, "--seed", str(seed), "--out", str(out), "--device", "cpu"]
+    return args + ([] if trial is None else ["--grid-trial", str(trial)])
+
+
+def _commands(runner, capsys, *args):
+    assert runner.main(["list", *args]) == 0
+    return [line.split(" ", 2)[2].split() for line in capsys.readouterr().out.splitlines()]
+
+
+def test_the_whole_pipeline(runner, setup, capsys):
+    config, _, out = setup
+    grid = _commands(runner, capsys, "--config", str(config), "--stage", "grid", "--out", str(out))
+    assert len(grid) == 5  # Pop, EASE x2, MultVAE, SASRec
+    assert len(_commands(runner, capsys, "--config", str(config), "--stage", "grid", "--device", "gpu")) == 2
+    for command in grid:
+        assert runner.main([*command, "--device", "cpu"]) == 0
+    capsys.readouterr()
+    for model in ("Pop", "EASE", "MultVAE", "SASRec"):
+        assert runner.main(["select", "--config", str(config), "--block", "B", "--dataset", "toy-llo",
+                            "--model", model, "--out", str(out)]) == 0
+    capsys.readouterr()
+    seeds = _commands(runner, capsys, "--config", str(config), "--stage", "seeds", "--out", str(out))
+    assert sorted(command[command.index("--model") + 1] for command in seeds) == ["MultVAE", "SASRec"]
+    for command in seeds:
+        assert runner.main([*command, "--device", "cpu"]) == 0
+    capsys.readouterr()
+    assert runner.main(["compare", "--config", str(config), "--out", str(out)]) == 0
+
+    records = json.loads((out / "table" / "toy-llo.json").read_text())
+    assert {r["candidate"] for r in records} == {"Pop", "MultVAE", "SASRec"}
+    assert {r["baseline"] for r in records} == {"EASE"}
+    assert {r["metric"] for r in records} == {"calibrated_recall@20", "ndcg@100"}
+    summary = json.loads((out / "summary" / "B" / "toy-llo.json").read_text())
+    assert summary["MultVAE"]["n_seeds"] == 2 and summary["EASE"]["n_seeds"] == 1
+    multvae = json.loads((out / "runs/B/toy-llo/MultVAE/s0/result.json").read_text())
+    assert multvae["training"]["best"]["epoch"] >= 1
+    assert all("val_ndcg@20" in record for record in multvae["training"]["history"])
+    manifest = {f["path"]: f["tier"] for f in json.loads((out / "MANIFEST.json").read_text())["files"]}
+    assert manifest["table/toy-llo.json"] == "git" and manifest["meta.json"] == "git"
+    assert manifest["runs/B/toy-llo/Pop/s0/per_user.npz"] == "archive"
+    assert manifest["runs/B/toy-llo/Pop/s0/result.json"] == "git"
+
+
+def test_train_is_idempotent_and_refuses_a_changed_spec(runner, setup, tmp_path, capsys):
+    config, checkpoints, _ = setup
+    assert runner.main(_train_args(config, tmp_path, "Pop")) == 0
+    assert runner.main(_train_args(config, tmp_path, "Pop")) == 0
+    assert "skip" in capsys.readouterr().out
+    changed = tmp_path / "changed.toml"
+    changed.write_text(config.read_text().replace('kind = "popularity"', 'kind = "popularity"\nparams = { use_values = true }'))
+    assert runner.main(_train_args(changed, tmp_path, "Pop")) == runner.SPEC_MISMATCH
+
+
+def test_a_checkpoint_that_differs_from_its_sums_is_a_spec_mismatch(runner, setup, tmp_path):
+    config, checkpoints, _ = setup
+    (checkpoints / "SHA256SUMS").write_text(f"{'0' * 64}  toy.zip\n")
+    try:
+        assert runner.main(_train_args(config, tmp_path, "Pop")) == runner.SPEC_MISMATCH
+        status = json.loads((tmp_path / "runs/B/toy-llo/Pop/s0/status.json").read_text())
+        assert status["phase"] == "spec_mismatch"
+    finally:
+        (checkpoints / "SHA256SUMS").unlink()
+
+
+def test_grid_models_need_a_trial_and_deterministic_models_one_seed(runner, setup, tmp_path):
+    config, _, _ = setup
+    with pytest.raises(SystemExit, match="--grid-trial"):
+        runner.main(_train_args(config, tmp_path, "EASE"))
+    with pytest.raises(SystemExit, match="runs seeds"):
+        runner.main(_train_args(config, tmp_path, "Pop", seed=1))

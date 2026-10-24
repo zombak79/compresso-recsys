@@ -1,0 +1,124 @@
+# Benchmark configuration of the ECIR 2027 resource paper (see README.md).
+#
+# Grids are written simplest first; selection on validation keeps the first of
+# tied points. Trainers with `patience` stop early on the block's selection
+# metric (max epochs + patience) and restore the best epoch. SASRec and
+# BERT4Rec on ML-1M keep their published budgets (201 epochs; 400k steps =
+# 907 epochs), as reproductions rather than tuned models.
+
+[run]
+seeds = [0, 1, 2]          # D6: three seeds for every stochastic model; deterministic models run once
+eval_batch_size = 1024
+note = "ECIR 2027 resource-track benchmark"
+
+[paths]
+checkpoints = "${CR_CKPT}"
+
+[statistics]
+n_resamples = 9999
+
+# --------------------------------------------------------------------------- Block A
+# Matrix CF, strong generalisation (Liang et al. 2018; Steck 2019): held-out users,
+# 80/20 history/target split of each held-out user.
+
+[blocks.A]
+selection = "ndcg@100"
+reference = "EASE"
+datasets = { ml20m = { checkpoint = "ml20m-user_split.zip", table = "ml20m" }, netflix = { checkpoint = "netflix-user_split.zip", table = "netflix" } }
+
+[blocks.A.models.Pop]
+kind = "popularity"
+
+[blocks.A.models.ItemKNN]
+kind = "itemknn"
+grid = { n_neighbors = [50, 100, 200], normalize_scores = [false, true] }
+
+[blocks.A.models.EASE]
+kind = "ease"
+params = { dtype = "float64" }
+grid = { l2 = [200, 500, 1000, 2000, 5000] }
+
+[blocks.A.models.ELSA]
+kind = "elsa"
+grid = { latent_dim = [256, 1024] }
+training = { max_epochs = 25, every = 1, patience = 3 }
+
+[blocks.A.models.MultVAE]
+kind = "multvae"
+training = { max_epochs = 200, every = 5, patience = 4 }
+
+# --------------------------------------------------------------------------- Block B
+# Sequential, ML-1M leave-last-out, full-catalogue ranking.
+
+[blocks.B]
+selection = "ndcg@20"
+reference = "EASE"
+datasets = { "ml1m-llo" = { checkpoint = "ml1m-leave_last_out.zip", table = "ml1m-llo" } }
+
+[blocks.B.models.Pop]
+kind = "popularity"
+
+[blocks.B.models.ItemKNN]
+kind = "itemknn"
+grid = { n_neighbors = [50, 100, 200], normalize_scores = [false, true] }
+
+[blocks.B.models.EASE]
+kind = "ease"
+params = { dtype = "float64" }
+grid = { l2 = [100, 200, 500, 1000] }
+
+[blocks.B.models.ELSA]
+kind = "elsa"
+grid = { latent_dim = [256, 1024] }
+training = { max_epochs = 25, every = 1, patience = 3 }
+
+[blocks.B.models.MultVAE]
+kind = "multvae"
+training = { max_epochs = 200, every = 5, patience = 4 }
+
+[blocks.B.models.SASRec]
+kind = "sasrec"            # SASRecConfig() defaults are the published ML-1M configuration
+training = { epochs = 201, every = 10 }   # fixed budget; validation is logged, not used to stop
+
+[blocks.B.models.BERT4Rec]
+kind = "bert4rec"
+params = { max_predictions = 40 }
+training = { target_steps = 400000 }      # Sun et al.: 400k steps = 907 epochs on this split
+
+# --------------------------------------------------------------------------- Block B′
+# Sequential, Amazon Reviews 2023 Toys_and_Games leave-last-out (Beauty-style settings).
+
+[blocks.Bp]
+selection = "ndcg@20"
+reference = "EASE"
+datasets = { amazon = { checkpoint = "amazon-toys-leave_last_out.zip", table = "amazon" } }
+
+[blocks.Bp.models.Pop]
+kind = "popularity"
+
+[blocks.Bp.models.ItemKNN]
+kind = "itemknn"
+grid = { n_neighbors = [50, 100, 200], normalize_scores = [false, true] }
+
+[blocks.Bp.models.EASE]
+kind = "ease"
+grid = { l2 = [100, 200, 500, 1000] }
+
+[blocks.Bp.models.ELSA]
+kind = "elsa"
+grid = { latent_dim = [256, 1024] }
+training = { max_epochs = 25, every = 1, patience = 3 }
+
+[blocks.Bp.models.MultVAE]
+kind = "multvae"
+training = { max_epochs = 200, every = 5, patience = 4 }
+
+[blocks.Bp.models.SASRec]
+kind = "sasrec"            # Kang & McAuley's Beauty settings: length 50, dropout 0.5
+params = { max_history_length = 50, dropout = 0.5 }
+training = { max_epochs = 200, every = 5, patience = 4 }
+
+[blocks.Bp.models.BERT4Rec]
+kind = "bert4rec"          # Sun et al.'s Beauty settings; BERT4Rec has no early-stopping hook
+params = { max_history_length = 50, mask_proportion = 0.6, max_predictions = 30 }
+training = { target_steps = 400000 }

@@ -1,0 +1,35 @@
+# Tiny end-to-end pass on ML-1M leave-last-out: every command, every output file,
+# minutes on a CPU. The numbers are not results (meta.json says "placeholder").
+
+[run]
+seeds = [0, 1]
+eval_batch_size = 1024
+placeholder = true
+note = "smoke run: ML-1M leave-last-out, Pop/EASE/ItemKNN + MultVAE (2 epochs, early stopping); not a result"
+
+[paths]
+checkpoints = "${CR_CKPT}"
+
+[statistics]
+n_resamples = 999
+
+[blocks.B]
+selection = "ndcg@20"
+reference = "EASE"
+datasets = { "ml1m-llo" = { checkpoint = "ml1m-leave_last_out.zip", table = "ml1m-llo" } }
+
+[blocks.B.models.Pop]
+kind = "popularity"
+
+[blocks.B.models.ItemKNN]
+kind = "itemknn"
+grid = { n_neighbors = [50, 200] }
+
+[blocks.B.models.EASE]
+kind = "ease"
+grid = { l2 = [200, 500] }
+
+[blocks.B.models.MultVAE]
+kind = "multvae"
+params = { preload_training_data = false }
+training = { max_epochs = 2, every = 1, patience = 1 }
