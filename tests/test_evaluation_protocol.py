@@ -107,3 +107,17 @@ def test_compare_accepts_model_default_against_explicit(data):
     b = _evaluate(Recording(12, reverse=True), data, exclude_seen=True)
     report = compare_models({"a": a, "b": b}, metrics=["ndcg@5"], n_resamples=99)
     assert len(report) == 1
+
+
+def test_default_metrics_are_the_strong_generalisation_protocol():
+    rng = np.random.default_rng(1)
+    seen = rng.random((30, 120)) < 0.05
+    relevant = (rng.random((30, 120)) < 0.05) & ~seen
+    relevant[np.arange(30), 119 - np.arange(30)] = True
+    seen[np.arange(30), 119 - np.arange(30)] = False
+    result = evaluate_recommender(
+        Recording(120), source=csr_matrix(seen.astype(np.float32)),
+        targets=csr_matrix(relevant.astype(np.float32)), sample_ids=np.arange(30),
+    )
+    assert set(result.metrics) == {"calibrated_recall@20", "calibrated_recall@50", "ndcg@100"}
+    assert result.required_k == 100

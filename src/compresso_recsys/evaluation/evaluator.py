@@ -362,7 +362,7 @@ def evaluate_recommender(
     *,
     source: csr_matrix,
     targets: csr_matrix,
-    metrics: Sequence[RankingMetric],
+    metrics: Sequence[RankingMetric] | None = None,
     sample_ids: Sequence[Any] | np.ndarray | None = None,
     exclude_seen: bool | None = None,
     collect_per_user: bool = True,
@@ -385,7 +385,7 @@ def evaluate_recommender(
     *,
     source: ItemSequences,
     targets: csr_matrix,
-    metrics: Sequence[RankingMetric],
+    metrics: Sequence[RankingMetric] | None = None,
     sample_ids: Sequence[Any] | np.ndarray | None = None,
     exclude_seen: bool | None = None,
     collect_per_user: bool = True,
@@ -407,7 +407,7 @@ def evaluate_recommender(
     *,
     source: csr_matrix | ItemSequences,
     targets: csr_matrix,
-    metrics: Sequence[RankingMetric],
+    metrics: Sequence[RankingMetric] | None = None,
     sample_ids: Sequence[Any] | np.ndarray | None = None,
     exclude_seen: bool | None = None,
     collect_per_user: bool = True,
@@ -437,6 +437,10 @@ def evaluate_recommender(
     cares which was given, which is why sequential and matrix models can be
     compared against each other with no statistics-side changes.
 
+    ``metrics`` defaults to ``CalibratedRecall([20, 50])`` and ``NDCG(100)``,
+    the strong-generalisation protocol of Liang et al. (2018) and Steck (2019).
+    Pass metrics explicitly whenever the cutoffs matter to the comparison.
+
     ``exclude_seen`` fixes whether items already in a row's history may be
     recommended. ``None`` (the default) leaves it to the model, as before; a
     bool is passed to every ``predict_on_batch`` call. The choice is recorded in
@@ -463,6 +467,8 @@ def evaluate_recommender(
     if batch_size < 1:
         raise ValueError("batch_size must be >= 1")
 
+    if metrics is None:
+        metrics = [CalibratedRecall([20, 50]), NDCG(100)]
     evaluator = RankingEvaluator(
         metrics,
         match_backend=match_backend,

@@ -19,6 +19,9 @@
   network access disabled, a coverage report, and a pyflakes lint gate.
 - A test that pins the on-disk layout of model checkpoints per model type, so a
   format change cannot land unnoticed.
+- `evaluate_recommender` no longer requires `metrics=`: the default is
+  `CalibratedRecall([20, 50])` and `NDCG(100)`, the strong-generalisation
+  protocol of Liang et al. (2018) and Steck (2019).
 - `evaluate_recommender(..., exclude_seen=None)`: fixes whether already-seen
   items may be recommended for every model compared (`None` keeps each
   model's default). The choice is recorded in `EvaluationResult.protocol`.
