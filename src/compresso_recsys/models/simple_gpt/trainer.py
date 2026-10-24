@@ -10,6 +10,7 @@ from torch import nn
 
 from compresso import SRPTensor
 
+from compresso_recsys.training import EarlyStopping, Validation, _make_monitor
 from compresso_recsys._reporting import (
     _INHERIT,
     _Inherit,
@@ -100,6 +101,8 @@ class SimpleGPTTrainer(BaseSequentialRecommender):
         item_ids: Sequence[Hashable] | np.ndarray | None = None,
         logger: Any | None = _INHERIT,
         show_progress: bool | None | _Inherit = _INHERIT,
+        validation: Validation | None = None,
+        early_stopping: EarlyStopping | None = None,
     ) -> SimpleGPTTrainer:
         """Train on chronological histories, one example per position."""
         reporter = self._reporter(logger, show_progress)
@@ -142,11 +145,13 @@ class SimpleGPTTrainer(BaseSequentialRecommender):
         # Two bars, as ELSA draws them: epochs outside, batches inside. The inner
         # bar is created once and rewound per epoch rather than a finished one
         # being left behind for each.
+        monitor = _make_monitor(self, validation, early_stopping)
         with TrainingProgress(
             reporter,
             label="SimpleGPT",
             epochs=self.cfg.epochs,
             batches=len(starts),
+            monitor=monitor,
         ) as progress:
             progress.start(
                 f"{n_rows} sequences | {self._n_items} items | "

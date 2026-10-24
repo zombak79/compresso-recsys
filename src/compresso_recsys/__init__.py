@@ -58,6 +58,7 @@ for _module, _names in {
     "sequences": ("ItemSequences", "load_item_sequences", "save_item_sequences"),
     "evaluation": ("evaluate_recommender",),
     "stats": ("compare_models", "compare_pair"),
+    "training": ("EarlyStopping", "Validation"),
     "metrics": ("CalibratedRecall", "HitRate", "MAP", "MRR", "NDCG", "Precision", "Recall"),
     "models": (
         "PopularityBaseline",
@@ -116,6 +117,7 @@ _SUBMODULES = frozenset(
         "retrieval",
         "sequences",
         "stats",
+        "training",
     }
 )
 
@@ -233,3 +235,4 @@ if TYPE_CHECKING:  # pragma: no cover - static analysers and IDEs see the real n
         save_item_sequences as save_item_sequences,
     )
     from .stats import compare_models as compare_models, compare_pair as compare_pair
+    from .training import EarlyStopping as EarlyStopping, Validation as Validation

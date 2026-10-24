@@ -13,6 +13,7 @@ from scipy.sparse import csr_matrix, isspmatrix_csr
 from torch import nn
 
 from compresso import SRPTensor
+from compresso_recsys.training import EarlyStopping, Validation, _make_monitor
 from compresso_recsys._reporting import (
     _INHERIT,
     _Inherit,
@@ -396,6 +397,8 @@ class TEASERGDTrainer(BaseColdStartRecommender):
         feature_names: Sequence[str] | None = None,
         logger: Any | None = _INHERIT,
         show_progress: bool | None | _Inherit = _INHERIT,
+        validation: Validation | None = None,
+        early_stopping: EarlyStopping | None = None,
     ) -> TEASERGDTrainer:
         """Fit the encoder while keeping item features fixed."""
         reporter = self._reporter(logger, show_progress)
@@ -501,11 +504,13 @@ class TEASERGDTrainer(BaseColdStartRecommender):
             if self.cfg.decay
             else None
         )
+        monitor = _make_monitor(self, validation, early_stopping)
         with TrainingProgress(
             reporter,
             label=self._fit_name,
             epochs=self.cfg.epochs,
             batches=len(dataset),
+            monitor=monitor,
         ) as progress:
             progress.start(
                 f"{training_interactions.shape[0]} users | {n_items} items | "

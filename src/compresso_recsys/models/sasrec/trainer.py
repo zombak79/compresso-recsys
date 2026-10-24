@@ -11,6 +11,7 @@ import torch
 from compresso import SRPTensor
 from torch import nn
 
+from compresso_recsys.training import EarlyStopping, Validation, _make_monitor
 from compresso_recsys._reporting import (
     _INHERIT,
     _Inherit,
@@ -122,6 +123,8 @@ class SASRecTrainer(BaseSequentialRecommender):
         item_ids: Sequence[Hashable] | np.ndarray | None = None,
         logger: Any | None = _INHERIT,
         show_progress: bool | None | _Inherit = _INHERIT,
+        validation: Validation | None = None,
+        early_stopping: EarlyStopping | None = None,
     ) -> SASRecTrainer:
         """Train on chronological histories, one example per position.
 
@@ -215,11 +218,13 @@ class SASRecTrainer(BaseSequentialRecommender):
         n_rows = sequences.n_rows
         batch_size = self.cfg.batch_size
         starts = range(0, n_rows, batch_size)
+        monitor = _make_monitor(self, validation, early_stopping)
         with TrainingProgress(
             reporter,
             label="SASRec",
             epochs=self.cfg.epochs,
             batches=len(starts),
+            monitor=monitor,
         ) as progress:
             progress.start(
                 f"{n_rows} sequences | {self._n_items} items | "

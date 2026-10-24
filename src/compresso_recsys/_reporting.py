@@ -237,9 +237,13 @@ class TrainingProgress:
     fifteen times across eleven modules and differed between them only in a
     progress-bar label and the name of the loss denominator.
 
-    Deliberately not a runner. Nothing here takes a training step as a callback,
-    so early stopping, an extra metric, or a changed schedule stays an edit to
-    code that is still visible inside ``fit``.
+    Not a runner: the trainer still owns its loop body, so an extra metric or a
+    changed schedule stays an edit to code that is visible inside ``fit``. What
+    the loop *does* own is when it ends. A trainer passes the optional
+    ``monitor`` built from ``fit(validation=..., early_stopping=...)``
+    (:mod:`compresso_recsys.training`); after each epoch it validates, adds
+    ``val_*`` keys to the epoch record, and may end the loop early, restoring
+    the best weights before the trainer's own post-loop code runs.
 
     A trainer whose fit has two logged phases -- ELSA and TEASERGD both do --
     builds one of these per phase rather than reusing one across both.
@@ -253,8 +257,10 @@ class TrainingProgress:
         epochs: int,
         batches: int,
         metric: str = "loss",
+        monitor: Any = None,
     ) -> None:
         self.reporter = reporter
+        self.monitor = monitor
         self.label = str(label)
         # Autoencoders report a reconstruction loss rather than a plain one,
         # and the name has to match what the trainer stores in its history for
@@ -289,10 +295,18 @@ class TrainingProgress:
         # The finished line follows the bars being torn down, as it did when
         # each trainer wrote it after its own finally block.
         if exc_type is None:
+            stopped = ""
+            monitor = self.monitor
+            if monitor is not None and getattr(monitor, "best", None):
+                stopped = (
+                    f" | early stop, best epoch {monitor.best['epoch']}"
+                    if monitor.stop
+                    else f" | best epoch {monitor.best['epoch']}"
+                )
             self.reporter.log(
                 "fit finished: "
                 f"{_format_duration(time.monotonic() - self._started)} total | "
-                f"{self._recorded} epochs recorded"
+                f"{self._recorded} epochs recorded{stopped}"
             )
         return False
 
@@ -303,6 +317,8 @@ class TrainingProgress:
     def epochs(self):
         """Yield ``1..epochs``, timing each and relabelling the batch bar."""
         for epoch in self._epoch_iter:
+            if self.monitor is not None and self.monitor.stop:
+                break
             self._epoch = epoch
             self._epoch_started = time.monotonic()
             if self._batch_bar is not None:
@@ -366,6 +382,12 @@ class TrainingProgress:
         beside the loss because the weight moves on a schedule during the run.
         """
         self._recorded += 1
+        if self.monitor is not None:
+            # The record is the dict the trainer stored in its history, so the
+            # validation metrics added here are part of that history too.
+            self.monitor.after_epoch(
+                self._epoch, record, is_last=self._epoch == self.n_epochs
+            )
         self.reporter.epoch(
             f"epoch {self._epoch}/{self.n_epochs}", record, self._epoch_started
         )

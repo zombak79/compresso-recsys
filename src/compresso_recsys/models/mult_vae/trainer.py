@@ -12,6 +12,7 @@ from torch import nn
 from torch.nn import functional as F
 
 from compresso import SRPTensor
+from compresso_recsys.training import EarlyStopping, Validation, _make_monitor
 from compresso_recsys._reporting import (
     _INHERIT,
     _Inherit,
@@ -99,6 +100,8 @@ class MultVAETrainer(BaseCollaborativeRecommender):
         item_ids: Sequence[Hashable] | np.ndarray | None = None,
         logger: Any | None = _INHERIT,
         show_progress: bool | None | _Inherit = _INHERIT,
+        validation: Validation | None = None,
+        early_stopping: EarlyStopping | None = None,
     ) -> MultVAETrainer:
         """Fit Mult-VAE with multinomial likelihood and annealed KL loss."""
         reporter = self._reporter(logger, show_progress)
@@ -134,6 +137,8 @@ class MultVAETrainer(BaseCollaborativeRecommender):
                 active_rows=active_rows,
                 item_ids=item_ids,
                 reporter=reporter,
+                validation=validation,
+                early_stopping=early_stopping,
             )
         except BaseException:
             (
@@ -158,6 +163,8 @@ class MultVAETrainer(BaseCollaborativeRecommender):
         active_rows: np.ndarray,
         item_ids: Sequence[Hashable] | np.ndarray | None,
         reporter: _Reporter,
+        validation: Validation | None = None,
+        early_stopping: EarlyStopping | None = None,
     ) -> MultVAETrainer:
         """Train replacement state after public input validation."""
 
@@ -173,11 +180,13 @@ class MultVAETrainer(BaseCollaborativeRecommender):
         steps_per_epoch = (active_rows.size + int(self.cfg.batch_size) - 1) // int(
             self.cfg.batch_size
         )
+        monitor = _make_monitor(self, validation, early_stopping)
         with TrainingProgress(
             reporter,
             label="MultVAE",
             epochs=int(self.cfg.epochs),
             batches=steps_per_epoch,
+            monitor=monitor,
         ) as progress:
             progress.start(
                 f"{active_rows.size} active users | {interactions.shape[1]} items | "

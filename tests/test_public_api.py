@@ -9,6 +9,7 @@ import compresso_recsys.models as models
 import compresso_recsys.models.batching as batching
 import compresso_recsys.persistence as persistence
 import compresso_recsys.stats as stats
+import compresso_recsys.training as training
 
 
 def test_top_level_public_api_is_intentional():
@@ -55,6 +56,8 @@ def test_top_level_public_api_is_intentional():
         "evaluate_recommender",
         "compare_models",
         "compare_pair",
+        "EarlyStopping",
+        "Validation",
         "CalibratedRecall", "HitRate", "MAP", "MRR", "NDCG", "Precision", "Recall",
         "PopularityBaseline", "PopularityBaselineConfig", "RandomBaseline", "RandomBaselineConfig",
         "EASE", "EASEConfig", "ItemKNNRecommender", "ItemKNNConfig",
@@ -174,6 +177,7 @@ def test_submodule_public_apis_are_intentional():
             "compare_models",
             "compare_pair",
         },
+        training: {"EarlyStopping", "Validation"},
         metrics: {
             "CalibratedRecall",
             "HitRate",

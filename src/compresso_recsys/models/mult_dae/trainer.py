@@ -12,6 +12,7 @@ from torch import nn
 from torch.nn import functional as F
 
 from compresso import SRPTensor
+from compresso_recsys.training import EarlyStopping, Validation, _make_monitor
 from compresso_recsys._reporting import (
     _INHERIT,
     _Inherit,
@@ -81,6 +82,8 @@ class MultDAETrainer(BaseCollaborativeRecommender):
         item_ids: Sequence[Hashable] | np.ndarray | None = None,
         logger: Any | None = _INHERIT,
         show_progress: bool | None | _Inherit = _INHERIT,
+        validation: Validation | None = None,
+        early_stopping: EarlyStopping | None = None,
     ) -> MultDAETrainer:
         """Fit Mult-DAE using multinomial reconstruction likelihood."""
         reporter = self._reporter(logger, show_progress)
@@ -115,6 +118,8 @@ class MultDAETrainer(BaseCollaborativeRecommender):
                 active_rows=active_rows,
                 item_ids=item_ids,
                 reporter=reporter,
+                validation=validation,
+                early_stopping=early_stopping,
             )
         except BaseException:
             (
@@ -138,6 +143,8 @@ class MultDAETrainer(BaseCollaborativeRecommender):
         active_rows: np.ndarray,
         item_ids: Sequence[Hashable] | np.ndarray | None,
         reporter: _Reporter,
+        validation: Validation | None = None,
+        early_stopping: EarlyStopping | None = None,
     ) -> MultDAETrainer:
         """Train replacement state after public input validation."""
 
@@ -152,12 +159,14 @@ class MultDAETrainer(BaseCollaborativeRecommender):
         steps_per_epoch = (active_rows.size + int(self.cfg.batch_size) - 1) // int(
             self.cfg.batch_size
         )
+        monitor = _make_monitor(self, validation, early_stopping)
         with TrainingProgress(
             reporter,
             label="MultDAE",
             epochs=int(self.cfg.epochs),
             batches=steps_per_epoch,
             metric="reconstruction_loss",
+            monitor=monitor,
         ) as progress:
             progress.start(
                 f"{active_rows.size} active users | {interactions.shape[1]} items | "
