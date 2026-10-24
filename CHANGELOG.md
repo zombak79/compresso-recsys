@@ -18,8 +18,9 @@
   by content, and candidates added after fitting are scored without
   retraining. It is the first model that declares `accepts_user_ids`:
   evaluation passes each row's user ID, and `unknown_users="fold_in"` handles
-  histories of users unseen in training. Works inside `MMConcatWrapper` for
-  multimodal features.
+  histories of users unseen in training. Supports `validation=` and
+  `early_stopping=` like the other trainers, and works inside `MMConcatWrapper`
+  for multimodal features.
 - Dataset options for public adapters (`dataset_options=` in
   `build_recsys_checkpoint`, repeatable `--dataset_option KEY=VALUE` on the
   command line) and the Retailrocket, Music4All-Onion, OTTO and Yambda

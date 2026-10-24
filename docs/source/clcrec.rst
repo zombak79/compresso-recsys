@@ -63,6 +63,30 @@ default; ``unknown_users="fold_in"`` instead fits an embedding for the history
 with all item parameters frozen. Fold-in is an extension, not part of the
 paper's protocol.
 
+The paper selects the epoch on validation recall@10 with patience 10. The same
+protocol is available through the shared training hook:
+
+.. code-block:: python
+
+   from compresso_recsys.training import EarlyStopping, Validation
+
+   model.fit(
+       split["x_train"],
+       features,
+       train_item_indices=split["warm_item_indices"],
+       item_ids=split["item_ids"],
+       user_ids=split["train_user_ids"],
+       validation=Validation(
+           split["val_source_matrix"],
+           split["val_target_matrix"],
+           [NDCG(100)],
+           sample_ids=split["val_eval_user_ids"],
+       ),
+       early_stopping=EarlyStopping("ndcg@100", patience=10),
+   )
+
+``epochs`` becomes the maximum, and the best validated weights are restored.
+
 For several modalities, wrap the trainer in
 :class:`~compresso_recsys.models.MMConcatWrapper`. Its ``missing`` and
 ``normalize`` options handle items without a modality and modalities of
