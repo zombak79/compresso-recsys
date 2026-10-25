@@ -321,6 +321,9 @@ def test_catalogue_block_end_to_end(runner, catalogue_setup, monkeypatch, capsys
     assert {(r["catalogue"], r["baseline"], r["candidate"], r["metric"]) for r in pairs} == {
         (c, "TEASER", "TEASER-GD", m) for c in ("warm", "mixed") for m in ("calibrated_recall@20", "ndcg@100")}
     assert all(r["family"] == "TEASER-GD vs TEASER, 2 metrics" for r in pairs)
+    # The paper's generator reads these fields by name: keep them stable.
+    assert all({"catalogue", "metric", "difference", "adjusted_p_value", "ci_low", "ci_high", "p_value"} <= set(r)
+               for r in pairs)
     meta = json.loads((out / "meta.json").read_text())
     assert meta["protocol"]["Cp"]["models"]["TEASER-GD"]["epochs"].startswith("max 3 epochs")
     share = meta["cold_share"]["toy-temporal"]

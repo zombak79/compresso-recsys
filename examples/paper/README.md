@@ -82,6 +82,12 @@ python examples/paper/run.py bundle --config examples/paper/ecir2027.toml --out 
 
 A model with `report = false` in the config (a probe) is trained, selected and summarised, but left out of the comparison tables.
 
+## Files the paper reads (keep stable)
+
+- `table/<key>.json`, `casestudy/<dataset>__<catalogue>.json`: `ComparisonReport.to_frame()` records. The paper takes the family size from the row count.
+- `summary/<block>/<dataset>.pairs.json`: records with `catalogue`, `metric`, `difference`, `ci_low`, `ci_high`, `p_value` and `adjusted_p_value` (plus `family` and the `to_frame()` fields).
+- `meta.json`: `commit`, `cold_share.<dataset>.<measure>_vs_training`, and `n_resamples`.
+
 ## Guarantees
 
 - **Idempotent:** `train` skips a run whose `result.json` has the same spec. It exits with code 2 when the spec differs.
