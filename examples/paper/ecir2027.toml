@@ -176,6 +176,8 @@ selection = "ndcg@100"
 selection_catalogue = "mixed"
 reference = "EASE"
 encoder = "sentence-transformers/all-MiniLM-L6-v2"
+# Paired tests quoted in the text (summary/Cp/<dataset>.pairs.json), each its own Holm family.
+pairs = [["Content", "TEASER"]]
 
 [blocks.Cp.datasets.steam-temporal]
 checkpoint = "steam-temporal.zip"

@@ -202,6 +202,7 @@ selection = "ndcg@100"
 selection_catalogue = "mixed"
 reference = "EASE"
 encoder = "stub/encoder"
+pairs = [["TEASER", "TEASER-GD"]]
 
 [blocks.Cp.datasets.toy-temporal]
 checkpoint = "toy-temporal.zip"
@@ -316,6 +317,10 @@ def test_catalogue_block_end_to_end(runner, catalogue_setup, monkeypatch, capsys
     for name in ("toy__warm", "toy__mixed"):
         records = json.loads((out / "casestudy" / f"{name}.json").read_text())
         assert {r["candidate"] for r in records} == {"TEASER", "TEASER-GD"}
+    pairs = json.loads((out / "summary/Cp/toy-temporal.pairs.json").read_text())
+    assert {(r["catalogue"], r["baseline"], r["candidate"], r["metric"]) for r in pairs} == {
+        (c, "TEASER", "TEASER-GD", m) for c in ("warm", "mixed") for m in ("calibrated_recall@20", "ndcg@100")}
+    assert all(r["family"] == "TEASER-GD vs TEASER, 2 metrics" for r in pairs)
     meta = json.loads((out / "meta.json").read_text())
     assert meta["protocol"]["Cp"]["models"]["TEASER-GD"]["epochs"].startswith("max 3 epochs")
     share = meta["cold_share"]["toy-temporal"]

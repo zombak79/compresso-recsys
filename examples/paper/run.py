@@ -1352,6 +1352,34 @@ def _summary(out: Path, config: dict, block: str, dataset: str) -> dict:
     return rows
 
 
+def compare_pairs(out: Path, block_name: str, block: dict, dataset: str, summary: dict,
+                  pairs: list, n_resamples: int) -> list[dict]:
+    """Extra paired tests the paper quotes outside the tables, e.g. TEASER vs Content.
+
+    Each pair ``[baseline, candidate]`` is its own family per catalogue: Holm over
+    the table metrics of that pair only. The records say so (``family``).
+    """
+    from compresso_recsys.stats import compare_models
+
+    records = []
+    for baseline, candidate in pairs:
+        if baseline not in summary or candidate not in summary:
+            continue
+        for catalogue in outputs_for(block, dataset):
+            key = evaluation_key("test", catalogue)
+            if not all(catalogue in summary[m]["catalogues"] for m in (baseline, candidate)):
+                continue
+            results = {m: load_evaluation(run_dir(out, block_name, dataset, m, 0, summary[m]["trial"]), key)
+                       for m in (baseline, candidate)}
+            report = compare_models(results, metrics=list(TABLE_METRICS), reference=baseline,
+                                    n_resamples=n_resamples, random_state=0)
+            for record in report.to_frame().to_dict(orient="records"):
+                records.append({"catalogue": catalogue,
+                                "family": f"{candidate} vs {baseline}, {len(TABLE_METRICS)} metrics",
+                                **record})
+    return records
+
+
 def protocol_description(config: dict) -> dict:
     """Per block: selection, and each model's grid and epoch rule, for the paper's captions."""
     blocks = {}
@@ -1429,6 +1457,10 @@ def compare(args, config: dict) -> int:
                 markdown.append(f"## {dataset} ({catalogue})\n\n{report.to_markdown()}\n")
             if markdown:
                 (out / "summary" / block_name / f"{dataset}.md").write_text("\n".join(markdown))
+            pairs = block.get("pairs", [])
+            if pairs:
+                write_json(out / "summary" / block_name / f"{dataset}.pairs.json",
+                           compare_pairs(out, block_name, block, dataset, summary, pairs, n_resamples))
     cold_shares = {}
     for block_name, block in config["blocks"].items():
         if block["mode"] != "catalogue":
