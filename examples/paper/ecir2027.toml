@@ -102,7 +102,9 @@ grid = { n_neighbors = [50, 100, 200], normalize_scores = [false, true] }
 
 [blocks.Bp.models.EASE]
 kind = "ease"
-grid = { l2 = [100, 200, 500, 1000] }
+# 20 and 50 were appended (not prepended) after the first run selected 100, the
+# grid's edge: appending keeps the earlier points' trial numbers and results.
+grid = { l2 = [100, 200, 500, 1000, 50, 20] }
 
 [blocks.Bp.models.ELSA]
 kind = "elsa"
@@ -111,7 +113,8 @@ training = { max_epochs = 25, every = 1, patience = 3 }
 
 [blocks.Bp.models.MultVAE]
 kind = "multvae"
-training = { max_epochs = 200, every = 5, patience = 4 }
+# 400: at 200 the first run was still improving (best epochs 200, 180, 190).
+training = { max_epochs = 400, every = 5, patience = 4 }
 
 [blocks.Bp.models.SASRec]
 kind = "sasrec"            # Kang & McAuley's Beauty settings: length 50, dropout 0.5
@@ -187,7 +190,8 @@ kind = "popularity"
 
 [blocks.Cp.models.EASE]
 kind = "ease"
-grid = { l2 = [100, 200, 500, 1000] }
+# 2000 and 5000 appended after the first run selected 1000, the grid's edge.
+grid = { l2 = [100, 200, 500, 1000, 2000, 5000] }
 
 [blocks.Cp.models.Content]
 kind = "content"
@@ -196,9 +200,20 @@ params = { features = ["text"] }
 [blocks.Cp.models.TEASER]
 kind = "teaser"
 params = { features = ["text"] }
-grid = { l2 = [0.01, 0.05, 0.2, 1.0] }
+# 5 and 20 appended after the first run selected 1.0, the grid's edge.
+grid = { l2 = [0.01, 0.05, 0.2, 1.0, 5.0, 20.0] }
 
 [blocks.Cp.models.TEASER-GD]
 kind = "teaser_gd"
 params = { features = ["text"], lr = 0.001 }
+training = { max_epochs = 100, every = 1, patience = 10 }
+
+# Probe (not reported): the first run's TEASER-GD peaked at epoch 1 and degraded
+# while its loss fell. Two cells test a smaller step and TEASER's own objective.
+[blocks.Cp.models.TEASER-GD-probe]
+kind = "teaser_gd"
+datasets = ["amazon-toys"]
+report = false
+params = { features = ["text"], lr = 0.0001 }
+grid = { loss = ["normalized_mse", "teaser"] }
 training = { max_epochs = 100, every = 1, patience = 10 }

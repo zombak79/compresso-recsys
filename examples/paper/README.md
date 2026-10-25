@@ -60,6 +60,19 @@ python examples/paper/run.py compare --config examples/paper/ecir2027.toml --out
   - It writes `provenance/checkpoints.json`.
   - It exits 2 if any content differs, or if a run used a file that is neither.
 
+## Publishing the results
+
+1. Run the stages above until every block's `compare` has run on the final seeds.
+2. Replace host labels that name a site with a neutral one:
+   ```
+   run.py relabel-hosts --config … --old ostrava-h100 --new gpu-cluster --out $RESULTS
+   ```
+   This rewrites `result.json`, `status.json` and the `env/` file names. Specs are unchanged.
+3. Run `compare` again, so `meta.json` and `MANIFEST.json` see the new labels. `MANIFEST.json` → `scrub.flagged` must be empty.
+4. The git tier goes into `examples/paper/results/`. The archive tier (`per_user.npz`, logs) is bundled from the `archive` entries of `MANIFEST.json`.
+
+A model with `report = false` in the config (a probe) is trained, selected and summarised, but left out of the comparison tables.
+
 ## Guarantees
 
 - **Idempotent:** `train` skips a run whose `result.json` has the same spec. It exits with code 2 when the spec differs.

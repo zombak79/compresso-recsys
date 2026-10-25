@@ -779,6 +779,19 @@ def train(args, config: dict) -> int:
         np.random.seed(args.seed)
         epochs = _epochs(kind, spec_cfg["training"], params, split, args.max_epochs)
         model = _build(kind, params, seed=args.seed, device=device, epochs=epochs)
+        # Without the checkpoint's evaluation user IDs, rows are identified by
+        # position. That is harmless for models that ignore user identity, but
+        # a model that looks users up would silently score row i as training
+        # user i, so it is refused rather than guessed.
+        missing_ids = [phase for phase in ("val", "test") if split.get(f"{phase}_eval_user_ids") is None]
+        if missing_ids and getattr(model, "accepts_user_ids", False):
+            raise ValueError(
+                f"{kind} uses user identity, but {ckpt.name} has no {'/'.join(missing_ids)} evaluation "
+                "user IDs; positional IDs would pair evaluation rows with the wrong training users"
+            )
+        if missing_ids:
+            logger.warning(f"WARNING: {ckpt.name} has no {'/'.join(missing_ids)} evaluation user IDs; "
+                           "rows are identified by position")
         batch_size = int(config["run"].get("eval_batch_size", 1024))
         data = catalogue_inputs(split) if catalogue_mode else None
 
@@ -883,6 +896,7 @@ def train(args, config: dict) -> int:
                 "fit_seconds": round(fit_seconds, 2),
                 "history": history if isinstance(history, list) else None,
             },
+            "sample_ids": "positional" if missing_ids else "checkpoint",
             "checkpoint": {"name": ckpt.name, "sha256": checkpoint_sha256, "check": checkpoint_check,
                            **checkpoint_info},
             "env": environment(),
@@ -1223,7 +1237,8 @@ def compare(args, config: dict) -> int:
                 # The comparison uses the seed-0 per-user values of each model's selected configuration.
                 results = {
                     model: load_evaluation(run_dir(out, block_name, dataset, model, 0, row["trial"]), key)
-                    for model, row in summary.items() if catalogue in row["catalogues"]
+                    for model, row in summary.items()
+                    if catalogue in row["catalogues"] and block["models"][model].get("report", True)
                 }
                 reference = block.get("reference", "EASE")
                 if reference not in results or len(results) < 2:

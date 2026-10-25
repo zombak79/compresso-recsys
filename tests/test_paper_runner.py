@@ -388,3 +388,24 @@ def test_relabel_hosts_rewrites_every_occurrence(runner, setup, tmp_path, monkey
     assert result["env"]["host"] == "gpu-cluster"
     assert json.loads((out / "runs/B/toy-llo/Pop/s0/status.json").read_text())["host"] == "gpu-cluster"
     assert [p.name for p in (out / "env").iterdir()] == ["gpu-cluster-pip-freeze.txt"]
+
+
+def test_positional_sample_ids_are_recorded_and_refused_for_identity_models(runner, setup, tmp_path, monkeypatch):
+    config, _, _ = setup
+    import compresso_recsys as cr
+
+    original = runner.load_split
+
+    def without_eval_ids(path, *args, **kwargs):
+        split, features = original(path, *args, **kwargs)
+        split["val_eval_user_ids"] = split["test_eval_user_ids"] = None
+        return split, features
+
+    monkeypatch.setattr(runner, "load_split", without_eval_ids)
+    out = tmp_path / "results"
+    assert runner.main(_train_args(config, out, "Pop")) == 0
+    assert json.loads((out / "runs/B/toy-llo/Pop/s0/result.json").read_text())["sample_ids"] == "positional"
+
+    monkeypatch.setattr(cr.PopularityBaseline, "accepts_user_ids", True, raising=False)
+    with pytest.raises(ValueError, match="uses user identity"):
+        runner.main(_train_args(config, tmp_path / "other", "Pop"))
