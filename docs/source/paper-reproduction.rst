@@ -213,7 +213,7 @@ most six at a time, on 24–25 October 2026.
    * - ``compare`` (all blocks, B = 9,999)
      - CPU, about 7 minutes
    * - **Tables and case study in total**
-     - **about 7.6 H100-hours**; one night on six GPUs
+     - **about 7.9 H100-hours**; one night on six GPUs
 
 The longest single fits are the fixed-budget BERT4Rec runs on ML-1M, about
 75 minutes each on one H100. A 24 GB consumer GPU runs every GPU model in the
