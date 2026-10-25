@@ -1221,7 +1221,9 @@ def list_commands(args, config: dict) -> int:
                     except FileNotFoundError as error:
                         missing.append(str(error))
                         continue
-                    runs = [(seed, trial) for seed in seeds_for(config, spec) if seed != 0]
+                    # A probe (report = false) only needs its grid: it is never compared.
+                    reported = block["models"][model].get("report", True)
+                    runs = [(seed, trial) for seed in seeds_for(config, spec) if seed != 0 and reported]
                 for seed, trial in runs:
                     grid = "" if trial is None else f" --grid-trial {trial}"
                     print(f"{script} train --config {args.config} --block {block_name} --dataset {dataset} "

@@ -32,6 +32,7 @@ is imported as ``compresso_recsys``.
    reproducing-bert4rec-results-on-ml1m
    
    statistical-comparison
+   paper-reproduction
    citing
    cli-reference
 

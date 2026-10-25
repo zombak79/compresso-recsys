@@ -54,6 +54,23 @@ def _public_callables() -> dict[str, object]:
     return found
 
 
+def _block_body(captured: str) -> str:
+    """The code block alone: stop at the first line indented less than its first line.
+
+    Inside a list item, the paragraph after a code block is indented too, so the
+    regex alone would run on into prose.
+    """
+    lines = captured.splitlines(keepends=True)
+    first = next((l for l in lines if l.strip()), "")
+    depth = len(first) - len(first.lstrip())
+    body = []
+    for l in lines:
+        if l.strip() and len(l) - len(l.lstrip()) < depth:
+            break
+        body.append(l)
+    return "".join(body)
+
+
 def _rst_snippets() -> list[tuple[str, int, str]]:
     """``(source, line, code)`` for every python block in the documentation."""
     out = []
@@ -62,7 +79,7 @@ def _rst_snippets() -> list[tuple[str, int, str]]:
         for match in _BLOCK.finditer(text):
             line = text[: match.start()].count("\n") + 1
             out.append(
-                (str(path.relative_to(DOCS)), line, textwrap.dedent(match.group(1)))
+                (str(path.relative_to(DOCS)), line, textwrap.dedent(_block_body(match.group(1))))
             )
     return out
 

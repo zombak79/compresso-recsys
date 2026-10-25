@@ -165,6 +165,9 @@ large-scale ELSA, compressed ELSA, neighborhood models, Mult-DAE, and Mult-VAE a
 The [implementing a recommender tutorial](https://zombak79.github.io/compresso-recsys/implementing-a-recommender.html)
 builds a complete Top Popular model with validation, stable-ID recommendation,
 persistence, evaluation, and executable contract checks.
+[Reproducing the ECIR 2027 benchmark](https://zombak79.github.io/compresso-recsys/paper-reproduction.html)
+walks through `examples/paper/`, from checkpoint builds to the paper's tables, and shows
+how to verify the published results deposit.
 
 Build the docs locally:
 
