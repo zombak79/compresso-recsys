@@ -219,6 +219,12 @@ params = {{ features = ["text"], l2 = 0.1 }}
 kind = "teaser_gd"
 params = {{ features = ["text"], batch_size = 64, coefficient_regularization_samples = 16 }}
 training = {{ max_epochs = 3, every = 1, patience = 1 }}
+
+[blocks.Cp.models.CLCRec]
+kind = "clcrec"
+params = {{ features = ["text"], embedding_dim = 8, hidden_dim = 16, n_negatives = 4, batch_size = 64 }}
+grid = {{ re_weight = [0.3, 0.7] }}
+training = {{ max_epochs = 3, every = 1, patience = 1 }}
 """
 
 N_WARM, N_VAL_COLD, N_TEST_COLD = 110, 10, 10
@@ -244,6 +250,9 @@ def catalogue_setup(tmp_path_factory):
     warm = np.arange(N_WARM)
     val_catalogue = np.arange(N_WARM + N_VAL_COLD)
     x_train, _ = _rows(rng, 200, warm, 6, N_WARM)
+    # Evaluation rows are training users, as in an item split, so CLCRec can
+    # look up their embeddings.
+    train_user_ids = np.array([f"u{u:03d}" for u in range(200)])
     x_train.data[:3] = 2.0  # repeat events, as a temporal split keeps them
     phases = {}
     for phase, catalogue in (("val", val_catalogue), ("test", np.arange(n_items))):
@@ -262,6 +271,8 @@ def catalogue_setup(tmp_path_factory):
         test_source_matrix=phases["test"]["source"], test_target_matrix=phases["test"]["targets"],
         warm_item_indices=warm, val_cold_item_indices=np.arange(N_WARM, N_WARM + N_VAL_COLD),
         test_cold_item_indices=np.arange(N_WARM + N_VAL_COLD, n_items),
+        train_user_ids=train_user_ids,
+        val_eval_user_ids=train_user_ids[:60], test_eval_user_ids=train_user_ids[60:120],
         entity_metadata=pd.DataFrame({"item_id": item_ids, "entity_text": [f"item {i}" for i in range(n_items)]}),
     )
     checkpoints = tmp_path_factory.mktemp("checkpoints")
@@ -298,6 +309,13 @@ def test_catalogue_block_end_to_end(runner, catalogue_setup, monkeypatch, capsys
         assert runner.main(["train", *base, "--model", model, "--seed", "0", "--device", "cpu"]) == 0
         assert runner.main(["select", *base, "--model", model]) == 0
     assert runner.main(["train", *base, "--model", "TEASER-GD", "--seed", "1", "--device", "cpu"]) == 0
+    for trial in (0, 1):
+        assert runner.main(["train", *base, "--model", "CLCRec", "--seed", "0", "--grid-trial", str(trial),
+                            "--device", "cpu"]) == 0
+    assert runner.main(["select", *base, "--model", "CLCRec"]) == 0
+    selected = runner.selected_trial(out, runner.load_config(config), "Cp", "toy-temporal", "CLCRec")
+    assert runner.main(["train", *base, "--model", "CLCRec", "--seed", "1", "--grid-trial", str(selected),
+                        "--device", "cpu"]) == 0
     capsys.readouterr()
     assert runner.main(["compare", "--config", str(config), "--out", str(out)]) == 0
 
@@ -316,7 +334,7 @@ def test_catalogue_block_end_to_end(runner, catalogue_setup, monkeypatch, capsys
     assert gd["training"]["best"] is not None and "val_ndcg@100" in gd["training"]["history"][0]
     for name in ("toy__warm", "toy__mixed"):
         records = json.loads((out / "casestudy" / f"{name}.json").read_text())
-        assert {r["candidate"] for r in records} == {"TEASER", "TEASER-GD"}
+        assert {r["candidate"] for r in records} == {"TEASER", "TEASER-GD", "CLCRec"}
     pairs = json.loads((out / "summary/Cp/toy-temporal.pairs.json").read_text())
     assert {(r["catalogue"], r["baseline"], r["candidate"], r["metric"]) for r in pairs} == {
         (c, "TEASER", "TEASER-GD", m) for c in ("warm", "mixed") for m in ("calibrated_recall@20", "ndcg@100")}
@@ -455,3 +473,11 @@ def test_bundle_builds_a_verified_pseudonymised_deposit(runner, setup, tmp_path,
 
     (out / "table" / "toy-llo.json").write_text("[]")  # a change after compare
     assert runner.main(args) == runner.SPEC_MISMATCH
+
+
+def test_user_embedding_models_refuse_checkpoints_without_user_ids(runner):
+    with pytest.raises(ValueError, match="needs user ids"):
+        runner.training_user_ids({"train_user_ids": np.array(["u0"]), "val_eval_user_ids": None})
+    ids = runner.training_user_ids({"train_user_ids": np.array(["u0", "u1"]),
+                                    "val_eval_user_ids": np.array(["u1"]), "test_eval_user_ids": np.array(["u0"])})
+    assert ids.tolist() == ["u0", "u1"]

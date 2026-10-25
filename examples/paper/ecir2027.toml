@@ -159,6 +159,13 @@ params = { lr = 0.001 }
 grid = { features = [["text/mpnet"], ["image/vit_cls"]] }
 training = { max_epochs = 100, every = 1, patience = 10 }
 
+[blocks.C.models.CLCRec]
+kind = "clcrec"            # Wei et al. 2021 (MF encoder); same features as MMConcat-TEASER
+params = { features = ["text/mpnet", "image/vit_cls"] }
+# τ is unreported in the paper, so it is gridded; λ and ρ trade warm against cold items.
+grid = { temperature = [0.2, 1.0], re_weight = [0.3, 0.5, 0.7], hybrid_prob = [0.3, 0.5] }
+training = { max_epochs = 100, every = 1, patience = 10 }
+
 [blocks.C.models.EASE]
 kind = "ease"              # warm-only ceiling: a row in the full catalogue only
 params = { dtype = "float64" }
