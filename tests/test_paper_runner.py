@@ -375,3 +375,16 @@ def test_scrub_check_exempts_host_labels_but_not_the_hostname(runner, tmp_path, 
     assert sorted(runner.scrub_check(tmp_path, files)) == ["bare.json", "path.json"]
     cleaned = runner.scrubbed('File "/home/someuser/x.py" on h100')
     assert "someuser" not in cleaned and "h100" not in cleaned and "x.py" in cleaned
+
+
+def test_relabel_hosts_rewrites_every_occurrence(runner, setup, tmp_path, monkeypatch):
+    config, _, _ = setup
+    monkeypatch.setenv("CR_HOST_LABEL", "site-gpu")
+    out = tmp_path / "results"
+    assert runner.main(_train_args(config, out, "Pop")) == 0
+    assert runner.main(["relabel-hosts", "--config", str(config), "--out", str(out),
+                        "--old", "site-gpu", "--new", "gpu-cluster"]) == 0
+    result = json.loads((out / "runs/B/toy-llo/Pop/s0/result.json").read_text())
+    assert result["env"]["host"] == "gpu-cluster"
+    assert json.loads((out / "runs/B/toy-llo/Pop/s0/status.json").read_text())["host"] == "gpu-cluster"
+    assert [p.name for p in (out / "env").iterdir()] == ["gpu-cluster-pip-freeze.txt"]

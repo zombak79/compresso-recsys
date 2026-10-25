@@ -663,6 +663,37 @@ def verify_checkpoints(args, config: dict) -> int:
     return SPEC_MISMATCH if mismatched else 0
 
 
+# --------------------------------------------------------------------------- relabel-hosts
+
+
+def relabel_hosts(args, config: dict) -> int:
+    """Replace a host label in every result before publication, e.g. a cluster name by a neutral one.
+
+    Rewrites ``env.host`` in result.json, ``host`` in status.json, the ``env/``
+    file names and ``features/*.json``. Specs are untouched, so nothing reruns.
+    Run ``compare`` afterwards to refresh meta.json and MANIFEST.json.
+    """
+    old, new = args.old, re.sub(r"[^A-Za-z0-9_.-]", "-", args.new)
+    changed = 0
+    for path in list(args.out.glob("runs/**/result.json")) + list(args.out.glob("features/**/*.json")):
+        record = json.loads(path.read_text())
+        if record.get("env", {}).get("host") == old:
+            record["env"]["host"] = new
+            write_json(path, record)
+            changed += 1
+    for path in args.out.glob("runs/**/status.json"):
+        record = json.loads(path.read_text())
+        if record.get("host") == old:
+            record["host"] = new
+            write_json(path, record)
+            changed += 1
+    for path in (args.out / "env").glob(f"{old}-*"):
+        path.rename(path.with_name(new + path.name[len(old):]))
+        changed += 1
+    print(f"relabelled {changed} files: {old} -> {new}")
+    return 0
+
+
 # --------------------------------------------------------------------------- train
 
 
@@ -1250,7 +1281,7 @@ def compare(args, config: dict) -> int:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     commands = parser.add_subparsers(dest="command", required=True)
-    for name in ("train", "select", "compare", "list", "encode", "verify-checkpoints"):
+    for name in ("train", "select", "compare", "list", "encode", "verify-checkpoints", "relabel-hosts"):
         sub = commands.add_parser(name)
         sub.add_argument("--config", type=Path, required=True)
         if name in ("train", "select", "encode"):
@@ -1265,6 +1296,9 @@ def main(argv: list[str] | None = None) -> int:
             sub.add_argument("--device", help="override the device (default: cuda when available for GPU models)")
         if name in ("train", "list"):
             sub.add_argument("--max-epochs", type=int, help="cap every epoch budget (smoke tests)")
+        if name == "relabel-hosts":
+            sub.add_argument("--old", required=True, help="the label to replace")
+            sub.add_argument("--new", required=True, help="the label to publish instead")
         if name == "verify-checkpoints":
             sub.add_argument("--previous", type=Path,
                              help="directory with the checkpoints earlier runs used (e.g. the v1 builds)")
@@ -1278,7 +1312,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     config = load_config(args.config)
     commands_by_name = {"train": train, "select": select, "compare": compare, "list": list_commands,
-                        "encode": encode, "verify-checkpoints": verify_checkpoints}
+                        "encode": encode, "verify-checkpoints": verify_checkpoints,
+                        "relabel-hosts": relabel_hosts}
     try:
         return commands_by_name[args.command](args, config)
     except SpecMismatch as error:

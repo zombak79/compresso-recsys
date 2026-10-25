@@ -120,3 +120,14 @@ def test_latex_and_markdown_need_no_templating_dependency(report, monkeypatch):
         warnings.simplefilter("ignore")
         assert report.to_latex(table_env=False)
         assert report.to_markdown()
+
+
+def test_a_small_nonzero_difference_keeps_its_magnitude():
+    from compresso_recsys.stats.formatting import _num
+
+    assert _num(-0.0003, 3, signed=True, latex=False) == "-0.0003"
+    assert _num(-0.0003, 3, signed=True) == "$-$0.0003"
+    assert _num(0.00004, 3, signed=True, latex=False) == "+0.00004"
+    assert _num(0.000001, 3, signed=True, latex=False) == "+0.00000"
+    assert _num(0.0, 3, signed=True, latex=False) == "+0.000"
+    assert _num(0.0123, 3, signed=True, latex=False) == "+0.012"

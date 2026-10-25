@@ -172,7 +172,13 @@ def _ceil_one_digit(value: float) -> tuple[int, int]:
 def _num(value: float, digits: int, *, signed: bool = False, latex: bool = True) -> str:
     if value is None or (isinstance(value, float) and math.isnan(value)):
         return "--"
-    text = f"{value:+.{digits}f}" if signed else f"{value:.{digits}f}"
+    # A nonzero value that rounds to zero would print as "-0.000" or "+0.000",
+    # a sign with no visible magnitude. Show up to two more digits instead, so
+    # -0.0003 reads as -0.0003; only values below that print as zero.
+    shown = digits
+    while value and round(value, shown) == 0 and shown < digits + 2:
+        shown += 1
+    text = f"{value:+.{shown}f}" if signed else f"{value:.{shown}f}"
     return text.replace("-", "$-$") if (signed and latex) else text
 
 
