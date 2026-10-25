@@ -666,31 +666,205 @@ def verify_checkpoints(args, config: dict) -> int:
 # --------------------------------------------------------------------------- relabel-hosts
 
 
-def relabel_hosts(args, config: dict) -> int:
-    """Replace a host label in every result before publication, e.g. a cluster name by a neutral one.
-
-    Rewrites ``env.host`` in result.json, ``host`` in status.json, the ``env/``
-    file names and ``features/*.json``. Specs are untouched, so nothing reruns.
-    Run ``compare`` afterwards to refresh meta.json and MANIFEST.json.
-    """
-    old, new = args.old, re.sub(r"[^A-Za-z0-9_.-]", "-", args.new)
+def relabel_dir(root: Path, old: str, new: str) -> int:
+    """Replace host label ``old`` by ``new`` in every result under ``root``; returns the files changed."""
+    new = re.sub(r"[^A-Za-z0-9_.-]", "-", new)
     changed = 0
-    for path in list(args.out.glob("runs/**/result.json")) + list(args.out.glob("features/**/*.json")):
+    for path in list(root.glob("runs/**/result.json")) + list(root.glob("features/**/*.json")):
         record = json.loads(path.read_text())
         if record.get("env", {}).get("host") == old:
             record["env"]["host"] = new
             write_json(path, record)
             changed += 1
-    for path in args.out.glob("runs/**/status.json"):
+    for path in root.glob("runs/**/status.json"):
         record = json.loads(path.read_text())
         if record.get("host") == old:
             record["host"] = new
             write_json(path, record)
             changed += 1
-    for path in (args.out / "env").glob(f"{old}-*"):
+    for path in (root / "env").glob(f"{old}-*"):
         path.rename(path.with_name(new + path.name[len(old):]))
         changed += 1
-    print(f"relabelled {changed} files: {old} -> {new}")
+    meta = root / "meta.json"
+    if meta.exists():
+        record = json.loads(meta.read_text())
+        if old in record.get("hosts", []):
+            record["hosts"] = sorted({new if host == old else host for host in record["hosts"]})
+            write_json(meta, record)
+            changed += 1
+    return changed
+
+
+def relabel_hosts(args, config: dict) -> int:
+    """Replace a host label in every result before publication, e.g. a cluster name by a neutral one.
+
+    Rewrites ``env.host`` in result.json, ``host`` in status.json, the ``env/``
+    file names, ``features/*.json`` and ``meta.json``. Specs are untouched, so
+    nothing reruns. Run ``compare`` afterwards to refresh MANIFEST.json.
+    """
+    changed = relabel_dir(args.out, args.old, args.new)
+    print(f"relabelled {changed} files: {args.old} -> {args.new}")
+    return 0
+
+
+# --------------------------------------------------------------------------- bundle
+
+
+def verify_manifest(root: Path) -> list[str]:
+    """Files whose bytes no longer match MANIFEST.json, and listed files that are missing."""
+    manifest = json.loads((root / "MANIFEST.json").read_text())
+    problems = []
+    for entry in manifest["files"]:
+        path = root / entry["path"]
+        if not path.exists():
+            problems.append(f"missing: {entry['path']}")
+        elif path.stat().st_size != entry["bytes"] or sha256_file(path) != entry["sha256"]:
+            problems.append(f"changed: {entry['path']}")
+    return problems
+
+
+def pseudonymise_sample_ids(root: Path) -> int:
+    """Replace dataset user IDs in per_user.npz by indices, consistently within each dataset.
+
+    Paired comparison needs the same unit to carry the same ID in every
+    model's file of a dataset; it does not need the dataset's own user IDs.
+    Each (block, dataset) gets one mapping: sorted distinct IDs to 0..n-1.
+    """
+    rewritten = 0
+    for dataset_dir in sorted(root.glob("runs/*/*")):
+        files = sorted(dataset_dir.glob("*/*/per_user.npz"))
+        if not files:
+            continue
+        ids: set[str] = set()
+        for path in files:
+            with np.load(path, allow_pickle=False) as arrays:
+                for name in arrays.files:
+                    if name.endswith("/sample_ids"):
+                        ids.update(np.asarray(arrays[name]).astype(str).tolist())
+        index = {value: position for position, value in enumerate(sorted(ids))}
+        for path in files:
+            with np.load(path, allow_pickle=False) as arrays:
+                data = {name: arrays[name] for name in arrays.files}
+            for name in data:
+                if name.endswith("/sample_ids"):
+                    data[name] = np.array([index[v] for v in data[name].astype(str).tolist()], dtype=np.int64)
+            np.savez_compressed(path, **data)
+            rewritten += 1
+    return rewritten
+
+
+DATASET_TERMS = {
+    "ml20m": ("MovieLens 20M", "GroupLens; research use, no redistribution (https://grouplens.org/datasets/movielens/)"),
+    "netflix": ("Netflix Prize", "Netflix Prize terms; the data are no longer distributed by Netflix"),
+    "ml1m-llo": ("MovieLens 1M", "GroupLens; research use, no redistribution"),
+    "ml1m-item": ("MovieLens 1M with SWAP features", "GroupLens; SWAP features per their Zenodo record"),
+    "amazon": ("Amazon Reviews 2023, Toys_and_Games", "McAuley Lab; research use (https://amazon-reviews-2023.github.io/)"),
+    "amazon-toys": ("Amazon Reviews 2023, Toys_and_Games", "McAuley Lab; research use"),
+    "steam-temporal": ("Steam (McAuley Lab)", "McAuley Lab; research use (https://cseweb.ucsd.edu/~jmcauley/datasets.html)"),
+}
+
+
+def deposit_readme(root: Path, config: dict, *, tag: str | None) -> str:
+    meta = json.loads((root / "meta.json").read_text())
+    datasets = sorted({path.name for path in (root / "runs").glob("*/*") if path.is_dir()})
+    lines = [
+        "# compresso-recsys ECIR 2027 benchmark results",
+        "",
+        f"- **Code commit:** `{meta.get('commit')}`" + (f" (tag `{tag}`)" if tag else ""),
+        f"- **Created:** {meta.get('created_at')}",
+        f"- **Statistics:** {meta.get('statistics')}; B = {meta.get('n_resamples')} resamples",
+        f"- **Hardware:** {', '.join(meta.get('gpus', []))}",
+        "",
+        "## Contents",
+        "",
+        "| Path | What it is |",
+        "|---|---|",
+        "| `table/<dataset>.json`, `casestudy/<dataset>__<catalogue>.json` | The paper's tables: `ComparisonReport.to_frame()` records (Δ vs reference, 95% bootstrap CI, Holm-adjusted randomization p) |",
+        "| `meta.json` | Commit, protocol per block (grids, epoch rules, seeds), cold-share figures, statistics settings |",
+        "| `summary/<block>/<dataset>.json` / `.md` | Mean and sd over seeds of every metric for each model's selected configuration; Markdown versions of the comparisons |",
+        "| `selection/<block>/<dataset>/<model>/selected.json` | Validation score of every grid point and the selected one |",
+        "| `runs/<block>/<dataset>/<model>/s<seed>[-t<trial>]/result.json` | One fit: spec, validation and test metrics, training history, checkpoint provenance, environment |",
+        "| `runs/.../per_user.npz` | Per-user test values behind every metric, keyed `<split>[__<catalogue>]/<metric>`, with `sample_ids` |",
+        "| `runs/.../train.log`, `status.json` | Training logs |",
+        "| `features/<dataset>/*.json` | Provenance of the text encodings used in the case study (the vectors themselves are in `.npz`) |",
+        "| `env/` | Package versions and GPU of each host |",
+        "| `MANIFEST.json` | Every file with size and SHA-256 |",
+        "",
+        "## Regenerating the paper's numbers",
+        "",
+        "- **Tables and figure:** the paper reads only `table/`, `casestudy/` and `meta.json`.",
+        "- **Statistics:** `compare_models` can be rerun from the per-user values. `run.py compare --config examples/paper/ecir2027.toml --out <this directory>` rebuilds every table and summary.",
+        "- **Everything else:** the code at the commit above. Its `examples/paper/README.md` lists the checkpoint builds and the `run.py` stages; each `result.json` records the checkpoint's `content_sha256`, so a rebuild can be matched to the one used here.",
+        "",
+        "## Data and licences",
+        "",
+        "No raw interaction data, item metadata or text is included. The files hold metrics, per-user metric values and",
+        "model-free summaries derived from the datasets below, and are subject to their terms:",
+        "",
+    ]
+    for name in datasets:
+        title, terms = DATASET_TERMS.get(name, (name, "see the dataset's own terms"))
+        lines.append(f"- **{title}** (`{name}`): {terms}")
+    lines += [
+        "",
+        "**User identifiers.** `sample_ids` in `per_user.npz` are not the datasets' user IDs.",
+        "",
+        "- Within each dataset, the distinct IDs were replaced by their rank, so every model's file uses the same index for the same user and paired comparison still works.",
+        "- The mapping to dataset IDs is not published.",
+        "",
+        "Encoded item text (`features/*.npz`) is derived from the datasets' item metadata.",
+        "",
+        "The results are released under CC BY 4.0, subject to the dataset terms above.",
+        "",
+    ]
+    return "\n".join(lines)
+
+
+def bundle(args, config: dict) -> int:
+    """Build the results deposit: verify, relabel and pseudonymise a copy, then archive it.
+
+    Works on a staging copy of the files listed in MANIFEST.json; ``--out`` is
+    never modified. Exits 2 when the manifest does not match the files, or when
+    the staged deposit still names this machine, user or home directory.
+    """
+    import shutil
+    import tarfile
+    import tempfile
+
+    problems = verify_manifest(args.out)
+    if problems:
+        raise SpecMismatch("MANIFEST.json does not match the results (run compare again?): "
+                           + "; ".join(problems[:10]) + (" …" if len(problems) > 10 else ""))
+    manifest = json.loads((args.out / "MANIFEST.json").read_text())
+    with tempfile.TemporaryDirectory() as tmp:
+        stage = Path(tmp) / args.name
+        for entry in manifest["files"]:
+            target = stage / entry["path"]
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(args.out / entry["path"], target)
+        for relabel in args.relabel or []:
+            old, _, new = relabel.partition("=")
+            print(f"relabelled {relabel_dir(stage, old, new)} files: {old} -> {new}")
+        print(f"pseudonymised sample IDs in {pseudonymise_sample_ids(stage)} files")
+        (stage / "README.md").write_text(deposit_readme(stage, config, tag=args.tag))
+        leaks = write_manifest(stage)
+        if leaks:
+            raise SpecMismatch("the deposit still names this machine, user or home directory: " + ", ".join(leaks[:10]))
+        staged = json.loads((stage / "MANIFEST.json").read_text())["files"]
+        if args.git_dir is not None:
+            for entry in staged:
+                if entry["tier"] == "git":
+                    target = args.git_dir / entry["path"]
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(stage / entry["path"], target)
+            for name in ("README.md", "MANIFEST.json"):
+                shutil.copy2(stage / name, args.git_dir / name)
+        args.archive.parent.mkdir(parents=True, exist_ok=True)
+        with tarfile.open(args.archive, "w:gz") as archive:
+            archive.add(stage, arcname=args.name)
+    git_files = sum(1 for entry in staged if entry["tier"] == "git")
+    print(f"{args.archive}: {len(staged)} files ({git_files} git tier"
+          + (f", copied to {args.git_dir}" if args.git_dir else "") + f"), sha256 {sha256_file(args.archive)}")
     return 0
 
 
@@ -1296,7 +1470,7 @@ def compare(args, config: dict) -> int:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     commands = parser.add_subparsers(dest="command", required=True)
-    for name in ("train", "select", "compare", "list", "encode", "verify-checkpoints", "relabel-hosts"):
+    for name in ("train", "select", "compare", "list", "encode", "verify-checkpoints", "relabel-hosts", "bundle"):
         sub = commands.add_parser(name)
         sub.add_argument("--config", type=Path, required=True)
         if name in ("train", "select", "encode"):
@@ -1311,6 +1485,13 @@ def main(argv: list[str] | None = None) -> int:
             sub.add_argument("--device", help="override the device (default: cuda when available for GPU models)")
         if name in ("train", "list"):
             sub.add_argument("--max-epochs", type=int, help="cap every epoch budget (smoke tests)")
+        if name == "bundle":
+            sub.add_argument("--archive", type=Path, required=True, help="the .tar.gz to write")
+            sub.add_argument("--name", default="results-ecir2027", help="top-level directory inside the archive")
+            sub.add_argument("--relabel", action="append", metavar="OLD=NEW",
+                             help="replace a host label in the deposit (repeatable)")
+            sub.add_argument("--git-dir", type=Path, help="copy the git-tier files here, e.g. examples/paper/results")
+            sub.add_argument("--tag", help="the release tag the deposit belongs to")
         if name == "relabel-hosts":
             sub.add_argument("--old", required=True, help="the label to replace")
             sub.add_argument("--new", required=True, help="the label to publish instead")
@@ -1328,7 +1509,7 @@ def main(argv: list[str] | None = None) -> int:
     config = load_config(args.config)
     commands_by_name = {"train": train, "select": select, "compare": compare, "list": list_commands,
                         "encode": encode, "verify-checkpoints": verify_checkpoints,
-                        "relabel-hosts": relabel_hosts}
+                        "relabel-hosts": relabel_hosts, "bundle": bundle}
     try:
         return commands_by_name[args.command](args, config)
     except SpecMismatch as error:

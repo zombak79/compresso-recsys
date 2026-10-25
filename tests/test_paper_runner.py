@@ -409,3 +409,41 @@ def test_positional_sample_ids_are_recorded_and_refused_for_identity_models(runn
     monkeypatch.setattr(cr.PopularityBaseline, "accepts_user_ids", True, raising=False)
     with pytest.raises(ValueError, match="uses user identity"):
         runner.main(_train_args(config, tmp_path / "other", "Pop"))
+
+
+def test_bundle_builds_a_verified_pseudonymised_deposit(runner, setup, tmp_path, monkeypatch):
+    import tarfile
+
+    config, _, _ = setup
+    monkeypatch.setenv("CR_HOST_LABEL", "site-gpu")
+    out = tmp_path / "results"
+    for model, trial in (("Pop", None), ("EASE", 0), ("EASE", 1)):
+        assert runner.main(_train_args(config, out, model, trial=trial)) == 0
+    for model in ("Pop", "EASE"):
+        assert runner.main(["select", "--config", str(config), "--block", "B", "--dataset", "toy-llo",
+                            "--model", model, "--out", str(out)]) == 0
+    assert runner.main(["compare", "--config", str(config), "--out", str(out)]) == 0
+    table_before = (out / "table" / "toy-llo.json").read_text()
+
+    archive, git_dir = tmp_path / "deposit.tar.gz", tmp_path / "git"
+    args = ["bundle", "--config", str(config), "--out", str(out), "--archive", str(archive),
+            "--relabel", "site-gpu=gpu-cluster", "--git-dir", str(git_dir), "--name", "dep"]
+    assert runner.main(args) == 0
+    assert (out / "table" / "toy-llo.json").read_text() == table_before  # --out is never modified
+
+    with tarfile.open(archive) as tar:
+        tar.extractall(tmp_path / "x", filter="data")
+    deposit = tmp_path / "x" / "dep"
+    assert "No raw interaction data" in (deposit / "README.md").read_text()
+    assert json.loads((deposit / "meta.json").read_text())["hosts"] == ["gpu-cluster"]
+    with np.load(deposit / "runs/B/toy-llo/Pop/s0/per_user.npz") as arrays:
+        ids = arrays["test/sample_ids"]
+    assert ids.dtype == np.int64 and sorted(ids.tolist()) == list(range(len(ids)))
+    assert runner.verify_manifest(deposit) == []
+    assert (git_dir / "table" / "toy-llo.json").exists() and not list(git_dir.rglob("per_user.npz"))
+    # The deposit's per-user values still reproduce the comparison.
+    assert runner.main(["compare", "--config", str(config), "--out", str(deposit)]) == 0
+    assert json.loads((deposit / "table" / "toy-llo.json").read_text()) == json.loads(table_before)
+
+    (out / "table" / "toy-llo.json").write_text("[]")  # a change after compare
+    assert runner.main(args) == runner.SPEC_MISMATCH

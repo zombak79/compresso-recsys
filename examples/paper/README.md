@@ -62,14 +62,23 @@ python examples/paper/run.py compare --config examples/paper/ecir2027.toml --out
 
 ## Publishing the results
 
-1. Run the stages above until every block's `compare` has run on the final seeds.
-2. Replace host labels that name a site with a neutral one:
-   ```
-   run.py relabel-hosts --config … --old ostrava-h100 --new gpu-cluster --out $RESULTS
-   ```
-   This rewrites `result.json`, `status.json` and the `env/` file names. Specs are unchanged.
-3. Run `compare` again, so `meta.json` and `MANIFEST.json` see the new labels. `MANIFEST.json` → `scrub.flagged` must be empty.
-4. The git tier goes into `examples/paper/results/`. The archive tier (`per_user.npz`, logs) is bundled from the `archive` entries of `MANIFEST.json`.
+When every block's `compare` has run on the final seeds:
+
+```bash
+python examples/paper/run.py bundle --config examples/paper/ecir2027.toml --out $RESULTS \
+    --archive results-ecir2027.tar.gz --relabel ostrava-h100=gpu-cluster \
+    --git-dir examples/paper/results --tag v0.4.0
+```
+
+`bundle` works on a staging copy and never modifies `$RESULTS`:
+1. It verifies every file against `MANIFEST.json` and exits 2 if anything changed after `compare`.
+2. It replaces site host labels (`--relabel`).
+3. It replaces the datasets' user IDs in `per_user.npz` with per-dataset indices. Paired comparison still works, and no dataset identifiers are published.
+4. It writes a deposit `README.md` covering the contents, regeneration, data terms and licence.
+5. It rewrites `MANIFEST.json` and refuses (exit 2) if a file still names this machine, user or home directory.
+6. It writes the `.tar.gz` for the archive deposit, and copies the git-tier files (tables, summaries, selections, small `result.json` files) to `--git-dir`.
+
+`relabel-hosts` does step 2 in place, if needed on its own.
 
 A model with `report = false` in the config (a probe) is trained, selected and summarised, but left out of the comparison tables.
 
