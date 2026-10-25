@@ -192,6 +192,10 @@ kind = "popularity"
 kind = "ease"
 # 2000 and 5000 appended after the first run selected 1000, the grid's edge.
 grid = { l2 = [100, 200, 500, 1000, 2000, 5000] }
+# Steam selected 5000, the new edge, so it gets one last extension. If it selects
+# the edge again the paper footnotes it ("selected at the grid edge; validation
+# gains < 0.002"); there is no further extension.
+overrides = { steam-temporal = { grid = { l2 = [100, 200, 500, 1000, 2000, 5000, 10000, 20000] } } }
 
 [blocks.Cp.models.Content]
 kind = "content"
@@ -202,9 +206,14 @@ kind = "teaser"
 params = { features = ["text"] }
 # 5 and 20 appended after the first run selected 1.0, the grid's edge.
 grid = { l2 = [0.01, 0.05, 0.2, 1.0, 5.0, 20.0] }
+# Steam selected 20, the new edge: one last extension, as for EASE.
+overrides = { steam-temporal = { grid = { l2 = [0.01, 0.05, 0.2, 1.0, 5.0, 20.0, 50.0, 100.0] } } }
 
 [blocks.Cp.models.TEASER-GD]
 kind = "teaser_gd"
+# Not reported: validation peaks at epoch 1 and degrades while the loss falls,
+# and neither probe below improves on it; closed-form TEASER is far better.
+report = false
 params = { features = ["text"], lr = 0.001 }
 training = { max_epochs = 100, every = 1, patience = 10 }
 
