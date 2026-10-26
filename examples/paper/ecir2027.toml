@@ -197,6 +197,9 @@ grid_extra = [
   { l2_weight = 0.1, re_weight = 0.95, hybrid_prob = 0.3 }, { l2_weight = 0.1, re_weight = 0.95, hybrid_prob = 0.5 }, { l2_weight = 0.1, re_weight = 0.95, hybrid_prob = 0.7 },
   { l2_weight = 0.3, re_weight = 0.95, hybrid_prob = 0.3 }, { l2_weight = 0.3, re_weight = 0.95, hybrid_prob = 0.5 }, { l2_weight = 0.3, re_weight = 0.95, hybrid_prob = 0.7 },
   { l2_weight = 1.0, re_weight = 0.95, hybrid_prob = 0.3 }, { l2_weight = 1.0, re_weight = 0.95, hybrid_prob = 0.5 }, { l2_weight = 1.0, re_weight = 0.95, hybrid_prob = 0.7 },
+  # Last extension: the second selection sat at re_weight 0.3, the bottom, with a
+  # last step of +0.107; two smaller values at the selected l2_weight and hybrid_prob.
+  { l2_weight = 1.0, re_weight = 0.2, hybrid_prob = 0.5 }, { l2_weight = 1.0, re_weight = 0.1, hybrid_prob = 0.5 },
 ]
 training = { max_epochs = 100, every = 1, patience = 10 }
 
