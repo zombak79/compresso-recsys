@@ -148,8 +148,13 @@ datasets = { "ml1m-item" = { checkpoint = "ml1m-item_split-swap.zip", outputs = 
 
 [blocks.C.models.TEASER]
 kind = "teaser"
-# 5 and 20 added after the first run selected 1.0, the edge; if selected again, footnoted.
+# 5 and 20 added after the first run selected 1.0, the edge; 50 and 100 after the second
+# selected 20 (through grid_extra, so no trial is renumbered). Then footnoted if needed.
 grid = { features = [["text/mpnet"], ["image/vit_cls"]], l2 = [0.01, 0.05, 0.2, 1.0, 5.0, 20.0] }
+grid_extra = [
+  { features = ["text/mpnet"], l2 = 50.0 }, { features = ["text/mpnet"], l2 = 100.0 },
+  { features = ["image/vit_cls"], l2 = 50.0 }, { features = ["image/vit_cls"], l2 = 100.0 },
+]
 
 [blocks.C.models.Content]
 kind = "content"
@@ -158,8 +163,13 @@ grid = { features = [["text/minilm"], ["text/mpnet"], ["image/vit_cls"]] }
 [blocks.C.models.MMConcat-TEASER]
 kind = "teaser"
 params = { features = ["text/mpnet", "image/vit_cls"] }
-# 5 and 20 added after the first run selected 1.0, the edge; if selected again, footnoted.
+# 5 and 20 added after the first run selected 1.0, the edge; 50 and 100 after the second
+# selected 20 (through grid_extra, so no trial is renumbered). Then footnoted if needed.
 grid = { weights = [[1.0, 1.0], [1.0, 0.5]], l2 = [0.01, 0.05, 0.2, 1.0, 5.0, 20.0] }
+grid_extra = [
+  { weights = [1.0, 1.0], l2 = 50.0 }, { weights = [1.0, 1.0], l2 = 100.0 },
+  { weights = [1.0, 0.5], l2 = 50.0 }, { weights = [1.0, 0.5], l2 = 100.0 },
+]
 
 [blocks.C.models.TEASER-GD]
 kind = "teaser_gd"
