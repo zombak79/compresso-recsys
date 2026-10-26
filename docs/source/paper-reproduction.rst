@@ -195,7 +195,8 @@ Hardware and time
 -----------------
 
 The published results ran on a Slurm cluster with NVIDIA H100 80 GB GPUs, at
-most six at a time, on 24–25 October 2026.
+most six at a time, between 24 and 26 October 2026. GPU-hours are allocated GPUs
+times job time, and include grid points that a later grid extension superseded.
 
 .. list-table::
    :header-rows: 1
@@ -204,16 +205,18 @@ most six at a time, on 24–25 October 2026.
      - Resources
    * - Checkpoint builds, all datasets
      - CPU, about 8 minutes (plus first-time downloads)
-   * - Grid stage, GPU lines (incl. BERT4Rec ML-1M seed 0, 907 epochs)
-     - 2.6 H100-hours
-   * - Grid stage, CPU lines (EASE, ItemKNN, Pop, TEASER, Content)
-     - about 1.3 CPU-hours, 8 cores per task
-   * - Seeds stage, 28 GPU lines
-     - 5.0 H100-hours
+   * - Blocks A, B, B′, C′: grid, seeds and reruns (incl. BERT4Rec ML-1M, 907 epochs)
+     - 7.9 H100-hours
+   * - Block C (ML-1M item split): grid, two grid extensions, CLCRec seeds
+     - 11.1 H100-hours
+   * - CPU stages (EASE, ItemKNN, Pop, TEASER, Content, ``select``, ``compare``)
+     - about 4.3 CPU-hours, 8 cores per task
    * - ``compare`` (all blocks, B = 9,999)
      - CPU, about 7 minutes
    * - **Tables and case study in total**
-     - **about 7.9 H100-hours**; one night on six GPUs
+     - **about 18.9 H100-hours**; two nights on six GPUs
+   * - BERT4Rec ML-1M reproduction seeds (sampled metrics only, not in the tables)
+     - 2.5 H100-hours (21.5 in all)
 
 The longest single fits are the fixed-budget BERT4Rec runs on ML-1M, about
 75 minutes each on one H100. A 24 GB consumer GPU runs every GPU model in the
