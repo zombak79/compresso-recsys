@@ -144,6 +144,11 @@ def test_the_whole_pipeline(runner, setup, capsys):
     assert {r["metric"] for r in records} == {"calibrated_recall@20", "ndcg@100"}
     summary = json.loads((out / "summary" / "B" / "toy-llo.json").read_text())
     assert summary["MultVAE"]["n_seeds"] == 2 and summary["EASE"]["n_seeds"] == 1
+    meta = json.loads((out / "meta.json").read_text())
+    ease = meta["selection"]["B"]["toy-llo"]["EASE"]
+    chosen = ease["params"]["l2"]
+    assert ease["at_edge"] == {"l2": {"value": chosen, "side": "min" if chosen == 1.0 else "max", "n_values": 2}}
+    assert "Pop" not in meta["selection"]["B"]["toy-llo"]  # no grid, nothing to report
     multvae = json.loads((out / "runs/B/toy-llo/MultVAE/s0/result.json").read_text())
     assert multvae["training"]["best"]["epoch"] >= 1
     assert all("val_ndcg@20" in record for record in multvae["training"]["history"])

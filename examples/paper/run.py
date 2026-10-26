@@ -1401,6 +1401,39 @@ def compare_pairs(out: Path, block_name: str, block: dict, dataset: str, summary
     return records
 
 
+def selection_edges(out: Path, config: dict) -> dict:
+    """Per block, dataset and model: the selected point and the numeric grid axes it sits on the edge of.
+
+    An axis is at the edge when the selected value is the smallest or largest
+    value on it (by value, not position, since grids may be extended by
+    appending). Non-numeric axes (feature sets, weight vectors) are skipped.
+    ``at_edge`` is empty when the selection is interior. ``n_values`` is the
+    axis size: on a two-value axis every selection is an edge, which a footnote
+    should not present as a search that ran out of range.
+    """
+    edges: dict = {}
+    for block_name, block in config["blocks"].items():
+        for dataset in block["datasets"]:
+            for model in models_for(config, block_name, dataset):
+                spec = model_spec(config, block_name, dataset, model)
+                path = out / "selection" / block_name / dataset / model / "selected.json"
+                if not spec["grid"] or not path.exists():
+                    continue
+                params = json.loads(path.read_text())["params"]
+                at_edge = {}
+                for axis, values in spec["grid"].items():
+                    numeric = [v for v in values if isinstance(v, (int, float)) and not isinstance(v, bool)]
+                    if len(numeric) < 2 or len(numeric) != len(values) or axis not in params:
+                        continue
+                    if params[axis] == max(numeric):
+                        at_edge[axis] = {"value": params[axis], "side": "max", "n_values": len(numeric)}
+                    elif params[axis] == min(numeric):
+                        at_edge[axis] = {"value": params[axis], "side": "min", "n_values": len(numeric)}
+                edges.setdefault(block_name, {}).setdefault(dataset, {})[model] = {
+                    "params": params, "at_edge": at_edge}
+    return edges
+
+
 def protocol_description(config: dict) -> dict:
     """Per block: selection, and each model's grid and epoch rule, for the paper's captions."""
     blocks = {}
@@ -1509,6 +1542,7 @@ def compare(args, config: dict) -> int:
                       "paired bootstrap CIs, paired randomization test, Holm over each file's models and metrics",
         "protocol_note": PROTOCOL_NOTE,
         "protocol": protocol_description(config),
+        "selection": selection_edges(out, config),
         "cold_share": cold_shares,
     }
     write_json(out / "meta.json", meta)
