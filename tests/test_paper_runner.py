@@ -505,3 +505,15 @@ def test_selection_edges_report_the_last_step_gain(runner, tmp_path):
     edge = runner.selection_edges(tmp_path, config)["X"]["d"]["M"]["at_edge"]["l2"]
     assert edge["side"] == "max" and edge["n_values"] == 3
     assert edge["last_step_gain"] == pytest.approx(0.03)
+
+
+def test_a_fully_tied_grid_reports_no_edge(runner, tmp_path):
+    config = {"blocks": {"X": {"mode": "standard", "datasets": {"d": {"checkpoint": "c.zip"}},
+                               "models": {"M": {"kind": "ease", "grid": {"l2": [1.0, 10.0, 100.0]}}}}},
+              "run": {"seeds": [0]}}
+    trials = [{"trial": i, "params": {"l2": v}, "validation": 0.0, "epochs_trained": None}
+              for i, v in enumerate([1.0, 10.0, 100.0])]
+    path = tmp_path / "selection/X/d/M/selected.json"
+    path.parent.mkdir(parents=True)
+    path.write_text(json.dumps({"params": {"l2": 1.0}, "trials": trials, "trial": 0}))
+    assert runner.selection_edges(tmp_path, config)["X"]["d"]["M"]["at_edge"] == {}

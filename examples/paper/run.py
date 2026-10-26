@@ -1411,7 +1411,8 @@ def selection_edges(out: Path, config: dict) -> dict:
     more values count: on a two-value axis every pick is an edge. ``n_values``
     is the axis size; ``last_step_gain`` is the validation score of the selected
     point minus that of the point one step inwards on the axis, other settings
-    unchanged.
+    unchanged. A grid whose validation scores are all equal reports no edge: its
+    selection is the tie-break, not a search result.
     """
     edges: dict = {}
     for block_name, block in config["blocks"].items():
@@ -1427,7 +1428,10 @@ def selection_edges(out: Path, config: dict) -> dict:
                 # later change of the config cannot pair a score with the wrong point.
                 scores = {json.dumps(t["params"], sort_keys=True): t["validation"] for t in selected["trials"]}
                 at_edge = {}
-                for axis, values in spec["grid"].items():
+                # A fully tied grid (e.g. EASE scoring cold-only targets: zero everywhere)
+                # was decided by the tie-break, not by validation: no edge to report.
+                tied = max(scores.values()) - min(scores.values()) <= 1e-12 if scores else True
+                for axis, values in ([] if tied else spec["grid"].items()):
                     numeric = [v for v in values if isinstance(v, (int, float)) and not isinstance(v, bool)]
                     # On an axis of one or two values every pick is an edge: not a search
                     # that ran out of range, so it is not reported.
