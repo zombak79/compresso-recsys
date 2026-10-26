@@ -6,10 +6,17 @@
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-blue.svg)](https://zombak79.github.io/compresso-recsys/)
 
-`compresso-recsys` is the recommender-system companion package for
-[Compresso](https://github.com/zombak79/compresso). It provides dataset
-loaders, checkpoint builders, checkpoint read/write helpers, and retrieval
-metrics for sparse representation learning experiments.
+`compresso-recsys` is a toolkit for practical recommender development, and the
+recommender companion of [Compresso](https://github.com/zombak79/compresso). It
+has three parts you can use alone or together:
+
+1. **One data checkpoint:** the interaction matrix, sequences, item metadata,
+   embeddings and splits in one portable file. It is built with a single
+   command and can carry results and model checkpoints.
+2. **A model base class** that handles the boring parts around your model's
+   own `fit`: `predict`, `predict_on_batch` batching, `recommend` with stable
+   item IDs and filters, data handling, and save and load.
+3. **Evaluation with statistical testing** as the final arbiter between models.
 
 The package distribution name is `compresso-recsys`; the Python import is:
 

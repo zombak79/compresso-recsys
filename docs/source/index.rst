@@ -1,10 +1,19 @@
 Welcome to Compresso Recsys's documentation!
 ============================================
 
-Compresso Recsys is the recommender-system companion package for Compresso. It
-contains dataset loaders, checkpoint-building utilities, checkpoint read/write
-helpers, and retrieval metrics used to demonstrate sparse representation
-learning.
+Compresso Recsys is a toolkit for practical recommender development, and the
+recommender companion of Compresso. It has three parts you can use alone or
+together:
+
+1. **One data checkpoint:** the interaction matrix, sequences, item metadata,
+   embeddings and splits in one portable file. It is built with a single
+   command (:doc:`cli-reference`) and can carry results and model checkpoints.
+2. **A model base class** that handles the boring parts around your model's
+   own ``fit``: ``predict``, ``predict_on_batch`` batching, ``recommend`` with
+   stable item IDs and filters, data handling, and save and load
+   (:doc:`implementing-a-recommender`).
+3. **Evaluation with statistical testing** as the final arbiter between models
+   (:doc:`statistical-comparison`).
 
 The project distribution is named ``compresso-recsys`` and the Python package
 is imported as ``compresso_recsys``.

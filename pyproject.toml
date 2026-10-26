@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "compresso-recsys"
 version = "0.4.0.dev0"
-description = "Recommender-system experiments and checkpoint pipelines for Compresso"
+description = "Practical recommender development: data checkpoints, a model base class, and evaluation with statistical testing"
 readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.10"
 license = "Apache-2.0"
