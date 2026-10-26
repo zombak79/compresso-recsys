@@ -186,6 +186,9 @@ KINDS: dict[str, dict[str, Any]] = {
     "content": {"deterministic": True, "device": "cpu", "input": "features", "epochs": False},
     "teaser": {"deterministic": True, "device": "cpu", "input": "features", "epochs": False},
     "teaser_gd": {"deterministic": False, "device": "gpu", "input": "features", "epochs": True, "early_stopping": True},
+    # Learns one embedding per training user, so it needs the checkpoint's user ids.
+    "clcrec": {"deterministic": False, "device": "gpu", "input": "features", "epochs": True, "early_stopping": True,
+               "user_ids": True},
 }
 
 # Keys of a feature model's params that configure the wrapper rather than the inner model.
@@ -227,6 +230,8 @@ def _build(kind: str, params: dict, *, seed: int, device: str, epochs: int | Non
         model, model_config = cr.TEASER, cr.TEASERConfig(**inner)
     elif kind == "teaser_gd":
         model, model_config = cr.TEASERGDTrainer, cr.TEASERGDConfig(**trainer, epochs=epochs, **inner)
+    elif kind == "clcrec":
+        model, model_config = cr.CLCRecTrainer, cr.CLCRecConfig(**trainer, epochs=epochs, **inner)
     else:
         raise ValueError(kind)
     return cr.MMConcatWrapper(cr.MMConcatWrapperConfig(
@@ -387,6 +392,20 @@ def _to_global(matrix, phase_item_ids: np.ndarray, position: dict):
     columns = np.array([position[item] for item in phase_item_ids.tolist()], dtype=np.int64)
     return csr_matrix((matrix.data, columns[matrix.indices], matrix.indptr),
                       shape=(matrix.shape[0], len(position)))
+
+
+def training_user_ids(split: dict) -> np.ndarray:
+    """The ids of the training rows, for a model that learns one embedding per user.
+
+    Evaluation then passes each row's ``*_eval_user_ids`` as its user id. Without
+    real ids on both sides the runner's positional fallback would pair evaluation
+    row i with training row i, a silently wrong user, so it refuses instead.
+    """
+    missing = [key for key in ("train_user_ids", "val_eval_user_ids", "test_eval_user_ids")
+               if split.get(key) is None]
+    if missing:
+        raise ValueError(f"a user-embedding model needs user ids in the checkpoint; missing {missing}")
+    return np.asarray(split["train_user_ids"])
 
 
 def catalogue_inputs(split: dict) -> dict:
@@ -983,6 +1002,8 @@ def train(args, config: dict) -> int:
             if kind != "content":
                 fit_args = (data["x_train"],)
                 fit_kwargs["train_item_indices"] = data["warm"]
+            if KINDS[kind].get("user_ids"):
+                fit_kwargs["user_ids"] = training_user_ids(split)
             fit_kwargs.update(item_features=matrices, item_ids=data["item_ids"], modality_masks=masks)
             # The fitted catalogue is every checkpoint item, so validation scores the full catalogue.
             val = data["phases"]["val"]

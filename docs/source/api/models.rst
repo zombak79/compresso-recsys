@@ -1169,6 +1169,34 @@ See :doc:`../citing` for the original TEASER paper.
 .. autoclass:: compresso_recsys.models.TEASERGDTrainer
    :members:
 
+CLCRec
+~~~~~~
+
+CLCRecTrainer implements CLCRec (Wei et al., ACM MM 2021) with the paper's MF
+encoder. It learns user and item ID embeddings together with an MLP that maps
+item features into the same space. The objective contrasts observed user-item
+pairs against sampled unobserved items, with a random share of item vectors
+replaced by their content representation, and contrasts each item's ID
+embedding with its own content representation against other items'. Warm
+candidates are scored by their ID embedding and cold candidates by content;
+``inference="content"`` scores every candidate by content. See
+:doc:`../clcrec` for usage on an item cold-start split and for the documented
+choices where the paper is silent.
+
+Unlike the other cold-start models, scores depend on *which* training user a
+row is, so the trainer declares ``accepts_user_ids`` and its
+``predict_on_batch`` takes ``user_ids``. ``unknown_users="fold_in"`` estimates
+an embedding for histories of users unseen in training instead of raising.
+
+.. autoclass:: compresso_recsys.models.CLCRecConfig
+   :members:
+
+.. autoclass:: compresso_recsys.models.CLCRec
+   :members:
+
+.. autoclass:: compresso_recsys.models.CLCRecTrainer
+   :members:
+
 Sequential Models
 -----------------
 

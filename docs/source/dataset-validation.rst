@@ -221,6 +221,12 @@ authors' all-modalities MMRec benchmark; no matching score target is assigned ye
        paper in :doc:`citing`
      - :doc:`api/models`; metadata/protocol recipe pending
      - Not yet protocol-audited; do not substitute CF-only targets
+   * - CLCRec
+     - `CLCRec paper <https://arxiv.org/abs/2107.05315>`_; implemented from
+       the paper only (the authors' code carries no licence)
+     - :doc:`clcrec`
+     - Not yet protocol-audited; the paper's datasets and features differ from
+       the packaged checkpoints, so its tables are not acceptance targets
    * - KNN, simple sequence models, compressed ELSA
      - :doc:`citing`
      - :doc:`api/models`

@@ -68,9 +68,13 @@ from .mult_vae import MultVAE, MultVAEConfig, MultVAETrainer
 from .teaser import TEASER, TEASERConfig
 from .teaser_gd import TEASERGD, TEASERGDConfig, TEASERGDTrainer
 from .mm_concat import MMConcatWrapper, MMConcatWrapperConfig
+from .clcrec import CLCRec, CLCRecConfig, CLCRecTrainer
 
 __all__ = [
     "BaseColdStartRecommender",
+    "CLCRec",
+    "CLCRecConfig",
+    "CLCRecTrainer",
     "BaseMultiModalRecommender",
     "BaseCollaborativeRecommender",
     "BaseIdentifiedRecommender",

@@ -32,6 +32,8 @@ from scipy.sparse import csr_matrix
 
 from compresso_recsys import ItemSequences
 from compresso_recsys.models import (
+    CLCRecConfig,
+    CLCRecTrainer,
     ELSAConfig,
     ELSATrainer,
     ItemTokenizer,
@@ -148,6 +150,15 @@ def _teaser_gd():
     ).fit(INTERACTIONS, ITEM_FEATURES)
 
 
+def _clcrec():
+    return CLCRecTrainer(
+        CLCRecConfig(
+            embedding_dim=4, hidden_dim=4, n_negatives=2, epochs=1,
+            batch_size=2, show_progress=False, seed=0,
+        )
+    ).fit(INTERACTIONS, ITEM_FEATURES)
+
+
 def _sasrec():
     # Left padding is SASRec's architecture, not a preference.
     return SASRecTrainer(
@@ -231,6 +242,21 @@ LAYOUTS: dict[str, Layout] = {
         frozenset({
             "history", "n_items", "n_features", "n_train_items",
             "n_training_users", "feature_names", "training_feature_storage",
+        }),
+    ),
+    "clcrec": Layout(
+        _clcrec, "clcrec_trainer",
+        COMMON_ENTRIES | {
+            "identity/user_ids.json",
+            "state/train_item_indices.npy",
+            "catalog/state.json",
+            "catalog/candidate_features.npy",
+            "catalog/candidate_item_ids.json",
+            "catalog/source_item_ids.json",
+            "catalog/source_popularity.npy",
+        },
+        frozenset({
+            "history", "n_items", "n_features", "n_train_items", "n_users",
         }),
     ),
     "sasrec": Layout(
