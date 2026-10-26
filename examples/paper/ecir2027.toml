@@ -174,9 +174,20 @@ kind = "clcrec"            # Wei et al. 2021 (MF encoder); same features as MMCo
 params = { features = ["text/mpnet", "image/vit_cls"], temperature = 0.2 }
 # λ and ρ trade warm against cold items. Full-catalogue validation peaks within a
 # few epochs at the defaults, so the L2 weight η (gridded in the paper) is the lever.
-# Extended once after the first run selected the corner on all three axes
-# (0.01, 0.7, 0.5); a selection on the new edge is footnoted, not extended again.
-grid = { l2_weight = [0.001, 0.01, 0.1], re_weight = [0.3, 0.5, 0.7, 0.9], hybrid_prob = [0.3, 0.5, 0.7] }
+# Extended after the first run selected the corner on all three axes (0.01, 0.7, 0.5),
+# and once more after the second selected l2_weight 0.1 and re_weight 0.9:
+# l2_weight 0.3 and 1.0 are appended to the first axis (new trials at the end), and
+# re_weight 0.95 enters through grid_extra so no earlier trial is renumbered.
+# re_weight 1.0 is left out: the user-item term would get zero weight and the user
+# embeddings would never train. A selection on the new edge is footnoted.
+grid = { l2_weight = [0.001, 0.01, 0.1, 0.3, 1.0], re_weight = [0.3, 0.5, 0.7, 0.9], hybrid_prob = [0.3, 0.5, 0.7] }
+grid_extra = [
+  { l2_weight = 0.001, re_weight = 0.95, hybrid_prob = 0.3 }, { l2_weight = 0.001, re_weight = 0.95, hybrid_prob = 0.5 }, { l2_weight = 0.001, re_weight = 0.95, hybrid_prob = 0.7 },
+  { l2_weight = 0.01, re_weight = 0.95, hybrid_prob = 0.3 }, { l2_weight = 0.01, re_weight = 0.95, hybrid_prob = 0.5 }, { l2_weight = 0.01, re_weight = 0.95, hybrid_prob = 0.7 },
+  { l2_weight = 0.1, re_weight = 0.95, hybrid_prob = 0.3 }, { l2_weight = 0.1, re_weight = 0.95, hybrid_prob = 0.5 }, { l2_weight = 0.1, re_weight = 0.95, hybrid_prob = 0.7 },
+  { l2_weight = 0.3, re_weight = 0.95, hybrid_prob = 0.3 }, { l2_weight = 0.3, re_weight = 0.95, hybrid_prob = 0.5 }, { l2_weight = 0.3, re_weight = 0.95, hybrid_prob = 0.7 },
+  { l2_weight = 1.0, re_weight = 0.95, hybrid_prob = 0.3 }, { l2_weight = 1.0, re_weight = 0.95, hybrid_prob = 0.5 }, { l2_weight = 1.0, re_weight = 0.95, hybrid_prob = 0.7 },
+]
 training = { max_epochs = 100, every = 1, patience = 10 }
 
 [blocks.C.models.EASE]

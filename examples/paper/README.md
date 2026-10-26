@@ -80,6 +80,8 @@ python examples/paper/run.py bundle --config examples/paper/ecir2027.toml --out 
 
 `relabel-hosts` does step 2 in place, if needed on its own.
 
+A grid can be extended along any axis without renumbering trials already run: append to the first axis, or list explicit points in `grid_extra`, which come after the product.
+
 A model with `report = false` in the config (a probe) is trained, selected and summarised, but left out of the comparison tables.
 
 ## Files the paper reads (keep stable)

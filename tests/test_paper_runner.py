@@ -517,3 +517,23 @@ def test_a_fully_tied_grid_reports_no_edge(runner, tmp_path):
     path.parent.mkdir(parents=True)
     path.write_text(json.dumps({"params": {"l2": 1.0}, "trials": trials, "trial": 0}))
     assert runner.selection_edges(tmp_path, config)["X"]["d"]["M"]["at_edge"] == {}
+
+
+def test_grid_extra_appends_points_without_renumbering(runner, tmp_path):
+    spec = {"grid": {"a": [1, 2], "b": [10, 20]}, "grid_extra": [{"a": 1, "b": 30}, {"b": 10, "a": 1}]}
+    points = runner.grid_points(spec)
+    assert points[:4] == runner.grid_points({"grid": spec["grid"]})   # the product keeps its order
+    assert points[4:] == [{"a": 1, "b": 30}]                            # duplicates of product points are dropped
+    with pytest.raises(ValueError, match="exactly the grid axes"):
+        runner.grid_points({"grid": {"a": [1]}, "grid_extra": [{"a": 1, "c": 2}]})
+    # An axis value that only appears in grid_extra counts for the edge check.
+    config = {"blocks": {"X": {"mode": "standard", "datasets": {"d": {"checkpoint": "c.zip"}},
+                               "models": {"M": {"kind": "ease", "grid": {"l2": [1.0, 10.0]},
+                                                "grid_extra": [{"l2": 100.0}]}}}},
+              "run": {"seeds": [0]}}
+    trials = [{"trial": i, "params": {"l2": v}, "validation": score, "epochs_trained": None}
+              for i, (v, score) in enumerate([(1.0, 0.1), (10.0, 0.3), (100.0, 0.2)])]
+    path = tmp_path / "selection/X/d/M/selected.json"
+    path.parent.mkdir(parents=True)
+    path.write_text(json.dumps({"params": {"l2": 10.0}, "trials": trials, "trial": 1}))
+    assert runner.selection_edges(tmp_path, config)["X"]["d"]["M"]["at_edge"] == {}   # 10 is interior now

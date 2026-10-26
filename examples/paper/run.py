@@ -111,6 +111,7 @@ def model_spec(config: dict, block: str, dataset: str, model: str) -> dict:
         "kind": base["kind"],
         "params": {**base.get("params", {}), **override.get("params", {})},
         "grid": {**base.get("grid", {}), **override.get("grid", {})},
+        "grid_extra": list(override.get("grid_extra", base.get("grid_extra", []))),
         "training": {**base.get("training", {}), **override.get("training", {})},
         "catalogues": catalogues_for(block_cfg, base),
     }
@@ -135,9 +136,21 @@ def models_for(config: dict, block: str, dataset: str) -> list[str]:
 
 
 def grid_points(spec: dict) -> list[dict]:
-    """The grid in a fixed order: keys as written, values as listed. Ties go to the first point."""
+    """The grid in a fixed order: keys as written, values as listed. Ties go to the first point.
+
+    ``grid_extra`` appends explicit points after the product, so a grid can be
+    extended along any axis without renumbering the trials already run (a new
+    value on the first axis can instead be appended to that axis directly).
+    """
     keys = list(spec["grid"])
-    return [dict(zip(keys, values)) for values in itertools.product(*(spec["grid"][k] for k in keys))]
+    points = [dict(zip(keys, values)) for values in itertools.product(*(spec["grid"][k] for k in keys))]
+    for extra in spec.get("grid_extra", []):
+        if set(extra) != set(keys):
+            raise ValueError(f"grid_extra point {extra} must set exactly the grid axes {keys}")
+        point = {key: extra[key] for key in keys}
+        if point not in points:
+            points.append(point)
+    return points
 
 
 def seeds_for(config: dict, spec: dict) -> list[int]:
@@ -1431,13 +1444,16 @@ def selection_edges(out: Path, config: dict) -> dict:
                 # A fully tied grid (e.g. EASE scoring cold-only targets: zero everywhere)
                 # was decided by the tie-break, not by validation: no edge to report.
                 tied = max(scores.values()) - min(scores.values()) <= 1e-12 if scores else True
-                for axis, values in ([] if tied else spec["grid"].items()):
+                axes = {axis: [point[axis] for point in grid_points(spec)] for axis in spec["grid"]}
+                for axis, values in ([] if tied else axes.items()):
                     numeric = [v for v in values if isinstance(v, (int, float)) and not isinstance(v, bool)]
                     # On an axis of one or two values every pick is an edge: not a search
                     # that ran out of range, so it is not reported.
-                    if len(numeric) < 3 or len(numeric) != len(values) or axis not in params:
+                    if len(numeric) != len(values) or axis not in params:
                         continue
                     ordered = sorted(set(numeric))
+                    if len(ordered) < 3:
+                        continue
                     if params[axis] == ordered[-1]:
                         side, neighbour = "max", ordered[-2]
                     elif params[axis] == ordered[0]:
@@ -1450,7 +1466,7 @@ def selection_edges(out: Path, config: dict) -> dict:
                     inward = json.dumps({**grid_params, axis: neighbour}, sort_keys=True)
                     chosen = json.dumps(grid_params, sort_keys=True)
                     gain = (scores[chosen] - scores[inward]) if chosen in scores and inward in scores else None
-                    at_edge[axis] = {"value": params[axis], "side": side, "n_values": len(numeric),
+                    at_edge[axis] = {"value": params[axis], "side": side, "n_values": len(ordered),
                                      "last_step_gain": gain}
                 edges.setdefault(block_name, {}).setdefault(dataset, {})[model] = {
                     "params": params, "at_edge": at_edge}
