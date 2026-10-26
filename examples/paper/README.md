@@ -86,7 +86,7 @@ A model with `report = false` in the config (a probe) is trained, selected and s
 
 - `table/<key>.json`, `casestudy/<dataset>__<catalogue>.json`: `ComparisonReport.to_frame()` records. The paper takes the family size from the row count.
 - `summary/<block>/<dataset>.pairs.json`: records with `catalogue`, `metric`, `difference`, `ci_low`, `ci_high`, `p_value` and `adjusted_p_value` (plus `family` and the `to_frame()` fields).
-- `meta.json`: `commit`, `cold_share.<dataset>.<measure>_vs_training`, `n_resamples`, and `selection.<block>.<dataset>.<model>.at_edge` (`{axis: {value, side, n_values}}`; empty when interior) for grid-edge footnotes.
+- `meta.json`: `commit`, `cold_share.<dataset>.<measure>_vs_training`, `n_resamples`, and `selection.<block>.<dataset>.<model>.at_edge` (`{axis: {value, side, n_values, last_step_gain}}`; empty when interior; only axes of 3+ values) for grid-edge footnotes.
 
 ## Guarantees
 

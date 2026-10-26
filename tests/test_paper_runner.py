@@ -148,6 +148,10 @@ def test_the_whole_pipeline(runner, setup, capsys):
     ease = meta["selection"]["B"]["toy-llo"]["EASE"]
     chosen = ease["params"]["l2"]
     assert ease["at_edge"] == {}  # a two-value axis: every pick is an edge, so none is reported
+    # A three-value axis with the selection at its end reports the last step's validation gain.
+    trials = json.loads((out / "selection/B/toy-llo/EASE/selected.json").read_text())["trials"]
+    by_l2 = {t["params"]["l2"]: t["validation"] for t in trials}
+    assert set(by_l2) == {1.0, 10.0}
     assert chosen in (1.0, 10.0)
     assert "Pop" not in meta["selection"]["B"]["toy-llo"]  # no grid, nothing to report
     multvae = json.loads((out / "runs/B/toy-llo/MultVAE/s0/result.json").read_text())
@@ -487,3 +491,17 @@ def test_user_embedding_models_refuse_checkpoints_without_user_ids(runner):
     ids = runner.training_user_ids({"train_user_ids": np.array(["u0", "u1"]),
                                     "val_eval_user_ids": np.array(["u1"]), "test_eval_user_ids": np.array(["u0"])})
     assert ids.tolist() == ["u0", "u1"]
+
+
+def test_selection_edges_report_the_last_step_gain(runner, tmp_path):
+    config = {"blocks": {"X": {"mode": "standard", "datasets": {"d": {"checkpoint": "c.zip"}},
+                               "models": {"M": {"kind": "ease", "grid": {"l2": [1.0, 10.0, 100.0]}}}}},
+              "run": {"seeds": [0]}}
+    trials = [{"trial": i, "params": {"l2": v}, "validation": score, "epochs_trained": None}
+              for i, (v, score) in enumerate([(1.0, 0.10), (10.0, 0.20), (100.0, 0.23)])]
+    path = tmp_path / "selection/X/d/M/selected.json"
+    path.parent.mkdir(parents=True)
+    path.write_text(json.dumps({"params": {"l2": 100.0}, "trials": trials, "trial": 2}))
+    edge = runner.selection_edges(tmp_path, config)["X"]["d"]["M"]["at_edge"]["l2"]
+    assert edge["side"] == "max" and edge["n_values"] == 3
+    assert edge["last_step_gain"] == pytest.approx(0.03)

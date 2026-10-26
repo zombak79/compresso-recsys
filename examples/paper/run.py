@@ -1409,7 +1409,9 @@ def selection_edges(out: Path, config: dict) -> dict:
     appending). Non-numeric axes (feature sets, weight vectors) are skipped.
     ``at_edge`` is empty when the selection is interior. Only axes of three or
     more values count: on a two-value axis every pick is an edge. ``n_values``
-    is the axis size.
+    is the axis size; ``last_step_gain`` is the validation score of the selected
+    point minus that of the point one step inwards on the axis, other settings
+    unchanged.
     """
     edges: dict = {}
     for block_name, block in config["blocks"].items():
@@ -1419,7 +1421,11 @@ def selection_edges(out: Path, config: dict) -> dict:
                 path = out / "selection" / block_name / dataset / model / "selected.json"
                 if not spec["grid"] or not path.exists():
                     continue
-                params = json.loads(path.read_text())["params"]
+                selected = json.loads(path.read_text())
+                params = selected["params"]
+                # Keyed by the grid parameters each trial recorded at select time, so a
+                # later change of the config cannot pair a score with the wrong point.
+                scores = {json.dumps(t["params"], sort_keys=True): t["validation"] for t in selected["trials"]}
                 at_edge = {}
                 for axis, values in spec["grid"].items():
                     numeric = [v for v in values if isinstance(v, (int, float)) and not isinstance(v, bool)]
@@ -1427,10 +1433,21 @@ def selection_edges(out: Path, config: dict) -> dict:
                     # that ran out of range, so it is not reported.
                     if len(numeric) < 3 or len(numeric) != len(values) or axis not in params:
                         continue
-                    if params[axis] == max(numeric):
-                        at_edge[axis] = {"value": params[axis], "side": "max", "n_values": len(numeric)}
-                    elif params[axis] == min(numeric):
-                        at_edge[axis] = {"value": params[axis], "side": "min", "n_values": len(numeric)}
+                    ordered = sorted(set(numeric))
+                    if params[axis] == ordered[-1]:
+                        side, neighbour = "max", ordered[-2]
+                    elif params[axis] == ordered[0]:
+                        side, neighbour = "min", ordered[1]
+                    else:
+                        continue
+                    # Validation gain of the last grid step on this axis: the selected point
+                    # minus the point one step inwards, every other setting unchanged.
+                    grid_params = {key: params[key] for key in selected["trials"][0]["params"]}
+                    inward = json.dumps({**grid_params, axis: neighbour}, sort_keys=True)
+                    chosen = json.dumps(grid_params, sort_keys=True)
+                    gain = (scores[chosen] - scores[inward]) if chosen in scores and inward in scores else None
+                    at_edge[axis] = {"value": params[axis], "side": side, "n_values": len(numeric),
+                                     "last_step_gain": gain}
                 edges.setdefault(block_name, {}).setdefault(dataset, {})[model] = {
                     "params": params, "at_edge": at_edge}
     return edges
