@@ -1197,6 +1197,29 @@ an embedding for histories of users unseen in training instead of raising.
 .. autoclass:: compresso_recsys.models.CLCRecTrainer
    :members:
 
+CCFCRec
+~~~~~~~
+
+CCFCRecTrainer implements CCFCRec (Zhou et al., WWW 2023). It learns a content
+encoder, a co-occurrence embedding per training item and a user embedding that
+is computed from the user's history. Two BPR losses tie both item embeddings to
+the user embedding, and a contrastive loss pulls each item's content embedding
+towards the co-occurrence embeddings of items that share a user with it. Every
+candidate is scored by content by default; ``inference="hybrid"`` scores items
+with training interactions by their co-occurrence embedding instead. Users are
+not looked up by ID, so the model does not declare ``accepts_user_ids`` and
+scores any history. See :doc:`../ccfcrec` for usage and the deviations from the
+paper.
+
+.. autoclass:: compresso_recsys.models.CCFCRecConfig
+   :members:
+
+.. autoclass:: compresso_recsys.models.CCFCRec
+   :members:
+
+.. autoclass:: compresso_recsys.models.CCFCRecTrainer
+   :members:
+
 Sequential Models
 -----------------
 

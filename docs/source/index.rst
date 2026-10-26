@@ -38,6 +38,7 @@ is imported as ``compresso_recsys``.
    adding-a-metric
    multimodal-concat-wrapper
    clcrec
+   ccfcrec
    reproducing-sasrec-results-on-ml1m
    reproducing-bert4rec-results-on-ml1m
    

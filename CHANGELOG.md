@@ -1,3 +1,20 @@
+## [0.4.1] — Unreleased
+
+### Added
+
+- `CCFCRec`, `CCFCRecConfig` and `CCFCRecTrainer`: CCFCRec (Zhou et al., WWW
+  2023), a contrastive cold-start model implemented from the paper alone. A
+  content encoder, a co-occurrence embedding per training item and a
+  history-based user embedding are trained with two BPR losses and a
+  contrastive loss over co-occurring items. Every candidate is scored by
+  content by default, so candidates added after fitting are scored without
+  retraining; `inference="hybrid"` scores trained items by their co-occurrence
+  embedding. Users are embedded from their history, so any history is scored
+  and no user IDs are needed. Supports `validation=` and `early_stopping=` and
+  works inside `MMConcatWrapper`. Deviation: the content vector is the supplied
+  dense feature vector; the paper's learnable lookups for categorical
+  attributes are not implemented.
+
 ## [0.4.0] — Unreleased
 
 ### Added

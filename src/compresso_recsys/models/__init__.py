@@ -69,9 +69,13 @@ from .teaser import TEASER, TEASERConfig
 from .teaser_gd import TEASERGD, TEASERGDConfig, TEASERGDTrainer
 from .mm_concat import MMConcatWrapper, MMConcatWrapperConfig
 from .clcrec import CLCRec, CLCRecConfig, CLCRecTrainer
+from .ccfcrec import CCFCRec, CCFCRecConfig, CCFCRecTrainer
 
 __all__ = [
     "BaseColdStartRecommender",
+    "CCFCRec",
+    "CCFCRecConfig",
+    "CCFCRecTrainer",
     "CLCRec",
     "CLCRecConfig",
     "CLCRecTrainer",

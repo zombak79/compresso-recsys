@@ -71,7 +71,7 @@ def test_top_level_public_api_is_intentional():
         "SimpleGPTTrainer", "SimpleGPTConfig", "SimpleRNNTrainer", "SimpleRNNConfig",
         "SimpleBidirectionalTransformerTrainer", "SimpleBidirectionalTransformerConfig",
         "ContentRecommender", "ContentRecommenderConfig", "TEASER", "TEASERConfig",
-        "TEASERGDTrainer", "TEASERGDConfig", "CLCRecTrainer", "CLCRecConfig",
+        "TEASERGDTrainer", "TEASERGDConfig", "CLCRecTrainer", "CLCRecConfig", "CCFCRecTrainer", "CCFCRecConfig",
         "MMConcatWrapper", "MMConcatWrapperConfig",
     }
 
@@ -242,6 +242,9 @@ def test_submodule_public_apis_are_intentional():
             "MutableMultiModalCandidateCatalog",
             "InteractionBatch",
             "InteractionBatchSampler",
+            "CCFCRec",
+            "CCFCRecConfig",
+            "CCFCRecTrainer",
             "CLCRec",
             "CLCRecConfig",
             "CLCRecTrainer",

@@ -32,6 +32,8 @@ from scipy.sparse import csr_matrix
 
 from compresso_recsys import ItemSequences
 from compresso_recsys.models import (
+    CCFCRecConfig,
+    CCFCRecTrainer,
     CLCRecConfig,
     CLCRecTrainer,
     ELSAConfig,
@@ -150,6 +152,15 @@ def _teaser_gd():
     ).fit(INTERACTIONS, ITEM_FEATURES)
 
 
+def _ccfcrec():
+    return CCFCRecTrainer(
+        CCFCRecConfig(
+            embedding_dim=4, hidden_dim=4, n_positive_items=2, n_negative_items=2,
+            epochs=1, batch_size=2, show_progress=False, seed=0,
+        )
+    ).fit(INTERACTIONS, ITEM_FEATURES)
+
+
 def _clcrec():
     return CLCRecTrainer(
         CLCRecConfig(
@@ -242,6 +253,20 @@ LAYOUTS: dict[str, Layout] = {
         frozenset({
             "history", "n_items", "n_features", "n_train_items",
             "n_training_users", "feature_names", "training_feature_storage",
+        }),
+    ),
+    "ccfcrec": Layout(
+        _ccfcrec, "ccfcrec_trainer",
+        COMMON_ENTRIES | {
+            "state/train_item_indices.npy",
+            "catalog/state.json",
+            "catalog/candidate_features.npy",
+            "catalog/candidate_item_ids.json",
+            "catalog/source_item_ids.json",
+            "catalog/source_popularity.npy",
+        },
+        frozenset({
+            "history", "n_items", "n_features", "n_train_items", "n_users",
         }),
     ),
     "clcrec": Layout(

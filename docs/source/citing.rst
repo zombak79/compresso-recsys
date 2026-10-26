@@ -190,6 +190,22 @@ For :class:`compresso_recsys.models.CLCRecTrainer`, cite the CLCRec paper:
      doi={10.1145/3474085.3475665}
    }
 
+CCFCRec
+-------
+
+For :class:`compresso_recsys.models.CCFCRecTrainer`, cite the CCFCRec paper:
+
+.. code-block:: bibtex
+
+   @inproceedings{zhou2023contrastive,
+     title={Contrastive Collaborative Filtering for Cold-Start Item Recommendation},
+     author={Zhou, Zhihui and Zhang, Lilin and Yang, Ning},
+     booktitle={Proceedings of the ACM Web Conference 2023},
+     pages={928--937},
+     year={2023},
+     doi={10.1145/3543507.3583286}
+   }
+
 ELSA
 ----
 
