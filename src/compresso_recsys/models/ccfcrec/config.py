@@ -23,12 +23,16 @@ class CCFCRecConfig:
     Values the paper states (§4.1.4): ``batch_size`` 1024, ``temperature`` τ
     0.1, Adam, and per dataset ``embedding_dim`` 128 or 256, ``lr`` 5e-6 or
     1e-4, ``contrastive_weight`` λ 0.5 or 0.6, ``n_positive_items`` 10 or 5 and
-    ``n_negative_items`` 40. Defaults follow the Amazon-VG column except the
-    embedding size, which follows ML-20M.
+    ``n_negative_items`` 40. The defaults take the learning rate and positive
+    count of the Amazon-VG column and the embedding size and λ of the ML-20M
+    column; tune them on validation.
 
     Values the paper does not report: ``hidden_dim`` (the hidden layer of the
     two-layer encoder ``g_c``) and the scale of the ``‖Θ‖`` term of Eq. 9,
     implemented as Adam weight decay ``weight_decay``.
+
+    ``max_negative_attempts`` bounds the rejection sampling of negative users
+    for the BPR terms; contrastive negative items are drawn exactly.
 
     ``inference="content"`` follows the paper and scores every item by its
     content embedding. ``"hybrid"`` is an extension that scores items with

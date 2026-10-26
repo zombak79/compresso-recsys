@@ -86,25 +86,67 @@ class _CooccurrenceSampler:
     """Positive and negative contrastive items of Eq. 4.
 
     An item's positives ``N+_v`` are the other items some user interacted
-    with together with it; its negatives are every other item. Positives are
-    drawn uniformly from ``N+_v``. An item without any co-occurring item (its
-    users interacted with nothing else) uses itself as the positive, which is
-    counted in :attr:`self_positives`.
+    with together with it; its negatives ``N-_v`` are every item outside
+    ``N+_v`` and ``v``. Both are drawn uniformly and exactly from their sets.
+
+    Rejection sampling would not do for negatives: a popular item co-occurs
+    with most of the catalog, so redraws keep landing in ``N+_v``. Instead the
+    ``j``-th item of ``N-_v`` is found directly. Within a sorted row of
+    co-occurring items, ``b[p] = indices[p] - p`` counts the non-members before
+    the ``p``-th member, so the ``j``-th non-member is ``j`` plus the number of
+    members with ``b <= j``: one ``searchsorted`` over all rows at once.
+
+    An item without any co-occurring item uses itself as the positive, counted
+    in :attr:`self_positives`; an item that co-occurs with every other item has
+    no negatives and gets uniform items instead, counted in
+    :attr:`residual_negatives`.
     """
 
-    def __init__(self, training: csr_matrix, *, max_attempts: int) -> None:
+    def __init__(self, training: csr_matrix) -> None:
         columns = training.tocsc().astype(np.float32)
         cooccurrence = (columns.T @ columns).tocsr()
         cooccurrence.data[:] = 1.0
         cooccurrence.setdiag(1.0)
+        cooccurrence.eliminate_zeros()
         cooccurrence.sort_indices()
-        self.negatives = NegativeSampler(cooccurrence, max_attempts=max_attempts)
+        self.n_items = int(cooccurrence.shape[1])
+        indptr = cooccurrence.indptr.astype(np.int64)
+        rows = np.repeat(np.arange(self.n_items, dtype=np.int64), np.diff(indptr))
+        position = np.arange(cooccurrence.nnz, dtype=np.int64) - indptr[rows]
+        before = cooccurrence.indices.astype(np.int64) - position
+        self._keys = rows * (self.n_items + 1) + before
+        self._indptr = indptr
+        self._n_negatives = self.n_items - np.diff(indptr)
         others = cooccurrence.copy()
         others.setdiag(0.0)
         others.eliminate_zeros()
         others.sort_indices()
         self._others = others
         self.self_positives = 0
+        self.residual_negatives = 0
+
+    def negatives(
+        self,
+        items: np.ndarray,
+        n_negative: int,
+        rng: np.random.Generator,
+    ) -> np.ndarray:
+        available = self._n_negatives[items]
+        draws = rng.random((items.size, n_negative))
+        ranks = np.floor(draws * np.maximum(available, 1)[:, None]).astype(np.int64)
+        targets = items[:, None] * (self.n_items + 1) + ranks
+        members = (
+            np.searchsorted(self._keys, targets, side="right")
+            - self._indptr[items, None]
+        )
+        picked = ranks + members
+        none = available == 0
+        if none.any():
+            picked[none] = rng.integers(
+                0, self.n_items, size=(int(none.sum()), n_negative)
+            )
+            self.residual_negatives += int(none.sum()) * n_negative
+        return picked
 
     def positives(
         self,
@@ -392,10 +434,7 @@ class CCFCRecTrainer(BaseColdStartRecommender):
             item_users,
             max_attempts=self.cfg.max_negative_attempts,
         )
-        item_sampler = _CooccurrenceSampler(
-            training,
-            max_attempts=self.cfg.max_negative_attempts,
-        )
+        item_sampler = _CooccurrenceSampler(training)
         all_item_users = _sparse_tensor(item_users, self.device)
         pair_items = np.repeat(
             np.arange(train_indices.size, dtype=np.int64),
@@ -435,7 +474,7 @@ class CCFCRecTrainer(BaseColdStartRecommender):
                     return {key: value / batches for key, value in sums.items()}
 
                 user_collisions = user_sampler.residual_collisions
-                item_collisions = item_sampler.negatives.residual_collisions
+                item_collisions = item_sampler.residual_negatives
                 for start in range(0, order.size, batch_size):
                     rows = order[start : start + batch_size]
                     stats = self._train_step(
@@ -459,7 +498,7 @@ class CCFCRecTrainer(BaseColdStartRecommender):
                     user_sampler.residual_collisions - user_collisions
                 )
                 record["residual_negative_items"] = float(
-                    item_sampler.negatives.residual_collisions - item_collisions
+                    item_sampler.residual_negatives - item_collisions
                 )
                 self.history.append(record)
                 # Prediction reads the co-occurrence embeddings and the
@@ -520,7 +559,7 @@ class CCFCRecTrainer(BaseColdStartRecommender):
         module = self.module
         negative_users = user_sampler.sample(items, 1, rng)[:, 0]
         positive_items = item_sampler.positives(items, cfg.n_positive_items, rng)
-        negative_items = item_sampler.negatives.sample(items, cfg.n_negative_items, rng)
+        negative_items = item_sampler.negatives(items, cfg.n_negative_items, rng)
 
         module.train()
         self.optimizer.zero_grad(set_to_none=True)

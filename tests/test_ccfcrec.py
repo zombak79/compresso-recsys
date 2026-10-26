@@ -155,7 +155,7 @@ def test_cooccurrence_sampler_follows_the_paper_definition():
             dtype=np.float32,
         )
     )
-    sampler = _CooccurrenceSampler(training, max_attempts=50)
+    sampler = _CooccurrenceSampler(training)
     rng = np.random.default_rng(0)
     items = np.array([0, 1, 2, 3, 4] * 20)
     positives = sampler.positives(items, 4, rng)
@@ -163,11 +163,38 @@ def test_cooccurrence_sampler_follows_the_paper_definition():
     for item, row in zip(items, positives):
         assert set(row.tolist()) <= groups[int(item)]
     assert {int(v) for v in positives[items == 1].ravel()} == {0, 2}
-    negatives = sampler.negatives.sample(items, 6, rng)
+    negatives = sampler.negatives(items, 6, rng)
     for item, row in zip(items, negatives):
         assert not set(row.tolist()) & (groups[int(item)] | {int(item)})
     lonely = sampler.positives(np.array([5]), 3, rng)
     assert lonely.tolist() == [[5, 5, 5]] and sampler.self_positives == 3
+
+
+def test_contrastive_negatives_are_exactly_the_complement():
+    """Every non-co-occurring item is drawn, uniformly, and nothing else is."""
+    rng = np.random.default_rng(1)
+    training = csr_matrix((rng.random((40, 30)) < 0.08).astype(np.float32))
+    training = training[np.diff(training.indptr) > 0]
+    columns = training.toarray().astype(bool)
+    cooccur = (columns.T.astype(int) @ columns.astype(int)) > 0
+    np.fill_diagonal(cooccur, True)
+    sampler = _CooccurrenceSampler(training)
+    items = np.repeat(np.arange(30), 1)
+    draws = sampler.negatives(items, 6000, rng)
+    for item in range(30):
+        allowed = np.flatnonzero(~cooccur[item])
+        if allowed.size == 0:
+            continue
+        counts = np.bincount(draws[item], minlength=30)
+        assert set(np.flatnonzero(counts)) == set(allowed)
+        expected = 6000 / allowed.size
+        assert np.all(np.abs(counts[allowed] - expected) < 6 * np.sqrt(expected))
+    assert sampler.residual_negatives == 6000 * int(((~cooccur).sum(axis=1) == 0).sum())
+
+    # An item that co-occurs with every other item has no negatives.
+    full = _CooccurrenceSampler(csr_matrix(np.ones((2, 3), dtype=np.float32)))
+    full.negatives(np.array([0]), 4, rng)
+    assert full.residual_negatives == 4
 
 
 def test_user_embedding_is_the_sum_of_history_columns(data):

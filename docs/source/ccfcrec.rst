@@ -45,6 +45,13 @@ cold items by content. Candidates registered after fitting with
 :meth:`~compresso_recsys.models.CCFCRecTrainer.update_candidates` are scored by
 content immediately, without refitting.
 
+``"hybrid"`` is not a better default for a catalog that mixes warm and cold
+items. A co-occurrence embedding sums one learned column per interacting user,
+so popular trained items get large scores that cold items, scored by content,
+cannot match. On a local ML-1M item split, where every test target is a cold
+item, hybrid scoring lowered full-catalog nDCG@100 from 0.101 to 0.037; cold-only
+rankings are unaffected because they contain no trained items.
+
 Training on an item split
 -------------------------
 
@@ -102,9 +109,14 @@ Further implementation choices:
 
 - An item that co-occurs with no other item uses itself as its contrastive
   positive; the count is kept by the sampler.
-- When a sampled negative user or negative item still collides after
-  ``max_negative_attempts`` redraws, it is kept and counted in
-  :attr:`~compresso_recsys.models.CCFCRecTrainer.history`.
+- Contrastive negatives are drawn exactly and uniformly from the items that
+  never co-occur with ``v``, not by rejection: on dense data a popular item
+  co-occurs with most of the catalog, and redraws would keep landing on
+  co-occurring items. An item that co-occurs with every other item has no
+  negatives and gets uniform items instead.
+- Negative users for the BPR terms are drawn by rejection. One that still
+  collides after ``max_negative_attempts`` redraws is kept. Both fallbacks are
+  counted per epoch in :attr:`~compresso_recsys.models.CCFCRecTrainer.history`.
 - The item-item co-occurrence matrix of the training items is held in memory
   during fitting, which is quadratic in the number of training items in the
   worst case.
