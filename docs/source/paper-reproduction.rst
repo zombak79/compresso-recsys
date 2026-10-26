@@ -207,16 +207,16 @@ times job time, and include grid points that a later grid extension superseded.
      - CPU, about 8 minutes (plus first-time downloads)
    * - Blocks A, B, B′, C′: grid, seeds and reruns (incl. BERT4Rec ML-1M, 907 epochs)
      - 7.9 H100-hours
-   * - Block C (ML-1M item split): grid, two grid extensions, CLCRec seeds
-     - 11.1 H100-hours
+   * - Block C (ML-1M item split): grid, three grid extensions, CLCRec seeds
+     - 12.0 H100-hours
    * - CPU stages (EASE, ItemKNN, Pop, TEASER, Content, ``select``, ``compare``)
-     - about 4.3 CPU-hours, 8 cores per task
+     - about 4.4 CPU-hours, 8 cores per task
    * - ``compare`` (all blocks, B = 9,999)
      - CPU, about 7 minutes
    * - **Tables and case study in total**
-     - **about 18.9 H100-hours**; two nights on six GPUs
+     - **about 19.9 H100-hours**; two nights on six GPUs
    * - BERT4Rec ML-1M reproduction seeds (sampled metrics only, not in the tables)
-     - 2.5 H100-hours (21.5 in all)
+     - 2.5 H100-hours (22.5 in all)
 
 The longest single fits are the fixed-budget BERT4Rec runs on ML-1M, about
 75 minutes each on one H100. A 24 GB consumer GPU runs every GPU model in the
