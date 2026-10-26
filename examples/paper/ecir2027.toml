@@ -155,6 +155,8 @@ grid = { weights = [[1.0, 1.0], [1.0, 0.5]], l2 = [0.01, 0.05, 0.2, 1.0] }
 
 [blocks.C.models.TEASER-GD]
 kind = "teaser_gd"
+# Trained, not reported, as in C′: it peaks at epoch 1 there and degrades while its loss falls.
+report = false
 params = { lr = 0.001 }
 grid = { features = [["text/mpnet"], ["image/vit_cls"]] }
 training = { max_epochs = 100, every = 1, patience = 10 }
