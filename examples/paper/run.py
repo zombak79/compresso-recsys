@@ -1407,9 +1407,9 @@ def selection_edges(out: Path, config: dict) -> dict:
     An axis is at the edge when the selected value is the smallest or largest
     value on it (by value, not position, since grids may be extended by
     appending). Non-numeric axes (feature sets, weight vectors) are skipped.
-    ``at_edge`` is empty when the selection is interior. ``n_values`` is the
-    axis size: on a two-value axis every selection is an edge, which a footnote
-    should not present as a search that ran out of range.
+    ``at_edge`` is empty when the selection is interior. Only axes of three or
+    more values count: on a two-value axis every pick is an edge. ``n_values``
+    is the axis size.
     """
     edges: dict = {}
     for block_name, block in config["blocks"].items():
@@ -1423,7 +1423,9 @@ def selection_edges(out: Path, config: dict) -> dict:
                 at_edge = {}
                 for axis, values in spec["grid"].items():
                     numeric = [v for v in values if isinstance(v, (int, float)) and not isinstance(v, bool)]
-                    if len(numeric) < 2 or len(numeric) != len(values) or axis not in params:
+                    # On an axis of one or two values every pick is an edge: not a search
+                    # that ran out of range, so it is not reported.
+                    if len(numeric) < 3 or len(numeric) != len(values) or axis not in params:
                         continue
                     if params[axis] == max(numeric):
                         at_edge[axis] = {"value": params[axis], "side": "max", "n_values": len(numeric)}

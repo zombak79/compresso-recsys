@@ -147,7 +147,8 @@ def test_the_whole_pipeline(runner, setup, capsys):
     meta = json.loads((out / "meta.json").read_text())
     ease = meta["selection"]["B"]["toy-llo"]["EASE"]
     chosen = ease["params"]["l2"]
-    assert ease["at_edge"] == {"l2": {"value": chosen, "side": "min" if chosen == 1.0 else "max", "n_values": 2}}
+    assert ease["at_edge"] == {}  # a two-value axis: every pick is an edge, so none is reported
+    assert chosen in (1.0, 10.0)
     assert "Pop" not in meta["selection"]["B"]["toy-llo"]  # no grid, nothing to report
     multvae = json.loads((out / "runs/B/toy-llo/MultVAE/s0/result.json").read_text())
     assert multvae["training"]["best"]["epoch"] >= 1

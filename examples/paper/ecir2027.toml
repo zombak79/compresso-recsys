@@ -32,6 +32,9 @@ kind = "popularity"
 [blocks.A.models.ItemKNN]
 kind = "itemknn"
 grid = { n_neighbors = [50, 100, 200], normalize_scores = [false, true] }
+# ml20m selected k = 200, the top of the grid: one appended value (existing trials keep their
+# numbers); a selection on the new edge is footnoted.
+overrides = { ml20m = { grid = { n_neighbors = [50, 100, 200, 500] } } }
 
 [blocks.A.models.EASE]
 kind = "ease"
@@ -61,6 +64,9 @@ kind = "popularity"
 [blocks.B.models.ItemKNN]
 kind = "itemknn"
 grid = { n_neighbors = [50, 100, 200], normalize_scores = [false, true] }
+# ml1m-llo selected k = 50, the bottom of the grid: one appended value (existing trials keep their
+# numbers); a selection on the new edge is footnoted.
+overrides = { ml1m-llo = { grid = { n_neighbors = [50, 100, 200, 20] } } }
 
 [blocks.B.models.EASE]
 kind = "ease"
