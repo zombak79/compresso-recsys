@@ -142,7 +142,8 @@ datasets = { "ml1m-item" = { checkpoint = "ml1m-item_split-swap.zip", outputs = 
 
 [blocks.C.models.TEASER]
 kind = "teaser"
-grid = { features = [["text/mpnet"], ["image/vit_cls"]], l2 = [0.01, 0.05, 0.2, 1.0] }
+# 5 and 20 added after the first run selected 1.0, the edge; if selected again, footnoted.
+grid = { features = [["text/mpnet"], ["image/vit_cls"]], l2 = [0.01, 0.05, 0.2, 1.0, 5.0, 20.0] }
 
 [blocks.C.models.Content]
 kind = "content"
@@ -151,7 +152,8 @@ grid = { features = [["text/minilm"], ["text/mpnet"], ["image/vit_cls"]] }
 [blocks.C.models.MMConcat-TEASER]
 kind = "teaser"
 params = { features = ["text/mpnet", "image/vit_cls"] }
-grid = { weights = [[1.0, 1.0], [1.0, 0.5]], l2 = [0.01, 0.05, 0.2, 1.0] }
+# 5 and 20 added after the first run selected 1.0, the edge; if selected again, footnoted.
+grid = { weights = [[1.0, 1.0], [1.0, 0.5]], l2 = [0.01, 0.05, 0.2, 1.0, 5.0, 20.0] }
 
 [blocks.C.models.TEASER-GD]
 kind = "teaser_gd"
@@ -166,7 +168,9 @@ kind = "clcrec"            # Wei et al. 2021 (MF encoder); same features as MMCo
 params = { features = ["text/mpnet", "image/vit_cls"], temperature = 0.2 }
 # λ and ρ trade warm against cold items. Full-catalogue validation peaks within a
 # few epochs at the defaults, so the L2 weight η (gridded in the paper) is the lever.
-grid = { l2_weight = [0.001, 0.01], re_weight = [0.3, 0.5, 0.7], hybrid_prob = [0.3, 0.5] }
+# Extended once after the first run selected the corner on all three axes
+# (0.01, 0.7, 0.5); a selection on the new edge is footnoted, not extended again.
+grid = { l2_weight = [0.001, 0.01, 0.1], re_weight = [0.3, 0.5, 0.7, 0.9], hybrid_prob = [0.3, 0.5, 0.7] }
 training = { max_epochs = 100, every = 1, patience = 10 }
 
 [blocks.C.models.EASE]
