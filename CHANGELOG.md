@@ -65,6 +65,9 @@
   history and draws no random numbers; early stopping treats the configured
   epochs as a maximum, restores the best weights by default and records them in
   `trainer.best_`. BERT4Rec keeps its own loop and its fixed published budget.
+- `examples/notebooks/quickstart.ipynb`: the three parts end to end on MovieLens 1M
+  (checkpoint, four models including an adapter, evaluation, comparison,
+  save/load/recommend), runnable in Colab.
 - `examples/interop/`: evaluating models from other libraries (implicit's ALS,
   WarpRec's SASRec) through `evaluate_recommender` and `compare_models` with a
   short adapter each.

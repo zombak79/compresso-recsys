@@ -1,6 +1,15 @@
 Quickstart
 ==========
 
+.. image:: https://colab.research.google.com/assets/colab-badge.svg
+   :target: https://colab.research.google.com/github/zombak79/compresso-recsys/blob/main/examples/notebooks/quickstart.ipynb
+   :alt: Open In Colab
+
+The quickstart notebook (``examples/notebooks/quickstart.ipynb``) runs the data
+checkpoint, four models (one of them from another library through an adapter),
+evaluation, the paired comparison and save/load/recommend on MovieLens 1M in
+about two minutes on a CPU. The sections below show the same steps one at a time.
+
 Build a dataset checkpoint from Python:
 
 .. code-block:: python

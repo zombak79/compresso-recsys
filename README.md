@@ -5,6 +5,7 @@
 [![Python](https://img.shields.io/pypi/pyversions/compresso-recsys.svg)](https://pypi.org/project/compresso-recsys/)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-blue.svg)](https://zombak79.github.io/compresso-recsys/)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/zombak79/compresso-recsys/blob/main/examples/notebooks/quickstart.ipynb)
 <!-- DOI badge: add after the first Zenodo archive, e.g.
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.CONCEPT.svg)](https://doi.org/10.5281/zenodo.CONCEPT) -->
 
@@ -54,6 +55,9 @@ pip install -e ".[dev,datasets,test]"
 ```
 
 ## Quickstart
+
+The [quickstart notebook](examples/notebooks/quickstart.ipynb) runs all three parts on
+MovieLens 1M in about two minutes ([open in Colab](https://colab.research.google.com/github/zombak79/compresso-recsys/blob/main/examples/notebooks/quickstart.ipynb)). The same steps by hand:
 
 Build a MovieLens 1M checkpoint from Python:
 
