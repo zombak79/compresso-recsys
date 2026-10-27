@@ -1,8 +1,8 @@
-Reproducing the ECIR 2027 Benchmark
-===================================
+Reproducing the Paper Benchmark
+===============================
 
 The results tables and the warm/cold case study of the compresso-recsys resource
-paper (ECIR 2027) come from one runner, ``examples/paper/run.py``, driven by one
+paper (under submission) come from one runner, ``examples/paper/run.py``, driven by one
 configuration file. This page walks through the whole path:
 
 1. build the data checkpoints;

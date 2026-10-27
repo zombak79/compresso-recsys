@@ -1,4 +1,5 @@
-# Benchmark configuration of the ECIR 2027 resource paper (see README.md).
+# Benchmark configuration of the compresso-recsys paper (see README.md). The file
+# keeps the name of the venue it was first prepared for; results cite this name.
 #
 # Grids are written simplest first; selection on validation keeps the first of
 # tied points. Trainers with `patience` stop early on the block's selection
@@ -9,7 +10,7 @@
 [run]
 seeds = [0, 1, 2]          # D6: three seeds for every stochastic model; deterministic models run once
 eval_batch_size = 1024
-note = "ECIR 2027 resource-track benchmark"
+note = "compresso-recsys paper benchmark"
 
 [paths]
 checkpoints = "${CR_CKPT}"

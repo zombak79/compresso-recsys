@@ -1,6 +1,7 @@
 # Paper benchmark runner
 
-`run.py` runs the benchmark of the compresso-recsys ECIR 2027 resource paper
+`run.py` runs the benchmark of the compresso-recsys paper (under submission;
+the configuration keeps its original name, `ecir2027.toml`)
 from checkpoints built with `build_recsys_checkpoint`. `ecir2027.toml` holds
 the full configuration. `smoke.toml` is a minutes-long end-to-end pass on
 ML-1M that exercises every command and writes every output file; its numbers

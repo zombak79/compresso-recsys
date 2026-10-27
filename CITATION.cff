@@ -1,23 +1,22 @@
-# Drop-in for the compresso-recsys repository root (0.4.0 release).
-# Before tagging, fill in: ORCIDs, release date, Zenodo DOI (concept DOI), and
-# the ECIR 2027 paper details once accepted. Validate with:
-#   pip install cffconvert && cffconvert --validate
+# Citation metadata for compresso-recsys.
+# After the first Zenodo archive of a release, add the concept DOI as `doi:`
+# (it always resolves to the latest version). A paper describing compresso-recsys
+# is under submission; when it is published, add it as `preferred-citation`.
+# Validate with:  pip install cffconvert && cffconvert --validate
 cff-version: 1.2.0
 message: >-
-  If you use compresso-recsys in your research, please cite the paper in
-  "preferred-citation". To cite this exact software release, use the
-  metadata below (version and DOI).
+  If you use compresso-recsys in your research, please cite this software
+  release using the metadata below.
 title: "compresso-recsys"
 abstract: >-
-  A modular Python toolkit for recommender-system research: dataset loaders and
-  a portable ZIP checkpoint format for reproducible splits, streaming ranking
-  evaluation, paired statistical comparison of recommenders, and collaborative,
-  sequential, cold-start and multimodal models behind one evaluation and
-  serving interface.
+  A toolkit for practical recommender development in three parts usable alone
+  or together: one data checkpoint (interaction matrix, sequences, item
+  metadata, embeddings and splits in one portable file with recorded
+  provenance), a model base class for collaborative, sequential, cold-start and
+  multimodal recommenders, and evaluation with paired statistical testing.
 type: software
 version: "0.4.0"
-date-released: "2026-11-XX"            # TODO: set at tag time
-doi: "10.5281/zenodo.XXXXXXX"          # TODO: Zenodo concept DOI (all versions)
+date-released: "2026-10-28"
 license: Apache-2.0
 repository-code: "https://github.com/zombak79/compresso-recsys"
 url: "https://zombak79.github.io/compresso-recsys/"
@@ -32,38 +31,16 @@ keywords:
 authors:
   - family-names: "Vančura"
     given-names: "Vojtěch"
-    orcid: "https://orcid.org/0000-0000-0000-0000"   # TODO
+    orcid: "https://orcid.org/0000-0003-2638-9969"
   - family-names: "Medda"
     given-names: "Giacomo"
-    orcid: "https://orcid.org/0000-0000-0000-0000"   # TODO
+    orcid: "https://orcid.org/0000-0002-1300-1876"
   - family-names: "Spišák"
     given-names: "Martin"
-    orcid: "https://orcid.org/0000-0000-0000-0000"   # TODO
+    orcid: "https://orcid.org/0009-0006-7763-5575"
   - family-names: "Peška"
     given-names: "Ladislav"
-    orcid: "https://orcid.org/0000-0000-0000-0000"   # TODO
+    orcid: "https://orcid.org/0000-0001-8082-4509"
   - family-names: "Olieman"
     given-names: "Mark"
-    orcid: "https://orcid.org/0000-0000-0000-0000"   # TODO
-preferred-citation:
-  type: conference-paper
-  title: "TODO: final ECIR 2027 resource-paper title"
-  authors:
-    - family-names: "Vančura"
-      given-names: "Vojtěch"
-    - family-names: "Medda"
-      given-names: "Giacomo"
-    - family-names: "Spišák"
-      given-names: "Martin"
-    - family-names: "Peška"
-      given-names: "Ladislav"
-    - family-names: "Olieman"
-      given-names: "Mark"
-  collection-title: "Advances in Information Retrieval: 49th European Conference on Information Retrieval, ECIR 2027"
-  conference:
-    name: "ECIR 2027"
-  publisher:
-    name: "Springer"
-  series: "Lecture Notes in Computer Science"
-  year: 2027
-  doi: "10.1007/XXXX"                  # TODO: once published; remove until then
+    # TODO: ORCID once registered

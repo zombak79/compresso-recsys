@@ -1,4 +1,4 @@
-## [0.4.0] — Unreleased
+## [0.4.0] — 2026-10-28
 
 ### Added
 
@@ -81,7 +81,7 @@
   arguments, SHA-256 of every raw source file, and `content_sha256`, a digest of
   the checkpoint's data that is identical across rebuilds. `load_provenance`
   reads it. Checkpoints still load in 0.3.x, which ignores the new keys.
-- `examples/paper/`: the benchmark runner of the ECIR 2027 resource paper
+- `examples/paper/`: the benchmark runner of the compresso-recsys paper (under submission)
   (`list`, `train`, `select`, `compare`), its configuration, and a minutes-long
   ML-1M smoke configuration that writes every output file.
 - `CONTRIBUTING.md` (development setup, supported versions, how to add a model,

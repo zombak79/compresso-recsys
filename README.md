@@ -5,6 +5,8 @@
 [![Python](https://img.shields.io/pypi/pyversions/compresso-recsys.svg)](https://pypi.org/project/compresso-recsys/)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-blue.svg)](https://zombak79.github.io/compresso-recsys/)
+<!-- DOI badge: add after the first Zenodo archive, e.g.
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.CONCEPT.svg)](https://doi.org/10.5281/zenodo.CONCEPT) -->
 
 `compresso-recsys` is a toolkit for practical recommender development, and the
 recommender companion of [Compresso](https://github.com/zombak79/compresso). It
@@ -172,7 +174,7 @@ large-scale ELSA, compressed ELSA, neighborhood models, Mult-DAE, and Mult-VAE a
 The [implementing a recommender tutorial](https://zombak79.github.io/compresso-recsys/implementing-a-recommender.html)
 builds a complete Top Popular model with validation, stable-ID recommendation,
 persistence, evaluation, and executable contract checks.
-[Reproducing the ECIR 2027 benchmark](https://zombak79.github.io/compresso-recsys/paper-reproduction.html)
+[Reproducing the paper benchmark](https://zombak79.github.io/compresso-recsys/paper-reproduction.html)
 walks through `examples/paper/`, from checkpoint builds to the paper's tables, and shows
 how to verify the published results deposit.
 

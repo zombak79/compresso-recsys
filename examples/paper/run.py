@@ -1,4 +1,4 @@
-"""Benchmark runner for the compresso-recsys ECIR 2027 resource paper.
+"""Benchmark runner for the compresso-recsys paper (configuration: ecir2027.toml).
 
 One ``train`` call is one (block, dataset, model, seed, grid point)::
 
@@ -800,7 +800,7 @@ def deposit_readme(root: Path, config: dict, *, tag: str | None) -> str:
     meta = json.loads((root / "meta.json").read_text())
     datasets = sorted({path.name for path in (root / "runs").glob("*/*") if path.is_dir()})
     lines = [
-        "# compresso-recsys ECIR 2027 benchmark results",
+        "# compresso-recsys benchmark results",
         "",
         f"- **Code commit:** `{meta.get('commit')}`" + (f" (tag `{tag}`)" if tag else ""),
         f"- **Created:** {meta.get('created_at')}",

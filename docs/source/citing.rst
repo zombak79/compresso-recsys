@@ -14,22 +14,11 @@ Compresso Recsys
 ----------------
 
 If your work uses Compresso Recsys itself (its datasets and checkpoints,
-evaluation, statistical comparison, or models), cite the resource paper:
-
-.. code-block:: bibtex
-
-   @inproceedings{vancura2027compressorecsys,
-     title     = {TODO: final ECIR 2027 resource-paper title},
-     author    = {Van{\v{c}}ura, Vojt{\v{e}}ch and Medda, Giacomo and Spi{\v{s}}{\'a}k, Martin and Pe{\v{s}}ka, Ladislav and Olieman, Mark},
-     booktitle = {Advances in Information Retrieval: 49th European Conference on Information Retrieval, {ECIR} 2027},
-     series    = {Lecture Notes in Computer Science},
-     publisher = {Springer},
-     year      = {2027}
-   }
-
-To pin the exact software release used in an experiment, also cite its archived
-version. Every GitHub release is archived on Zenodo; the DOI below always
-resolves to the latest version, and each release page lists its own DOI:
+evaluation, statistical comparison, or models), cite the software release you
+used. Every GitHub release is archived on Zenodo; the concept DOI always
+resolves to the latest version, and each release page lists its own DOI. A
+paper describing Compresso Recsys is under submission; this page will give its
+reference once it is published.
 
 .. code-block:: bibtex
 
@@ -39,7 +28,7 @@ resolves to the latest version, and each release page lists its own DOI:
      version   = {0.4.0},
      year      = {2026},
      publisher = {Zenodo},
-     doi       = {10.5281/zenodo.XXXXXXX},
+     note      = {Zenodo DOI assigned at release; see the repository's CITATION.cff},
      url       = {https://github.com/zombak79/compresso-recsys}
    }
 
